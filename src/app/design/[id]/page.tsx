@@ -74,6 +74,7 @@ export default async function DesignDetailPage({
       .from("designs")
       .select("*, artist:profiles!designs_artist_id_fkey(*)")
       .eq("id", id)
+      .eq("is_admin_hidden", false)
       .single(),
     supabase
       .from("design_images")

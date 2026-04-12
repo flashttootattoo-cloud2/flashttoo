@@ -39,6 +39,7 @@ interface DesignActionsProps {
     is_available: boolean;
     is_archived: boolean;
     is_pinned: boolean;
+    is_admin_hidden?: boolean;
     likes_count?: number | null;
   };
   userPlan: PlanType;
@@ -122,7 +123,12 @@ export function DesignActions({ design, userPlan, pinnedCount }: DesignActionsPr
         </Link>
 
         {/* Overlays */}
-        {archived && (
+        {design.is_admin_hidden && (
+          <div className="absolute inset-0 bg-zinc-950/80 flex items-center justify-center pointer-events-none z-10">
+            <Badge className="bg-red-500/20 text-red-400 border border-red-500/40 text-xs">Oculto por administración</Badge>
+          </div>
+        )}
+        {archived && !design.is_admin_hidden && (
           <div className="absolute inset-0 bg-zinc-950/70 flex items-center justify-center pointer-events-none">
             <Badge className="bg-zinc-700 text-zinc-300 text-xs border-0">Archivado</Badge>
           </div>
@@ -160,10 +166,10 @@ export function DesignActions({ design, userPlan, pinnedCount }: DesignActionsPr
           </div>
         )}
 
-        {/* Menu button */}
+        {/* Menu button — hidden if admin locked */}
         <button
-          onClick={(e) => { e.preventDefault(); setMenuOpen((o) => !o); }}
-          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center text-white hover:bg-zinc-800 transition-colors"
+          onClick={(e) => { e.preventDefault(); if (!design.is_admin_hidden) setMenuOpen((o) => !o); }}
+          className={`absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center text-white hover:bg-zinc-800 transition-colors ${design.is_admin_hidden ? "opacity-30 cursor-not-allowed" : ""}`}
         >
           <MoreVertical className="w-4 h-4" />
         </button>

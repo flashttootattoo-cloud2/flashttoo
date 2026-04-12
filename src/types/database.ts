@@ -49,6 +49,7 @@ export interface Design {
   is_flash: boolean;
   is_archived: boolean;
   is_pinned: boolean;
+  is_admin_hidden: boolean;
   artist_tag: string | null;
   views_count: number;
   likes_count: number;

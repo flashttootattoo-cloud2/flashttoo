@@ -255,7 +255,7 @@ function AdminDesignCard({ design, onRemove }: { design: any; onRemove: (id: str
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmHide, setConfirmHide] = useState(false);
-  const [isAvailable, setIsAvailable] = useState<boolean>(design.is_available);
+  const [isAvailable, setIsAvailable] = useState<boolean>(!design.is_admin_hidden);
 
   const handleDelete = async () => {
     setLoading(true);
@@ -281,7 +281,7 @@ function AdminDesignCard({ design, onRemove }: { design: any; onRemove: (id: str
     await fetch("/api/admin/update-design", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ designId: design.id, is_available: next }),
+      body: JSON.stringify({ designId: design.id, is_admin_hidden: !next }),
     });
     setIsAvailable(next);
     setLoading(false);

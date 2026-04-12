@@ -91,6 +91,7 @@ export default async function ArtistProfilePage({
       .select("*, artist:profiles!designs_artist_id_fkey(*)")
       .eq("artist_id", artist.id)
       .eq("is_archived", false)
+      .eq("is_admin_hidden", false)
       .order("created_at", { ascending: false }),
     user
       ? supabase.from("design_likes").select("design_id").eq("user_id", user.id)

@@ -64,6 +64,7 @@ export default async function HomePage({
     .select("*, artist:profiles!designs_artist_id_fkey(id, full_name, username, avatar_url, city, plan, is_blocked)")
     .eq("is_available", true)
     .eq("is_archived", false)
+    .eq("is_admin_hidden", false)
     .limit(40);
 
   if (params.style) designQuery = designQuery.eq("style", params.style);
