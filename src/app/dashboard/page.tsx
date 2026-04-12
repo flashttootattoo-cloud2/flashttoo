@@ -35,7 +35,7 @@ export default async function DashboardPage() {
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     supabase
       .from("designs")
-      .select("id, title, image_url, is_available, is_archived, is_pinned, views_count, likes_count, created_at")
+      .select("id, title, image_url, is_available, is_archived, is_pinned, is_admin_hidden, views_count, likes_count, created_at")
       .eq("artist_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
