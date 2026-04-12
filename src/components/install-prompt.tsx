@@ -16,20 +16,17 @@ export function InstallPrompt() {
     if (localStorage.getItem("install-dismissed")) return;
 
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isMobile = ios || /android/i.test(navigator.userAgent);
     setIsIOS(ios);
 
-    if (ios) {
-      // Only show on Safari (not Chrome/Firefox on iOS)
-      const isSafari = /safari/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent);
-      if (isSafari) setShow(true);
-      return;
-    }
+    // Show immediately on any mobile device
+    if (isMobile) setShow(true);
 
-    // Android / desktop Chrome
+    // Also listen for Android native install prompt
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShow(true);
+      if (!isMobile) setShow(true); // desktop fallback
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
