@@ -336,7 +336,7 @@ function MessagesContent() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
+    <div className="max-w-5xl mx-auto px-4 pt-6 pb-32 md:pb-6">
       <h1 className="text-2xl font-bold mb-4">Mensajes</h1>
 
       {/* Mobile: list or chat. Desktop: side by side */}
@@ -347,7 +347,7 @@ function MessagesContent() {
         {showChat ? (
           <div className={cn(
             "flex flex-col flex-1",
-            "h-[calc(100vh-8rem)] md:h-auto",
+            "h-[calc(100vh-16rem)] md:h-auto",
             "bg-zinc-900 border border-zinc-800 rounded-2xl md:rounded-none md:border-0"
           )}>
             {/* Header */}

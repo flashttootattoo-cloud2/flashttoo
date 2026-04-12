@@ -1,8 +1,26 @@
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Términos de uso – Flashttoo",
 };
 
-export default function TerminosPage() {
+export default async function TerminosPage() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("site_content").select("value").eq("key", "terminos").maybeSingle();
+  const dbContent = data?.value;
+
+  if (dbContent) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-12 text-zinc-300">
+        <h1 className="text-3xl font-bold text-white mb-2">Términos de uso</h1>
+        <p className="text-zinc-500 text-sm mb-10">Flashttoo</p>
+        <div className="whitespace-pre-wrap text-sm leading-relaxed">{dbContent}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 text-zinc-300 prose-zinc">
       <h1 className="text-3xl font-bold text-white mb-2">Términos de uso</h1>

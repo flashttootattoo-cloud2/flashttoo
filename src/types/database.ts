@@ -30,6 +30,8 @@ export interface Ad {
   contact_url: string | null;
   city: string | null;
   is_active: boolean;
+  clicks_count: number;
+  views_count: number;
   created_at: string;
 }
 

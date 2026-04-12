@@ -6,7 +6,7 @@ import type { Design } from "@/types/database";
 import { ExternalLink } from "lucide-react";
 
 interface MasonryGridProps {
-  designs: (Design & { _isAd?: boolean; brand_name?: string; contact_url?: string | null; city?: string | null })[];
+  designs: (Design & { _isAd?: boolean; id: string; brand_name?: string; contact_url?: string | null; city?: string | null })[];
 }
 
 function useColumns() {
@@ -31,7 +31,7 @@ export function MasonryGrid({ designs }: MasonryGridProps) {
       {designs.map((item, index) => (
         <div key={item.id} style={{ breakInside: "avoid", marginBottom: "1rem" }}>
           {item._isAd ? (
-            <AdCard ad={item as any} />
+            <AdCard ad={item as { id: string; image_url: string; brand_name: string; contact_url?: string | null; city?: string | null }} />
           ) : (
             <DesignCard design={item} priority={index < 8} />
           )}
@@ -41,7 +41,21 @@ export function MasonryGrid({ designs }: MasonryGridProps) {
   );
 }
 
-function AdCard({ ad }: { ad: { image_url: string; brand_name: string; contact_url?: string | null; city?: string | null } }) {
+function trackAd(adId: string, type: "click" | "view") {
+  fetch("/api/ads/track", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adId, type }),
+  }).catch(() => {});
+}
+
+function AdCard({ ad }: { ad: { id: string; image_url: string; brand_name: string; contact_url?: string | null; city?: string | null } }) {
+  // Track view on mount
+  useEffect(() => {
+    trackAd(ad.id, "view");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ad.id]);
+
   const inner = (
     <div className="relative rounded-2xl overflow-hidden bg-zinc-900 group">
       <img
@@ -66,7 +80,12 @@ function AdCard({ ad }: { ad: { image_url: string; brand_name: string; contact_u
 
   if (ad.contact_url) {
     return (
-      <a href={ad.contact_url} target="_blank" rel="noopener noreferrer sponsored">
+      <a
+        href={ad.contact_url}
+        target="_blank"
+        rel="noopener noreferrer sponsored"
+        onClick={() => trackAd(ad.id, "click")}
+      >
         {inner}
       </a>
     );

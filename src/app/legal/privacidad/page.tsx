@@ -1,8 +1,26 @@
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Política de privacidad – Flashttoo",
 };
 
-export default function PrivacidadPage() {
+export default async function PrivacidadPage() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("site_content").select("value").eq("key", "privacidad").maybeSingle();
+  const dbContent = data?.value;
+
+  if (dbContent) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-12 text-zinc-300">
+        <h1 className="text-3xl font-bold text-white mb-2">Política de privacidad</h1>
+        <p className="text-zinc-500 text-sm mb-10">Flashttoo</p>
+        <div className="whitespace-pre-wrap text-sm leading-relaxed">{dbContent}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 text-zinc-300">
       <h1 className="text-3xl font-bold text-white mb-2">Política de privacidad</h1>
