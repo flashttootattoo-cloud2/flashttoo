@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { ClientProviders } from "@/components/client-providers";
 import { Toaster } from "@/components/ui/sonner";
+import { InstallPrompt } from "@/components/install-prompt";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -48,6 +49,7 @@ export default function RootLayout({
         <ClientProviders>
           <main className="min-h-[calc(100vh-4rem)]">{children}</main>
         </ClientProviders>
+        <InstallPrompt />
         <Toaster theme="dark" position="bottom-right" />
       </body>
     </html>

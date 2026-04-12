@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Share, Plus } from "lucide-react";
+import { Share, Plus } from "lucide-react";
 
 export function InstallPrompt() {
   const [show, setShow] = useState(false);
@@ -12,7 +12,7 @@ export function InstallPrompt() {
   useEffect(() => {
     // Already installed as standalone — don't show
     if (window.matchMedia("(display-mode: standalone)").matches) return;
-    // Already dismissed
+    // Already installed via prompt
     if (localStorage.getItem("install-dismissed")) return;
 
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -35,11 +35,6 @@ export function InstallPrompt() {
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
-  const dismiss = () => {
-    localStorage.setItem("install-dismissed", "1");
-    setShow(false);
-  };
-
   const installAndroid = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
@@ -52,13 +47,7 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl p-4">
-      <button
-        onClick={dismiss}
-        className="absolute top-3 right-3 text-zinc-500 hover:text-white transition-colors"
-        aria-label="Cerrar"
-      >
-        <X className="w-4 h-4" />
-      </button>
+
 
       <div className="flex items-start gap-3 mb-3 pr-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
