@@ -7,11 +7,13 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const subscription = await req.json();
+  const endpoint = subscription?.endpoint;
+  if (!endpoint) return NextResponse.json({ error: "No endpoint" }, { status: 400 });
 
-  // Upsert: one subscription per user (replace on conflict)
+  // Upsert by endpoint — one row per device, many per user
   await supabase.from("push_subscriptions").upsert(
-    { user_id: user.id, subscription },
-    { onConflict: "user_id" }
+    { user_id: user.id, subscription, endpoint },
+    { onConflict: "endpoint" }
   );
 
   return NextResponse.json({ ok: true });
