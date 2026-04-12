@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Ban, CheckCircle, ExternalLink, ChevronDown } from "lucide-react";
+import { Search, Ban, CheckCircle, ExternalLink, ChevronDown, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 interface AdminUser {
@@ -166,6 +166,13 @@ export function AdminUsersClient({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      <a
+                        href={`/messages?user=${user.id}`}
+                        className="p-1.5 text-zinc-500 hover:text-amber-400 transition-colors"
+                        title="Enviar mensaje"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                      </a>
                       {user.role === "tattoo_artist" && (
                         <a
                           href={`/artist/${user.username}`}
