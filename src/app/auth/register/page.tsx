@@ -1,16 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, Brush, User, CheckCircle, XCircle } from "lucide-react";
+import { Eye, EyeOff, Loader2, Brush, User, CheckCircle, XCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDebouncedCallback } from "use-debounce";
 import type { UserRole } from "@/types/database";
+
+function LegalModal({ contentKey, title, onClose }: { contentKey: string; title: string; onClose: () => void }) {
+  const supabase = createClient();
+  const [text, setText] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("site_content")
+      .select("value")
+      .eq("key", contentKey)
+      .maybeSingle()
+      .then(({ data }) => { setText(data?.value ?? ""); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentKey]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full sm:max-w-2xl bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 shrink-0">
+          <h2 className="font-bold text-base">{title}</h2>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {text === null ? (
+            <div className="flex items-center justify-center h-20">
+              <Loader2 className="w-5 h-5 animate-spin text-zinc-500" />
+            </div>
+          ) : text ? (
+            <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{text}</p>
+          ) : (
+            <p className="text-sm text-zinc-500 italic">
+              Contenido no disponible aún. Visitá{" "}
+              <Link href={`/legal/${contentKey}`} className="text-amber-400 underline" onClick={onClose}>
+                /legal/{contentKey}
+              </Link>.
+            </p>
+          )}
+        </div>
+        <div className="px-5 py-4 border-t border-zinc-800 shrink-0">
+          <Button onClick={onClose} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white">
+            Entendido
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function RegisterPage() {
   const supabase = createClient();
@@ -23,6 +73,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [legalModal, setLegalModal] = useState<"terminos" | "privacidad" | null>(null);
 
   // username availability
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
@@ -266,13 +317,21 @@ export default function RegisterPage() {
 
           <p className="text-center text-xs text-zinc-500">
             Al registrarte aceptás nuestros{" "}
-            <Link href="/legal/terminos" className="underline hover:text-zinc-300 transition-colors">
+            <button
+              type="button"
+              onClick={() => setLegalModal("terminos")}
+              className="underline hover:text-zinc-300 transition-colors"
+            >
               términos de uso
-            </Link>{" "}
+            </button>{" "}
             y{" "}
-            <Link href="/legal/privacidad" className="underline hover:text-zinc-300 transition-colors">
+            <button
+              type="button"
+              onClick={() => setLegalModal("privacidad")}
+              className="underline hover:text-zinc-300 transition-colors"
+            >
               política de privacidad
-            </Link>.
+            </button>.
           </p>
 
           <p className="text-center text-sm text-zinc-400">
@@ -283,6 +342,14 @@ export default function RegisterPage() {
           </p>
         </form>
       </div>
+
+      {legalModal && (
+        <LegalModal
+          contentKey={legalModal}
+          title={legalModal === "terminos" ? "Términos de uso" : "Política de privacidad"}
+          onClose={() => setLegalModal(null)}
+        />
+      )}
     </div>
   );
 }
