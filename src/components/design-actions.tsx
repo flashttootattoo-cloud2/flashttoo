@@ -124,8 +124,16 @@ export function DesignActions({ design, userPlan, pinnedCount }: DesignActionsPr
 
         {/* Overlays */}
         {design.is_admin_hidden && (
-          <div className="absolute inset-0 bg-zinc-950/80 flex items-center justify-center pointer-events-none z-10">
-            <Badge className="bg-red-500/20 text-red-400 border border-red-500/40 text-xs">Oculto por administración</Badge>
+          <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center gap-2 z-10 p-3 text-center">
+            <span className="text-red-400 text-2xl">⚠</span>
+            <p className="text-red-400 text-xs font-semibold leading-tight">Contenido bloqueado por administración</p>
+            <p className="text-zinc-500 text-[10px] leading-tight">No es visible para otros usuarios.</p>
+            <button
+              onClick={(e) => { e.preventDefault(); setConfirmDelete(true); }}
+              className="mt-1 px-3 py-1 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-medium transition-colors border border-zinc-700"
+            >
+              Eliminar diseño
+            </button>
           </div>
         )}
         {archived && !design.is_admin_hidden && (
