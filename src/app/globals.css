@@ -117,6 +117,17 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ── Color de marca ────────────────────────────── */
+@theme {
+  --color-amber-50:  #fefff0;
+  --color-amber-100: #fdffe0;
+  --color-amber-200: #faffc2;
+  --color-amber-300: #f5ff76;  /* hover states */
+  --color-amber-400: #f0ff42;  /* color principal */
+  --color-amber-500: #ddef00;
+  --color-amber-600: #b8c700;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -127,4 +138,13 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Utility: hide scrollbar cross-browser */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
