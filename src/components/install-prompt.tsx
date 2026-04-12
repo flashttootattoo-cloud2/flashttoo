@@ -60,9 +60,8 @@ export function InstallPrompt() {
       </div>
 
       {isIOS ? (
-        // iOS: guide with steps (Safari doesn't allow programmatic install)
         <div className="bg-zinc-800 rounded-xl p-3 space-y-2">
-          <p className="text-xs text-zinc-400 font-medium uppercase tracking-wide mb-2">Cómo instalar</p>
+          <p className="text-xs text-zinc-400 font-medium uppercase tracking-wide mb-2">Cómo instalar en iPhone</p>
           <div className="flex items-center gap-2.5 text-sm text-zinc-300">
             <span className="w-5 h-5 rounded-full bg-amber-400 text-zinc-900 text-xs font-bold flex items-center justify-center shrink-0">1</span>
             Tocá el botón <Share className="w-4 h-4 text-blue-400 inline mx-1 shrink-0" /> en Safari
@@ -77,13 +76,29 @@ export function InstallPrompt() {
             Tocá <span className="font-medium text-white ml-1">"Agregar"</span>
           </div>
         </div>
-      ) : (
+      ) : deferredPrompt ? (
         <button
           onClick={installAndroid}
           className="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold text-sm rounded-xl transition-colors"
         >
           Instalar app
         </button>
+      ) : (
+        <div className="bg-zinc-800 rounded-xl p-3 space-y-2">
+          <p className="text-xs text-zinc-400 font-medium uppercase tracking-wide mb-2">Cómo instalar en Android</p>
+          <div className="flex items-center gap-2.5 text-sm text-zinc-300">
+            <span className="w-5 h-5 rounded-full bg-amber-400 text-zinc-900 text-xs font-bold flex items-center justify-center shrink-0">1</span>
+            Tocá el menú <span className="font-medium text-white mx-1">⋮</span> de Chrome
+          </div>
+          <div className="flex items-center gap-2.5 text-sm text-zinc-300">
+            <span className="w-5 h-5 rounded-full bg-amber-400 text-zinc-900 text-xs font-bold flex items-center justify-center shrink-0">2</span>
+            Elegí <span className="font-medium text-white mx-1">"Agregar a pantalla de inicio"</span>
+          </div>
+          <div className="flex items-center gap-2.5 text-sm text-zinc-300">
+            <span className="w-5 h-5 rounded-full bg-amber-400 text-zinc-900 text-xs font-bold flex items-center justify-center shrink-0">3</span>
+            Tocá <span className="font-medium text-white ml-1">"Instalar"</span>
+          </div>
+        </div>
       )}
     </div>
   );
