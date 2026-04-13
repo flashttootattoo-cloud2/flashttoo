@@ -195,56 +195,56 @@ export function DesignActions({ design, userPlan, pinnedCount }: DesignActionsPr
       {menuOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
-          <div className="relative z-10 w-full sm:max-w-sm bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+          <div className="relative z-10 w-full sm:max-w-sm bg-amber-400 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1 sm:hidden">
-              <div className="w-10 h-1 rounded-full bg-zinc-700" />
+              <div className="w-10 h-1 rounded-full bg-amber-600/40" />
             </div>
-            <div className="px-4 py-3 border-b border-zinc-800">
-              <p className="font-semibold text-sm text-white truncate">{design.title}</p>
+            <div className="px-4 py-3 border-b border-amber-500/40">
+              <p className="font-semibold text-sm text-zinc-900 truncate">{design.title}</p>
             </div>
 
             <div className="py-2">
               {!archived && (
-                <button onClick={toggleAvailable} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-zinc-800 transition-colors text-left">
+                <button onClick={toggleAvailable} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-amber-300/50 transition-colors text-left text-zinc-900">
                   {available
-                    ? <><Circle className="w-5 h-5 text-amber-400 shrink-0" /><span>Marcar como reservado</span></>
-                    : <><CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" /><span>Marcar como disponible</span></>}
+                    ? <><Circle className="w-5 h-5 text-zinc-700 shrink-0" /><span>Marcar como reservado</span></>
+                    : <><CheckCircle className="w-5 h-5 text-zinc-700 shrink-0" /><span>Marcar como disponible</span></>}
                 </button>
               )}
               {canPin && !archived && (
-                <button onClick={togglePinned} disabled={!canAddPin} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-zinc-800 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed">
+                <button onClick={togglePinned} disabled={!canAddPin} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-amber-300/50 transition-colors text-left text-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed">
                   {pinned
-                    ? <><PinOff className="w-5 h-5 text-zinc-400 shrink-0" /><span>Desfijar</span></>
-                    : <><Pin className="w-5 h-5 text-amber-400 shrink-0" /><span>Fijar al tope {pinnedCount >= maxPins && "(lleno)"}</span></>}
+                    ? <><PinOff className="w-5 h-5 text-zinc-700 shrink-0" /><span>Desfijar</span></>
+                    : <><Pin className="w-5 h-5 text-zinc-700 shrink-0" /><span>Fijar al tope {pinnedCount >= maxPins && "(lleno)"}</span></>}
                 </button>
               )}
               {canArchive ? (
-                <button onClick={toggleArchived} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-zinc-800 transition-colors text-left">
+                <button onClick={toggleArchived} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-amber-300/50 transition-colors text-left text-zinc-900">
                   {archived
-                    ? <><ArchiveRestore className="w-5 h-5 text-emerald-400 shrink-0" /><span>Restaurar al feed</span></>
-                    : <><Archive className="w-5 h-5 text-zinc-400 shrink-0" /><span>Archivar</span></>}
+                    ? <><ArchiveRestore className="w-5 h-5 text-zinc-700 shrink-0" /><span>Restaurar al feed</span></>
+                    : <><Archive className="w-5 h-5 text-zinc-700 shrink-0" /><span>Archivar</span></>}
                 </button>
               ) : (
-                <Link href="/plans" onClick={() => setMenuOpen(false)} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-zinc-800 transition-colors text-left text-zinc-500">
+                <Link href="/plans" onClick={() => setMenuOpen(false)} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-amber-300/50 transition-colors text-left text-zinc-700">
                   <Archive className="w-5 h-5 shrink-0" />
                   <span>Archivar</span>
-                  <span className="ml-auto text-[10px] bg-amber-400/20 text-amber-400 px-1.5 py-0.5 rounded">Basic+</span>
+                  <span className="ml-auto text-[10px] bg-zinc-900/20 text-zinc-900 px-1.5 py-0.5 rounded font-semibold">Basic+</span>
                 </Link>
               )}
-              <Link href={`/dashboard/edit/${design.id}`} onClick={() => setMenuOpen(false)} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-zinc-800 transition-colors text-left">
-                <Pencil className="w-5 h-5 text-zinc-400 shrink-0" />
+              <Link href={`/dashboard/edit/${design.id}`} onClick={() => setMenuOpen(false)} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-amber-300/50 transition-colors text-left text-zinc-900">
+                <Pencil className="w-5 h-5 text-zinc-700 shrink-0" />
                 <span>Editar diseño</span>
               </Link>
-              <div className="h-px bg-zinc-800 mx-4 my-1" />
-              <button onClick={() => { setMenuOpen(false); setConfirmDelete(true); }} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-red-400 hover:bg-zinc-800 transition-colors text-left">
+              <div className="h-px bg-amber-500/30 mx-4 my-1" />
+              <button onClick={() => { setMenuOpen(false); setConfirmDelete(true); }} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-red-700 hover:bg-amber-300/50 transition-colors text-left">
                 <Trash2 className="w-5 h-5 shrink-0" />
                 <span>Eliminar diseño</span>
               </button>
             </div>
 
             <div className="px-4 pb-4 pt-1">
-              <button onClick={() => setMenuOpen(false)} className="w-full py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-sm font-medium transition-colors">
+              <button onClick={() => setMenuOpen(false)} className="w-full py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-amber-400 text-sm font-semibold transition-colors">
                 Cancelar
               </button>
             </div>
