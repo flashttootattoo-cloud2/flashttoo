@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SavedDesignsGrid } from "@/components/saved-design-card";
 import Link from "next/link";
-import { MapPin, Heart, Settings, Brush, Bookmark } from "lucide-react";
+import { MapPin, Heart, Settings, Bookmark } from "lucide-react";
 
 import { FollowingList } from "@/components/following-list";
 
@@ -67,51 +67,44 @@ export default async function ProfilePage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row gap-6 mb-10">
-        <Avatar className="w-24 h-24 border-4 border-zinc-700 shrink-0">
+      <div className="flex flex-row gap-4 mb-10 items-start">
+        <Avatar className="w-20 h-20 border-4 border-zinc-700 shrink-0">
           <AvatarImage src={profile.avatar_url ?? ""} />
-          <AvatarFallback className="bg-amber-400 text-zinc-900 text-3xl font-bold">
+          <AvatarFallback className="bg-amber-400 text-zinc-900 text-2xl font-bold">
             {profile.full_name?.[0]?.toUpperCase()}
           </AvatarFallback>
         </Avatar>
 
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold">{profile.full_name}</h1>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-0.5">
+            <h1 className="text-xl font-bold leading-tight">{profile.full_name}</h1>
             <Badge variant="outline" className="border-zinc-700 text-zinc-400 text-xs">Cliente</Badge>
           </div>
-          <p className="text-zinc-400 text-sm mb-3">@{profile.username}</p>
+          <p className="text-zinc-400 text-sm mb-2">@{profile.username}</p>
 
           {profile.city && (
-            <div className="flex items-center gap-1.5 text-zinc-400 text-sm mb-3">
-              <MapPin className="w-4 h-4" />
+            <div className="flex items-center gap-1.5 text-zinc-400 text-sm mb-2">
+              <MapPin className="w-3.5 h-3.5" />
               {profile.city}{profile.country ? `, ${profile.country}` : ""}
             </div>
           )}
 
-          <div className="flex gap-5 text-sm mb-4">
+          <div className="flex gap-4 text-sm mb-3">
             <div>
-              <span className="font-bold text-white text-lg">{designs.length}</span>
-              <span className="text-zinc-400 ml-1.5">diseños guardados</span>
+              <span className="font-bold text-white text-base">{designs.length}</span>
+              <span className="text-zinc-400 ml-1">guardados</span>
             </div>
             <div>
-              <span className="font-bold text-white text-lg">{following.length}</span>
-              <span className="text-zinc-400 ml-1.5">siguiendo</span>
+              <span className="font-bold text-white text-base">{following.length}</span>
+              <span className="text-zinc-400 ml-1">siguiendo</span>
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <Button asChild variant="outline" size="sm" className="border-zinc-700 hover:bg-zinc-800">
-              <Link href="/dashboard/settings">
-                <Settings className="w-4 h-4 mr-1.5" /> Editar perfil
-              </Link>
-            </Button>
-            <Button asChild size="sm" className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold">
-              <Link href="/dashboard/settings?upgrade=true">
-                <Brush className="w-4 h-4 mr-1.5" /> Quiero ser tatuador/a
-              </Link>
-            </Button>
-          </div>
+          <Button asChild variant="outline" size="sm" className="border-zinc-700 hover:bg-zinc-800">
+            <Link href="/dashboard/settings">
+              <Settings className="w-4 h-4 mr-1.5" /> Editar perfil
+            </Link>
+          </Button>
         </div>
       </div>
 

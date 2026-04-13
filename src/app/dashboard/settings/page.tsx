@@ -435,7 +435,7 @@ export default function SettingsPage() {
                 ) : (
                   <>
                     <Brush className="w-4 h-4 mr-2" />
-                    Sí, quiero ser tatuador/a
+                    Cambiar a cuenta tatuador
                   </>
                 )}
               </Button>
