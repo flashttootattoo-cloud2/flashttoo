@@ -190,12 +190,6 @@ export default async function ArtistProfilePage({
               </span>
               <span className="text-zinc-400 ml-1.5">diseños</span>
             </div>
-            <div>
-              <span className="font-bold text-white text-lg">
-                {artist.followers_count ?? 0}
-              </span>
-              <span className="text-zinc-400 ml-1.5">seguidores</span>
-            </div>
           </div>
 
           <div className="flex flex-wrap gap-3">

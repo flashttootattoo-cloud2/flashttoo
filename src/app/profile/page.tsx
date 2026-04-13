@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SavedDesignsGrid } from "@/components/saved-design-card";
 import Link from "next/link";
-import { MapPin, Heart, Settings, Bookmark } from "lucide-react";
+import { MapPin, Heart, Settings } from "lucide-react";
 
 import { FollowingList } from "@/components/following-list";
 
@@ -116,17 +116,6 @@ export default async function ProfilePage() {
           <Heart className="w-4 h-4 text-amber-400" />
           Diseños guardados
         </h2>
-
-        {/* Banner urgencia — si algún diseño guardado tiene competencia */}
-        {designs.filter((d: any) => (d.likes_count ?? 0) >= 2 && d.is_available).map((d: any) => (
-          <div key={d.id} className="mb-3 flex items-center gap-3 bg-amber-400/10 border border-amber-400/30 rounded-xl px-4 py-3">
-            <Bookmark className="w-4 h-4 text-amber-400 fill-current shrink-0" />
-            <p className="text-sm text-amber-300 font-medium">
-              <span className="text-white font-semibold">{d.title}</span>
-              {" — "}{d.likes_count} {d.likes_count === 1 ? "persona tiene" : "personas tienen"} este diseño guardado — reservá primero.
-            </p>
-          </div>
-        ))}
 
         {designs.length > 0 ? (
           <SavedDesignsGrid designs={designs as any} userId={user.id} />

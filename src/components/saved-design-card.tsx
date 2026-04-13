@@ -68,7 +68,7 @@ export function SavedDesignCard({ design, userId, index }: SavedDesignCardProps)
 
   return (
     <div style={{ breakInside: "avoid", marginBottom: "1rem" }}>
-      <div className="relative group rounded-2xl overflow-hidden bg-zinc-900">
+      <div className={`relative group rounded-2xl overflow-hidden bg-zinc-900 ${(design.likes_count ?? 0) >= 2 && design.is_available ? "ring-2 ring-amber-400/60" : ""}`}>
         <Link href={`/design/${design.id}`}>
           <Image
             src={design.image_url}
@@ -89,6 +89,11 @@ export function SavedDesignCard({ design, userId, index }: SavedDesignCardProps)
                 </p>
               )}
             </div>
+            {(design.likes_count ?? 0) >= 2 && design.is_available && (
+              <p className="text-amber-400 text-xs mt-0.5 font-medium">
+                🔥 {design.likes_count} guardados — reservá primero
+              </p>
+            )}
           </div>
         </Link>
 
