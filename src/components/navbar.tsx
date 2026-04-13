@@ -25,6 +25,7 @@ import {
   User,
   Zap,
   X,
+  Menu,
   Download,
   Share,
   Bookmark,
@@ -371,12 +372,13 @@ export function Navbar() {
               <Button variant="ghost" asChild className="hidden md:flex text-zinc-400 hover:text-white">
                 <Link href="/auth/login">Iniciar sesión</Link>
               </Button>
-              <Button asChild className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold text-sm">
+              <Button asChild className="hidden md:flex bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold text-sm">
                 <Link href="/auth/register">Registrarse</Link>
               </Button>
-              <Button variant="ghost" asChild className="md:hidden text-zinc-400 hover:text-white text-sm px-2">
-                <Link href="/auth/login">Entrar</Link>
-              </Button>
+              {/* Mobile: menú hamburguesa para no-logueados */}
+              <button onClick={() => setSheetOpen(!sheetOpen)} className="md:hidden p-2 text-zinc-400 hover:text-white">
+                {sheetOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
             </div>
           )}
         </div>
@@ -400,50 +402,62 @@ export function Navbar() {
         </div>
       )}
 
-      {/* ── MOBILE AMBER BOTTOM SHEET ── */}
+      {/* ── MOBILE DROPDOWN MENU (amber, cae desde el navbar) ── */}
       {sheetOpen && (
-        <div className="fixed inset-0 z-50 flex items-end md:hidden">
-          <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm" onClick={() => setSheetOpen(false)} />
-          <div className="relative z-10 w-full bg-amber-400 rounded-t-2xl shadow-2xl overflow-hidden">
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-amber-600/40" />
-            </div>
+        <div className="md:hidden">
+          <div className="fixed inset-0 z-40 top-16" onClick={() => setSheetOpen(false)} />
+          <div className="relative z-50 bg-amber-400 border-t border-amber-500/30 shadow-xl">
 
-            {/* Profile info */}
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-amber-500/30">
-              <Avatar className="w-12 h-12 border-2 border-amber-500/40 shrink-0">
-                <AvatarImage src={profile?.avatar_url ?? ""} />
-                <AvatarFallback className="bg-zinc-900 text-amber-400 font-bold">
-                  {profile?.full_name?.[0]?.toUpperCase() ?? "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="font-bold text-zinc-900 truncate">{profile?.full_name ?? "Usuario"}</p>
-                  {profile?.plan === "studio" && <CheckCircle className="w-4 h-4 text-blue-700 shrink-0" />}
-                  {(profile?.plan === "pro" || profile?.plan === "premium") && <CheckCircle className="w-4 h-4 text-zinc-900 shrink-0" />}
+            {/* Profile info — solo si hay sesión */}
+            {user && (
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-amber-500/30">
+                <Avatar className="w-10 h-10 border-2 border-amber-500/40 shrink-0">
+                  <AvatarImage src={profile?.avatar_url ?? ""} />
+                  <AvatarFallback className="bg-zinc-900 text-amber-400 font-bold text-sm">
+                    {profile?.full_name?.[0]?.toUpperCase() ?? "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-bold text-zinc-900 text-sm truncate">{profile?.full_name ?? "Usuario"}</p>
+                    {profile?.plan === "studio" && <CheckCircle className="w-3.5 h-3.5 text-blue-700 shrink-0" />}
+                    {(profile?.plan === "pro" || profile?.plan === "premium") && <CheckCircle className="w-3.5 h-3.5 text-zinc-900 shrink-0" />}
+                  </div>
+                  <p className="text-zinc-700 text-xs truncate">@{profile?.username ?? ""}</p>
                 </div>
-                <p className="text-zinc-700 text-sm truncate">@{profile?.username ?? ""}</p>
               </div>
-              <button onClick={() => setSheetOpen(false)} className="text-zinc-700 hover:text-zinc-900 p-1">
-                <X className="w-5 h-5" />
-              </button>
+            )}
+
+            {/* Nav links principales */}
+            <div className="py-1">
+              {navLinks.map(({ href, icon: Icon, label }) => (
+                <SheetLink key={href} href={href} icon={Icon} label={label} onClose={() => setSheetOpen(false)}
+                  badge={href === "/messages" && unreadCount > 0 ? unreadCount : undefined}
+                />
+              ))}
             </div>
 
-            {/* Nav actions */}
-            <div className="py-1">
-              <SheetLink href={profile?.role === "tattoo_artist" ? `/artist/${profile.username}` : "/profile"} icon={User} label="Mi perfil" onClose={() => setSheetOpen(false)} />
-              {profile?.role === "tattoo_artist" && (
-                <SheetLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" onClose={() => setSheetOpen(false)} />
-              )}
-              {profile?.role !== "administradorgeneral" && (
-                <SheetLink href="/plans" icon={Zap} label="Planes" onClose={() => setSheetOpen(false)} />
-              )}
-              {profile?.role === "administradorgeneral" && (
-                <SheetLink href="/admin" icon={ShieldCheck} label="Panel Admin" onClose={() => setSheetOpen(false)} />
-              )}
-            </div>
+            {/* Separador + acciones de cuenta */}
+            {user && (
+              <div className="border-t border-amber-500/30 py-1">
+                <SheetLink href={profile?.role === "tattoo_artist" ? `/artist/${profile?.username ?? ""}` : "/profile"} icon={User} label="Mi perfil" onClose={() => setSheetOpen(false)} />
+                {profile?.role !== "administradorgeneral" && (
+                  <SheetLink href="/plans" icon={Zap} label="Planes" onClose={() => setSheetOpen(false)} />
+                )}
+                {profile?.role === "administradorgeneral" && (
+                  <SheetLink href="/admin" icon={ShieldCheck} label="Panel Admin" onClose={() => setSheetOpen(false)} />
+                )}
+              </div>
+            )}
+
+            {/* Login para no logueados */}
+            {!user && (
+              <div className="border-t border-amber-500/30 py-1">
+                <SheetLink href="/auth/login" icon={User} label="Iniciar sesión" onClose={() => setSheetOpen(false)} />
+                <SheetLink href="/auth/register" icon={Zap} label="Registrarse gratis" onClose={() => setSheetOpen(false)} />
+              </div>
+            )}
+
 
             {/* Notificaciones (clientes) */}
             {isClient && (
@@ -517,15 +531,17 @@ export function Navbar() {
             )}
 
             {/* Cerrar sesión */}
-            <div className="border-t border-amber-500/30 px-4 pb-4 pt-2">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-700 hover:bg-amber-300/50 transition-colors"
-              >
-                <LogOut className="w-5 h-5 shrink-0" />
-                Cerrar sesión
-              </button>
-            </div>
+            {user && (
+              <div className="border-t border-amber-500/30 py-1">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-700 hover:bg-amber-300/50 transition-colors"
+                >
+                  <LogOut className="w-5 h-5 shrink-0" />
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -533,15 +549,20 @@ export function Navbar() {
   );
 }
 
-function SheetLink({ href, icon: Icon, label, onClose }: { href: string; icon: React.ElementType; label: string; onClose: () => void }) {
+function SheetLink({ href, icon: Icon, label, onClose, badge }: { href: string; icon: React.ElementType; label: string; onClose: () => void; badge?: number }) {
   const router = useRouter();
   return (
     <button
       onClick={() => { onClose(); router.push(href); }}
-      className="w-full flex items-center gap-3 px-5 py-3.5 text-sm font-medium text-zinc-900 hover:bg-amber-300/50 transition-colors"
+      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-zinc-900 hover:bg-amber-300/50 transition-colors"
     >
       <Icon className="w-5 h-5 text-zinc-700 shrink-0" />
-      {label}
+      <span className="flex-1 text-left">{label}</span>
+      {badge && badge > 0 && (
+        <span className="min-w-[20px] h-5 px-1.5 bg-zinc-900 text-amber-400 text-xs font-bold rounded-full flex items-center justify-center">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </button>
   );
 }

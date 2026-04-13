@@ -127,17 +127,17 @@ export default async function ArtistProfilePage({
       )}
 
       {/* Profile header */}
-      <div className="flex flex-col md:flex-row gap-6 mb-10">
+      <div className="flex flex-row gap-4 mb-10 items-start">
         <div className="flex-shrink-0">
-          <Avatar className="w-28 h-28 border-4 border-zinc-700">
+          <Avatar className="w-20 h-20 md:w-28 md:h-28 border-4 border-zinc-700">
             <AvatarImage src={artist.avatar_url ?? ""} />
-            <AvatarFallback className="bg-amber-400 text-zinc-900 text-3xl font-bold">
+            <AvatarFallback className="bg-amber-400 text-zinc-900 text-2xl md:text-3xl font-bold">
               {artist.full_name?.[0]?.toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-3 mb-2">
             <h1 className="text-2xl font-bold">{artist.full_name}</h1>
             {artist.plan === "studio" && <CheckCircle className="w-5 h-5 text-blue-400" />}
