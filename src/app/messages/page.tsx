@@ -11,17 +11,29 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Conversation, Message, Profile } from "@/types/database";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 
 function MessagesContent() {
   const supabase = createClient();
   const { user, profile } = useAuthStore();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const targetUserId = searchParams.get("user");
+  const convParam = searchParams.get("conv");
+
+  // activeConversationId is driven by the URL so the hardware back button works
+  const activeConversationId = convParam;
+
+  const openConversation = (convId: string) => {
+    router.push(`/messages?conv=${convId}`, { scroll: false });
+  };
+
+  const closeConversation = () => {
+    router.back();
+  };
 
   const [conversations, setConversations] = useState<(Conversation & { other_user: Profile })[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [unreadConvIds, setUnreadConvIds] = useState<Set<string>>(new Set());
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -92,7 +104,7 @@ function MessagesContent() {
         .single()
         .then(async ({ data: existing }) => {
           if (existing) {
-            setActiveConversationId(existing.id);
+            router.replace(`/messages?conv=${existing.id}`, { scroll: false });
           } else {
             const { data: newConv } = await supabase
               .from("conversations")
@@ -100,7 +112,7 @@ function MessagesContent() {
               .select("id")
               .single();
             if (newConv) {
-              setActiveConversationId(newConv.id);
+              router.replace(`/messages?conv=${newConv.id}`, { scroll: false });
               loadConversations();
             }
           }
@@ -303,7 +315,7 @@ function MessagesContent() {
             return (
               <button
                 key={conv.id}
-                onClick={() => setActiveConversationId(conv.id)}
+                onClick={() => openConversation(conv.id)}
                 className={cn(
                   "w-full flex items-center gap-3 p-3 transition-colors text-left",
                   activeConversationId === conv.id
@@ -353,7 +365,7 @@ function MessagesContent() {
             {/* Header */}
             <div className="p-3 border-b border-zinc-800 flex items-center gap-3">
               <button
-                onClick={() => setActiveConversationId(null)}
+                onClick={closeConversation}
                 className="md:hidden text-zinc-400 hover:text-white p-1 -ml-1"
               >
                 <ArrowLeft className="w-5 h-5" />
