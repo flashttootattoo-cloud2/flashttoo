@@ -447,7 +447,7 @@ export default function UploadDesignPage() {
             <Input
               value={artistTag}
               onChange={(e) => setArtistTag(e.target.value)}
-              placeholder="Ej: Lucas Rodríguez"
+              placeholder="Ej: Federico González"
               className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-blue-400"
             />
             <p className="text-xs text-zinc-500">Se mostrará en el diseño para que el cliente sepa con quién reserva.</p>
