@@ -269,7 +269,7 @@ function MessagesContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipientId: conv.other_user.id,
-          senderName: conv.other_user.full_name ?? "Alguien",
+          senderName: profile?.full_name ?? "Alguien",
           messagePreview: content.slice(0, 60),
         }),
       }).catch(() => {});
