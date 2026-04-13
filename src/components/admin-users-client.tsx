@@ -223,20 +223,14 @@ export function AdminUsersClient({
 
 function AdminUserDesigns({ userId, username }: { userId: string; username: string }) {
   const [designs, setDesigns] = useState<any[] | null>(null);
-  const [loaded, setLoaded] = useState(false);
 
-  const load = async () => {
-    if (loaded) return;
-    const res = await fetch(`/api/admin/user-designs?userId=${userId}`);
-    const data = await res.json();
-    setDesigns(data.designs ?? []);
-    setLoaded(true);
-  };
+  useEffect(() => {
+    fetch(`/api/admin/user-designs?userId=${userId}`)
+      .then((r) => r.json())
+      .then((data) => setDesigns(data.designs ?? []));
+  }, [userId]);
 
-  // Load on mount
-  useState(() => { load(); });
-
-  if (!loaded) return <p className="text-zinc-500 text-xs py-2">Cargando diseños...</p>;
+  if (designs === null) return <p className="text-zinc-500 text-xs py-2">Cargando diseños...</p>;
   if (!designs?.length) return <p className="text-zinc-500 text-xs py-2">Sin diseños publicados.</p>;
 
   return (
