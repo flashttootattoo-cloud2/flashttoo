@@ -40,11 +40,17 @@ async function registerPush(_userId: string) {
 
   try {
     const reg = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.ready;
+
     const permission = await Notification.requestPermission();
     if (permission !== "granted") return;
 
+    // Always unsubscribe stale subscription and create fresh one
+    // so it stays in sync with current VAPID keys and DB
     const existing = await reg.pushManager.getSubscription();
-    const sub = existing ?? await reg.pushManager.subscribe({
+    if (existing) await existing.unsubscribe();
+
+    const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     });
