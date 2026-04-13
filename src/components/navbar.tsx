@@ -411,7 +411,7 @@ export function Navbar() {
       {sheetOpen && (
         <div className="md:hidden">
           <div className="fixed inset-0 z-40 top-16" onClick={() => setSheetOpen(false)} />
-          <div className="relative z-50 bg-amber-400 border-t border-amber-500/30 shadow-xl">
+          <div className="absolute top-full left-0 right-0 z-50 bg-amber-400 border-t border-amber-500/30 shadow-xl">
 
             {/* Profile info — solo si hay sesión */}
             {user && (
