@@ -1,8 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Users, Megaphone, FileText, Flag } from "lucide-react";
+import { createServiceClient } from "@/lib/supabase/service";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export const dynamic = "force-dynamic";
+
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const service = createServiceClient();
+  const { count } = await service
+    .from("reports")
+    .select("id", { count: "exact", head: true });
+
+  const pendingReports = count ?? 0;
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
@@ -33,6 +43,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           <Flag className="w-4 h-4" />
           Reportes
+          {pendingReports > 0 && (
+            <span className="ml-auto min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
+              {pendingReports > 99 ? "99+" : pendingReports}
+            </span>
+          )}
         </Link>
 
         <Link

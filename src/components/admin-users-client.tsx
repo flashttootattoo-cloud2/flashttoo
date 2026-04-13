@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Ban, CheckCircle, ExternalLink, ChevronDown, MessageSquare } from "lucide-react";
+import { Search, Ban, CheckCircle, ExternalLink, ChevronDown, MessageSquare, MoreVertical, EyeOff, Eye, Trash2, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface AdminUser {
@@ -253,86 +253,131 @@ function AdminUserDesigns({ userId, username }: { userId: string; username: stri
 
 function AdminDesignCard({ design, onRemove }: { design: any; onRemove: (id: string) => void }) {
   const [loading, setLoading] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmHide, setConfirmHide] = useState(false);
-  const [isAvailable, setIsAvailable] = useState<boolean>(!design.is_admin_hidden);
+  const [hidden, setHidden] = useState<boolean>(design.is_admin_hidden);
 
   const handleDelete = async () => {
     setLoading(true);
-    setConfirming(false);
+    setConfirmDelete(false);
+    setMenuOpen(false);
     const res = await fetch("/api/admin/delete-design", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ designId: design.id }),
     });
-    if (res.ok) {
-      toast.success("Diseño eliminado");
-      onRemove(design.id);
-    } else {
-      toast.error("Error al eliminar");
-      setLoading(false);
-    }
+    if (res.ok) { toast.success("Diseño eliminado"); onRemove(design.id); }
+    else { toast.error("Error al eliminar"); setLoading(false); }
   };
 
-  const handleToggleAvailable = async () => {
+  const handleToggleHidden = async () => {
     setLoading(true);
     setConfirmHide(false);
-    const next = !isAvailable;
-    await fetch("/api/admin/update-design", {
+    setMenuOpen(false);
+    const next = !hidden;
+    const res = await fetch("/api/admin/update-design", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ designId: design.id, is_admin_hidden: !next }),
+      body: JSON.stringify({ designId: design.id, is_admin_hidden: next }),
     });
-    setIsAvailable(next);
+    if (res.ok) {
+      setHidden(next);
+      toast.success(next ? "Diseño ocultado" : "Diseño visible");
+    } else {
+      toast.error("Error al actualizar");
+    }
     setLoading(false);
-    toast.success(next ? "Diseño visible en la plataforma" : "Diseño ocultado de la plataforma");
   };
 
   return (
     <>
-      {confirming && (
+      {confirmDelete && (
         <ConfirmDialog
           title={`Eliminar "${design.title}"`}
-          description="Esta acción no se puede deshacer. El diseño será eliminado permanentemente."
+          description="Esta acción no se puede deshacer."
           onConfirm={handleDelete}
-          onCancel={() => setConfirming(false)}
+          onCancel={() => setConfirmDelete(false)}
         />
       )}
       {confirmHide && (
         <ConfirmDialog
-          title={isAvailable ? `Ocultar "${design.title}"` : `Mostrar "${design.title}"`}
-          description={
-            isAvailable
-              ? "El diseño dejará de aparecer en el feed, en el perfil del artista y en búsquedas."
-              : "El diseño volverá a ser visible en la plataforma."
-          }
-          confirmLabel={isAvailable ? "Ocultar" : "Mostrar"}
-          onConfirm={handleToggleAvailable}
+          title={hidden ? `Mostrar "${design.title}"` : `Ocultar "${design.title}"`}
+          description={hidden ? "El diseño volverá a ser visible en la plataforma." : "El diseño dejará de aparecer para todos los usuarios."}
+          confirmLabel={hidden ? "Mostrar" : "Ocultar"}
+          onConfirm={handleToggleHidden}
           onCancel={() => setConfirmHide(false)}
         />
       )}
-      <div className="relative group w-20 rounded-lg overflow-hidden bg-zinc-800 border border-zinc-700">
-        <img src={design.image_url} alt={design.title} className="w-full h-20 object-cover" />
-        {!isAvailable && <div className="absolute inset-0 bg-zinc-950/60 flex items-center justify-center"><span className="text-[9px] text-red-400 font-medium">Oculto</span></div>}
-        <div className="absolute inset-0 bg-zinc-950/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-1">
-          <a href={`/design/${design.id}`} target="_blank" className="text-[10px] text-zinc-300 hover:text-white truncate max-w-full px-1 text-center">
-            {design.title}
-          </a>
-          <button
-            onClick={() => setConfirmHide(true)}
-            disabled={loading}
-            className="text-[9px] text-amber-400 hover:text-amber-300"
-          >
-            {isAvailable ? "Ocultar" : "Mostrar"}
-          </button>
-          <button
-            onClick={() => setConfirming(true)}
-            disabled={loading}
-            className="text-[9px] text-red-400 hover:text-red-300"
-          >
-            Eliminar
-          </button>
+
+      {/* Bottom sheet modal */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
+          <div className="relative z-10 w-full sm:max-w-sm bg-amber-400 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-amber-600/40" />
+            </div>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-amber-500/40">
+              <p className="font-semibold text-sm text-zinc-900 truncate">{design.title}</p>
+              <button onClick={() => setMenuOpen(false)} className="text-zinc-700 hover:text-zinc-900">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="py-2">
+              <a
+                href={`/design/${design.id}`}
+                target="_blank"
+                onClick={() => setMenuOpen(false)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-amber-300/50 transition-colors text-left text-zinc-900"
+              >
+                <ExternalLink className="w-5 h-5 text-zinc-700 shrink-0" />
+                Ver diseño
+              </a>
+              <button
+                onClick={() => { setMenuOpen(false); setConfirmHide(true); }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-amber-300/50 transition-colors text-left text-zinc-900"
+              >
+                {hidden
+                  ? <><Eye className="w-5 h-5 text-zinc-700 shrink-0" /><span>Mostrar diseño</span></>
+                  : <><EyeOff className="w-5 h-5 text-zinc-700 shrink-0" /><span>Ocultar diseño</span></>}
+              </button>
+              <div className="h-px bg-amber-500/30 mx-4 my-1" />
+              <button
+                onClick={() => { setMenuOpen(false); setConfirmDelete(true); }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-amber-300/50 transition-colors text-left text-red-700"
+              >
+                <Trash2 className="w-5 h-5 shrink-0" />
+                Eliminar diseño
+              </button>
+            </div>
+            <div className="px-4 pb-4 pt-1">
+              <button onClick={() => setMenuOpen(false)} className="w-full py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-amber-400 text-sm font-semibold transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
+      )}
+
+      <div className="relative w-20 rounded-lg overflow-hidden bg-zinc-800 border border-zinc-700">
+        <img src={design.image_url} alt={design.title} className="w-full h-20 object-cover" />
+        {hidden && (
+          <div className="absolute inset-0 bg-zinc-950/60 flex items-center justify-center">
+            <span className="text-[9px] text-red-400 font-semibold">Oculto</span>
+          </div>
+        )}
+        {loading && (
+          <div className="absolute inset-0 bg-zinc-950/70 flex items-center justify-center">
+            <Loader2 className="w-4 h-4 animate-spin text-white" />
+          </div>
+        )}
+        <button
+          onClick={() => setMenuOpen(true)}
+          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-zinc-900/80 flex items-center justify-center text-zinc-300 hover:text-white transition-colors"
+        >
+          <MoreVertical className="w-3 h-3" />
+        </button>
       </div>
     </>
   );
