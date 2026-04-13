@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   const service = createServiceClient();
   const { data: designs } = await service
     .from("designs")
-    .select("id, title, image_url, is_available, is_archived")
+    .select("id, title, image_url, is_available, is_archived, is_admin_hidden")
     .eq("artist_id", userId)
     .order("created_at", { ascending: false })
     .limit(30);
