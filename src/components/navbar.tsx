@@ -357,7 +357,7 @@ export function Navbar() {
               </Link>
 
               {/* Mobile: avatar button → amber bottom sheet */}
-              <button onClick={openSheet} className="md:hidden relative focus:outline-none">
+              <button onClick={() => sheetOpen ? setSheetOpen(false) : openSheet()} className="md:hidden relative focus:outline-none">
                 <Avatar className="w-9 h-9 border-2 border-zinc-700">
                   <AvatarImage src={profile?.avatar_url ?? ""} />
                   <AvatarFallback className="bg-amber-400 text-zinc-900 text-xs font-bold">

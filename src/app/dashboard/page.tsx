@@ -43,12 +43,22 @@ export default async function DashboardPage() {
       .select("*, client:profiles!reservations_client_id_fkey(*), design:designs!reservations_design_id_fkey(title, image_url)")
       .eq("artist_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(10),
+      .limit(20),
   ]);
 
   if (!profile || profile.role !== "tattoo_artist") {
     redirect("/");
   }
+
+  // Auto-clean: delete rejected/completed reservations older than 24h
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  supabase
+    .from("reservations")
+    .delete()
+    .eq("artist_id", user.id)
+    .in("status", ["rejected", "completed"])
+    .lt("updated_at", cutoff)
+    .then(() => {});
 
   if (profile.is_blocked) {
     redirect(`/artist/${profile.username}`);
