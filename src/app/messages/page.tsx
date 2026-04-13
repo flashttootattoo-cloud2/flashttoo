@@ -42,8 +42,8 @@ function MessagesContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeConvRef = useRef<string | null>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (instant = false) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: instant ? "instant" : "smooth" });
   };
 
   // Load conversations
@@ -186,7 +186,7 @@ function MessagesContent() {
         .eq("conversation_id", activeConversationId)
         .order("created_at", { ascending: true });
       setMessages((data as never) ?? []);
-      setTimeout(scrollToBottom, 100);
+      setTimeout(() => scrollToBottom(true), 50);
     };
 
     // Guardar timestamp de apertura en localStorage → persiste entre navegaciones
