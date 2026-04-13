@@ -111,31 +111,35 @@ export default async function ExplorePage({
       {/* Buscador unificado con autocompletado */}
       <ExploreSearch defaultCity={params.city ?? ""} defaultQ={params.q ?? ""} />
 
-      {/* City chips */}
-      <div className="flex gap-2 flex-wrap mb-8">
-        <Link
-          href="/explore"
-          className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-            !params.city && !params.q
-              ? "bg-amber-400 text-zinc-900 font-medium"
-              : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-          }`}
-        >
-          Todas
-        </Link>
-        {popularCities.map((city) => (
+      {/* City chips — scrolleable, mismo estilo que style-filter */}
+      <div className="relative -mx-4 mb-8 border-b border-zinc-900">
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-950 to-transparent z-10" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-zinc-950 to-transparent z-10" />
+        <div className="flex gap-2 overflow-x-auto no-scrollbar px-4 py-2.5">
           <Link
-            key={city}
-            href={`/explore?city=${encodeURIComponent(city)}`}
-            className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-              params.city === city
-                ? "bg-amber-400 text-zinc-900 font-medium"
-                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            href="/explore"
+            className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+              !params.city && !params.q
+                ? "bg-amber-400 text-zinc-900"
+                : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
             }`}
           >
-            {city}
+            Todas
           </Link>
-        ))}
+          {popularCities.map((city) => (
+            <Link
+              key={city}
+              href={`/explore?city=${encodeURIComponent(city)}`}
+              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                params.city === city
+                  ? "bg-amber-400 text-zinc-900"
+                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+              }`}
+            >
+              {city}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Resultados */}

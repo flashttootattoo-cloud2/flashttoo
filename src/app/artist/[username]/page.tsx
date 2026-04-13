@@ -15,6 +15,7 @@ import {
   CheckCircle,
   ImageIcon,
   Zap,
+  LayoutDashboard,
 } from "lucide-react";
 import { FollowButton } from "@/components/follow-button";
 import { ShareButton } from "@/components/share-button";
@@ -197,7 +198,10 @@ export default async function ArtistProfilePage({
             <ShareButton username={artist.username} />
             {isOwnProfile ? (
               <Button asChild variant="outline" className="border-zinc-700 hover:bg-zinc-800">
-                <Link href="/dashboard">Editar perfil</Link>
+                <Link href="/dashboard">
+                  <LayoutDashboard className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Link>
               </Button>
             ) : (
               <>

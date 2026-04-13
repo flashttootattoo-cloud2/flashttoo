@@ -6,7 +6,7 @@ import { useRef, useEffect } from "react";
 const styles = [
   "Todos", "Black & Grey", "Neo Traditional", "Japonés", "Blackwork",
   "Fineline", "Watercolor", "Tribal", "Geométrico", "Old School",
-  "Realismo", "Lettering", "Sketch",
+  "Realismo", "Lettering", "Sketch", "Otro",
 ];
 
 export function StyleFilter() {
