@@ -110,7 +110,7 @@ export function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load notifications
+  // Load notifications — keep only last 3, delete the rest
   useEffect(() => {
     if (!user || !profile) return;
     if (profile.role === "tattoo_artist") return;
@@ -122,9 +122,14 @@ export function Navbar() {
       .order("created_at", { ascending: false })
       .limit(20)
       .then(({ data }) => {
-        if (data) {
-          setNotifs(data as never);
-          setNotifCount(data.filter((n: { read: boolean }) => !n.read).length);
+        if (!data) return;
+        const keep = data.slice(0, 3);
+        const remove = data.slice(3);
+        setNotifs(keep as never);
+        setNotifCount(keep.filter((n: { read: boolean }) => !n.read).length);
+        if (remove.length > 0) {
+          const ids = remove.map((n: { id: string }) => n.id);
+          supabase.from("notifications").delete().in("id", ids).then(() => {});
         }
       });
   }, [user?.id, profile?.role]);
@@ -320,7 +325,7 @@ export function Navbar() {
                         <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
                       </DropdownMenuItem>
                     )}
-                    {profile?.role !== "administradorgeneral" && (
+                    {profile?.role === "tattoo_artist" && (
                       <DropdownMenuItem onClick={() => router.push("/plans")} className="cursor-pointer">
                         <Zap className="w-4 h-4 mr-2" /> Planes
                       </DropdownMenuItem>
@@ -441,7 +446,7 @@ export function Navbar() {
             {user && (
               <div className="border-t border-amber-500/30 py-1">
                 <SheetLink href={profile?.role === "tattoo_artist" ? `/artist/${profile?.username ?? ""}` : "/profile"} icon={User} label="Mi perfil" onClose={() => setSheetOpen(false)} />
-                {profile?.role !== "administradorgeneral" && (
+                {profile?.role === "tattoo_artist" && (
                   <SheetLink href="/plans" icon={Zap} label="Planes" onClose={() => setSheetOpen(false)} />
                 )}
                 {profile?.role === "administradorgeneral" && (

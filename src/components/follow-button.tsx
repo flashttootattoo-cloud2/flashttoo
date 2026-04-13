@@ -53,7 +53,7 @@ export function FollowButton({ artistId, userId, initialFollowing, initialCount 
         ) : (
           <>
             <UserCheck className="w-4 h-4 mr-2 group-hover:hidden" />
-            <span className="group-hover:hidden">Siguiendo · {count}</span>
+            <span className="group-hover:hidden">Siguiendo</span>
             <span className="hidden group-hover:inline">Dejar de seguir</span>
           </>
         )}
@@ -73,7 +73,7 @@ export function FollowButton({ artistId, userId, initialFollowing, initialCount 
       ) : (
         <>
           <UserPlus className="w-4 h-4 mr-2" />
-          Seguir · {count}
+          Seguir
         </>
       )}
     </Button>

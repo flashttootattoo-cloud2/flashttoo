@@ -91,7 +91,7 @@ export function SavedDesignCard({ design, userId, index }: SavedDesignCardProps)
             </div>
             {(design.likes_count ?? 0) >= 2 && design.is_available && (
               <p className="text-amber-400 text-xs mt-0.5 font-medium">
-                🔥 {design.likes_count} guardados — reservá primero
+                {design.likes_count} guardados — reservá primero
               </p>
             )}
           </div>
