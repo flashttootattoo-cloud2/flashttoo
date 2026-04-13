@@ -6,7 +6,8 @@ import { useAuthStore } from "@/store/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, MessageSquare, Loader2, ArrowLeft } from "lucide-react";
+import { Send, MessageSquare, Loader2, ArrowLeft, Trash2, MoreHorizontal, X } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -41,6 +42,26 @@ function MessagesContent() {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeConvRef = useRef<string | null>(null);
+  const [convMenu, setConvMenu] = useState<string | null>(null); // convId with open menu
+  const [deletingConv, setDeletingConv] = useState<string | null>(null);
+
+  const deleteConversation = async (convId: string) => {
+    setDeletingConv(convId);
+    const res = await fetch("/api/messages/delete-conversation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId: convId }),
+    });
+    if (res.ok) {
+      setConversations((prev) => prev.filter((c) => c.id !== convId));
+      if (activeConversationId === convId) closeConversation();
+      toast.success("Conversación eliminada");
+    } else {
+      toast.error("Error al eliminar");
+    }
+    setDeletingConv(null);
+    setConvMenu(null);
+  };
 
   const scrollToBottom = (instant = false) => {
     messagesEndRef.current?.scrollIntoView({ behavior: instant ? "instant" : "smooth" });
@@ -296,6 +317,7 @@ function MessagesContent() {
       "md:w-72 md:border-r md:rounded-none",
       showChat ? "hidden md:flex" : "flex w-full border rounded-2xl"
     )}>
+      {convMenu && <div className="fixed inset-0 z-20" onClick={() => setConvMenu(null)} />}
       <div className="p-3 border-b border-zinc-800">
         <p className="text-sm font-medium text-zinc-400">Conversaciones</p>
       </div>
@@ -312,12 +334,12 @@ function MessagesContent() {
         ) : (
           conversations.map((conv) => {
             const hasUnread = unreadConvIds.has(conv.id);
+            const menuOpen = convMenu === conv.id;
             return (
-              <button
+              <div
                 key={conv.id}
-                onClick={() => openConversation(conv.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 p-3 transition-colors text-left",
+                  "relative flex items-center transition-colors group",
                   activeConversationId === conv.id
                     ? "bg-zinc-800"
                     : hasUnread
@@ -325,21 +347,48 @@ function MessagesContent() {
                     : "hover:bg-zinc-800"
                 )}
               >
-                <Avatar className="w-11 h-11 shrink-0">
-                  <AvatarImage src={conv.other_user?.avatar_url ?? ""} />
-                  <AvatarFallback className="bg-amber-400 text-zinc-900 text-sm font-bold">
-                    {conv.other_user?.full_name?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className={cn("text-sm truncate", hasUnread ? "font-bold text-white" : "font-medium text-white")}>
-                    {conv.other_user?.full_name}
-                  </p>
-                  <p className={cn("text-xs truncate", hasUnread ? "text-zinc-300" : "text-zinc-500")}>
-                    {conv.last_message ?? "Sin mensajes"}
-                  </p>
-                </div>
-              </button>
+                <button
+                  onClick={() => openConversation(conv.id)}
+                  className="flex items-center gap-3 p-3 text-left flex-1 min-w-0"
+                >
+                  <Avatar className="w-11 h-11 shrink-0">
+                    <AvatarImage src={conv.other_user?.avatar_url ?? ""} />
+                    <AvatarFallback className="bg-amber-400 text-zinc-900 text-sm font-bold">
+                      {conv.other_user?.full_name?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn("text-sm truncate", hasUnread ? "font-bold text-white" : "font-medium text-white")}>
+                      {conv.other_user?.full_name}
+                    </p>
+                    <p className={cn("text-xs truncate", hasUnread ? "text-zinc-300" : "text-zinc-500")}>
+                      {conv.last_message ?? "Sin mensajes"}
+                    </p>
+                  </div>
+                </button>
+                {/* Options button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setConvMenu(menuOpen ? null : conv.id); }}
+                  className="shrink-0 mr-2 p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+                {/* Dropdown */}
+                {menuOpen && (
+                  <div className="absolute right-2 top-12 z-30 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
+                    <button
+                      onClick={() => deleteConversation(conv.id)}
+                      disabled={deletingConv === conv.id}
+                      className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-400 hover:bg-zinc-700 transition-colors"
+                    >
+                      {deletingConv === conv.id
+                        ? <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        : <Trash2 className="w-4 h-4 shrink-0" />}
+                      Eliminar chat
+                    </button>
+                  </div>
+                )}
+              </div>
             );
           })
         )}

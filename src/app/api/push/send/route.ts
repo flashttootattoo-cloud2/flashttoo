@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 import webpush from "web-push";
 
@@ -15,8 +16,9 @@ export async function POST(req: Request) {
 
   const { recipientId, senderName, messagePreview } = await req.json();
 
-  // Fetch ALL subscriptions for the recipient (one per device)
-  const { data: subs } = await supabase
+  // Use service client to bypass RLS — sender querying recipient's subscriptions
+  const service = createServiceClient();
+  const { data: subs } = await service
     .from("push_subscriptions")
     .select("id, subscription")
     .eq("user_id", recipientId);
@@ -45,7 +47,7 @@ export async function POST(req: Request) {
     }
   });
   if (staleIds.length > 0) {
-    await supabase.from("push_subscriptions").delete().in("id", staleIds);
+    await service.from("push_subscriptions").delete().in("id", staleIds);
   }
 
   return NextResponse.json({ ok: true });
