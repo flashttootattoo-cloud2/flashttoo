@@ -67,7 +67,7 @@ export default async function ProfilePage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-row gap-4 mb-10 items-start">
+      <div className="flex flex-row gap-4 mb-6 items-start">
         <Avatar className="w-20 h-20 border-4 border-zinc-700 shrink-0">
           <AvatarImage src={profile.avatar_url ?? ""} />
           <AvatarFallback className="bg-amber-400 text-zinc-900 text-2xl font-bold">
@@ -80,22 +80,22 @@ export default async function ProfilePage() {
             <h1 className="text-xl font-bold leading-tight">{profile.full_name}</h1>
             <Badge variant="outline" className="border-zinc-700 text-zinc-400 text-xs">Cliente</Badge>
           </div>
-          <p className="text-zinc-400 text-sm mb-2">@{profile.username}</p>
+          <p className="text-zinc-400 text-xs mb-1">@{profile.username}</p>
 
           {profile.city && (
-            <div className="flex items-center gap-1.5 text-zinc-400 text-sm mb-2">
-              <MapPin className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1 text-zinc-400 text-xs mb-1">
+              <MapPin className="w-3 h-3" />
               {profile.city}{profile.country ? `, ${profile.country}` : ""}
             </div>
           )}
 
-          <div className="flex gap-4 text-sm mb-3">
+          <div className="flex gap-4 text-xs mb-2">
             <div>
-              <span className="font-bold text-white text-base">{designs.length}</span>
+              <span className="font-bold text-white text-sm">{designs.length}</span>
               <span className="text-zinc-400 ml-1">guardados</span>
             </div>
             <div>
-              <span className="font-bold text-white text-base">{following.length}</span>
+              <span className="font-bold text-white text-sm">{following.length}</span>
               <span className="text-zinc-400 ml-1">siguiendo</span>
             </div>
           </div>

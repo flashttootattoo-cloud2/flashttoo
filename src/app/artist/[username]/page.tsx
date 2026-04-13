@@ -127,7 +127,7 @@ export default async function ArtistProfilePage({
       )}
 
       {/* Profile header */}
-      <div className="flex flex-row gap-4 mb-10 items-start">
+      <div className="flex flex-row gap-4 mb-6 items-start">
         <div className="flex-shrink-0">
           <Avatar className="w-20 h-20 md:w-28 md:h-28 border-4 border-zinc-700">
             <AvatarImage src={artist.avatar_url ?? ""} />
@@ -138,30 +138,29 @@ export default async function ArtistProfilePage({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-3 mb-2">
-            <h1 className="text-2xl font-bold">{artist.full_name}</h1>
-            {artist.plan === "studio" && <CheckCircle className="w-5 h-5 text-blue-400" />}
-            {(artist.plan === "pro" || artist.plan === "premium") && <CheckCircle className="w-5 h-5 text-amber-400" />}
-            {artist.plan === "basic" && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+          <div className="flex flex-wrap items-center gap-2 mb-0.5">
+            <h1 className="text-xl font-bold">{artist.full_name}</h1>
+            {artist.plan === "studio" && <CheckCircle className="w-4 h-4 text-blue-400" />}
+            {(artist.plan === "pro" || artist.plan === "premium") && <CheckCircle className="w-4 h-4 text-amber-400" />}
+            {artist.plan === "basic" && <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />}
             {artist.plan === "studio" ? (
-              <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/30">Estudio</Badge>
+              <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/30 text-xs">Estudio</Badge>
             ) : (artist.plan === "pro" || artist.plan === "premium") ? (
-              <Badge className="bg-amber-400/10 text-amber-400 border-amber-400/30">Pro</Badge>
+              <Badge className="bg-amber-400/10 text-amber-400 border-amber-400/30 text-xs">Pro</Badge>
             ) : null}
           </div>
 
-          <p className="text-zinc-400 text-sm mb-3">@{artist.username}</p>
+          <p className="text-zinc-400 text-xs mb-1">@{artist.username}</p>
 
           {artist.bio && (
-            <p className="text-zinc-300 mb-4 max-w-xl">{artist.bio}</p>
+            <p className="text-zinc-300 text-sm mb-2 max-w-xl">{artist.bio}</p>
           )}
 
-          <div className="flex flex-wrap gap-4 text-sm text-zinc-400 mb-4">
+          <div className="flex flex-wrap gap-3 text-xs text-zinc-400 mb-2">
             {artist.city && (
-              <div className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4" />
-                {artist.city}
-                {artist.country ? `, ${artist.country}` : ""}
+              <div className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {artist.city}{artist.country ? `, ${artist.country}` : ""}
               </div>
             )}
             {artist.instagram && (
@@ -169,28 +168,28 @@ export default async function ArtistProfilePage({
                 href={`https://instagram.com/${artist.instagram.replace("@", "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 hover:text-white transition-colors"
+                className="flex items-center gap-1 hover:text-white transition-colors"
               >
-                <Globe className="w-4 h-4" />
+                <Globe className="w-3 h-3" />
                 {artist.instagram}
               </a>
             )}
             {artist.phone && (
-              <div className="flex items-center gap-1.5">
-                <Phone className="w-4 h-4" />
+              <div className="flex items-center gap-1">
+                <Phone className="w-3 h-3" />
                 {artist.phone}
               </div>
             )}
           </div>
 
-          <div className="flex gap-5 text-sm mb-5">
+          <div className="flex gap-4 text-xs mb-3">
             <div>
-              <span className="font-bold text-white text-lg">{designs?.length ?? 0}</span>
-              <span className="text-zinc-400 ml-1.5">diseños</span>
+              <span className="font-bold text-white text-sm">{designs?.length ?? 0}</span>
+              <span className="text-zinc-400 ml-1">diseños</span>
             </div>
             <div>
-              <span className="font-bold text-white text-lg">{artist.followers_count ?? 0}</span>
-              <span className="text-zinc-400 ml-1.5">seguidores</span>
+              <span className="font-bold text-white text-sm">{artist.followers_count ?? 0}</span>
+              <span className="text-zinc-400 ml-1">seguidores</span>
             </div>
           </div>
 
