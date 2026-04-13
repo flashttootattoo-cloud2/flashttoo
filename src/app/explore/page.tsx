@@ -94,8 +94,9 @@ export default async function ExplorePage({
     .slice(0, 40);
 
   const popularCities = [
-    "Buenos Aires", "Córdoba", "Rosario", "Mendoza",
-    "Mar del Plata", "Santiago", "Montevideo", "Bogotá",
+    "Buenos Aires", "Ciudad de México", "Madrid", "Barcelona",
+    "Bogotá", "São Paulo", "Lima", "Miami",
+    "Nueva York", "Londres", "Berlin", "Tokyo",
   ];
 
   return (

@@ -230,11 +230,11 @@ export default function SettingsPage() {
   return (
     <div className="max-w-xl mx-auto px-4 py-8">
       <Link
-        href="/dashboard"
+        href={role === "tattoo_artist" ? "/dashboard" : "/profile"}
         className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        Volver al dashboard
+        {role === "tattoo_artist" ? "Volver al dashboard" : "Volver al perfil"}
       </Link>
 
       <h1 className="text-2xl font-bold mb-8">Configuración de perfil</h1>
