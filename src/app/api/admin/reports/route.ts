@@ -12,22 +12,37 @@ export async function GET() {
 
   const service = createServiceClient();
 
-  // Group reports by design, count reporters
-  const { data, error } = await service
+  // Fetch reports, then manually join profiles (reporter_id → auth.users → profiles)
+  const { data: rawReports, error } = await service
     .from("reports")
     .select(`
       id,
       reason,
       created_at,
-      design:designs!reports_design_id_fkey(
+      reporter_id,
+      design_id,
+      design:designs(
         id, title, image_url, is_admin_hidden,
         artist:profiles!designs_artist_id_fkey(full_name, username)
-      ),
-      reporter:profiles!reports_reporter_id_fkey(full_name, username)
+      )
     `)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Fetch reporter profiles separately
+  const reporterIds = [...new Set((rawReports ?? []).map((r: { reporter_id: string }) => r.reporter_id))];
+  const { data: reporterProfiles } = reporterIds.length > 0
+    ? await service.from("profiles").select("id, full_name, username").in("id", reporterIds)
+    : { data: [] };
+
+  const profileMap = Object.fromEntries((reporterProfiles ?? []).map((p: { id: string; full_name: string; username: string }) => [p.id, p]));
+
+  const data = (rawReports ?? []).map((r: { reporter_id: string; [key: string]: unknown }) => ({
+    ...r,
+    reporter: profileMap[r.reporter_id] ?? null,
+  }));
+
   return NextResponse.json({ reports: data ?? [] });
 }
 

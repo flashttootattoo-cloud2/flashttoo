@@ -29,17 +29,17 @@ export function ReportButton({ designId, userId }: { designId: string; userId: s
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ design_id: designId, reason: selected }),
     });
-    const { ok, already } = await res.json();
+    const json = await res.json();
     setSending(false);
-    if (already) {
+    if (json.already) {
       toast.info("Ya reportaste este diseño anteriormente.");
       setOpen(false);
       return;
     }
-    if (ok) {
+    if (json.ok) {
       setDone(true);
     } else {
-      toast.error("No se pudo enviar el reporte.");
+      toast.error(json.error ?? "No se pudo enviar el reporte.");
     }
   };
 
