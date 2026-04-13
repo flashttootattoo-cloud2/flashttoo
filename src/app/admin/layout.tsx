@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { Users, Megaphone, LayoutDashboard, FileText } from "lucide-react";
+import Image from "next/image";
+import { Users, Megaphone, FileText } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <aside className="w-56 shrink-0 bg-zinc-950 border-r border-zinc-800 flex flex-col py-6 px-3 gap-1">
-        <div className="flex items-center gap-2 px-3 mb-6">
-          <LayoutDashboard className="w-5 h-5 text-amber-400" />
-          <span className="font-bold text-sm text-white">Admin</span>
-        </div>
+        <Link href="/" className="flex items-center gap-2 px-3 mb-6 hover:opacity-80 transition-opacity">
+          <Image src="/logo.png" alt="Flashttoo" width={120} height={32} className="h-8 w-auto" />
+        </Link>
 
         <Link
           href="/admin/usuarios"
