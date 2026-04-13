@@ -3,7 +3,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title ?? "Nuevo mensaje", {
       body: data.body ?? "",
-      icon: "/icon-192.png",
+      icon: "/icon-notification.png",
       badge: "/notification-badge.png",
       tag: "flashtto-message",
       renotify: true,
