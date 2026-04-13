@@ -52,11 +52,13 @@ export function AdminReportsClient() {
   useEffect(() => { load(); }, []);
 
   const handleHide = async (group: GroupedReport) => {
-    await fetch("/api/admin/update-design", {
+    const res = await fetch("/api/admin/update-design", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: group.design!.id, is_admin_hidden: true }),
+      body: JSON.stringify({ designId: group.design!.id, is_admin_hidden: true }),
     });
+    const { error } = await res.json();
+    if (error) { toast.error("No se pudo ocultar: " + error); return; }
     toast.success("Diseño ocultado");
     setConfirmHide(null);
     load();
