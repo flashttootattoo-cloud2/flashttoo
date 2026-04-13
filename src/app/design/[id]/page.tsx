@@ -88,14 +88,14 @@ export default async function DesignDetailPage({
   ]);
 
   if (!design) notFound();
+  const artist = design.artist as NonNullable<typeof design.artist>;
+  if ((artist as any)?.is_blocked) notFound();
 
   // Incrementar contador + registrar evento histórico (para gráfico premium)
   supabase.rpc("increment_design_views", { design_id: id }).then(() => {});
   supabase.from("view_events")
     .insert({ design_id: id, artist_id: design.artist_id })
     .then(({ error }) => { if (error) console.error("[view_events insert]", error.message); });
-
-  const artist = design.artist as NonNullable<typeof design.artist>;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">

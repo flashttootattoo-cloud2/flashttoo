@@ -101,8 +101,8 @@ export default async function ArtistProfilePage({
       : Promise.resolve({ data: null }),
   ]);
 
-  // Pinned designs first, then by created_at (already ordered from DB)
-  const designs = (rawDesigns ?? []).sort((a, b) => {
+  // If blocked, hide all designs from the public (owner still sees their dash)
+  const designs = artist.is_blocked ? [] : (rawDesigns ?? []).sort((a, b) => {
     if (a.is_pinned && !b.is_pinned) return -1;
     if (!a.is_pinned && b.is_pinned) return 1;
     return 0;
@@ -256,9 +256,13 @@ export default async function ArtistProfilePage({
           <div className="text-center py-20 text-zinc-500">
             <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-30" />
             <p className="text-lg">
-              {isOwnProfile ? "Todavía no subiste ningún diseño" : "Este artista no tiene diseños todavía"}
+              {artist.is_blocked
+                ? "Los diseños no están disponibles mientras la cuenta está pausada"
+                : isOwnProfile
+                  ? "Todavía no subiste ningún diseño"
+                  : "Este artista no tiene diseños todavía"}
             </p>
-            {isOwnProfile && (
+            {isOwnProfile && !artist.is_blocked && (
               <Button asChild className="mt-4 bg-amber-400 hover:bg-amber-300 text-zinc-900">
                 <Link href="/dashboard/upload">Subir mi primer diseño</Link>
               </Button>
