@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Users, Megaphone, FileText } from "lucide-react";
+import { Users, Megaphone, FileText, Flag } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -25,6 +25,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           <Megaphone className="w-4 h-4" />
           Publicidad
+        </Link>
+
+        <Link
+          href="/admin/reportes"
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+        >
+          <Flag className="w-4 h-4" />
+          Reportes
         </Link>
 
         <Link

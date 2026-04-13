@@ -19,6 +19,7 @@ import {
 import { fmt } from "@/lib/utils";
 import { DesignGallery } from "@/components/design-gallery";
 import { SaveButton } from "@/components/save-button";
+import { ReportButton } from "@/components/report-button";
 import type { Metadata } from "next";
 
 export async function generateMetadata({
@@ -138,6 +139,9 @@ export default async function DesignDetailPage({
             <div className="flex items-center gap-1.5">
               <Bookmark className="w-4 h-4" />
               {fmt(design.likes_count ?? 0)} guardados
+            </div>
+            <div className="ml-auto">
+              <ReportButton designId={design.id} userId={user?.id ?? null} />
             </div>
           </div>
 
