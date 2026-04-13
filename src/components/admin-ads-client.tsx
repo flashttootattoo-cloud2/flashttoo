@@ -95,9 +95,14 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
   };
 
   const toggleActive = async (ad: Ad) => {
-    const { error } = await supabase.from("ads").update({ is_active: !ad.is_active }).eq("id", ad.id);
-    if (error) { toast.error("Error"); return; }
-    setAds((prev) => prev.map((a) => a.id === ad.id ? { ...a, is_active: !a.is_active } : a));
+    const next = !ad.is_active;
+    const res = await fetch("/api/admin/toggle-ad", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: ad.id, is_active: next }),
+    });
+    if (!res.ok) { toast.error("Error al actualizar"); return; }
+    setAds((prev) => prev.map((a) => a.id === ad.id ? { ...a, is_active: next } : a));
   };
 
   const [confirmingAd, setConfirmingAd] = useState<Ad | null>(null);
