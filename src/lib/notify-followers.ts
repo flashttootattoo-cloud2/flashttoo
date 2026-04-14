@@ -49,19 +49,27 @@ export async function notifyFollowers({
     ? `/design/${designId}`
     : `/artist/${artistUsername ?? artistId}`;
 
-  // Insert DB notifications (upsert on user_id+design_id, update if already exists)
-  await service.from("notifications").upsert(
-    followerIds.map((uid: string) => ({
-      user_id: uid,
-      design_id: designId,
-      design_title: designTitle,
-      design_image: designImage ?? null,
-      saves_count: 0,
-      type,
-      read: false,
-    })),
-    { onConflict: "user_id,design_id", ignoreDuplicates: false }
-  );
+  // Insert DB notifications — try with type column first, fall back without it
+  const rows = followerIds.map((uid: string) => ({
+    user_id: uid,
+    design_id: designId,
+    design_title: designTitle,
+    design_image: designImage ?? null,
+    saves_count: 0,
+    type,
+    read: false,
+  }));
+  const { error: upsertErr } = await service
+    .from("notifications")
+    .upsert(rows, { onConflict: "user_id,design_id", ignoreDuplicates: false });
+  if (upsertErr) {
+    // Likely the `type` column doesn't exist yet — retry without it
+    const rowsNoType = rows.map(({ type: _t, ...r }) => r);
+    const { error: retryErr } = await service
+      .from("notifications")
+      .upsert(rowsNoType, { onConflict: "user_id,design_id", ignoreDuplicates: false });
+    if (retryErr) console.error("[notifyFollowers] notification upsert failed:", retryErr.message);
+  }
 
   // Realtime broadcast so open tabs get the red dot immediately
   for (const uid of followerIds) {
@@ -94,7 +102,7 @@ export async function notifyFollowers({
   });
 
   const results = await Promise.allSettled(
-    subs.map((s: { id: string; subscription: object }) =>
+    subs.map((s: { id: string; subscription: webpush.PushSubscription }) =>
       webpush.sendNotification(s.subscription, payload)
     )
   );

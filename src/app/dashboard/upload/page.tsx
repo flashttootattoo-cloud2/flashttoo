@@ -231,9 +231,10 @@ export default function UploadDesignPage() {
         .update({ designs_count: (profile?.designs_count ?? 0) + 1 })
         .eq("id", user.id);
 
-      // Notify followers — fire and forget, don't block the UI
+      // Notify followers — keepalive ensures the request survives page navigation
       fetch("/api/follow/notify", {
         method: "POST",
+        keepalive: true,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           artistId: user.id,
