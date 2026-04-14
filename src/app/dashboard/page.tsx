@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { notifyFollowers } from "@/lib/notify-followers";
 
 export const dynamic = "force-dynamic";
 import Link from "next/link";
@@ -371,10 +372,28 @@ function ReservationActions({
         action={async () => {
           "use server";
           const supabase = await createClient();
-          await Promise.all([
+          const [, , designData] = await Promise.all([
             supabase.from("reservations").update({ status: "confirmed" }).eq("id", reservationId),
             supabase.from("designs").update({ is_available: false }).eq("id", designId),
+            supabase
+              .from("designs")
+              .select("title, image_url, artist_id, artist:profiles!designs_artist_id_fkey(full_name, username)")
+              .eq("id", designId)
+              .single(),
           ]);
+          if (designData.data) {
+            const d = designData.data;
+            const artist = (Array.isArray(d.artist) ? d.artist[0] : d.artist) as { full_name: string; username: string } | null;
+            notifyFollowers({
+              artistId: d.artist_id,
+              artistName: artist?.full_name ?? "Tatuador",
+              type: "design_reserved",
+              designId,
+              designTitle: d.title ?? "Diseño",
+              designImage: d.image_url ?? undefined,
+              artistUsername: artist?.username,
+            }).catch(() => {});
+          }
           revalidatePath("/dashboard");
         }}
       >

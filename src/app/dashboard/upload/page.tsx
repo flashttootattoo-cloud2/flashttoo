@@ -231,6 +231,21 @@ export default function UploadDesignPage() {
         .update({ designs_count: (profile?.designs_count ?? 0) + 1 })
         .eq("id", user.id);
 
+      // Notify followers — fire and forget, don't block the UI
+      fetch("/api/follow/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          artistId: user.id,
+          artistName: profile?.full_name ?? profile?.username ?? "Tatuador",
+          type: "new_design",
+          designId: inserted.id,
+          designTitle: title.trim(),
+          designImage: coverUrl,
+          artistUsername: profile?.username,
+        }),
+      }).catch(() => {});
+
       toast.success("¡Diseño publicado con éxito!");
       router.push("/dashboard");
     } catch (err: unknown) {

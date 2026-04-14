@@ -81,7 +81,7 @@ export function Navbar() {
   const [sheetOpen, setSheetOpen]     = useState(false);
   const [notifsExpanded, setNotifsExpanded] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
-  const [notifs, setNotifs]           = useState<{ id: string; design_id: string; design_title: string; design_image: string | null; saves_count: number; read: boolean; created_at: string }[]>([]);
+  const [notifs, setNotifs]           = useState<{ id: string; design_id: string; design_title: string; design_image: string | null; saves_count: number; type?: string; read: boolean; created_at: string }[]>([]);
 
   // Desktop notif panel
   const [notifOpen, setNotifOpen] = useState(false);
@@ -153,13 +153,14 @@ export function Navbar() {
         }
       })
       .on("broadcast", { event: "new_notification" }, (payload) => {
-        const { designId, designTitle, designImage, savesCount } = payload.payload ?? {};
+        const { designId, designTitle, designImage, savesCount, notifType } = payload.payload ?? {};
         const newNotif = {
           id: crypto.randomUUID(),
           design_id: designId,
           design_title: designTitle,
           design_image: designImage ?? null,
-          saves_count: savesCount,
+          saves_count: savesCount ?? 0,
+          type: notifType ?? "saves",
           read: false,
           created_at: new Date().toISOString(),
         };
@@ -572,7 +573,13 @@ function SheetLink({ href, icon: Icon, label, onClose, badge }: { href: string; 
   );
 }
 
-function NotifList({ notifs, onClose }: { notifs: { id: string; design_id: string; design_title: string; design_image: string | null; saves_count: number; read: boolean }[]; onClose: () => void }) {
+function notifSubtitle(n: { type?: string; saves_count: number }) {
+  if (n.type === "new_design") return "Nuevo diseño disponible";
+  if (n.type === "design_reserved") return "Fue reservado";
+  return `${n.saves_count} persona${n.saves_count !== 1 ? "s" : ""} lo ${n.saves_count !== 1 ? "tienen" : "tiene"} guardado`;
+}
+
+function NotifList({ notifs, onClose }: { notifs: { id: string; design_id: string; design_title: string; design_image: string | null; saves_count: number; type?: string; read: boolean }[]; onClose: () => void }) {
   if (notifs.length === 0) {
     return <div className="px-4 py-8 text-center text-zinc-500 text-sm">Sin notificaciones todavía</div>;
   }
@@ -594,7 +601,7 @@ function NotifList({ notifs, onClose }: { notifs: { id: string; design_id: strin
           )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{n.design_title}</p>
-            <p className="text-xs text-amber-400">{n.saves_count} personas lo tienen guardado</p>
+            <p className="text-xs text-amber-400">{notifSubtitle(n)}</p>
           </div>
           {!n.read && <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />}
         </Link>
