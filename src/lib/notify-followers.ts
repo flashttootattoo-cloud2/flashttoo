@@ -7,24 +7,18 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-export type FollowerNotifyType = "new_design" | "design_reserved";
-
 export async function notifyFollowers({
   artistId,
   artistName,
-  type,
   designId,
   designTitle,
   designImage,
-  artistUsername,
 }: {
   artistId: string;
   artistName: string;
-  type: FollowerNotifyType;
   designId: string;
   designTitle: string;
   designImage?: string;
-  artistUsername?: string;
 }) {
   const service = createServiceClient();
 
@@ -38,16 +32,9 @@ export async function notifyFollowers({
 
   const followerIds = followers.map((f: { follower_id: string }) => f.follower_id);
 
-  const isNewDesign = type === "new_design";
-  const pushTitle = isNewDesign
-    ? `Nuevo diseño de ${artistName}`
-    : `${artistName} confirmó una reserva`;
-  const pushBody = isNewDesign
-    ? `"${designTitle}" — disponible ahora`
-    : `"${designTitle}" fue reservado`;
-  const url = isNewDesign
-    ? `/design/${designId}`
-    : `/artist/${artistUsername ?? artistId}`;
+  const pushTitle = `${artistName} subió un nuevo diseño`;
+  const pushBody = `"${designTitle}" — disponible ahora`;
+  const url = `/design/${designId}`;
 
   // Insert DB notifications — try with type column first, fall back without it
   const rows = followerIds.map((uid: string) => ({
@@ -56,7 +43,7 @@ export async function notifyFollowers({
     design_title: designTitle,
     design_image: designImage ?? null,
     saves_count: 0,
-    type,
+    type: "new_design",
     read: false,
   }));
   const { error: upsertErr } = await service
@@ -79,7 +66,7 @@ export async function notifyFollowers({
         ch.send({
           type: "broadcast",
           event: "new_notification",
-          payload: { designId, designTitle, designImage, savesCount: 0, notifType: type },
+          payload: { designId, designTitle, designImage, savesCount: 0, notifType: "new_design" },
         }).then(() => service.removeChannel(ch));
       }
     });

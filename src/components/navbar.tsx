@@ -79,6 +79,7 @@ export function Navbar() {
 
   // Unified mobile sheet
   const [sheetOpen, setSheetOpen]     = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
   const [notifsExpanded, setNotifsExpanded] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [notifs, setNotifs]           = useState<{ id: string; design_id: string; design_title: string; design_image: string | null; saves_count: number; type?: string; read: boolean; created_at: string }[]>([]);
@@ -194,6 +195,18 @@ export function Navbar() {
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
+  // Close sheet when touching page content (outside the header)
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const handler = (e: TouchEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+        setSheetOpen(false);
+      }
+    };
+    document.addEventListener("touchstart", handler, { passive: true });
+    return () => document.removeEventListener("touchstart", handler);
+  }, [sheetOpen]);
+
   const markNotifsRead = async () => {
     if (notifCount > 0 && user) {
       clearNotif();
@@ -231,7 +244,7 @@ export function Navbar() {
   const isClient = profile?.role !== "tattoo_artist" && profile?.role !== "administradorgeneral";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+    <header ref={headerRef} className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/">
@@ -411,7 +424,6 @@ export function Navbar() {
       {/* ── MOBILE DROPDOWN MENU (amber, cae desde el navbar) ── */}
       {sheetOpen && (
         <div className="md:hidden">
-          <div className="fixed inset-0 z-40" onClick={() => setSheetOpen(false)} onTouchStart={() => setSheetOpen(false)} />
           <div className="absolute top-full left-0 right-0 z-50 bg-amber-400 border-t border-amber-500/30 shadow-xl">
 
             {/* Profile info — solo si hay sesión */}
