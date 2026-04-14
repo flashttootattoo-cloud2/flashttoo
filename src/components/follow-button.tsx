@@ -3,79 +3,123 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { UserPlus, UserCheck, Loader2 } from "lucide-react";
+import { UserPlus, UserCheck, Loader2, Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface FollowButtonProps {
   artistId: string;
+  artistName: string;
   userId: string | null;
   initialFollowing: boolean;
   initialCount: number;
 }
 
-export function FollowButton({ artistId, userId, initialFollowing, initialCount }: FollowButtonProps) {
+export function FollowButton({ artistId, artistName, userId, initialFollowing, initialCount }: FollowButtonProps) {
   const supabase = createClient();
   const router = useRouter();
   const [following, setFollowing] = useState(initialFollowing);
   const [count, setCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  const doFollow = async () => {
+    setLoading(true);
+    setFollowing(true);
+    setCount((c) => c + 1);
+    await supabase.from("follows")
+      .insert({ follower_id: userId, following_id: artistId });
+    setLoading(false);
+  };
 
   const handleToggle = async () => {
     if (!userId) { router.push("/auth/login"); return; }
-    setLoading(true);
 
     if (following) {
+      setLoading(true);
       setFollowing(false);
       setCount((c) => Math.max(0, c - 1));
       await supabase.from("follows")
         .delete()
         .eq("follower_id", userId)
         .eq("following_id", artistId);
+      setLoading(false);
     } else {
-      setFollowing(true);
-      setCount((c) => c + 1);
-      await supabase.from("follows")
-        .insert({ follower_id: userId, following_id: artistId });
+      setShowModal(true);
     }
-    setLoading(false);
   };
 
-  if (following) {
-    return (
-      <Button
-        onClick={handleToggle}
-        disabled={loading}
-        variant="outline"
-        className="border-zinc-700 hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 transition-all group"
-      >
-        {loading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <>
-            <UserCheck className="w-4 h-4 mr-2 group-hover:hidden" />
-            <span className="group-hover:hidden">Siguiendo</span>
-            <span className="hidden group-hover:inline">Dejar de seguir</span>
-          </>
-        )}
-      </Button>
-    );
-  }
-
   return (
-    <Button
-      onClick={handleToggle}
-      disabled={loading}
-      variant="outline"
-      className="border-zinc-700 hover:bg-zinc-800"
-    >
-      {loading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <>
-          <UserPlus className="w-4 h-4 mr-2" />
-          Seguir
-        </>
+    <>
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center mb-4">
+              <Bell className="w-5 h-5 text-amber-400" />
+            </div>
+            <h3 className="font-semibold text-white text-lg mb-2">Seguir a {artistName}</h3>
+            <p className="text-zinc-400 text-sm mb-6">
+              Vas a recibir notificaciones cuando {artistName} suba un diseño nuevo o confirme una reserva.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 border-zinc-700 hover:bg-zinc-800"
+                onClick={() => setShowModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold"
+                onClick={() => { setShowModal(false); doFollow(); }}
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Seguir
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
-    </Button>
+
+      {following ? (
+        <Button
+          onClick={handleToggle}
+          disabled={loading}
+          variant="outline"
+          className="border-zinc-700 hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 transition-all group"
+        >
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <>
+              <UserCheck className="w-4 h-4 mr-2 group-hover:hidden" />
+              <span className="group-hover:hidden">Siguiendo</span>
+              <span className="hidden group-hover:inline">Dejar de seguir</span>
+            </>
+          )}
+        </Button>
+      ) : (
+        <Button
+          onClick={handleToggle}
+          disabled={loading}
+          variant="outline"
+          className="border-zinc-700 hover:bg-zinc-800"
+        >
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Seguir
+            </>
+          )}
+        </Button>
+      )}
+    </>
   );
 }

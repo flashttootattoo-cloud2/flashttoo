@@ -129,13 +129,22 @@ export default async function ArtistProfilePage({
 
       {/* Profile header */}
       <div className="flex flex-row gap-4 mb-6 items-start">
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex flex-col items-center gap-3">
           <Avatar className="w-20 h-20 md:w-28 md:h-28 border-4 border-zinc-700">
             <AvatarImage src={artist.avatar_url ?? ""} />
             <AvatarFallback className="bg-amber-400 text-zinc-900 text-2xl md:text-3xl font-bold">
               {artist.full_name?.[0]?.toUpperCase()}
             </AvatarFallback>
           </Avatar>
+          {!isOwnProfile && (
+            <FollowButton
+              artistId={artist.id}
+              artistName={artist.full_name ?? artist.username}
+              userId={user?.id ?? null}
+              initialFollowing={isFollowing}
+              initialCount={artist.followers_count ?? 0}
+            />
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -194,7 +203,7 @@ export default async function ArtistProfilePage({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex gap-2">
             <ShareButton username={artist.username} />
             {isOwnProfile ? (
               <Button asChild variant="outline" className="border-zinc-700 hover:bg-zinc-800">
@@ -204,25 +213,17 @@ export default async function ArtistProfilePage({
                 </Link>
               </Button>
             ) : (
-              <>
-                {user && (
-                  <Button
-                    asChild
-                    className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold"
-                  >
-                    <Link href={`/messages?user=${artist.id}`}>
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Enviar mensaje
-                    </Link>
-                  </Button>
-                )}
-                <FollowButton
-                  artistId={artist.id}
-                  userId={user?.id ?? null}
-                  initialFollowing={isFollowing}
-                  initialCount={artist.followers_count ?? 0}
-                />
-              </>
+              user && (
+                <Button
+                  asChild
+                  className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold"
+                >
+                  <Link href={`/messages?user=${artist.id}`}>
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Mensaje
+                  </Link>
+                </Button>
+              )
             )}
           </div>
         </div>

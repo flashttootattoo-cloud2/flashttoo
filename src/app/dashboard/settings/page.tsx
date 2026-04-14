@@ -1,21 +1,20 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Loader2, Save, CheckCircle, XCircle, Brush, User } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Save, CheckCircle, XCircle, User } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,29 +84,12 @@ export default function SettingsPage() {
     load();
   }, []);
 
-  const handleUpgradeToArtist = async () => {
-    if (!userId) return;
-    setUpgrading(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role: "tattoo_artist" })
-      .eq("id", userId);
-    if (error) {
-      toast.error("Error al cambiar el rol.");
-    } else {
-      setRole("tattoo_artist");
-      toast.success("¡Ya sos tatuador/a! Redirigiendo a tu perfil...");
-      setTimeout(() => router.push(`/artist/${username}`), 1500);
-    }
-    setUpgrading(false);
-  };
-
   const handleDowngradeToClient = async () => {
     if (!userId) return;
     setUpgrading(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ role: "client" })
+      .update({ role: "client", keep_in_explore: true })
       .eq("id", userId);
     if (error) {
       toast.error("Error al cambiar el rol.");
@@ -406,43 +388,6 @@ export default function SettingsPage() {
         </Button>
       </form>
 
-      {/* Upgrade to artist */}
-      {role === "client" && (
-        <div
-          className={cn(
-            "mt-8 p-6 rounded-xl border transition-all",
-            searchParams.get("upgrade") === "true"
-              ? "border-amber-400/50 bg-amber-400/5"
-              : "border-zinc-800 bg-zinc-900"
-          )}
-        >
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-amber-400/10 flex items-center justify-center shrink-0">
-              <Brush className="w-5 h-5 text-amber-400" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-semibold text-white mb-1">Convertirte en tatuador/a</h2>
-              <p className="text-zinc-400 text-sm mb-4">
-                Activá tu perfil de artista, subí tus diseños flash y comenzá a recibir clientes. Es gratis para empezar.
-              </p>
-              <Button
-                onClick={handleUpgradeToArtist}
-                disabled={upgrading}
-                className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold"
-              >
-                {upgrading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Brush className="w-4 h-4 mr-2" />
-                    Cambiar a cuenta tatuador
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Downgrade to client */}
       {role === "tattoo_artist" && (

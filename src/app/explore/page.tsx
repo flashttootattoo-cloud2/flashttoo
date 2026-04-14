@@ -18,7 +18,7 @@ export default async function ExplorePage({
   let query = supabase
     .from("profiles")
     .select("*")
-    .eq("role", "tattoo_artist")
+    .or("role.eq.tattoo_artist,keep_in_explore.eq.true")
     .eq("is_blocked", false);
 
   // city y q se pueden combinar
