@@ -432,7 +432,10 @@ export function Navbar() {
       {/* ── MOBILE DROPDOWN MENU (amber, cae desde el navbar) ── */}
       {/* Blur overlay rendered via portal to avoid header stacking context */}
       {mounted && sheetOpen && createPortal(
-        <div className="fixed inset-0 top-16 z-[45] bg-zinc-950/60 backdrop-blur-sm pointer-events-none md:hidden" />,
+        <div
+          className="fixed inset-0 top-16 z-[45] bg-zinc-950/60 backdrop-blur-sm md:hidden"
+          onClick={() => setSheetOpen(false)}
+        />,
         document.body
       )}
       {sheetOpen && (

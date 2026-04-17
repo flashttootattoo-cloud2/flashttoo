@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Loader2, Save, CheckCircle, XCircle, User } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Save, CheckCircle, XCircle } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -21,7 +21,6 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [upgrading, setUpgrading] = useState(false);
   const [role, setRole] = useState<string>("client");
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -82,24 +81,7 @@ export default function SettingsPage() {
     load();
   }, []);
 
-  const handleDowngradeToClient = async () => {
-    if (!userId) return;
-    setUpgrading(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role: "client", keep_in_explore: true })
-      .eq("id", userId);
-    if (error) {
-      toast.error("Error al cambiar el rol.");
-    } else {
-      setRole("client");
-      toast.success("Volviste al modo cliente. Tus diseños guardados y seguidos siguen intactos.");
-      setTimeout(() => router.push("/profile"), 1500);
-    }
-    setUpgrading(false);
-  };
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
 
@@ -375,40 +357,6 @@ export default function SettingsPage() {
       </form>
 
 
-      {/* Downgrade to client */}
-      {role === "tattoo_artist" && (
-        <div className="mt-8 p-6 rounded-xl border border-zinc-800 bg-zinc-900">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0">
-              <User className="w-5 h-5 text-zinc-400" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-semibold text-white mb-1">Volver al modo cliente</h2>
-              <p className="text-zinc-400 text-sm mb-1">
-                Tu perfil de artista y tus diseños quedan guardados. Podés volver a activarlo cuando quieras.
-              </p>
-              <p className="text-zinc-500 text-xs mb-4">
-                Tus diseños guardados y los tatuadores que seguís no se pierden.
-              </p>
-              <Button
-                onClick={handleDowngradeToClient}
-                disabled={upgrading}
-                variant="outline"
-                className="border-zinc-700 hover:bg-zinc-800 text-zinc-300"
-              >
-                {upgrading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <User className="w-4 h-4 mr-2" />
-                    Cambiar a cuenta cliente
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

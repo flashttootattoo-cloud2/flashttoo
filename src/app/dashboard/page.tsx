@@ -283,9 +283,9 @@ export default async function DashboardPage() {
       {/* Recent reservations */}
       <div>
         <h2 className="text-lg font-bold mb-4">Reservas recientes</h2>
-        {reservations && reservations.length > 0 ? (
+        {reservations && reservations.filter((r) => r.status === "pending").length > 0 ? (
           <div className="space-y-3">
-            {reservations.map((res) => {
+            {reservations.filter((r) => r.status === "pending").map((res) => {
               const status = statusConfig[res.status as keyof typeof statusConfig];
               const StatusIcon = status.icon;
               return (
