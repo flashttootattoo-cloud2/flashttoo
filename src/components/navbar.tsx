@@ -56,14 +56,13 @@ async function registerPush(_userId: string) {
     console.log("[push] permission:", permission);
     if (permission !== "granted") return;
 
-    // Reuse existing subscription — don't unsubscribe/resubscribe on every load
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-      });
-    }
+    // Always re-subscribe to ensure the subscription matches current VAPID keys
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) await existing.unsubscribe();
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    });
 
     const res = await fetch("/api/push/subscribe", {
       method: "POST",
