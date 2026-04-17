@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
   const service = createServiceClient();
   const { error } = await service.from("push_subscriptions").upsert(
-    { user_id: user.id, subscription, endpoint: subscription.endpoint },
+    { user_id: user.id, subscription },
     { onConflict: "endpoint" }
   );
 
