@@ -3,7 +3,6 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = "Flashttoo <hola@flashttoo.com>";
-const HOOK_SECRET = process.env.SUPABASE_AUTH_HOOK_SECRET ?? "";
 
 // ─── Email templates ──────────────────────────────────────────────────────────
 
@@ -191,33 +190,6 @@ async function handleEmail(body: HookBody): Promise<NextResponse> {
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
-
-  // Verify HMAC signature if secret is configured
-  if (HOOK_SECRET) {
-    const signature = req.headers.get("x-supabase-signature") ?? "";
-    const secretStr = HOOK_SECRET.startsWith("v1,whsec_")
-      ? HOOK_SECRET.slice("v1,whsec_".length)
-      : HOOK_SECRET;
-
-    try {
-      const keyData = Uint8Array.from(atob(secretStr), (c) => c.charCodeAt(0));
-      const key = await crypto.subtle.importKey(
-        "raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["verify"]
-      );
-      const sigBytes = Uint8Array.from(
-        atob(signature.replace("v1=", "")),
-        (c) => c.charCodeAt(0)
-      );
-      const bodyBytes = new TextEncoder().encode(rawBody);
-      const valid = await crypto.subtle.verify("HMAC", key, sigBytes, bodyBytes);
-      if (!valid) {
-        console.warn("[email-hook] Invalid HMAC signature");
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-    } catch {
-      console.warn("[email-hook] Signature verification skipped");
-    }
-  }
 
   let body: HookBody;
   try {
