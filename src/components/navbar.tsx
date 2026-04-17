@@ -248,7 +248,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/">
-          <Image src="/logo.png" alt="flashtto" width={160} height={40} priority className="h-9 w-auto" />
+          <Image src="/Logoprincipal.svg" alt="Flashttoo" width={160} height={45} priority className="h-9 w-auto" />
         </Link>
 
         {/* Desktop Nav */}
