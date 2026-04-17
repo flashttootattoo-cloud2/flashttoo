@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, MessageSquare, Loader2, ArrowLeft, Trash2, MoreHorizontal, X } from "lucide-react";
+import { Send, MessageSquare, Loader2, ArrowLeft, Trash2, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -369,7 +369,7 @@ function MessagesContent() {
                 {/* Options button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); setConvMenu(menuOpen ? null : conv.id); }}
-                  className="shrink-0 mr-2 p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="shrink-0 mr-2 p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                 >
                   <MoreHorizontal className="w-4 h-4" />
                 </button>

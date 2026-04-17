@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +32,16 @@ export default function LoginPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            Bienvenido a{" "}
-            <span className="text-amber-400">flashtto</span>
-          </h1>
-          <p className="text-zinc-400">Iniciá sesión para continuar</p>
+          <Image
+            src="/Logoprincipal.svg"
+            alt="Flashttoo"
+            width={200}
+            height={56}
+            priority
+            className="h-12 w-auto mx-auto mb-5"
+          />
+          <h1 className="text-2xl font-bold mb-1">Bienvenido</h1>
+          <p className="text-zinc-400 text-sm">Iniciá sesión para continuar</p>
         </div>
 
         <form
