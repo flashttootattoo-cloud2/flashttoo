@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -9,12 +10,16 @@ export async function POST(req: Request) {
   const subscription = await req.json();
   if (!subscription?.endpoint) return NextResponse.json({ error: "No endpoint" }, { status: 400 });
 
-  // Upsert by endpoint — one row per device, many per user
-  // endpoint is a GENERATED column so we don't pass it — Postgres computes it from subscription
-  await supabase.from("push_subscriptions").upsert(
-    { user_id: user.id, subscription },
+  const service = createServiceClient();
+  const { error } = await service.from("push_subscriptions").upsert(
+    { user_id: user.id, subscription, endpoint: subscription.endpoint },
     { onConflict: "endpoint" }
   );
+
+  if (error) {
+    console.error("[push/subscribe] upsert error:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
