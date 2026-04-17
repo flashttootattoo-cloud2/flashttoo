@@ -5,7 +5,7 @@ self.addEventListener("push", (event) => {
       body: data.body ?? "",
       icon: "/icon-notification.png",
       badge: "/notification-badge.png",
-      tag: "flashtto-message",
+      tag: data.tag ?? "flashttoo-message",
       renotify: true,
       data: { url: data.url ?? "/messages" },
     })

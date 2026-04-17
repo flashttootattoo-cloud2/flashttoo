@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { recipientId, senderName, messagePreview } = await req.json();
+  const { recipientId, senderName, messagePreview, conversationId } = await req.json();
 
   // Use service client to bypass RLS — sender querying recipient's subscriptions
   const service = createServiceClient();
@@ -31,6 +31,7 @@ export async function POST(req: Request) {
     title: `Mensaje de ${senderName}`,
     body: messagePreview,
     url: "/messages",
+    tag: conversationId ?? "message",
   });
 
   // Send to all devices, remove expired subscriptions

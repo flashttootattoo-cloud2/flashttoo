@@ -293,8 +293,12 @@ function MessagesContent() {
           recipientId: conv.other_user.id,
           senderName: profile?.full_name ?? "Alguien",
           messagePreview: content.slice(0, 60),
+          conversationId: activeConversationId,
         }),
-      }).catch(() => {});
+      })
+        .then((r) => r.json())
+        .then((d) => { if (!d.ok) console.warn("[push/send]", d); })
+        .catch((e) => console.error("[push/send] fetch error", e));
     }
 
     setSending(false);
