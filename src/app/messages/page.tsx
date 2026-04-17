@@ -258,7 +258,7 @@ function MessagesContent() {
       notifyChannelRef.current = null;
     }
 
-    const bc = supabase.channel(`user-notify-out:${recipientId}`);
+    const bc = supabase.channel(`user-notify:${recipientId}`);
     bc.subscribe();
     notifyChannelRef.current = bc;
     notifyChannelRecipientRef.current = recipientId;

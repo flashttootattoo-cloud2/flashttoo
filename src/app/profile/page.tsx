@@ -104,16 +104,6 @@ export default async function ProfilePage() {
         </div>
       )}
 
-      {/* Para tatuadores: solo settings link pequeño */}
-      {isArtist && (
-        <div className="flex justify-end mb-4">
-          <Button asChild variant="outline" size="sm" className="border-zinc-700 hover:bg-zinc-800">
-            <Link href="/dashboard/settings">
-              <Settings className="w-4 h-4 mr-1.5" /> Configuración
-            </Link>
-          </Button>
-        </div>
-      )}
 
       <FollowingList artists={following} />
 
