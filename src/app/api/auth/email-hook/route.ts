@@ -133,36 +133,19 @@ function magicLink(name: string, url: string) {
   `);
 }
 
-// ─── Handler ──────────────────────────────────────────────────────────────────
+// ─── Core send logic ─────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  // Verify the request comes from Supabase (only if secret is configured)
-  if (HOOK_SECRET) {
-    const auth = req.headers.get("authorization") ?? "";
-    // Supabase may send as "Bearer <secret>" or just "<secret>"
-    const token = auth.startsWith("Bearer ") ? auth.slice(7) : auth;
-    if (token !== HOOK_SECRET) {
-      console.warn("[email-hook] Invalid auth token:", auth.slice(0, 20));
-      // Don't block — log only, until header is confirmed working
-    }
-  }
-
-  let body: {
-    user: { email: string; user_metadata?: { full_name?: string; name?: string } };
-    email_data: {
-      email_action_type: string;
-      token_hash: string;
-      redirect_to: string;
-      site_url: string;
-    };
+type HookBody = {
+  user: { email: string; user_metadata?: { full_name?: string; name?: string } };
+  email_data: {
+    email_action_type: string;
+    token_hash: string;
+    redirect_to: string;
+    site_url: string;
   };
+};
 
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
+async function handleEmail(body: HookBody): Promise<NextResponse> {
   const { user, email_data } = body;
   const { email_action_type, token_hash, redirect_to, site_url } = email_data;
   const to = user.email;
@@ -202,4 +185,46 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ message: "Email sent" });
+}
+
+// ─── Handler ──────────────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  const rawBody = await req.text();
+
+  // Verify HMAC signature if secret is configured
+  if (HOOK_SECRET) {
+    const signature = req.headers.get("x-supabase-signature") ?? "";
+    const secretStr = HOOK_SECRET.startsWith("v1,whsec_")
+      ? HOOK_SECRET.slice("v1,whsec_".length)
+      : HOOK_SECRET;
+
+    try {
+      const keyData = Uint8Array.from(atob(secretStr), (c) => c.charCodeAt(0));
+      const key = await crypto.subtle.importKey(
+        "raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["verify"]
+      );
+      const sigBytes = Uint8Array.from(
+        atob(signature.replace("v1=", "")),
+        (c) => c.charCodeAt(0)
+      );
+      const bodyBytes = new TextEncoder().encode(rawBody);
+      const valid = await crypto.subtle.verify("HMAC", key, sigBytes, bodyBytes);
+      if (!valid) {
+        console.warn("[email-hook] Invalid HMAC signature");
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } catch {
+      console.warn("[email-hook] Signature verification skipped");
+    }
+  }
+
+  let body: HookBody;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  return handleEmail(body);
 }
