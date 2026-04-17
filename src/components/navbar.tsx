@@ -198,17 +198,6 @@ export function Navbar() {
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
-  // Close sheet when touching page content (outside the header)
-  useEffect(() => {
-    if (!sheetOpen) return;
-    const handler = (e: TouchEvent) => {
-      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
-        setSheetOpen(false);
-      }
-    };
-    document.addEventListener("touchstart", handler, { passive: true });
-    return () => document.removeEventListener("touchstart", handler);
-  }, [sheetOpen]);
 
   const markNotifsRead = async () => {
     if (notifCount > 0 && user) {
@@ -434,8 +423,9 @@ export function Navbar() {
       {mounted && sheetOpen && createPortal(
         <div
           className="fixed inset-0 top-16 z-[45] bg-zinc-950/60 backdrop-blur-sm md:hidden"
-          onTouchEnd={(e) => { e.preventDefault(); setSheetOpen(false); }}
-          onClick={() => setSheetOpen(false)}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); setSheetOpen(false); }}
+          onClick={(e) => { e.stopPropagation(); setSheetOpen(false); }}
         />,
         document.body
       )}
