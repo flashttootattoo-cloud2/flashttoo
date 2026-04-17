@@ -42,9 +42,6 @@ function MessagesContent() {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeConvRef = useRef<string | null>(null);
-  // Pre-subscribed broadcast channel per recipient — avoids subscribe latency on every send
-  const notifyChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const notifyChannelRecipientRef = useRef<string | null>(null);
   const [convMenu, setConvMenu] = useState<string | null>(null); // convId with open menu
   const [deletingConv, setDeletingConv] = useState<string | null>(null);
 
@@ -245,30 +242,6 @@ function MessagesContent() {
     };
   }, [activeConversationId]);
 
-  // Pre-subscribe notify channel for the current recipient so broadcast is instant on send
-  useEffect(() => {
-    const conv = conversations.find((c) => c.id === activeConversationId);
-    const recipientId = conv?.other_user?.id;
-    if (!recipientId) return;
-    if (notifyChannelRecipientRef.current === recipientId) return; // already subscribed
-
-    // Clean up previous
-    if (notifyChannelRef.current) {
-      supabase.removeChannel(notifyChannelRef.current);
-      notifyChannelRef.current = null;
-    }
-
-    const bc = supabase.channel(`user-notify:${recipientId}`);
-    bc.subscribe();
-    notifyChannelRef.current = bc;
-    notifyChannelRecipientRef.current = recipientId;
-
-    return () => {
-      supabase.removeChannel(bc);
-      notifyChannelRef.current = null;
-      notifyChannelRecipientRef.current = null;
-    };
-  }, [activeConversationId, conversations]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !activeConversationId || !user) return;
@@ -294,21 +267,23 @@ function MessagesContent() {
     readStored[activeConversationId] = now;
     localStorage.setItem("conv_read_at", JSON.stringify(readStored));
 
-    // Broadcast en tiempo real al destinatario usando el canal pre-suscrito
+    // Broadcast en tiempo real al destinatario
     const conv = conversations.find((c) => c.id === activeConversationId);
     if (conv?.other_user) {
-      const bc = notifyChannelRef.current;
-      if (bc) {
-        bc.send({
-          type: "broadcast",
-          event: "new_message",
-          payload: {
-            senderName: profile?.full_name ?? "Alguien",
-            preview: content.slice(0, 60),
-            conversationId: activeConversationId,
-          },
-        });
-      }
+      const bc = supabase.channel(`user-notify:${conv.other_user.id}`);
+      bc.subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          bc.send({
+            type: "broadcast",
+            event: "new_message",
+            payload: {
+              senderName: profile?.full_name ?? "Alguien",
+              preview: content.slice(0, 60),
+              conversationId: activeConversationId,
+            },
+          }).then(() => supabase.removeChannel(bc));
+        }
+      });
 
       // Push notification al destinatario
       fetch("/api/push/send", {
