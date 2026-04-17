@@ -39,14 +39,21 @@ import {
 import { cn } from "@/lib/utils";
 
 async function registerPush(_userId: string) {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    console.log("[push] not supported");
+    return;
+  }
+  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+    console.error("[push] NEXT_PUBLIC_VAPID_PUBLIC_KEY missing");
+    return;
+  }
 
   try {
     const reg = await navigator.serviceWorker.register("/sw.js");
     await navigator.serviceWorker.ready;
 
     const permission = await Notification.requestPermission();
+    console.log("[push] permission:", permission);
     if (permission !== "granted") return;
 
     const existing = await reg.pushManager.getSubscription();
@@ -57,12 +64,17 @@ async function registerPush(_userId: string) {
       applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     });
 
-    await fetch("/api/push/subscribe", {
+    const res = await fetch("/api/push/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(sub.toJSON()),
     });
-  } catch { /* silently ignore – push is optional */ }
+    const data = await res.json();
+    if (!res.ok) console.error("[push] subscribe failed:", data);
+    else console.log("[push] subscribed ok");
+  } catch (e) {
+    console.error("[push] registerPush error:", e);
+  }
 }
 
 export function Navbar() {
