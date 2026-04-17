@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from 'next/image';
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,7 @@ export function Navbar() {
 
   // Unified mobile sheet
   const [sheetOpen, setSheetOpen]     = useState(false);
+  const [mounted, setMounted]         = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const [notifsExpanded, setNotifsExpanded] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
@@ -188,6 +190,7 @@ export function Navbar() {
   }, [pathname]);
 
   useEffect(() => {
+    setMounted(true);
     setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
     setIsIOS(/iphone|ipad|ipod/i.test(navigator.userAgent));
     const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
@@ -427,8 +430,10 @@ export function Navbar() {
       )}
 
       {/* ── MOBILE DROPDOWN MENU (amber, cae desde el navbar) ── */}
-      {sheetOpen && (
-        <div className="fixed inset-0 top-16 z-40 bg-zinc-950/60 backdrop-blur-sm pointer-events-none md:hidden" />
+      {/* Blur overlay rendered via portal to avoid header stacking context */}
+      {mounted && sheetOpen && createPortal(
+        <div className="fixed inset-0 top-16 z-[45] bg-zinc-950/60 backdrop-blur-sm pointer-events-none md:hidden" />,
+        document.body
       )}
       {sheetOpen && (
         <div className="md:hidden">

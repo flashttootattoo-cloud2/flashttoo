@@ -205,7 +205,7 @@ export default async function ArtistProfilePage({
           <div className="flex gap-2">
             <ShareButton username={artist.username} />
             {isOwnProfile ? (
-              <Button asChild variant="outline" className="border-zinc-700 hover:bg-zinc-800">
+              <Button asChild size="sm" variant="outline" className="border-zinc-700 hover:bg-zinc-800">
                 <Link href="/dashboard">
                   <LayoutDashboard className="w-4 h-4 mr-2" />
                   Dashboard
