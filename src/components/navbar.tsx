@@ -340,6 +340,11 @@ export function Navbar() {
                       </DropdownMenuItem>
                     )}
                     {profile?.role === "tattoo_artist" && (
+                      <DropdownMenuItem onClick={() => router.push("/profile")} className="cursor-pointer">
+                        <Bookmark className="w-4 h-4 mr-2" /> Guardados
+                      </DropdownMenuItem>
+                    )}
+                    {profile?.role === "tattoo_artist" && (
                       <DropdownMenuItem onClick={() => router.push("/plans")} className="cursor-pointer">
                         <Zap className="w-4 h-4 mr-2" /> Planes
                       </DropdownMenuItem>
@@ -459,6 +464,9 @@ export function Navbar() {
             {user && (
               <div className="border-t border-amber-500/30 py-1">
                 <SheetLink href={profile?.role === "tattoo_artist" ? `/artist/${profile?.username ?? ""}` : "/profile"} icon={User} label="Mi perfil" onClose={() => setSheetOpen(false)} />
+                {profile?.role === "tattoo_artist" && (
+                  <SheetLink href="/profile" icon={Bookmark} label="Guardados" onClose={() => setSheetOpen(false)} />
+                )}
                 {profile?.role === "tattoo_artist" && (
                   <SheetLink href="/plans" icon={Zap} label="Planes" onClose={() => setSheetOpen(false)} />
                 )}

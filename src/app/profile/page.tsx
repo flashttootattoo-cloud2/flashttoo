@@ -24,11 +24,6 @@ export default async function ProfilePage() {
 
   if (!profile) redirect("/auth/login");
 
-  // Si es tatuador redirigir al perfil público
-  if (profile.role === "tattoo_artist") {
-    redirect(`/artist/${profile.username}`);
-  }
-
   // Diseños que likeó
   const { data: likedDesigns } = await supabase
     .from("design_likes")
@@ -78,7 +73,11 @@ export default async function ProfilePage() {
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-0.5">
             <h1 className="text-xl font-bold leading-tight">{profile.full_name}</h1>
-            <Badge variant="outline" className="border-zinc-700 text-zinc-400 text-xs">Cliente</Badge>
+            {profile.role === "tattoo_artist" ? (
+              <Badge className="bg-amber-400/10 text-amber-400 border-amber-400/20 text-xs">Tatuador/a</Badge>
+            ) : (
+              <Badge variant="outline" className="border-zinc-700 text-zinc-400 text-xs">Cliente</Badge>
+            )}
           </div>
           <p className="text-zinc-400 text-xs mb-1">@{profile.username}</p>
 
@@ -100,11 +99,18 @@ export default async function ProfilePage() {
             </div>
           </div>
 
-          <Button asChild variant="outline" size="sm" className="border-zinc-700 hover:bg-zinc-800">
-            <Link href="/dashboard/settings">
-              <Settings className="w-4 h-4 mr-1.5" /> Editar perfil
-            </Link>
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            {profile.role === "tattoo_artist" && (
+              <Button asChild size="sm" className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold">
+                <Link href={`/artist/${profile.username}`}>Ver perfil público</Link>
+              </Button>
+            )}
+            <Button asChild variant="outline" size="sm" className="border-zinc-700 hover:bg-zinc-800">
+              <Link href="/dashboard/settings">
+                <Settings className="w-4 h-4 mr-1.5" /> Editar perfil
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
