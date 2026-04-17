@@ -263,9 +263,8 @@ function TrustCell({ user, onUpdate }: { user: AdminUser; onUpdate: (manual: num
   return (
     <div className="flex items-center gap-2">
       <div>
-        <span className={`text-sm font-bold ${trustColor(score)}`}>{score}</span>
-        <span className="text-zinc-600 text-xs">/100</span>
-        <p className={`text-xs ${trustColor(score)}`}>{trustLabel(score)}</p>
+        <span className={`text-sm font-bold ${trustColor(score)}`}>{score}<span className="text-zinc-600 text-xs font-normal">/100</span></span>
+        <p className={`text-xs font-medium ${trustColor(score)}`}>✦ {trustLabel(score)}</p>
       </div>
       <div className="flex flex-col gap-0.5">
         <button onClick={() => adjust(5)} disabled={saving || manual >= 20}

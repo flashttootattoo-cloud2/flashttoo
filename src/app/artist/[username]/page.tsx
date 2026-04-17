@@ -238,36 +238,34 @@ export default async function ArtistProfilePage({
             </div>
           </div>
 
-          <div className="flex gap-2 items-center">
-            <ShareButton username={artist.username} />
-            {!isOwnProfile && (
+          {isOwnProfile ? (
+            <div className="flex gap-2 w-full">
+              <ShareButton username={artist.username} className="flex-1" />
+              <Button asChild size="sm" variant="outline" className="flex-1 border-zinc-700 hover:bg-zinc-800">
+                <Link href="/dashboard">
+                  <LayoutDashboard className="w-4 h-4 mr-1.5" />
+                  Dashboard
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2 w-full items-center">
+              <ShareButton username={artist.username} className="flex-1" />
+              {user && (
+                <Button asChild size="sm" className="flex-1 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold">
+                  <Link href={`/messages?user=${artist.id}`}>
+                    <MessageSquare className="w-4 h-4 mr-1.5" />
+                    Mensaje
+                  </Link>
+                </Button>
+              )}
               <ArtistReportButton
                 artistId={artist.id}
                 artistName={artist.full_name ?? artist.username}
                 userId={user?.id ?? null}
               />
-            )}
-            {isOwnProfile ? (
-              <Button asChild size="sm" variant="outline" className="border-zinc-700 hover:bg-zinc-800">
-                <Link href="/dashboard">
-                  <LayoutDashboard className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Link>
-              </Button>
-            ) : (
-              user && (
-                <Button
-                  asChild
-                  className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold"
-                >
-                  <Link href={`/messages?user=${artist.id}`}>
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Mensaje
-                  </Link>
-                </Button>
-              )
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

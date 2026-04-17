@@ -6,9 +6,10 @@ import { Share2, Check } from "lucide-react";
 
 interface ShareButtonProps {
   username: string;
+  className?: string;
 }
 
-export function ShareButton({ username }: ShareButtonProps) {
+export function ShareButton({ username, className }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -28,8 +29,9 @@ export function ShareButton({ username }: ShareButtonProps) {
   return (
     <Button
       variant="outline"
+      size="sm"
       onClick={handleShare}
-      className="border-zinc-700 hover:bg-zinc-800 gap-2"
+      className={`border-zinc-700 hover:bg-zinc-800 gap-2 ${className ?? ""}`}
     >
       {copied ? (
         <>
