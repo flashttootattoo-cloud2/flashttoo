@@ -134,7 +134,7 @@ export default function UploadDesignPage() {
     setExtraFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const compressImage = (f: File, maxPx = 1200, quality = 0.85): Promise<Blob> =>
+  const compressImage = (f: File, maxPx = 1200, quality = 0.85, watermark?: string): Promise<Blob> =>
     new Promise((resolve, reject) => {
       const img = new window.Image();
       const url = URL.createObjectURL(f);
@@ -146,15 +146,27 @@ export default function UploadDesignPage() {
         const canvas = document.createElement("canvas");
         canvas.width = w;
         canvas.height = h;
-        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, w, h);
+        if (watermark) {
+          const fontSize = Math.max(13, Math.round(w * 0.026));
+          const pad = Math.round(fontSize * 0.65);
+          ctx.font = `bold ${fontSize}px sans-serif`;
+          ctx.shadowColor = "rgba(0,0,0,0.65)";
+          ctx.shadowBlur = 5;
+          ctx.shadowOffsetX = 1;
+          ctx.shadowOffsetY = 1;
+          ctx.fillStyle = "rgba(255,255,255,0.72)";
+          ctx.fillText(watermark, pad, pad + fontSize);
+        }
         canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Compresión fallida")), "image/jpeg", quality);
       };
       img.onerror = reject;
       img.src = url;
     });
 
-  const uploadImage = async (f: File, path: string) => {
-    const compressed = await compressImage(f);
+  const uploadImage = async (f: File, path: string, watermark?: string) => {
+    const compressed = await compressImage(f, 1200, 0.85, watermark);
     const jpegPath = path.replace(/\.[^.]+$/, ".jpg");
     const { error } = await supabase.storage.from("designs").upload(jpegPath, compressed, {
       cacheControl: "3600",
@@ -181,7 +193,8 @@ export default function UploadDesignPage() {
 
       // 1. Upload cover image
       setUploadProgress("Subiendo imagen principal...");
-      const coverUrl = await uploadImage(file, `${user.id}/${timestamp}.${ext}`);
+      const wm = `@${profile?.username ?? user.id}`;
+      const coverUrl = await uploadImage(file, `${user.id}/${timestamp}.${ext}`, wm);
 
       // 2. Create design and get ID back
       setUploadProgress("Guardando diseño...");
@@ -217,7 +230,7 @@ export default function UploadDesignPage() {
         for (let i = 0; i < extraFiles.length; i++) {
           const ef = extraFiles[i];
           const extExtra = ef.file.name.split(".").pop();
-          const url = await uploadImage(ef.file, `${user.id}/${timestamp}_extra${i}.${extExtra}`);
+          const url = await uploadImage(ef.file, `${user.id}/${timestamp}_extra${i}.${extExtra}`, wm);
           imageInserts.push({ design_id: inserted.id, image_url: url, sort_order: i });
           setUploadProgress(`Subiendo fotos adicionales (${i + 1}/${extraFiles.length})...`);
         }
