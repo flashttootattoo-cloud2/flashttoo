@@ -142,7 +142,6 @@ export default async function ArtistProfilePage({
               artistName={artist.full_name ?? artist.username}
               userId={user?.id ?? null}
               initialFollowing={isFollowing}
-              initialCount={artist.followers_count ?? 0}
             />
           )}
         </div>

@@ -428,6 +428,9 @@ export function Navbar() {
 
       {/* ── MOBILE DROPDOWN MENU (amber, cae desde el navbar) ── */}
       {sheetOpen && (
+        <div className="fixed inset-0 top-16 z-40 bg-zinc-950/60 backdrop-blur-sm pointer-events-none md:hidden" />
+      )}
+      {sheetOpen && (
         <div className="md:hidden">
           <div className="absolute top-full left-0 right-0 z-50 bg-amber-400 border-t border-amber-500/30 shadow-xl">
 

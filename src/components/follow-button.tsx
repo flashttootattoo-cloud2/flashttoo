@@ -11,21 +11,18 @@ interface FollowButtonProps {
   artistName: string;
   userId: string | null;
   initialFollowing: boolean;
-  initialCount: number;
 }
 
-export function FollowButton({ artistId, artistName, userId, initialFollowing, initialCount }: FollowButtonProps) {
+export function FollowButton({ artistId, artistName, userId, initialFollowing }: FollowButtonProps) {
   const supabase = createClient();
   const router = useRouter();
   const [following, setFollowing] = useState(initialFollowing);
-  const [count, setCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
   const doFollow = async () => {
     setLoading(true);
     setFollowing(true);
-    setCount((c) => c + 1);
     await supabase.from("follows")
       .insert({ follower_id: userId, following_id: artistId });
     setLoading(false);
@@ -37,7 +34,6 @@ export function FollowButton({ artistId, artistName, userId, initialFollowing, i
     if (following) {
       setLoading(true);
       setFollowing(false);
-      setCount((c) => Math.max(0, c - 1));
       await supabase.from("follows")
         .delete()
         .eq("follower_id", userId)
@@ -51,12 +47,10 @@ export function FollowButton({ artistId, artistName, userId, initialFollowing, i
   return (
     <>
       {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
-          onClick={() => setShowModal(false)}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm" onClick={() => setShowModal(false)} />
           <div
-            className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-sm"
+            className="relative z-10 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center mb-4">
