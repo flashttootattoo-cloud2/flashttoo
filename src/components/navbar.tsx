@@ -434,6 +434,7 @@ export function Navbar() {
       {mounted && sheetOpen && createPortal(
         <div
           className="fixed inset-0 top-16 z-[45] bg-zinc-950/60 backdrop-blur-sm md:hidden"
+          onTouchEnd={(e) => { e.preventDefault(); setSheetOpen(false); }}
           onClick={() => setSheetOpen(false)}
         />,
         document.body
