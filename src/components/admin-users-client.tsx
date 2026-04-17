@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Ban, CheckCircle, ExternalLink, ChevronDown, MessageSquare, MoreVertical, EyeOff, Eye, Trash2, X, Loader2, ShieldCheck, Minus, Plus } from "lucide-react";
+import { Search, Ban, CheckCircle, ExternalLink, ChevronDown, MessageSquare, MoreVertical, EyeOff, Eye, Trash2, X, Loader2, ShieldCheck } from "lucide-react";
 import { computeTrustScore, trustLabel, trustColor } from "@/lib/trust-score";
 import { toast } from "sonner";
 
@@ -16,6 +16,8 @@ interface AdminUser {
   full_name: string;
   username: string;
   avatar_url: string | null;
+  bio?: string | null;
+  instagram?: string | null;
   role: string;
   plan: string;
   is_blocked: boolean;
@@ -24,6 +26,7 @@ interface AdminUser {
   created_at: string;
   followers_count?: number | null;
   trust_score_manual?: number | null;
+  is_verified?: boolean | null;
 }
 
 export function AdminUsersClient({
@@ -40,6 +43,7 @@ export function AdminUsersClient({
   const [role, setRole] = useState(initialRole);
   const [pending, startTransition] = useTransition();
   const [localUsers, setLocalUsers] = useState<AdminUser[]>(users);
+  const [trustModalUser, setTrustModalUser] = useState<AdminUser | null>(null);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [confirmBlock, setConfirmBlock] = useState<{ userId: string; name: string; isBlocked: boolean } | null>(null);
 
@@ -72,6 +76,25 @@ export function AdminUsersClient({
 
   return (
     <div>
+      {trustModalUser && (
+        <TrustModal
+          user={trustModalUser}
+          onClose={() => setTrustModalUser(null)}
+          onUpdate={(manual, isVerified) => {
+            setLocalUsers((prev) =>
+              prev.map((u) =>
+                u.id === trustModalUser.id
+                  ? { ...u, trust_score_manual: manual, is_verified: isVerified }
+                  : u
+              )
+            );
+            setTrustModalUser((prev) =>
+              prev ? { ...prev, trust_score_manual: manual, is_verified: isVerified } : null
+            );
+          }}
+        />
+      )}
+
       {confirmBlock && (
         <ConfirmDialog
           title={confirmBlock.isBlocked ? `Desbloquear a ${confirmBlock.name}` : `Bloquear a ${confirmBlock.name}`}
@@ -165,9 +188,7 @@ export function AdminUsersClient({
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     {user.role === "tattoo_artist" ? (
-                      <TrustCell user={user} onUpdate={(manual) =>
-                        setLocalUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, trust_score_manual: manual } : u))
-                      } />
+                      <TrustBadge user={user} onClick={() => setTrustModalUser(user)} />
                     ) : <span className="text-zinc-600 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3">
@@ -232,10 +253,13 @@ export function AdminUsersClient({
   );
 }
 
-function TrustCell({ user, onUpdate }: { user: AdminUser; onUpdate: (manual: number) => void }) {
-  const { score } = computeTrustScore({
+function getTrustScore(user: AdminUser) {
+  return computeTrustScore({
     created_at: user.created_at,
     avatar_url: user.avatar_url,
+    bio: user.bio,
+    instagram: user.instagram,
+    city: user.city,
     followers_count: user.followers_count,
     total_likes: 0,
     active_designs: 0,
@@ -243,44 +267,211 @@ function TrustCell({ user, onUpdate }: { user: AdminUser; onUpdate: (manual: num
     has_reservations: false,
     trust_score_manual: user.trust_score_manual ?? 0,
     is_blocked: user.is_blocked,
+    is_verified: user.is_verified ?? false,
   });
-  const [saving, setSaving] = useState(false);
-  const manual = user.trust_score_manual ?? 0;
+}
 
-  const adjust = async (delta: number) => {
-    const next = Math.min(20, Math.max(-30, manual + delta));
+function TrustBadge({ user, onClick }: { user: AdminUser; onClick: () => void }) {
+  const { score } = getTrustScore(user);
+  const isVerified = user.is_verified ?? false;
+  return (
+    <button
+      onClick={onClick}
+      className="text-left hover:opacity-80 transition-opacity group"
+      title="Gestionar confianza"
+    >
+      <span className={`text-sm font-bold ${trustColor(score, isVerified)}`}>
+        {score}<span className="text-zinc-600 text-xs font-normal">/100</span>
+      </span>
+      <p className={`text-xs font-medium ${trustColor(score, isVerified)}`}>
+        ✦ {trustLabel(score, isVerified)}
+      </p>
+    </button>
+  );
+}
+
+const MILESTONES = [
+  { label: "Nuevo",          min: 0,   color: "text-zinc-500",   bg: "bg-zinc-800" },
+  { label: "En crecimiento", min: 40,  color: "text-zinc-300",   bg: "bg-zinc-700" },
+  { label: "Confiable",      min: 60,  color: "text-blue-400",   bg: "bg-blue-500/20" },
+  { label: "Muy confiable",  min: 80,  color: "text-emerald-400",bg: "bg-emerald-500/20" },
+  { label: "Verificado",     min: 100, color: "text-amber-400",  bg: "bg-amber-400/20", verified: true },
+];
+
+function TrustModal({
+  user,
+  onClose,
+  onUpdate,
+}: {
+  user: AdminUser;
+  onClose: () => void;
+  onUpdate: (manual: number, isVerified: boolean) => void;
+}) {
+  const { score } = getTrustScore(user);
+  const isVerified = user.is_verified ?? false;
+  const [manualInput, setManualInput] = useState(user.trust_score_manual ?? 0);
+  const [saving, setSaving] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+
+  const previewScore = Math.min(
+    100,
+    Math.max(0, (score - (user.trust_score_manual ?? 0)) + manualInput)
+  );
+
+  const saveAdjustment = async () => {
     setSaving(true);
     const res = await fetch("/api/admin/trust-score", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: user.id, adjustment: next }),
+      body: JSON.stringify({ userId: user.id, adjustment: manualInput }),
     });
     setSaving(false);
-    if (res.ok) { onUpdate(next); toast.success("Score actualizado"); }
-    else toast.error("Error al actualizar score");
+    if (res.ok) {
+      onUpdate(manualInput, isVerified);
+      toast.success("Score actualizado");
+    } else {
+      toast.error("Error al actualizar score");
+    }
+  };
+
+  const toggleVerified = async () => {
+    setVerifying(true);
+    const next = !isVerified;
+    const res = await fetch("/api/admin/trust-score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, is_verified: next }),
+    });
+    setVerifying(false);
+    if (res.ok) {
+      onUpdate(user.trust_score_manual ?? 0, next);
+      toast.success(next ? "¡Verificado!" : "Verificación removida");
+    } else {
+      toast.error("Error");
+    }
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <div>
-        <span className={`text-sm font-bold ${trustColor(score)}`}>{score}<span className="text-zinc-600 text-xs font-normal">/100</span></span>
-        <p className={`text-xs font-medium ${trustColor(score)}`}>✦ {trustLabel(score)}</p>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-zinc-700" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+          <div>
+            <p className="font-semibold text-white text-sm">Confianza · @{user.username}</p>
+            <p className={`text-xs mt-0.5 font-medium ${trustColor(previewScore, isVerified)}`}>
+              ✦ {trustLabel(previewScore, isVerified)} · {previewScore}/100
+            </p>
+          </div>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-5">
+          {/* Milestones */}
+          <div>
+            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Logros</p>
+            <div className="flex gap-2 flex-wrap">
+              {MILESTONES.map((m) => {
+                const reached = m.verified ? isVerified : previewScore >= m.min;
+                return (
+                  <span
+                    key={m.label}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all
+                      ${reached
+                        ? `${m.color} ${m.bg} border-current/30`
+                        : "text-zinc-600 bg-zinc-800/50 border-zinc-800"
+                      }`}
+                  >
+                    {m.verified && reached && "✓ "}{m.label}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Manual adjustment */}
+          <div>
+            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Ajuste manual</p>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min={-100}
+                max={100}
+                value={manualInput}
+                onChange={(e) => setManualInput(Number(e.target.value))}
+                className="flex-1 accent-amber-400 h-2 cursor-pointer"
+              />
+              <input
+                type="number"
+                min={-100}
+                max={100}
+                value={manualInput}
+                onChange={(e) =>
+                  setManualInput(Math.min(100, Math.max(-100, Number(e.target.value))))
+                }
+                className="w-16 text-center bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:border-amber-400"
+              />
+            </div>
+            <p className="text-xs text-zinc-600 mt-1">
+              Score resultante: <span className={`font-semibold ${trustColor(previewScore, false)}`}>{previewScore}/100</span>
+              {manualInput !== 0 && (
+                <span className={`ml-1 ${manualInput > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  ({manualInput > 0 ? "+" : ""}{manualInput} manual)
+                </span>
+              )}
+            </p>
+          </div>
+
+          {/* Save button */}
+          <Button
+            onClick={saveAdjustment}
+            disabled={saving || manualInput === (user.trust_score_manual ?? 0)}
+            className="w-full bg-zinc-700 hover:bg-zinc-600 text-white font-semibold"
+            size="sm"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar ajuste"}
+          </Button>
+
+          {/* Divider */}
+          <div className="h-px bg-zinc-800" />
+
+          {/* Verify section */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">Verificado</p>
+              <p className="text-xs text-zinc-500">
+                {previewScore < 100 && !isVerified
+                  ? `Disponible al llegar a 100 pts (actual: ${previewScore})`
+                  : isVerified
+                  ? "Este artista tiene verificación manual"
+                  : "El score llegó a 100 — podés verificar"}
+              </p>
+            </div>
+            <button
+              onClick={toggleVerified}
+              disabled={verifying || (previewScore < 100 && !isVerified)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed
+                ${isVerified
+                  ? "bg-amber-400/20 text-amber-400 border border-amber-400/30 hover:bg-amber-400/30"
+                  : "bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700"
+                }`}
+            >
+              {verifying
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <ShieldCheck className="w-3.5 h-3.5" />}
+              {isVerified ? "Quitar" : "Verificar"}
+            </button>
+          </div>
+        </div>
       </div>
-      <div className="flex flex-col gap-0.5">
-        <button onClick={() => adjust(5)} disabled={saving || manual >= 20}
-          className="w-5 h-5 rounded bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white disabled:opacity-30 transition-colors">
-          <Plus className="w-3 h-3" />
-        </button>
-        <button onClick={() => adjust(-5)} disabled={saving || manual <= -30}
-          className="w-5 h-5 rounded bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white disabled:opacity-30 transition-colors">
-          <Minus className="w-3 h-3" />
-        </button>
-      </div>
-      {manual !== 0 && (
-        <span className={`text-xs ${manual > 0 ? "text-emerald-400" : "text-red-400"}`}>
-          {manual > 0 ? `+${manual}` : manual}
-        </span>
-      )}
     </div>
   );
 }

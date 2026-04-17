@@ -10,18 +10,26 @@ export async function POST(req: Request) {
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "administradorgeneral") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { userId, adjustment } = await req.json();
-  if (!userId || typeof adjustment !== "number") return NextResponse.json({ error: "Invalid params" }, { status: 400 });
-
-  const clamped = Math.min(20, Math.max(-30, Math.round(adjustment)));
+  const body = await req.json();
+  const { userId, adjustment, is_verified } = body;
+  if (!userId) return NextResponse.json({ error: "Invalid params" }, { status: 400 });
 
   const service = createServiceClient();
-  const { error } = await service
-    .from("profiles")
-    .update({ trust_score_manual: clamped })
-    .eq("id", userId);
+  const updates: Record<string, unknown> = {};
 
+  if (typeof adjustment === "number") {
+    updates.trust_score_manual = Math.min(100, Math.max(-100, Math.round(adjustment)));
+  }
+  if (typeof is_verified === "boolean") {
+    updates.is_verified = is_verified;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  const { error } = await service.from("profiles").update(updates).eq("id", userId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true, trust_score_manual: clamped });
+  return NextResponse.json({ ok: true, ...updates });
 }

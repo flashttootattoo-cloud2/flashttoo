@@ -21,12 +21,13 @@ export interface TrustInput {
   city?: string | null;
   instagram?: string | null;
   followers_count?: number | null;
-  total_likes: number;          // sum of likes_count across all active designs
-  active_designs: number;       // count of non-archived designs
-  recent_reports: number;       // profile_reports in last 30 days
-  has_reservations: boolean;    // any confirmed reservation ever
-  trust_score_manual?: number | null;
+  total_likes: number;
+  active_designs: number;
+  recent_reports: number;
+  has_reservations: boolean;
+  trust_score_manual?: number | null;  // -100 … +100
   is_blocked?: boolean;
+  is_verified?: boolean;               // manually granted by admin
 }
 
 export function computeTrustScore(input: TrustInput): {
@@ -100,24 +101,24 @@ export function computeTrustScore(input: TrustInput): {
   };
 }
 
-export function trustLabel(score: number): string {
-  if (score >= 100) return "Verificado";
+export function trustLabel(score: number, isVerified?: boolean): string {
+  if (isVerified) return "Verificado";
   if (score >= 80)  return "Muy confiable";
   if (score >= 60)  return "Confiable";
   if (score >= 40)  return "En crecimiento";
   return "Nuevo";
 }
 
-export function trustColor(score: number): string {
-  if (score >= 100) return "text-amber-400";
+export function trustColor(score: number, isVerified?: boolean): string {
+  if (isVerified) return "text-amber-400";
   if (score >= 80)  return "text-emerald-400";
   if (score >= 60)  return "text-blue-400";
   if (score >= 40)  return "text-zinc-300";
   return "text-zinc-500";
 }
 
-export function trustRingClass(score: number): string {
-  if (score >= 100) return "ring-2 ring-amber-400 ring-offset-2 ring-offset-zinc-950";
+export function trustRingClass(score: number, isVerified?: boolean): string {
+  if (isVerified) return "ring-2 ring-amber-400 ring-offset-2 ring-offset-zinc-950";
   if (score >= 80)  return "ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-zinc-950";
   if (score >= 60)  return "ring-2 ring-blue-400/60 ring-offset-2 ring-offset-zinc-950";
   return "";

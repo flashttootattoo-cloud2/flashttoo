@@ -11,7 +11,7 @@ export default async function AdminUsuariosPage({
 
   let query = supabase
     .from("profiles")
-    .select("id, full_name, username, avatar_url, role, plan, is_blocked, city, country, created_at, followers_count, trust_score_manual")
+    .select("id, full_name, username, avatar_url, bio, instagram, role, plan, is_blocked, city, country, created_at, followers_count, trust_score_manual, is_verified")
     .order("created_at", { ascending: false })
     .limit(100);
 

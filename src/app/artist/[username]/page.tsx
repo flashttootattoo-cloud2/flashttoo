@@ -124,7 +124,9 @@ export default async function ArtistProfilePage({
     has_reservations: (reservationCount ?? 0) > 0,
     trust_score_manual: artist.trust_score_manual ?? 0,
     is_blocked: artist.is_blocked,
+    is_verified: artist.is_verified ?? false,
   });
+  const isVerified = artist.is_verified ?? false;
 
   // If blocked, hide all designs from the public (owner still sees their dash)
   const designs = artist.is_blocked ? [] : (rawDesigns ?? []).sort((a, b) => {
@@ -155,13 +157,13 @@ export default async function ArtistProfilePage({
       <div className="flex flex-row gap-4 mb-6 items-start">
         <div className="flex-shrink-0 flex flex-col items-center gap-3">
           <div className="relative">
-            <Avatar className={`w-20 h-20 md:w-28 md:h-28 border-4 border-zinc-700 ${trustRingClass(trustScore)}`}>
+            <Avatar className={`w-20 h-20 md:w-28 md:h-28 border-4 border-zinc-700 ${trustRingClass(trustScore, isVerified)}`}>
               <AvatarImage src={artist.avatar_url ?? ""} />
               <AvatarFallback className="bg-amber-400 text-zinc-900 text-2xl md:text-3xl font-bold">
                 {artist.full_name?.[0]?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            {trustScore >= 100 && (
+            {isVerified && (
               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center shadow-lg" title="Tatuador verificado">
                 <CheckCircle className="w-4 h-4 text-zinc-900" />
               </div>
@@ -188,9 +190,9 @@ export default async function ArtistProfilePage({
             ) : (artist.plan === "pro" || artist.plan === "premium") ? (
               <Badge className="bg-amber-400/10 text-amber-400 border-amber-400/30 text-xs">Pro</Badge>
             ) : null}
-            {trustScore >= 40 && (
-              <span className={`text-xs font-medium ${trustColor(trustScore)}`} title={`Score de confianza: ${trustScore}/100`}>
-                ✦ {trustLabel(trustScore)}
+            {(trustScore >= 40 || isVerified) && (
+              <span className={`text-xs font-medium ${trustColor(trustScore, isVerified)}`} title={`Score de confianza: ${trustScore}/100`}>
+                ✦ {trustLabel(trustScore, isVerified)}
               </span>
             )}
           </div>
