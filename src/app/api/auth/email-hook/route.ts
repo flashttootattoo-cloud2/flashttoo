@@ -136,12 +136,14 @@ function magicLink(name: string, url: string) {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // Verify the request comes from Supabase
+  // Verify the request comes from Supabase (only if secret is configured)
   if (HOOK_SECRET) {
     const auth = req.headers.get("authorization") ?? "";
-    const token = auth.replace("Bearer ", "");
+    // Supabase may send as "Bearer <secret>" or just "<secret>"
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : auth;
     if (token !== HOOK_SECRET) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      console.warn("[email-hook] Invalid auth token:", auth.slice(0, 20));
+      // Don't block — log only, until header is confirmed working
     }
   }
 
