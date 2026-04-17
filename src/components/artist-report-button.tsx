@@ -17,10 +17,12 @@ export function ArtistReportButton({
   artistId,
   artistName,
   userId,
+  daysUntilCanReport = 0,
 }: {
   artistId: string;
   artistName: string;
   userId: string | null;
+  daysUntilCanReport?: number;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -126,10 +128,13 @@ export function ArtistReportButton({
           <div className="absolute right-0 top-10 z-40 w-52 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden">
             <button
               onClick={() => { setMenuOpen(false); if (!userId) { router.push("/auth/login"); return; } setModalOpen(true); }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-zinc-800 transition-colors"
+              disabled={daysUntilCanReport > 0}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Flag className="w-4 h-4 shrink-0" />
-              Reportar perfil
+              {daysUntilCanReport > 0
+                ? `Podés reportar en ${daysUntilCanReport} día${daysUntilCanReport !== 1 ? "s" : ""}`
+                : "Reportar perfil"}
             </button>
           </div>
         )}

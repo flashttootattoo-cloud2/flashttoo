@@ -89,7 +89,8 @@ export default async function ArtistProfilePage({
 
   // designs + follow + trust data in parallel
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const [{ data: rawDesigns }, , followResult, { count: recentReports }, { count: reservationCount }, { data: designStats }] = await Promise.all([
+  const sevenDaysAgo  = new Date(Date.now() -  7 * 24 * 60 * 60 * 1000).toISOString();
+  const [{ data: rawDesigns }, , followResult, { count: recentReports }, { count: reservationCount }, { data: designStats }, { data: myReport }] = await Promise.all([
     supabase
       .from("designs")
       .select("*, artist:profiles!designs_artist_id_fkey(*)")
@@ -108,6 +109,11 @@ export default async function ArtistProfilePage({
     supabase.from("reservations").select("*", { count: "exact", head: true })
       .eq("artist_id", artist.id).eq("status", "confirmed"),
     supabase.from("designs").select("likes_count").eq("artist_id", artist.id).eq("is_archived", false),
+    user && !isOwnProfile
+      ? supabase.from("profile_reports").select("created_at")
+          .eq("reporter_id", user.id).eq("reported_id", artist.id)
+          .gte("created_at", sevenDaysAgo).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const totalLikes = (designStats ?? []).reduce((acc, d) => acc + (d.likes_count ?? 0), 0);
@@ -127,6 +133,10 @@ export default async function ArtistProfilePage({
     is_verified: artist.is_verified ?? false,
   });
   const isVerified = artist.is_verified ?? false;
+
+  const daysUntilCanReport = myReport?.created_at
+    ? Math.ceil((new Date(myReport.created_at).getTime() + 7 * 24 * 60 * 60 * 1000 - Date.now()) / (1000 * 60 * 60 * 24))
+    : 0;
 
   // If blocked, hide all designs from the public (owner still sees their dash)
   const designs = artist.is_blocked ? [] : (rawDesigns ?? []).sort((a, b) => {
@@ -265,6 +275,7 @@ export default async function ArtistProfilePage({
                 artistId={artist.id}
                 artistName={artist.full_name ?? artist.username}
                 userId={user?.id ?? null}
+                daysUntilCanReport={daysUntilCanReport}
               />
             </div>
           )}
