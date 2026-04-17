@@ -32,7 +32,6 @@ export default function SettingsPage() {
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
   const [instagram, setInstagram] = useState("");
-  const [phone, setPhone] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [originalUsername, setOriginalUsername] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
@@ -76,7 +75,6 @@ export default function SettingsPage() {
         setCity(profile.city ?? "");
         setCountry(profile.country ?? "");
         setInstagram(profile.instagram ?? "");
-        setPhone(profile.phone ?? "");
         setRole(profile.role ?? "client");
       }
       setLoading(false);
@@ -182,7 +180,6 @@ export default function SettingsPage() {
         city: city.trim() || null,
         country: country.trim() || null,
         instagram: instagram.trim() || null,
-        phone: phone.trim() || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", userId);
@@ -348,26 +345,15 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-300">Instagram</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">@</span>
-              <Input
-                value={instagram}
-                onChange={(e) => setInstagram(e.target.value)}
-                placeholder="tuusuario"
-                className="pl-7 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-amber-400"
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-300">Teléfono / WhatsApp</label>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-zinc-300">Instagram</label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">@</span>
             <Input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+54 9 11..."
-              className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-amber-400"
+              value={instagram}
+              onChange={(e) => setInstagram(e.target.value)}
+              placeholder="tuusuario"
+              className="pl-7 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-amber-400"
             />
           </div>
         </div>

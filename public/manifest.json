@@ -4,8 +4,8 @@
   "description": "Descubrí tatuadores y diseños flash cerca tuyo",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#09090b",
+  "background_color": "#f0ff42",
+  "theme_color": "#f0ff42",
   "orientation": "portrait",
   "icons": [
     {
