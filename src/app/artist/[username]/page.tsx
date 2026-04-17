@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { FollowButton } from "@/components/follow-button";
 import { ShareButton } from "@/components/share-button";
+import { ArtistReportButton } from "@/components/artist-report-button";
+import { computeTrustScore, trustRingClass, trustLabel, trustColor } from "@/lib/trust-score";
 import type { Metadata } from "next";
 
 export async function generateMetadata({
@@ -85,8 +87,9 @@ export default async function ArtistProfilePage({
   const user = session?.user ?? null;
   const isOwnProfile = user?.id === artist.id;
 
-  // designs + personalisation queries in parallel
-  const [{ data: rawDesigns }, , followResult] = await Promise.all([
+  // designs + follow + trust data in parallel
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const [{ data: rawDesigns }, , followResult, { count: recentReports }, { count: reservationCount }, { data: designStats }] = await Promise.all([
     supabase
       .from("designs")
       .select("*, artist:profiles!designs_artist_id_fkey(*)")
@@ -100,7 +103,28 @@ export default async function ArtistProfilePage({
     user && !isOwnProfile
       ? supabase.from("follows").select("follower_id").eq("follower_id", user.id).eq("following_id", artist.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from("profile_reports").select("*", { count: "exact", head: true })
+      .eq("reported_id", artist.id).gte("created_at", thirtyDaysAgo),
+    supabase.from("reservations").select("*", { count: "exact", head: true })
+      .eq("artist_id", artist.id).eq("status", "confirmed"),
+    supabase.from("designs").select("likes_count").eq("artist_id", artist.id).eq("is_archived", false),
   ]);
+
+  const totalLikes = (designStats ?? []).reduce((acc, d) => acc + (d.likes_count ?? 0), 0);
+  const { score: trustScore } = computeTrustScore({
+    created_at: artist.created_at,
+    avatar_url: artist.avatar_url,
+    bio: artist.bio,
+    city: artist.city,
+    instagram: artist.instagram,
+    followers_count: artist.followers_count,
+    total_likes: totalLikes,
+    active_designs: rawDesigns?.length ?? 0,
+    recent_reports: recentReports ?? 0,
+    has_reservations: (reservationCount ?? 0) > 0,
+    trust_score_manual: artist.trust_score_manual ?? 0,
+    is_blocked: artist.is_blocked,
+  });
 
   // If blocked, hide all designs from the public (owner still sees their dash)
   const designs = artist.is_blocked ? [] : (rawDesigns ?? []).sort((a, b) => {
@@ -130,12 +154,19 @@ export default async function ArtistProfilePage({
       {/* Profile header */}
       <div className="flex flex-row gap-4 mb-6 items-start">
         <div className="flex-shrink-0 flex flex-col items-center gap-3">
-          <Avatar className="w-20 h-20 md:w-28 md:h-28 border-4 border-zinc-700">
-            <AvatarImage src={artist.avatar_url ?? ""} />
-            <AvatarFallback className="bg-amber-400 text-zinc-900 text-2xl md:text-3xl font-bold">
-              {artist.full_name?.[0]?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className={`w-20 h-20 md:w-28 md:h-28 border-4 border-zinc-700 ${trustRingClass(trustScore)}`}>
+              <AvatarImage src={artist.avatar_url ?? ""} />
+              <AvatarFallback className="bg-amber-400 text-zinc-900 text-2xl md:text-3xl font-bold">
+                {artist.full_name?.[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            {trustScore >= 100 && (
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center shadow-lg" title="Tatuador verificado">
+                <CheckCircle className="w-4 h-4 text-zinc-900" />
+              </div>
+            )}
+          </div>
           {!isOwnProfile && (
             <FollowButton
               artistId={artist.id}
@@ -157,6 +188,11 @@ export default async function ArtistProfilePage({
             ) : (artist.plan === "pro" || artist.plan === "premium") ? (
               <Badge className="bg-amber-400/10 text-amber-400 border-amber-400/30 text-xs">Pro</Badge>
             ) : null}
+            {trustScore >= 40 && (
+              <span className={`text-xs font-medium ${trustColor(trustScore)}`} title={`Score de confianza: ${trustScore}/100`}>
+                ✦ {trustLabel(trustScore)}
+              </span>
+            )}
           </div>
 
           <p className="text-zinc-400 text-xs mb-1">@{artist.username}</p>
@@ -202,8 +238,15 @@ export default async function ArtistProfilePage({
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <ShareButton username={artist.username} />
+            {!isOwnProfile && (
+              <ArtistReportButton
+                artistId={artist.id}
+                artistName={artist.full_name ?? artist.username}
+                userId={user?.id ?? null}
+              />
+            )}
             {isOwnProfile ? (
               <Button asChild size="sm" variant="outline" className="border-zinc-700 hover:bg-zinc-800">
                 <Link href="/dashboard">

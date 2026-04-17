@@ -7,7 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Ban, CheckCircle, ExternalLink, ChevronDown, MessageSquare, MoreVertical, EyeOff, Eye, Trash2, X, Loader2 } from "lucide-react";
+import { Search, Ban, CheckCircle, ExternalLink, ChevronDown, MessageSquare, MoreVertical, EyeOff, Eye, Trash2, X, Loader2, ShieldCheck, Minus, Plus } from "lucide-react";
+import { computeTrustScore, trustLabel, trustColor } from "@/lib/trust-score";
 import { toast } from "sonner";
 
 interface AdminUser {
@@ -21,6 +22,8 @@ interface AdminUser {
   city: string | null;
   country: string | null;
   created_at: string;
+  followers_count?: number | null;
+  trust_score_manual?: number | null;
 }
 
 export function AdminUsersClient({
@@ -130,6 +133,7 @@ export function AdminUsersClient({
               <th className="text-left px-4 py-3 text-zinc-400 font-medium hidden md:table-cell">Rol</th>
               <th className="text-left px-4 py-3 text-zinc-400 font-medium hidden lg:table-cell">Ciudad</th>
               <th className="text-left px-4 py-3 text-zinc-400 font-medium hidden sm:table-cell">Plan</th>
+              <th className="text-left px-4 py-3 text-zinc-400 font-medium hidden md:table-cell">Confianza</th>
               <th className="text-left px-4 py-3 text-zinc-400 font-medium">Estado</th>
               <th className="text-right px-4 py-3 text-zinc-400 font-medium">Acciones</th>
             </tr>
@@ -158,6 +162,13 @@ export function AdminUsersClient({
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
                     <span className="text-zinc-400 capitalize">{user.plan || "free"}</span>
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    {user.role === "tattoo_artist" ? (
+                      <TrustCell user={user} onUpdate={(manual) =>
+                        setLocalUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, trust_score_manual: manual } : u))
+                      } />
+                    ) : <span className="text-zinc-600 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3">
                     {user.is_blocked
@@ -202,7 +213,7 @@ export function AdminUsersClient({
                 </tr>
                 {expandedUser === user.id && (
                   <tr key={`${user.id}-designs`}>
-                    <td colSpan={6} className="px-4 py-3 bg-zinc-900/30">
+                    <td colSpan={7} className="px-4 py-3 bg-zinc-900/30">
                       <AdminUserDesigns userId={user.id} username={user.username} />
                     </td>
                   </tr>
@@ -217,6 +228,60 @@ export function AdminUsersClient({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function TrustCell({ user, onUpdate }: { user: AdminUser; onUpdate: (manual: number) => void }) {
+  const { score } = computeTrustScore({
+    created_at: user.created_at,
+    avatar_url: user.avatar_url,
+    followers_count: user.followers_count,
+    total_likes: 0,
+    active_designs: 0,
+    recent_reports: 0,
+    has_reservations: false,
+    trust_score_manual: user.trust_score_manual ?? 0,
+    is_blocked: user.is_blocked,
+  });
+  const [saving, setSaving] = useState(false);
+  const manual = user.trust_score_manual ?? 0;
+
+  const adjust = async (delta: number) => {
+    const next = Math.min(20, Math.max(-30, manual + delta));
+    setSaving(true);
+    const res = await fetch("/api/admin/trust-score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, adjustment: next }),
+    });
+    setSaving(false);
+    if (res.ok) { onUpdate(next); toast.success("Score actualizado"); }
+    else toast.error("Error al actualizar score");
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <div>
+        <span className={`text-sm font-bold ${trustColor(score)}`}>{score}</span>
+        <span className="text-zinc-600 text-xs">/100</span>
+        <p className={`text-xs ${trustColor(score)}`}>{trustLabel(score)}</p>
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <button onClick={() => adjust(5)} disabled={saving || manual >= 20}
+          className="w-5 h-5 rounded bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white disabled:opacity-30 transition-colors">
+          <Plus className="w-3 h-3" />
+        </button>
+        <button onClick={() => adjust(-5)} disabled={saving || manual <= -30}
+          className="w-5 h-5 rounded bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white disabled:opacity-30 transition-colors">
+          <Minus className="w-3 h-3" />
+        </button>
+      </div>
+      {manual !== 0 && (
+        <span className={`text-xs ${manual > 0 ? "text-emerald-400" : "text-red-400"}`}>
+          {manual > 0 ? `+${manual}` : manual}
+        </span>
+      )}
     </div>
   );
 }
