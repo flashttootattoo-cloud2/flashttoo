@@ -34,22 +34,24 @@ export async function POST(req: Request) {
     tag: conversationId ?? "message",
   });
 
-  // Send to all devices, remove expired subscriptions
   const results = await Promise.allSettled(
     subs.map((row) => webpush.sendNotification(row.subscription, payload))
   );
 
-  // Clean up subscriptions that are no longer valid (410 Gone)
   const staleIds: string[] = [];
+  const errors: string[] = [];
+
   results.forEach((result, i) => {
     if (result.status === "rejected") {
-      const status = (result.reason as { statusCode?: number })?.statusCode;
-      if (status === 410 || status === 404) staleIds.push(subs[i].id);
+      const err = result.reason as { statusCode?: number; message?: string };
+      errors.push(`sub[${i}] status=${err.statusCode} ${err.message ?? ""}`);
+      if (err.statusCode === 410 || err.statusCode === 404) staleIds.push(subs[i].id);
     }
   });
-  if (staleIds.length > 0) {
-    await service.from("push_subscriptions").delete().in("id", staleIds);
-  }
 
-  return NextResponse.json({ ok: true });
+  if (errors.length > 0) console.error("[push/send] errors:", errors);
+  if (staleIds.length > 0) await service.from("push_subscriptions").delete().in("id", staleIds);
+
+  const sent = results.filter((r) => r.status === "fulfilled").length;
+  return NextResponse.json({ ok: sent > 0, sent, errors });
 }
