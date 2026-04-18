@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { PLAN_LIMITS } from "@/lib/plan-config";
 import { NextResponse } from "next/server";
 
 // Vercel cron llama a este endpoint diariamente.
@@ -24,5 +26,38 @@ export async function GET(request: Request) {
   }
 
   console.log(`[cron/cleanup] eliminados ${count} view_events de más de 30 días`);
-  return NextResponse.json({ deleted: count });
+
+  // Auto-downgrade: planes vencidos → free
+  const service = createServiceClient();
+  const now = new Date().toISOString();
+  const { data: expired } = await service
+    .from("profiles")
+    .select("id, plan")
+    .neq("plan", "free")
+    .not("plan_expires_at", "is", null)
+    .lt("plan_expires_at", now);
+
+  let downgraded = 0;
+  for (const profile of expired ?? []) {
+    const { data: activeDesigns } = await service
+      .from("designs")
+      .select("id")
+      .eq("artist_id", profile.id)
+      .eq("is_archived", false)
+      .order("created_at", { ascending: false });
+
+    const toArchive = (activeDesigns ?? []).slice(PLAN_LIMITS["free"]);
+    if (toArchive.length > 0) {
+      await service.from("designs").update({ is_archived: true })
+        .in("id", toArchive.map((d: { id: string }) => d.id));
+    }
+    await service
+      .from("profiles")
+      .update({ plan: "free", plan_expires_at: null, paypal_subscription_id: null })
+      .eq("id", profile.id);
+    downgraded++;
+  }
+
+  if (downgraded > 0) console.log(`[cron/cleanup] ${downgraded} planes vencidos bajados a free`);
+  return NextResponse.json({ deleted: count, downgraded });
 }

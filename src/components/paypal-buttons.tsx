@@ -31,7 +31,7 @@ export function PayPalButtons({ planId, planName, userId, planType }: PayPalButt
         createSubscription={(_data, actions) => {
           return actions.subscription.create({ plan_id: planId });
         }}
-        onApprove={async (_data) => {
+        onApprove={async (data) => {
           const expiresAt = new Date();
           expiresAt.setMonth(expiresAt.getMonth() + 1);
 
@@ -40,6 +40,7 @@ export function PayPalButtons({ planId, planName, userId, planType }: PayPalButt
             .update({
               plan: planType,
               plan_expires_at: expiresAt.toISOString(),
+              paypal_subscription_id: data.subscriptionID ?? null,
             })
             .eq("id", userId);
 

@@ -1,6 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { PlanChangeButton } from "@/components/plan-change-button";
+import { PayPalButtons } from "@/components/paypal-buttons";
+import type { PlanType } from "@/types/database";
+
+const PAYPAL_PLAN_IDS: Record<string, string> = {
+  basic:  process.env.PAYPAL_PLAN_BASIC  ?? "",
+  pro:    process.env.PAYPAL_PLAN_PRO    ?? "",
+  studio: process.env.PAYPAL_PLAN_STUDIO ?? "",
+};
 import { Badge } from "@/components/ui/badge";
 import {
   Check,
@@ -133,7 +141,9 @@ export default async function PlansPage() {
   let currentPlan = "free";
   let activeDesigns = 0;
   let isEarlyBird = false;
+  let userId = "";
   if (session?.user) {
+    userId = session.user.id;
     const [{ data: profile }, { count }] = await Promise.all([
       supabase.from("profiles").select("plan, early_bird, role").eq("id", session.user.id).single(),
       supabase.from("designs").select("id", { count: "exact", head: true })
@@ -299,14 +309,14 @@ export default async function PlansPage() {
                 <div className="text-center py-2.5 rounded-xl bg-zinc-800 text-zinc-500 text-sm">
                   {currentPlan === "free" ? "Siempre gratis" : "Cancelá tu plan para volver aquí"}
                 </div>
-              ) : session?.user ? (
-                // Plan pago distinto al actual: contactar para activar
-                <a
-                  href={`mailto:hola@flashttoo.com?subject=Quiero activar el plan ${plan.name}`}
-                  className="block text-center py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold text-sm transition-colors"
-                >
-                  Activar {plan.name}
-                </a>
+              ) : session?.user && plan.id !== "free" ? (
+                // Plan pago distinto al actual: botón PayPal
+                <PayPalButtons
+                  planId={PAYPAL_PLAN_IDS[plan.id] ?? ""}
+                  planName={plan.name}
+                  userId={userId}
+                  planType={plan.id as Exclude<PlanType, "free" | "premium">}
+                />
               ) : (
                 // No logueado
                 <a
