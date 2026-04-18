@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useTransition, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -38,22 +37,27 @@ export function AdminUsersClient({
   initialQ: string;
   initialRole: string;
 }) {
-  const router = useRouter();
   const [q, setQ] = useState(initialQ);
   const [role, setRole] = useState(initialRole);
-  const [pending, startTransition] = useTransition();
+  const [allUsers] = useState<AdminUser[]>(users);
   const [localUsers, setLocalUsers] = useState<AdminUser[]>(users);
   const [trustModalUser, setTrustModalUser] = useState<AdminUser | null>(null);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [confirmBlock, setConfirmBlock] = useState<{ userId: string; name: string; isBlocked: boolean } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ userId: string; name: string } | null>(null);
+  const [deleteMode, setDeleteMode] = useState(false);
 
-  const search = (newQ: string, newRole: string) => {
-    const params = new URLSearchParams();
-    if (newQ) params.set("q", newQ);
-    if (newRole !== "all") params.set("role", newRole);
-    startTransition(() => router.push(`/admin/usuarios?${params.toString()}`));
-  };
+  // Client-side filter — instant, no server round-trip
+  useEffect(() => {
+    const lower = q.toLowerCase();
+    setLocalUsers(
+      allUsers.filter((u) => {
+        const matchQ = !q || u.full_name?.toLowerCase().includes(lower) || u.username?.toLowerCase().includes(lower);
+        const matchRole = role === "all" || u.role === role;
+        return matchQ && matchRole;
+      })
+    );
+  }, [q, role, allUsers]);
 
   const deleteUser = async (userId: string) => {
     const res = await fetch("/api/admin/delete-user", {
@@ -133,34 +137,39 @@ export function AdminUsersClient({
       )}
 
       {/* Filters */}
-      <div className="flex gap-3 mb-6 flex-wrap">
+      <div className="flex gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
           <Input
             placeholder="Buscar por nombre o usuario..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && search(q, role)}
             className="pl-9 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
           />
         </div>
         <select
           value={role}
-          onChange={(e) => { setRole(e.target.value); search(q, e.target.value); }}
+          onChange={(e) => setRole(e.target.value)}
           className="bg-zinc-900 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none"
         >
           <option value="all">Todos los roles</option>
           <option value="client">Clientes</option>
           <option value="tattoo_artist">Tatuadores</option>
+          <option value="administradorgeneral">Admins</option>
         </select>
-        <Button
-          onClick={() => search(q, role)}
-          disabled={pending}
-          className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold"
-          size="sm"
+      </div>
+
+      {/* Delete mode toggle */}
+      <div className="flex items-center gap-3 mb-4 p-3 rounded-xl border border-zinc-800 bg-zinc-900/50">
+        <button
+          onClick={() => setDeleteMode((v) => !v)}
+          className={`relative w-10 h-5 rounded-full transition-colors ${deleteMode ? "bg-red-500" : "bg-zinc-700"}`}
         >
-          Buscar
-        </Button>
+          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${deleteMode ? "left-5" : "left-0.5"}`} />
+        </button>
+        <span className={`text-sm font-medium ${deleteMode ? "text-red-400" : "text-zinc-500"}`}>
+          {deleteMode ? "Modo eliminación activo — los cestos son clickeables" : "Activar modo eliminación"}
+        </span>
       </div>
 
       {/* Stats */}
@@ -182,6 +191,7 @@ export function AdminUsersClient({
               <th className="text-left px-4 py-3 text-zinc-400 font-medium hidden md:table-cell">Confianza</th>
               <th className="text-left px-4 py-3 text-zinc-400 font-medium">Estado</th>
               <th className="text-right px-4 py-3 text-zinc-400 font-medium">Acciones</th>
+              <th className="text-center px-4 py-3 text-red-400/60 font-medium w-14">Eliminar</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/50">
@@ -252,19 +262,22 @@ export function AdminUsersClient({
                       >
                         {user.is_blocked ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
                       </button>
-                      <button
-                        onClick={() => setConfirmDelete({ userId: user.id, name: user.full_name })}
-                        className="p-1.5 text-zinc-600 hover:text-red-500 transition-colors"
-                        title="Eliminar usuario"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => deleteMode && setConfirmDelete({ userId: user.id, name: user.full_name })}
+                      disabled={!deleteMode}
+                      className={`p-1.5 rounded transition-colors ${deleteMode ? "text-red-500 hover:text-red-400 hover:bg-red-500/10 cursor-pointer" : "text-zinc-700 cursor-not-allowed"}`}
+                      title={deleteMode ? "Eliminar usuario" : "Activá el modo eliminación para usar esto"}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
                 {expandedUser === user.id && (
                   <tr key={`${user.id}-designs`}>
-                    <td colSpan={7} className="px-4 py-3 bg-zinc-900/30">
+                    <td colSpan={8} className="px-4 py-3 bg-zinc-900/30">
                       <AdminUserDesigns userId={user.id} username={user.username} />
                     </td>
                   </tr>
