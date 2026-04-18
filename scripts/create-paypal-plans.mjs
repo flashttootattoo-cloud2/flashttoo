@@ -1,9 +1,27 @@
 // Run once: node scripts/create-paypal-plans.mjs
+// Requires NEXT_PUBLIC_PAYPAL_CLIENT_ID and PAYPAL_SECRET in .env.local
 // Creates 3 PayPal subscription plans and prints their IDs
 
-const CLIENT_ID = "AVOELRwEG4Utd8tpTCDbYZw7_fsvenusWPCHU2ITeY3G2tvGZgdD6VFrxUCDT6zsqlf7K7yfo8zFj1lW";
-const SECRET    = "EFznSBUd46CgOpm1pWtNzc5Onm12y0dUuMjcldOgS6aD5qG9xTc9qc22UGPyZK24S2rl-uKJxUZp3usF";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+
+// Load .env.local manually
+try {
+  const env = readFileSync(resolve(process.cwd(), ".env.local"), "utf8");
+  for (const line of env.split("\n")) {
+    const [key, ...rest] = line.split("=");
+    if (key && rest.length) process.env[key.trim()] = rest.join("=").trim();
+  }
+} catch {}
+
+const CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+const SECRET    = process.env.PAYPAL_SECRET;
 const PRODUCT_ID = "PROD-68L11277H40295948";
+
+if (!CLIENT_ID || !SECRET) {
+  console.error("Falta NEXT_PUBLIC_PAYPAL_CLIENT_ID o PAYPAL_SECRET en .env.local");
+  process.exit(1);
+}
 const BASE = "https://api-m.paypal.com";
 
 async function getToken() {
