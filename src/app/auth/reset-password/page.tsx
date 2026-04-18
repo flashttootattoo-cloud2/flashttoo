@@ -25,18 +25,23 @@ function ResetPasswordForm() {
   useEffect(() => {
     const tokenHash = searchParams.get("token_hash");
     const type = searchParams.get("type");
+    const code = searchParams.get("code");
 
     if (tokenHash && type === "recovery") {
-      // PKCE flow: exchange token_hash for a session
       supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" })
-        .then(({ error }) => {
-          if (error) setReady("expired");
-          else setReady("ready");
-        });
+        .then(({ error }) => setReady(error ? "expired" : "ready"));
       return;
     }
 
-    // Implicit flow (hash in URL) — SDK fires onAuthStateChange automatically
+    if (code) {
+      // PKCE: exchange code client-side — the code verifier cookie is in this
+      // same browser, so the exchange works even if the email was opened here.
+      supabase.auth.exchangeCodeForSession(code)
+        .then(({ error }) => setReady(error ? "expired" : "ready"));
+      return;
+    }
+
+    // Fallback: check for an existing recovery session (implicit flow)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setReady("ready");
     });
