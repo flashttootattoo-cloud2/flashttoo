@@ -150,7 +150,7 @@ async function handleEmail(body: HookBody): Promise<NextResponse> {
   const to = user.email;
   const name = user.user_metadata?.full_name ?? user.user_metadata?.name ?? "";
 
-  const verifyBase = `${site_url}/auth/v1/verify?token=${token_hash}`;
+  const verifyBase = `${site_url}/verify?token=${token_hash}`;
   const confirmUrl = `${verifyBase}&type=signup&redirect_to=${encodeURIComponent(redirect_to)}`;
   const resetUrl   = `${verifyBase}&type=recovery&redirect_to=${encodeURIComponent(redirect_to)}`;
   const magicUrl   = `${verifyBase}&type=magiclink&redirect_to=${encodeURIComponent(redirect_to)}`;
