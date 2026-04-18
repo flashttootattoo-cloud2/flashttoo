@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { EarlyBirdWelcome } from "@/components/early-bird-welcome";
 
 export const dynamic = "force-dynamic";
 import Link from "next/link";
@@ -351,6 +352,7 @@ export default async function DashboardPage() {
         )}
       </div>
     </div>
+    <EarlyBirdWelcome earlyBird={profile.early_bird ?? false} />
   );
 }
 
