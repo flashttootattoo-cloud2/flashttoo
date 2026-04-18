@@ -37,6 +37,13 @@ export function PlanChangeButton({
   const willArchive = Math.max(0, activeDesigns - targetSlots);
 
   const handleConfirm = async () => {
+    if (direction === "cancel") {
+      // Redirect to PayPal — cancellation triggers webhook which handles the downgrade
+      window.open("https://www.paypal.com/myaccount/autopay/", "_blank");
+      setOpen(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/plan/change", {
@@ -50,8 +57,6 @@ export function PlanChangeButton({
       toast.success(
         data.archived > 0
           ? `Plan cambiado. ${data.archived} diseño${data.archived > 1 ? "s" : ""} archivado${data.archived > 1 ? "s" : ""} automáticamente.`
-          : direction === "cancel"
-          ? "Suscripción cancelada. Ahora estás en el plan Gratis."
           : `Plan cambiado a ${targetName}.`
       );
       setOpen(false);
@@ -90,31 +95,35 @@ export function PlanChangeButton({
               {direction === "cancel" ? "¿Cancelar suscripción?" : `¿Bajar a ${targetName}?`}
             </DialogTitle>
             <DialogDescription className="text-zinc-400 space-y-2 pt-1">
-              <span className="block">
-                {direction === "cancel"
-                  ? `Tu plan vuelve a Gratis (${targetSlots} slots activos).`
-                  : `El plan ${targetName} permite ${targetSlots} diseños activos (tenés ${currentSlots} slots ahora).`}
-              </span>
-
-              {willArchive > 0 ? (
-                <span className="flex items-start gap-2 bg-amber-400/10 border border-amber-400/20 rounded-xl p-3 text-amber-300 text-sm">
-                  <Archive className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>
-                    Tus {willArchive} diseño{willArchive > 1 ? "s" : ""} más antiguo{willArchive > 1 ? "s" : ""}{" "}
-                    se van a <strong>archivar automáticamente</strong>. No se borran —
-                    podés restaurarlos si volvés a subir de plan.
+              {direction === "cancel" ? (
+                <>
+                  <span className="block">
+                    Te vamos a llevar a PayPal para que canceles la suscripción desde tu cuenta.
                   </span>
-                </span>
+                  <span className="block text-zinc-500 text-sm">
+                    Tu plan sigue activo hasta el fin del período ya pagado. Cuando PayPal confirme la cancelación, el plan vuelve a Gratis automáticamente.
+                  </span>
+                </>
               ) : (
-                <span className="block text-zinc-500 text-sm">
-                  Todos tus diseños actuales entran dentro del nuevo límite, no se archiva ninguno.
-                </span>
-              )}
-
-              {direction === "cancel" && (
-                <span className="block text-zinc-500 text-sm">
-                  El archivo queda congelado hasta que vuelvas a suscribirte.
-                </span>
+                <>
+                  <span className="block">
+                    {`El plan ${targetName} permite ${targetSlots} diseños activos (tenés ${currentSlots} slots ahora).`}
+                  </span>
+                  {willArchive > 0 ? (
+                    <span className="flex items-start gap-2 bg-amber-400/10 border border-amber-400/20 rounded-xl p-3 text-amber-300 text-sm">
+                      <Archive className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>
+                        Tus {willArchive} diseño{willArchive > 1 ? "s" : ""} más antiguo{willArchive > 1 ? "s" : ""}{" "}
+                        se van a <strong>archivar automáticamente</strong>. No se borran —
+                        podés restaurarlos si volvés a subir de plan.
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="block text-zinc-500 text-sm">
+                      Todos tus diseños actuales entran dentro del nuevo límite, no se archiva ninguno.
+                    </span>
+                  )}
+                </>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -140,7 +149,7 @@ export function PlanChangeButton({
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : direction === "cancel" ? (
-                "Sí, cancelar"
+                "Ir a PayPal"
               ) : (
                 "Confirmar bajada"
               )}
