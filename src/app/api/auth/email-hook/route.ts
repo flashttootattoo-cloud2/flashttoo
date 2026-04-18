@@ -152,7 +152,9 @@ async function handleEmail(body: HookBody): Promise<NextResponse> {
 
   const verifyBase = `${site_url}/verify?token=${token_hash}`;
   const confirmUrl = `${verifyBase}&type=signup&redirect_to=${encodeURIComponent(redirect_to)}`;
-  const resetUrl   = `${verifyBase}&type=recovery&redirect_to=${encodeURIComponent(redirect_to)}`;
+  // Bypass PKCE for recovery — send token_hash directly to the page so verifyOtp
+  // works cross-browser without needing the code verifier cookie.
+  const resetUrl   = `https://www.flashttoo.com/auth/reset-password?token_hash=${token_hash}&type=recovery`;
   const magicUrl   = `${verifyBase}&type=magiclink&redirect_to=${encodeURIComponent(redirect_to)}`;
 
   let subject = "";
