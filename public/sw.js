@@ -3,16 +3,23 @@ self.addEventListener("activate", (event) => event.waitUntil(clients.claim()));
 
 self.addEventListener("push", (event) => {
   const data = event.data?.json() ?? {};
-  event.waitUntil(
+  const show = self.registration.showNotification(data.title ?? "Nuevo mensaje", {
+    body: data.body ?? "",
+    icon: "/icon-notification.png",
+    badge: "/notification-badge.png",
+    tag: data.tag ?? "flashttoo-message",
+    renotify: true,
+    data: { url: data.url ?? "/messages" },
+  }).catch(() =>
+    // Fallback without icons in case they fail to load
     self.registration.showNotification(data.title ?? "Nuevo mensaje", {
       body: data.body ?? "",
-      icon: "/icon-notification.png",
-      badge: "/notification-badge.png",
       tag: data.tag ?? "flashttoo-message",
       renotify: true,
       data: { url: data.url ?? "/messages" },
     })
   );
+  event.waitUntil(show);
 });
 
 self.addEventListener("notificationclick", (event) => {

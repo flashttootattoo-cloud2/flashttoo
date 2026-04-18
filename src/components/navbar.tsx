@@ -39,24 +39,21 @@ import {
 import { cn } from "@/lib/utils";
 
 async function registerPush(_userId: string) {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    console.log("[push] not supported");
-    return;
-  }
-  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
-    console.error("[push] NEXT_PUBLIC_VAPID_PUBLIC_KEY missing");
-    return;
-  }
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return;
+
+  // Re-subscribe at most once per session to avoid a race condition where a
+  // push arrives while we're in the middle of unsubscribe → subscribe.
+  if (sessionStorage.getItem("push_registered")) return;
 
   try {
     const reg = await navigator.serviceWorker.register("/sw.js");
     await navigator.serviceWorker.ready;
 
     const permission = await Notification.requestPermission();
-    console.log("[push] permission:", permission);
     if (permission !== "granted") return;
 
-    // Always re-subscribe to ensure the subscription matches current VAPID keys
+    // Force a fresh subscription so VAPID keys always match the server.
     const existing = await reg.pushManager.getSubscription();
     if (existing) await existing.unsubscribe();
     const sub = await reg.pushManager.subscribe({
@@ -69,11 +66,10 @@ async function registerPush(_userId: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(sub.toJSON()),
     });
-    const data = await res.json();
-    if (!res.ok) console.error("[push] subscribe failed:", data);
-    else console.log("[push] subscribed ok");
+    if (res.ok) sessionStorage.setItem("push_registered", "1");
+    else console.error("[push] subscribe failed:", await res.json());
   } catch (e) {
-    console.error("[push] registerPush error:", e);
+    console.error("[push] error:", e);
   }
 }
 
