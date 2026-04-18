@@ -46,12 +46,25 @@ export function AdminUsersClient({
   const [trustModalUser, setTrustModalUser] = useState<AdminUser | null>(null);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [confirmBlock, setConfirmBlock] = useState<{ userId: string; name: string; isBlocked: boolean } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ userId: string; name: string } | null>(null);
 
   const search = (newQ: string, newRole: string) => {
     const params = new URLSearchParams();
     if (newQ) params.set("q", newQ);
     if (newRole !== "all") params.set("role", newRole);
     startTransition(() => router.push(`/admin/usuarios?${params.toString()}`));
+  };
+
+  const deleteUser = async (userId: string) => {
+    const res = await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    if (!res.ok) { toast.error("Error al eliminar usuario"); return; }
+    setLocalUsers((prev) => prev.filter((u) => u.id !== userId));
+    setConfirmDelete(null);
+    toast.success("Usuario eliminado");
   };
 
   const toggleBlock = async (userId: string, currentBlocked: boolean) => {
@@ -92,6 +105,16 @@ export function AdminUsersClient({
               prev ? { ...prev, trust_score_manual: manual, is_verified: isVerified } : null
             );
           }}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title={`Eliminar a ${confirmDelete.name}`}
+          description="Se eliminará la cuenta, perfil, diseños y todos los datos asociados. Esta acción no se puede deshacer."
+          confirmLabel="Eliminar usuario"
+          onConfirm={() => deleteUser(confirmDelete.userId)}
+          onCancel={() => setConfirmDelete(null)}
         />
       )}
 
@@ -228,6 +251,13 @@ export function AdminUsersClient({
                         title={user.is_blocked ? "Desbloquear cuenta" : "Bloquear cuenta"}
                       >
                         {user.is_blocked ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete({ userId: user.id, name: user.full_name })}
+                        className="p-1.5 text-zinc-600 hover:text-red-500 transition-colors"
+                        title="Eliminar usuario"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>
