@@ -58,7 +58,51 @@ export async function notifyFollowers({
     if (retryErr) console.error("[notifyFollowers] notification upsert failed:", retryErr.message);
   }
 
-  // Realtime broadcast so open tabs get the red dot immediately
+  // Push notifications — do this BEFORE opening realtime WebSocket connections
+  // to avoid interference with the Supabase client in serverless environments
+  const { data: subs, error: subsErr } = await service
+    .from("push_subscriptions")
+    .select("id, user_id, subscription")
+    .in("user_id", followerIds);
+
+  console.log(`[notifyFollowers] push subs found: ${subs?.length ?? 0} (err: ${subsErr?.message ?? "none"})`);
+
+  if (subs && subs.length > 0) {
+    const payload = JSON.stringify({
+      title: pushTitle,
+      body: pushBody,
+      url,
+      // Use a static icon so the notification always shows even if designImage is slow
+      icon: "/icon-notification.png",
+      badge: "/notification-badge.png",
+      tag: `new_design_${designId}`,
+    });
+
+    const results = await Promise.allSettled(
+      subs.map((s: { id: string; subscription: webpush.PushSubscription }) =>
+        webpush.sendNotification(s.subscription, payload)
+      )
+    );
+
+    const staleIds: string[] = [];
+    let sentCount = 0;
+    results.forEach((result, i) => {
+      if (result.status === "fulfilled") {
+        sentCount++;
+      } else {
+        const err = result.reason as { statusCode?: number; message?: string };
+        console.error(`[notifyFollowers] push error sub[${i}]: status=${err.statusCode} ${err.message ?? ""}`);
+        if (err.statusCode === 410 || err.statusCode === 404) staleIds.push(subs[i].id);
+      }
+    });
+
+    console.log(`[notifyFollowers] push sent: ${sentCount}/${subs.length}`);
+    if (staleIds.length > 0) {
+      await service.from("push_subscriptions").delete().in("id", staleIds);
+    }
+  }
+
+  // Realtime broadcast so open tabs get the bell dot immediately (fire-and-forget)
   for (const uid of followerIds) {
     const ch = service.channel(`user-notify:${uid}`);
     ch.subscribe((status: string) => {
@@ -70,40 +114,5 @@ export async function notifyFollowers({
         }).then(() => service.removeChannel(ch));
       }
     });
-  }
-
-  // Push notifications to subscribed devices
-  const { data: subs } = await service
-    .from("push_subscriptions")
-    .select("id, user_id, subscription")
-    .in("user_id", followerIds);
-
-  if (!subs || subs.length === 0) return;
-
-  const payload = JSON.stringify({
-    title: pushTitle,
-    body: pushBody,
-    url,
-    icon: designImage ?? "/icon-notification.png",
-    badge: "/notification-badge.png",
-    tag: `new_design_${designId}`,
-  });
-
-  const results = await Promise.allSettled(
-    subs.map((s: { id: string; subscription: webpush.PushSubscription }) =>
-      webpush.sendNotification(s.subscription, payload)
-    )
-  );
-
-  // Clean up expired subscriptions
-  const staleIds: string[] = [];
-  results.forEach((result, i) => {
-    if (result.status === "rejected") {
-      const status = (result.reason as { statusCode?: number })?.statusCode;
-      if (status === 410 || status === 404) staleIds.push(subs[i].id);
-    }
-  });
-  if (staleIds.length > 0) {
-    await service.from("push_subscriptions").delete().in("id", staleIds);
   }
 }
