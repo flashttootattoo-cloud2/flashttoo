@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Users, Megaphone, FileText, Flag } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -19,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       {/* Sidebar */}
       <aside className="w-56 shrink-0 bg-zinc-950 border-r border-zinc-800 flex flex-col py-6 px-3 gap-1">
         <Link href="/" className="flex items-center gap-2 px-3 mb-6 hover:opacity-80 transition-opacity">
-          <Image src="/Logoprincipal.svg" alt="Flashttoo" width={120} height={32} className="h-8 w-auto" />
+          <span className="text-sm font-bold text-white uppercase tracking-widest">Panel admin</span>
         </Link>
 
         <Link
