@@ -198,12 +198,28 @@ export default async function PlansPage() {
 
       {/* Early Bird ya obtenido */}
       {isEarlyBird && (
-        <div className="mb-8 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-6 py-4 flex items-center gap-3">
-          <Gift className="w-5 h-5 text-emerald-400 shrink-0" />
-          <p className="text-sm text-emerald-300">
-            <span className="font-semibold text-white">Sos parte de los primeros {EARLY_BIRD_LIMIT}.</span>{" "}
-            Tu plan Basic está activo de forma gratuita. Si querés más funciones, simplemente suscribite a Pro o Estudio.
-          </p>
+        <div className="mb-8 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-6 py-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <Gift className="w-5 h-5 text-emerald-400 shrink-0" />
+            <p className="text-sm text-emerald-300">
+              <span className="font-semibold text-white">Sos parte de los primeros {EARLY_BIRD_LIMIT}.</span>{" "}
+              Tu plan Basic está activo de forma gratuita. No necesitás cancelar nada — si querés más funciones, simplemente suscribite a Pro o Studio.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <div className="h-2 w-full bg-zinc-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-400 rounded-full transition-all"
+                style={{ width: `${Math.min(100, (earlyBirdTaken / EARLY_BIRD_LIMIT) * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-zinc-400">
+              {earlyBirdTaken} de {EARLY_BIRD_LIMIT} lugares tomados
+              {earlyBirdLeft > 0
+                ? ` — quedan ${earlyBirdLeft}`
+                : " — cupo completo"}
+            </p>
+          </div>
         </div>
       )}
 
