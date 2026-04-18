@@ -1,14 +1,24 @@
 import Link from "next/link";
 import { Users, Megaphone, FileText, Flag } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const service = createServiceClient();
+  const cookieStore = await cookies();
+  const seenAt = cookieStore.get("reports_seen_at")?.value;
+
+  let designQuery = service.from("reports").select("id", { count: "exact", head: true });
+  let profileQuery = service.from("profile_reports").select("id", { count: "exact", head: true });
+  if (seenAt) {
+    designQuery = designQuery.gt("created_at", seenAt) as typeof designQuery;
+    profileQuery = profileQuery.gt("created_at", seenAt) as typeof profileQuery;
+  }
   const [{ count: designCount }, { count: profileCount }] = await Promise.all([
-    service.from("reports").select("id", { count: "exact", head: true }),
-    service.from("profile_reports").select("id", { count: "exact", head: true }),
+    designQuery,
+    profileQuery,
   ]);
 
   const pendingReports = (designCount ?? 0) + (profileCount ?? 0);

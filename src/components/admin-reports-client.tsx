@@ -362,6 +362,10 @@ type Tab = "designs" | "profiles";
 export function AdminReportsClient() {
   const [tab, setTab] = useState<Tab>("designs");
 
+  useEffect(() => {
+    fetch("/api/admin/mark-reports-seen", { method: "POST" }).catch(() => {});
+  }, []);
+
   return (
     <div>
       {/* Tabs */}

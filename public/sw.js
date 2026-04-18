@@ -5,18 +5,18 @@ self.addEventListener("push", (event) => {
   const data = event.data?.json() ?? {};
   const show = self.registration.showNotification(data.title ?? "Nuevo mensaje", {
     body: data.body ?? "",
-    icon: "/icon-notification.png",
+    icon: data.icon ?? "/icon-notification.png",
     badge: "/notification-badge.png",
-    tag: data.tag ?? "flashttoo-message",
+    tag: data.tag ?? "flashttoo",
     renotify: true,
-    data: { url: data.url ?? "/messages" },
+    vibrate: [200, 100, 200],
+    data: { url: data.url ?? "/" },
   }).catch(() =>
-    // Fallback without icons in case they fail to load
     self.registration.showNotification(data.title ?? "Nuevo mensaje", {
       body: data.body ?? "",
-      tag: data.tag ?? "flashttoo-message",
+      tag: data.tag ?? "flashttoo",
       renotify: true,
-      data: { url: data.url ?? "/messages" },
+      data: { url: data.url ?? "/" },
     })
   );
   event.waitUntil(show);

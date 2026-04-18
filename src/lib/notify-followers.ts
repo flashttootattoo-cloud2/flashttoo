@@ -86,6 +86,7 @@ export async function notifyFollowers({
     url,
     icon: designImage ?? "/icon-notification.png",
     badge: "/notification-badge.png",
+    tag: `new_design_${designId}`,
   });
 
   const results = await Promise.allSettled(
