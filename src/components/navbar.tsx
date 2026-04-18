@@ -124,7 +124,7 @@ export function Navbar() {
   // Load notifications — keep only last 3, delete the rest
   useEffect(() => {
     if (!user || !profile) return;
-    if (profile.role === "tattoo_artist") return;
+    if (profile.role === "administradorgeneral") return;
 
     supabase
       .from("notifications")
@@ -222,7 +222,7 @@ export function Navbar() {
 
   const openSheet = async () => {
     setSheetOpen(true);
-    if (profile?.role !== "tattoo_artist") await markNotifsRead();
+    if (profile?.role !== "administradorgeneral") await markNotifsRead();
   };
 
   const handleLogout = async () => {
@@ -241,7 +241,7 @@ export function Navbar() {
       : []),
   ];
 
-  const isClient = profile?.role !== "tattoo_artist" && profile?.role !== "administradorgeneral";
+  const showNotifs = !!user && profile?.role !== "administradorgeneral";
 
   return (
     <header ref={headerRef} className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
@@ -280,7 +280,7 @@ export function Navbar() {
           {user ? (
             <>
               {/* Desktop: Bell (clients only) */}
-              {isClient && (
+              {showNotifs && (
                 <div className="relative hidden md:block">
                   <button
                     onClick={openDesktopNotifs}
@@ -495,8 +495,8 @@ export function Navbar() {
             )}
 
 
-            {/* Notificaciones (clientes) */}
-            {isClient && (
+            {/* Notificaciones */}
+            {showNotifs && (
               <div className="border-t border-amber-500/30">
                 <button
                   onClick={() => setNotifsExpanded((v) => !v)}
