@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Bell } from "lucide-react";
 
 const PAGES = [
   { key: "terminos", label: "Términos de uso" },
@@ -17,6 +17,7 @@ export default function AdminLegalPage() {
   const [contents, setContents] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [notifying, setNotifying] = useState(false);
 
   useEffect(() => {
     supabase
@@ -31,6 +32,19 @@ export default function AdminLegalPage() {
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleNotify = async () => {
+    setNotifying(true);
+    const res = await fetch("/api/admin/notify-legal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: activeKey }),
+    });
+    const data = await res.json();
+    if (data.error) toast.error("Error al notificar");
+    else toast.success(`Email enviado a ${data.sent} usuario${data.sent !== 1 ? "s" : ""}`);
+    setNotifying(false);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -82,7 +96,16 @@ export default function AdminLegalPage() {
             className="w-full h-[60vh] bg-zinc-900 border border-zinc-700 rounded-xl p-4 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-amber-400 resize-none font-mono leading-relaxed"
             placeholder={`Escribí el contenido de "${PAGES.find(p => p.key === activeKey)?.label}" acá...`}
           />
-          <div className="flex justify-end mt-3">
+          <div className="flex justify-end gap-3 mt-3">
+            <Button
+              onClick={handleNotify}
+              disabled={notifying}
+              variant="outline"
+              className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800"
+            >
+              {notifying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Bell className="w-4 h-4 mr-2" />}
+              Notificar cambios
+            </Button>
             <Button
               onClick={handleSave}
               disabled={saving}
