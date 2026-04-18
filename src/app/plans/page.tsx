@@ -213,9 +213,13 @@ export default async function PlansPage() {
           <span className="text-amber-400 text-xl shrink-0">ℹ️</span>
           <div className="text-sm text-zinc-300 space-y-1">
             <p className="font-semibold text-white">Para cambiar de plan:</p>
-            <p>1. Cancelá tu suscripción actual (botón abajo en tu plan).</p>
-            <p>2. Una vez cancelada, suscribite al nuevo plan que querés.</p>
-            <p className="text-zinc-500 text-xs">PayPal no permite tener dos suscripciones activas a la vez.</p>
+            <p>1. Cancelá tu suscripción actual usando el botón de abajo en tu plan activo.</p>
+            <p>2. Suscribite al nuevo plan desde esta misma página.</p>
+            <p className="text-zinc-500 text-xs">
+              Al cancelar tu plan sigue activo hasta fin del período ya pagado.
+              Si querés subir de plan de inmediato, podés suscribirte al nuevo antes de que venza —
+              se activará enseguida y perderás los días restantes del anterior.
+            </p>
           </div>
         </div>
       )}
