@@ -11,13 +11,17 @@ export async function POST(req: Request) {
   if (!subscription?.endpoint) return NextResponse.json({ error: "No endpoint" }, { status: 400 });
 
   const service = createServiceClient();
-  const { error } = await service.from("push_subscriptions").upsert(
-    { user_id: user.id, subscription },
-    { onConflict: "endpoint" }
+
+  // Delete all existing subscriptions for this user first — avoids stale
+  // entries from old VAPID keys piling up and causing 410s on send.
+  await service.from("push_subscriptions").delete().eq("user_id", user.id);
+
+  const { error } = await service.from("push_subscriptions").insert(
+    { user_id: user.id, subscription }
   );
 
   if (error) {
-    console.error("[push/subscribe] upsert error:", error.message);
+    console.error("[push/subscribe] insert error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
