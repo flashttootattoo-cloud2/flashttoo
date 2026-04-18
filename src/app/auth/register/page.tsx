@@ -79,7 +79,7 @@ export default function RegisterPage() {
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
 
   const checkUsername = useDebouncedCallback(async (value: string) => {
-    const clean = value.toLowerCase().replace(/\s+/g, "_");
+    const clean = value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30);
     if (clean.length < 3) { setUsernameStatus("idle"); return; }
     setUsernameStatus("checking");
     const { data } = await supabase
@@ -91,9 +91,10 @@ export default function RegisterPage() {
   }, 500);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUsername(e.target.value);
+    const clean = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30);
+    setUsername(clean);
     setUsernameStatus("idle");
-    checkUsername(e.target.value);
+    checkUsername(clean);
   };
 
   const handleRegister = async (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -249,18 +250,23 @@ export default function RegisterPage() {
                   value={username}
                   onChange={handleUsernameChange}
                   required
+                  maxLength={30}
                   className={cn(
-                    "bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-amber-400",
+                    "bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-amber-400 pr-16",
                     usernameStatus === "available" && "border-emerald-500 focus:border-emerald-400",
                     usernameStatus === "taken" && "border-red-500 focus:border-red-400"
                   )}
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  <span className={`text-xs ${username.length >= 28 ? "text-amber-400" : "text-zinc-600"}`}>
+                    {username.length}/30
+                  </span>
                   {usernameStatus === "available" && <CheckCircle className="w-4 h-4 text-emerald-400" />}
                   {usernameStatus === "taken" && <XCircle className="w-4 h-4 text-red-400" />}
                   {usernameStatus === "checking" && <Loader2 className="w-4 h-4 text-zinc-500 animate-spin" />}
                 </div>
               </div>
+              <p className="text-xs text-zinc-600 mt-1">Solo letras, números y guión bajo. Sin espacios.</p>
             </div>
           </div>
 
