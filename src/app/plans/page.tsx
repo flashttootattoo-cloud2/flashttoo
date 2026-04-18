@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { PlanChangeButton } from "@/components/plan-change-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,7 +15,10 @@ import {
   Images,
   Users,
   UserCircle,
+  Gift,
 } from "lucide-react";
+
+const EARLY_BIRD_LIMIT = 51;
 
 export const planLimits = {
   free:    { activeDesigns: 5,  archive: false, stats: false,   pinned: 0, extraPhotos: false, artistTag: false },
@@ -115,20 +119,30 @@ const PLAN_SLOTS: Record<string, number> = { free: 5, basic: 15, pro: 30, premiu
 
 export default async function PlansPage() {
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const service = createServiceClient();
+
+  const [{ data: { session } }, { count: earlyBirdCount }] = await Promise.all([
+    supabase.auth.getSession(),
+    service.from("profiles").select("id", { count: "exact", head: true }).eq("early_bird", true),
+  ]);
+
+  const earlyBirdTaken = earlyBirdCount ?? 0;
+  const earlyBirdLeft = Math.max(0, EARLY_BIRD_LIMIT - earlyBirdTaken);
+  const earlyBirdOpen = earlyBirdLeft > 0;
 
   let currentPlan = "free";
   let activeDesigns = 0;
+  let isEarlyBird = false;
   if (session?.user) {
     const [{ data: profile }, { count }] = await Promise.all([
-      supabase.from("profiles").select("plan").eq("id", session.user.id).single(),
+      supabase.from("profiles").select("plan, early_bird, role").eq("id", session.user.id).single(),
       supabase.from("designs").select("id", { count: "exact", head: true })
         .eq("artist_id", session.user.id).eq("is_archived", false),
     ]);
     const raw = profile?.plan ?? "free";
-    // Normalizar plan legacy "premium" → "pro" para que matchee el id del plan en la UI
     currentPlan = raw === "premium" ? "pro" : raw;
     activeDesigns = count ?? 0;
+    isEarlyBird = profile?.early_bird ?? false;
   }
 
   return (
@@ -142,6 +156,46 @@ export default async function PlansPage() {
           Rotá, archivá y crecé a tu ritmo.
         </p>
       </div>
+
+      {/* Early Bird Banner */}
+      {earlyBirdOpen && !isEarlyBird && (
+        <div className="mb-8 bg-gradient-to-r from-amber-400/10 to-amber-400/5 border border-amber-400/30 rounded-2xl px-6 py-5">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-amber-400/20 flex items-center justify-center shrink-0">
+              <Gift className="w-5 h-5 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-white text-lg">Oferta de bienvenida — primeros {EARLY_BIRD_LIMIT}</p>
+              <p className="text-zinc-300 text-sm mt-1">
+                Los primeros {EARLY_BIRD_LIMIT} tatuadores que se registren reciben el plan <span className="text-emerald-400 font-semibold">Basic gratis</span> para siempre.
+                Sin tarjeta. Sin tiempo límite.
+              </p>
+              <div className="flex items-center gap-3 mt-3">
+                <div className="flex-1 bg-zinc-800 rounded-full h-2">
+                  <div
+                    className="bg-amber-400 h-2 rounded-full transition-all"
+                    style={{ width: `${(earlyBirdTaken / EARLY_BIRD_LIMIT) * 100}%` }}
+                  />
+                </div>
+                <span className="text-sm font-bold text-amber-400 shrink-0">
+                  {earlyBirdLeft} lugar{earlyBirdLeft !== 1 ? "es" : ""} disponible{earlyBirdLeft !== 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Early Bird ya obtenido */}
+      {isEarlyBird && (
+        <div className="mb-8 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-6 py-4 flex items-center gap-3">
+          <Gift className="w-5 h-5 text-emerald-400 shrink-0" />
+          <p className="text-sm text-emerald-300">
+            <span className="font-semibold text-white">Sos parte de los primeros {EARLY_BIRD_LIMIT}.</span>{" "}
+            Tu plan Basic está activo de forma gratuita. Si querés más funciones, simplemente suscribite a Pro o Estudio.
+          </p>
+        </div>
+      )}
 
       {/* Banner de instrucción para usuarios con plan pago */}
       {currentPlan !== "free" && session?.user && (

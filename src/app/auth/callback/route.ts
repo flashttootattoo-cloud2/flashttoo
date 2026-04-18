@@ -1,6 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
+import { createServiceClient } from "@/lib/supabase/service";
+
+const EARLY_BIRD_LIMIT = 51;
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -34,6 +37,19 @@ export async function GET(request: NextRequest) {
 
       // Flujo de confirmación de email: crear perfil si no existe
       const meta = data.user.user_metadata;
+      const isArtist = meta?.role === "tattoo_artist";
+
+      // Check early bird before creating profile
+      let earlyBird = false;
+      if (isArtist) {
+        const service = createServiceClient();
+        const { count } = await service
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("early_bird", true);
+        earlyBird = (count ?? 0) < EARLY_BIRD_LIMIT;
+      }
+
       await supabase.from("profiles").upsert(
         {
           id: data.user.id,
@@ -43,12 +59,13 @@ export async function GET(request: NextRequest) {
             .toLowerCase()
             .replace(/\s+/g, "_"),
           city: meta?.city ?? null,
-          plan: "free",
+          plan: earlyBird ? "basic" : "free",
+          early_bird: earlyBird,
         },
         { onConflict: "id", ignoreDuplicates: true }
       );
 
-      if (meta?.role === "tattoo_artist") {
+      if (isArtist) {
         return NextResponse.redirect(`${origin}/dashboard`);
       }
       return NextResponse.redirect(`${origin}/`);
