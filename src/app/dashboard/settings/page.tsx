@@ -32,6 +32,8 @@ export default function SettingsPage() {
   const [country, setCountry] = useState("");
   const [instagram, setInstagram] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
+  const [usernameChangedAt, setUsernameChangedAt] = useState<string | null>(null);
+  const [usernameChangeCount, setUsernameChangeCount] = useState(0);
   const [originalUsername, setOriginalUsername] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
 
@@ -76,6 +78,8 @@ export default function SettingsPage() {
         setCountry(profile.country ?? "");
         setInstagram(profile.instagram ?? "");
         setRole(profile.role ?? "client");
+        setUsernameChangedAt(profile.username_changed_at ?? null);
+        setUsernameChangeCount(profile.username_change_count ?? 0);
       }
       setLoading(false);
     };
@@ -153,17 +157,46 @@ const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       return;
     }
 
+    const isChangingUsername = username !== originalUsername;
+
+    if (isChangingUsername) {
+      const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+      const LIMIT = 3;
+      const now = Date.now();
+      const windowStart = usernameChangedAt ? new Date(usernameChangedAt).getTime() : 0;
+      const inWindow = now - windowStart < WINDOW_MS;
+
+      if (inWindow && usernameChangeCount >= LIMIT) {
+        const resetAt = new Date(windowStart + WINDOW_MS);
+        const daysLeft = Math.ceil((resetAt.getTime() - now) / (1000 * 60 * 60 * 24));
+        toast.error(`Llegaste al límite de cambios. Podés volver a cambiar el usuario en ${daysLeft} día${daysLeft !== 1 ? "s" : ""}.`);
+        return;
+      }
+    }
+
     setSaving(true);
+
+    const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const windowStart = usernameChangedAt ? new Date(usernameChangedAt).getTime() : 0;
+    const inWindow = now - windowStart < WINDOW_MS;
+    const newCount = isChangingUsername ? (inWindow ? usernameChangeCount + 1 : 1) : usernameChangeCount;
+    const newChangedAt = isChangingUsername ? (inWindow ? usernameChangedAt : new Date().toISOString()) : usernameChangedAt;
+
     const { error } = await supabase
       .from("profiles")
       .update({
         full_name: fullName.trim(),
-        username: username.toLowerCase().replace(/\s+/g, "_"),
+        username: username.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30),
         bio: bio.trim() || null,
         city: city.trim() || null,
         country: country.trim() || null,
         instagram: instagram.trim() || null,
         updated_at: new Date().toISOString(),
+        ...(isChangingUsername && {
+          username_change_count: newCount,
+          username_changed_at: newChangedAt,
+        }),
       })
       .eq("id", userId);
 
@@ -174,6 +207,11 @@ const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         toast.error("Error al guardar los cambios.");
       }
     } else {
+      if (isChangingUsername) {
+        setOriginalUsername(username);
+        setUsernameChangeCount(newCount);
+        setUsernameChangedAt(newChangedAt ?? null);
+      }
       toast.success("Perfil actualizado.");
     }
     setSaving(false);
@@ -292,7 +330,19 @@ const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                 {usernameStatus === "checking" && <Loader2 className="w-4 h-4 text-zinc-500 animate-spin" />}
               </div>
             </div>
-            <p className="text-xs text-zinc-600 mt-1">Solo letras, números y guión bajo. Sin espacios.</p>
+            {(() => {
+              const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+              const inWindow = usernameChangedAt ? Date.now() - new Date(usernameChangedAt).getTime() < WINDOW_MS : false;
+              const remaining = inWindow ? Math.max(0, 3 - usernameChangeCount) : 3;
+              return (
+                <p className={`text-xs mt-1 ${remaining === 0 ? "text-red-400" : remaining === 1 ? "text-amber-400" : "text-zinc-600"}`}>
+                  {remaining === 0
+                    ? `Límite alcanzado. Podés cambiar el usuario en ${Math.ceil((new Date(usernameChangedAt!).getTime() + WINDOW_MS - Date.now()) / 86400000)} día${Math.ceil((new Date(usernameChangedAt!).getTime() + WINDOW_MS - Date.now()) / 86400000) !== 1 ? "s" : ""}.`
+                    : `${remaining} cambio${remaining !== 1 ? "s" : ""} disponible${remaining !== 1 ? "s" : ""} · Solo letras, números y guión bajo.`
+                  }
+                </p>
+              );
+            })()}
           </div>
         </div>
 
