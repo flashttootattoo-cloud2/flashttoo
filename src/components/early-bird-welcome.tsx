@@ -50,6 +50,9 @@ export function EarlyBirdWelcome({ earlyBird }: { earlyBird: boolean }) {
             </div>
           </div>
 
+          <p className="text-zinc-500 text-xs mb-4">
+            No necesitás cancelar nada — si en algún momento querés más funciones, simplemente suscribite a Pro o Studio y el plan se actualiza solo.
+          </p>
           <p className="text-zinc-300 text-sm mb-4 font-medium">Con tu plan Basic tenés:</p>
           <ul className="space-y-2.5 mb-6">
             {[

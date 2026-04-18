@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 
 import { PLAN_LIMITS } from "@/lib/plan-config";
@@ -7,6 +8,7 @@ export async function POST(req: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const service = createServiceClient();
 
   const { newPlan } = await req.json();
   if (!PLAN_LIMITS[newPlan]) return NextResponse.json({ error: "Plan inválido" }, { status: 400 });
@@ -30,12 +32,13 @@ export async function POST(req: Request) {
       .in("id", toArchive.map((d) => d.id));
   }
 
-  // Update plan (cancel = free, otherwise set new plan)
-  const { error } = await supabase
+  // Update plan via service client (bypasses RLS restriction on plan column)
+  const { error } = await service
     .from("profiles")
     .update({
       plan: newPlan,
       plan_expires_at: newPlan === "free" ? null : undefined,
+      paypal_subscription_id: newPlan === "free" ? null : undefined,
     })
     .eq("id", user.id);
 
