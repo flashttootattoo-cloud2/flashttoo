@@ -1,7 +1,6 @@
 "use client";
 
 import { PayPalScriptProvider, PayPalButtons as PPButtons } from "@paypal/react-paypal-js";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import type { PlanType } from "@/types/database";
@@ -14,7 +13,6 @@ interface PayPalButtonsProps {
 }
 
 export function PayPalButtons({ planId, planName, userId, planType }: PayPalButtonsProps) {
-  const supabase = createClient();
   const router = useRouter();
 
   return (
@@ -32,19 +30,13 @@ export function PayPalButtons({ planId, planName, userId, planType }: PayPalButt
           return actions.subscription.create({ plan_id: planId });
         }}
         onApprove={async (data) => {
-          const expiresAt = new Date();
-          expiresAt.setMonth(expiresAt.getMonth() + 1);
+          const res = await fetch("/api/paypal/activate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subscriptionId: data.subscriptionID, planType }),
+          });
 
-          const { error } = await supabase
-            .from("profiles")
-            .update({
-              plan: planType,
-              plan_expires_at: expiresAt.toISOString(),
-              paypal_subscription_id: data.subscriptionID ?? null,
-            })
-            .eq("id", userId);
-
-          if (error) {
+          if (!res.ok) {
             toast.error("Error al activar el plan. Contactá soporte.");
             return;
           }
