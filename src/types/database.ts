@@ -66,6 +66,14 @@ export interface Tag {
   name: string;
 }
 
+export interface DesignImage {
+  id: string;
+  design_id: string;
+  image_url: string;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface Reservation {
   id: string;
   design_id: string;

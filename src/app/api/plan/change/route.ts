@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-const PLAN_LIMITS: Record<string, number> = {
-  free: 5, basic: 15, pro: 30, premium: 30, studio: 80,
-};
+import { PLAN_LIMITS } from "@/lib/plan-config";
 
 export async function POST(req: Request) {
   const supabase = await createClient();

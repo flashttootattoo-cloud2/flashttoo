@@ -5,6 +5,7 @@ import { fmt } from "@/lib/utils";
 import Link from "next/link";
 import { ViewsChart } from "@/components/views-chart";
 import { PlanChangeButton } from "@/components/plan-change-button";
+import { PLAN_LIMITS } from "@/lib/plan-config";
 
 export const dynamic = "force-dynamic"; // siempre datos frescos, sin cache
 
@@ -250,7 +251,7 @@ export default async function StatsPage() {
               targetPlan="free"
               targetName="Gratis"
               targetSlots={5}
-              currentSlots={profile.plan === "studio" ? 80 : profile.plan === "basic" ? 15 : 30}
+              currentSlots={PLAN_LIMITS[profile.plan] ?? 5}
               activeDesigns={designs?.length ?? 0}
               direction="cancel"
             />
