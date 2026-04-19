@@ -164,7 +164,7 @@ export default async function ArtistProfilePage({
       )}
 
       {/* Profile header */}
-      <div className="flex flex-row gap-4 mb-6 items-start">
+      <div className="flex flex-row gap-4 mb-4 items-start">
         <div className="flex-shrink-0 flex flex-col items-center gap-3">
           <div className="relative">
             <Avatar className={`w-20 h-20 md:w-28 md:h-28 border-4 border-zinc-700 ${trustRingClass(trustScore, isVerified)}`}>
@@ -239,7 +239,7 @@ export default async function ArtistProfilePage({
             )}
           </div>
 
-          <div className="flex gap-4 text-xs mb-3">
+          <div className="flex gap-4 text-xs">
             <div>
               <span className="font-bold text-white text-sm">{designs?.length ?? 0}</span>
               <span className="text-zinc-400 ml-1">diseños</span>
@@ -249,38 +249,39 @@ export default async function ArtistProfilePage({
               <span className="text-zinc-400 ml-1">seguidores</span>
             </div>
           </div>
-
-          {isOwnProfile ? (
-            <div className="flex flex-wrap gap-2 w-full">
-              <ShareButton username={artist.username} className="flex-1 min-w-0" />
-              <Button asChild size="sm" variant="outline" className="flex-1 min-w-0 border-zinc-700 hover:bg-zinc-800">
-                <Link href="/dashboard">
-                  <LayoutDashboard className="w-4 h-4 mr-1.5 shrink-0" />
-                  <span className="truncate">Dashboard</span>
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2 w-full items-center">
-              <ShareButton username={artist.username} className="flex-1 min-w-0" />
-              {user && (
-                <Button asChild size="sm" className="flex-1 min-w-0 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold">
-                  <Link href={`/messages?user=${artist.id}`}>
-                    <MessageSquare className="w-4 h-4 mr-1.5 shrink-0" />
-                    <span className="truncate">Mensaje</span>
-                  </Link>
-                </Button>
-              )}
-              <ArtistReportButton
-                artistId={artist.id}
-                artistName={artist.full_name ?? artist.username}
-                userId={user?.id ?? null}
-                daysUntilCanReport={daysUntilCanReport}
-              />
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Action buttons — full width below the header row */}
+      {isOwnProfile ? (
+        <div className="flex gap-2 mb-6">
+          <ShareButton username={artist.username} className="flex-1 min-w-0" />
+          <Button asChild size="sm" variant="outline" className="flex-1 min-w-0 border-zinc-700 hover:bg-zinc-800">
+            <Link href="/dashboard">
+              <LayoutDashboard className="w-4 h-4 mr-1.5 shrink-0" />
+              <span className="truncate">Dashboard</span>
+            </Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="flex gap-2 mb-6 items-center">
+          <ShareButton username={artist.username} className="flex-1 min-w-0" />
+          {user && (
+            <Button asChild size="sm" className="flex-1 min-w-0 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold">
+              <Link href={`/messages?user=${artist.id}`}>
+                <MessageSquare className="w-4 h-4 mr-1.5 shrink-0" />
+                <span className="truncate">Mensaje</span>
+              </Link>
+            </Button>
+          )}
+          <ArtistReportButton
+            artistId={artist.id}
+            artistName={artist.full_name ?? artist.username}
+            userId={user?.id ?? null}
+            daysUntilCanReport={daysUntilCanReport}
+          />
+        </div>
+      )}
 
       {/* Designs */}
       <div>
