@@ -10,21 +10,35 @@ export async function POST(req: Request) {
   const { conversationId } = await req.json();
   if (!conversationId) return NextResponse.json({ error: "Missing conversationId" }, { status: 400 });
 
-  // Verify the user is a participant
   const { data: conv } = await supabase
     .from("conversations")
-    .select("id, participant_1, participant_2")
+    .select("id, participant_1, participant_2, deleted_by_1, deleted_by_2")
     .eq("id", conversationId)
     .single();
 
   if (!conv) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (conv.participant_1 !== user.id && conv.participant_2 !== user.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+
+  const isP1 = conv.participant_1 === user.id;
+  const isP2 = conv.participant_2 === user.id;
+  if (!isP1 && !isP2) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const service = createServiceClient();
-  await service.from("messages").delete().eq("conversation_id", conversationId);
-  await service.from("conversations").delete().eq("id", conversationId);
 
-  return NextResponse.json({ ok: true });
+  const newDeleted1 = isP1 ? true : conv.deleted_by_1;
+  const newDeleted2 = isP2 ? true : conv.deleted_by_2;
+
+  // Both sides deleted — purge for real
+  if (newDeleted1 && newDeleted2) {
+    await service.from("messages").delete().eq("conversation_id", conversationId);
+    await service.from("conversations").delete().eq("id", conversationId);
+    return NextResponse.json({ ok: true, purged: true });
+  }
+
+  // Only this user deleted — soft delete
+  await service
+    .from("conversations")
+    .update({ deleted_by_1: newDeleted1, deleted_by_2: newDeleted2 })
+    .eq("id", conversationId);
+
+  return NextResponse.json({ ok: true, purged: false });
 }

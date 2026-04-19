@@ -6,7 +6,10 @@ import { useAuthStore } from "@/store/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, MessageSquare, Loader2, ArrowLeft, Trash2, MoreHorizontal } from "lucide-react";
+import { Send, MessageSquare, Loader2, ArrowLeft, Trash2, MoreHorizontal, AlertTriangle } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -42,24 +45,27 @@ function MessagesContent() {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeConvRef = useRef<string | null>(null);
-  const [convMenu, setConvMenu] = useState<string | null>(null); // convId with open menu
-  const [deletingConv, setDeletingConv] = useState<string | null>(null);
+  const [convMenu, setConvMenu] = useState<string | null>(null);
+  const [confirmDeleteConvId, setConfirmDeleteConvId] = useState<string | null>(null);
+  const [deletingConv, setDeletingConv] = useState(false);
 
-  const deleteConversation = async (convId: string) => {
-    setDeletingConv(convId);
+  const deleteConversation = async () => {
+    if (!confirmDeleteConvId) return;
+    setDeletingConv(true);
     const res = await fetch("/api/messages/delete-conversation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: convId }),
+      body: JSON.stringify({ conversationId: confirmDeleteConvId }),
     });
     if (res.ok) {
-      setConversations((prev) => prev.filter((c) => c.id !== convId));
-      if (activeConversationId === convId) closeConversation();
+      setConversations((prev) => prev.filter((c) => c.id !== confirmDeleteConvId));
+      if (activeConversationId === confirmDeleteConvId) closeConversation();
       toast.success("Conversación eliminada");
     } else {
       toast.error("Error al eliminar");
     }
-    setDeletingConv(null);
+    setDeletingConv(false);
+    setConfirmDeleteConvId(null);
     setConvMenu(null);
   };
 
@@ -72,13 +78,19 @@ function MessagesContent() {
     if (!user) return;
 
     const loadConversations = async () => {
-      const { data } = await supabase
+      const { data: rawData } = await supabase
         .from("conversations")
         .select("*")
         .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
         .order("last_message_at", { ascending: false });
 
-      if (!data) return;
+      if (!rawData) return;
+
+      // Filter out conversations soft-deleted by the current user
+      const data = rawData.filter((c) =>
+        !(c.participant_1 === user.id && c.deleted_by_1) &&
+        !(c.participant_2 === user.id && c.deleted_by_2)
+      );
 
       const convsWithUsers = await Promise.all(
         data.map(async (conv) => {
@@ -382,13 +394,10 @@ function MessagesContent() {
                 {menuOpen && (
                   <div className="absolute right-2 top-12 z-30 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
                     <button
-                      onClick={() => deleteConversation(conv.id)}
-                      disabled={deletingConv === conv.id}
+                      onClick={() => { setConfirmDeleteConvId(conv.id); setConvMenu(null); }}
                       className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-400 hover:bg-zinc-700 transition-colors"
                     >
-                      {deletingConv === conv.id
-                        ? <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                        : <Trash2 className="w-4 h-4 shrink-0" />}
+                      <Trash2 className="w-4 h-4 shrink-0" />
                       Eliminar chat
                     </button>
                   </div>
@@ -484,6 +493,37 @@ function MessagesContent() {
           </div>
         )}
       </div>
+
+      {/* Confirm delete dialog — outside overflow container so it's always visible */}
+      <Dialog open={!!confirmDeleteConvId} onOpenChange={(o) => { if (!o) setConfirmDeleteConvId(null); }}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-sm" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-400" />
+              ¿Eliminar conversación?
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Solo se elimina para vos. El otro usuario todavía puede verla hasta que él también la elimine.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={() => setConfirmDeleteConvId(null)}
+              disabled={deletingConv}
+              className="flex-1 py-2.5 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={deleteConversation}
+              disabled={deletingConv}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              {deletingConv ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sí, eliminar"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
