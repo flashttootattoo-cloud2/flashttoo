@@ -12,9 +12,14 @@ export async function POST(req: Request) {
 
   const service = createServiceClient();
 
-  // Delete all existing subscriptions for this user first — avoids stale
-  // entries from old VAPID keys piling up and causing 410s on send.
-  await service.from("push_subscriptions").delete().eq("user_id", user.id);
+  // Remove only the existing entry for this exact endpoint (same browser/device)
+  // so other devices (mobile, desktop) keep their own subscriptions intact.
+  // Stale entries from other devices are cleaned up on send (410/404 responses).
+  await service
+    .from("push_subscriptions")
+    .delete()
+    .eq("user_id", user.id)
+    .filter("subscription->>endpoint", "eq", subscription.endpoint);
 
   const { error } = await service.from("push_subscriptions").insert(
     { user_id: user.id, subscription }

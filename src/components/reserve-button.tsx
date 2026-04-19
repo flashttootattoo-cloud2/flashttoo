@@ -117,6 +117,7 @@ export function ReserveButton({ design, userId }: ReserveButtonProps) {
           recipientId: design.artist.id,
           senderName,
           messagePreview: preview,
+          conversationId,
         }),
       }).catch(() => {});
 

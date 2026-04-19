@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   const payload = JSON.stringify({
     title: `Mensaje de ${senderName}`,
     body: messagePreview,
-    url: "/messages",
+    url: conversationId ? `/messages?conv=${conversationId}` : "/messages",
     tag: conversationId ?? "message",
   });
 
