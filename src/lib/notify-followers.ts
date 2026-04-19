@@ -80,7 +80,7 @@ export async function notifyFollowers({
 
     const results = await Promise.allSettled(
       subs.map((s: { id: string; subscription: webpush.PushSubscription }) =>
-        webpush.sendNotification(s.subscription, payload)
+        webpush.sendNotification(s.subscription, payload, { urgency: "high", TTL: 300 })
       )
     );
 

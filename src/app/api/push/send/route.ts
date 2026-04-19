@@ -35,7 +35,12 @@ export async function POST(req: Request) {
   });
 
   const results = await Promise.allSettled(
-    subs.map((row) => webpush.sendNotification(row.subscription, payload))
+    subs.map((row) =>
+      webpush.sendNotification(row.subscription, payload, {
+        urgency: "high",
+        TTL: 60,          // 60 seconds — if not delivered in 1 min, drop it (message is already in DB)
+      })
+    )
   );
 
   const staleIds: string[] = [];
