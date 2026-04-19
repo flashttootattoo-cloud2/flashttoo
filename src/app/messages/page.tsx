@@ -45,6 +45,7 @@ function MessagesContent() {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeConvRef = useRef<string | null>(null);
+  const [pendingRecipient, setPendingRecipient] = useState<Profile | null>(null);
   const [convMenu, setConvMenu] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [confirmDeleteConvId, setConfirmDeleteConvId] = useState<string | null>(null);
@@ -74,56 +75,46 @@ function MessagesContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: instant ? "instant" : "smooth" });
   };
 
+  const loadConversations = async () => {
+    if (!user) return;
+    const { data: rawData } = await supabase
+      .from("conversations")
+      .select("*")
+      .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
+      .order("last_message_at", { ascending: false });
+
+    if (!rawData) return;
+
+    const data = rawData.filter((c) =>
+      !(c.participant_1 === user.id && c.deleted_by_1) &&
+      !(c.participant_2 === user.id && c.deleted_by_2)
+    );
+
+    const convsWithUsers = await Promise.all(
+      data.map(async (conv) => {
+        const otherId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1;
+        const { data: otherUser } = await supabase.from("profiles").select("*").eq("id", otherId).single();
+        return { ...conv, other_user: otherUser };
+      })
+    );
+
+    const filtered = convsWithUsers.filter((c) => c.other_user) as typeof convsWithUsers;
+    setConversations(filtered as never);
+    setLoadingConvs(false);
+
+    const stored = JSON.parse(localStorage.getItem("conv_read_at") ?? "{}") as Record<string, string>;
+    const unreadIds = new Set<string>();
+    for (const conv of filtered) {
+      if (!conv.last_message_at || !conv.last_message) continue;
+      const lastRead = stored[conv.id];
+      if (!lastRead || conv.last_message_at > lastRead) unreadIds.add(conv.id);
+    }
+    setUnreadConvIds(unreadIds);
+  };
+
   // Load conversations
   useEffect(() => {
     if (!user) return;
-
-    const loadConversations = async () => {
-      const { data: rawData } = await supabase
-        .from("conversations")
-        .select("*")
-        .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
-        .order("last_message_at", { ascending: false });
-
-      if (!rawData) return;
-
-      // Filter out conversations soft-deleted by the current user
-      const data = rawData.filter((c) =>
-        !(c.participant_1 === user.id && c.deleted_by_1) &&
-        !(c.participant_2 === user.id && c.deleted_by_2)
-      );
-
-      const convsWithUsers = await Promise.all(
-        data.map(async (conv) => {
-          const otherId =
-            conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1;
-          const { data: otherUser } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", otherId)
-            .single();
-          return { ...conv, other_user: otherUser };
-        })
-      );
-
-      const filtered = convsWithUsers.filter((c) => c.other_user) as typeof convsWithUsers;
-      setConversations(filtered as never);
-      setLoadingConvs(false);
-
-      // Marcar como no leída cualquier conversación donde el último mensaje
-      // llegó después de la última vez que el usuario la abrió (localStorage).
-      const stored = JSON.parse(localStorage.getItem("conv_read_at") ?? "{}") as Record<string, string>;
-      const unreadIds = new Set<string>();
-      for (const conv of filtered) {
-        if (!conv.last_message_at || !conv.last_message) continue;
-        const lastRead = stored[conv.id];
-        // Unread if we have never opened it OR the last message arrived after we last opened it
-        if (!lastRead || conv.last_message_at > lastRead) {
-          unreadIds.add(conv.id);
-        }
-      }
-      setUnreadConvIds(unreadIds);
-    };
 
     loadConversations();
 
@@ -147,15 +138,14 @@ function MessagesContent() {
             router.replace(`/messages?conv=${existing.id}`, { scroll: false });
             loadConversations();
           } else {
-            const { data: newConv } = await supabase
-              .from("conversations")
-              .insert({ participant_1: user.id, participant_2: targetUserId })
-              .select("id")
+            // No existing conversation — load the target profile and show chat UI
+            // but DO NOT create the conversation until the first message is sent.
+            const { data: targetProfile } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", targetUserId)
               .single();
-            if (newConv) {
-              router.replace(`/messages?conv=${newConv.id}`, { scroll: false });
-              loadConversations();
-            }
+            if (targetProfile) setPendingRecipient(targetProfile as Profile);
           }
         });
     }
@@ -264,13 +254,34 @@ function MessagesContent() {
 
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !activeConversationId || !user) return;
+    if (!newMessage.trim() || !user) return;
+    if (!activeConversationId && !pendingRecipient) return;
     setSending(true);
     const content = newMessage.trim();
     setNewMessage("");
 
+    // If this is the first message in a new conversation, create it now
+    let convId = activeConversationId;
+    let otherUser = conversations.find((c) => c.id === convId)?.other_user ?? null;
+
+    if (!convId && pendingRecipient && targetUserId) {
+      const { data: newConv, error } = await supabase
+        .from("conversations")
+        .insert({ participant_1: user.id, participant_2: targetUserId })
+        .select("id")
+        .single();
+      if (error || !newConv) { setSending(false); return; }
+      convId = newConv.id;
+      otherUser = pendingRecipient;
+      setPendingRecipient(null);
+      router.replace(`/messages?conv=${convId}`, { scroll: false });
+      loadConversations();
+    }
+
+    if (!convId) { setSending(false); return; }
+
     await supabase.from("messages").insert({
-      conversation_id: activeConversationId,
+      conversation_id: convId,
       sender_id: user.id,
       content,
       status: "sent",
@@ -280,24 +291,23 @@ function MessagesContent() {
     await supabase
       .from("conversations")
       .update({ last_message: content.slice(0, 80), last_message_at: now })
-      .eq("id", activeConversationId);
+      .eq("id", convId);
 
     // Reset soft-delete so the recipient sees this new message
     fetch("/api/messages/restore-conversation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: activeConversationId }),
+      body: JSON.stringify({ conversationId: convId }),
     }).catch(() => {});
 
     // Marcar como leída desde nuestro lado (nosotros mandamos el último mensaje)
     const readStored = JSON.parse(localStorage.getItem("conv_read_at") ?? "{}") as Record<string, string>;
-    readStored[activeConversationId] = now;
+    readStored[convId] = now;
     localStorage.setItem("conv_read_at", JSON.stringify(readStored));
 
     // Broadcast en tiempo real al destinatario
-    const conv = conversations.find((c) => c.id === activeConversationId);
-    if (conv?.other_user) {
-      const bc = supabase.channel(`user-notify:${conv.other_user.id}`);
+    if (otherUser) {
+      const bc = supabase.channel(`user-notify:${otherUser.id}`);
       bc.subscribe((status) => {
         if (status === "SUBSCRIBED") {
           bc.send({
@@ -306,7 +316,7 @@ function MessagesContent() {
             payload: {
               senderName: profile?.full_name ?? "Alguien",
               preview: content.slice(0, 60),
-              conversationId: activeConversationId,
+              conversationId: convId,
             },
           }).then(() => supabase.removeChannel(bc));
         }
@@ -317,10 +327,10 @@ function MessagesContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          recipientId: conv.other_user.id,
+          recipientId: otherUser.id,
           senderName: profile?.full_name ?? "Alguien",
           messagePreview: content.slice(0, 60),
-          conversationId: activeConversationId,
+          conversationId: convId,
         }),
       })
         .then((r) => r.json())
@@ -341,7 +351,8 @@ function MessagesContent() {
     );
   }
 
-  const showChat = activeConversationId && activeConversation;
+  const chatUser = activeConversation?.other_user ?? pendingRecipient;
+  const showChat = (activeConversationId && activeConversation) || !!pendingRecipient;
 
   const conversationList = (
     <div className={cn(
@@ -447,14 +458,14 @@ function MessagesContent() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <Avatar className="w-8 h-8 shrink-0">
-                <AvatarImage src={activeConversation.other_user?.avatar_url ?? ""} />
+                <AvatarImage src={chatUser?.avatar_url ?? ""} />
                 <AvatarFallback className="bg-amber-400 text-zinc-900 text-xs font-bold">
-                  {activeConversation.other_user?.full_name?.[0]?.toUpperCase()}
+                  {chatUser?.full_name?.[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-semibold text-sm">{activeConversation.other_user?.full_name}</p>
-                <p className="text-xs text-zinc-500">@{activeConversation.other_user?.username}</p>
+                <p className="font-semibold text-sm">{chatUser?.full_name}</p>
+                <p className="text-xs text-zinc-500">@{chatUser?.username}</p>
               </div>
             </div>
 
