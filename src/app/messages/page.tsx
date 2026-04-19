@@ -138,7 +138,14 @@ function MessagesContent() {
         .single()
         .then(async ({ data: existing }) => {
           if (existing) {
+            // Reset soft-delete flags so conversation is visible for both sides
+            await fetch("/api/messages/restore-conversation", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ conversationId: existing.id }),
+            });
             router.replace(`/messages?conv=${existing.id}`, { scroll: false });
+            loadConversations();
           } else {
             const { data: newConv } = await supabase
               .from("conversations")
@@ -274,6 +281,13 @@ function MessagesContent() {
       .from("conversations")
       .update({ last_message: content.slice(0, 80), last_message_at: now })
       .eq("id", activeConversationId);
+
+    // Reset soft-delete so the recipient sees this new message
+    fetch("/api/messages/restore-conversation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId: activeConversationId }),
+    }).catch(() => {});
 
     // Marcar como leída desde nuestro lado (nosotros mandamos el último mensaje)
     const readStored = JSON.parse(localStorage.getItem("conv_read_at") ?? "{}") as Record<string, string>;
