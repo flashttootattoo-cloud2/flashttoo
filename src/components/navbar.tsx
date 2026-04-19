@@ -47,7 +47,7 @@ async function registerPush(_userId: string) {
   if (sessionStorage.getItem("push_registered")) return;
 
   try {
-    const reg = await navigator.serviceWorker.register("/sw.js");
+    const reg = await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" });
     await navigator.serviceWorker.ready;
 
     const permission = await Notification.requestPermission();
