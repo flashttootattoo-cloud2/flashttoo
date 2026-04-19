@@ -12,14 +12,21 @@ export async function POST(req: Request) {
 
   const service = createServiceClient();
 
-  // Remove only the existing entry for this exact endpoint (same browser/device)
-  // so other devices (mobile, desktop) keep their own subscriptions intact.
-  // Stale entries from other devices are cleaned up on send (410/404 responses).
-  await service
+  // Load all subscriptions for this user, then delete only the one matching
+  // this endpoint in JS — avoids relying on JSONB filter operators in PostgREST
+  // which may silently fail and leave stale endpoints that cause 410 errors on send.
+  const { data: existing } = await service
     .from("push_subscriptions")
-    .delete()
-    .eq("user_id", user.id)
-    .filter("subscription->>endpoint", "eq", subscription.endpoint);
+    .select("id, subscription")
+    .eq("user_id", user.id);
+
+  const toDelete = (existing ?? [])
+    .filter((row) => (row.subscription as { endpoint?: string })?.endpoint === subscription.endpoint)
+    .map((row) => row.id as string);
+
+  if (toDelete.length > 0) {
+    await service.from("push_subscriptions").delete().in("id", toDelete);
+  }
 
   const { error } = await service.from("push_subscriptions").insert(
     { user_id: user.id, subscription }

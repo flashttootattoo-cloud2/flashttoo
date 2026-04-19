@@ -157,11 +157,16 @@ export function Navbar() {
       .on("broadcast", { event: "new_message" }, (payload) => {
         if (pathnameRef.current !== "/messages") {
           incrementUnread();
-          if (Notification.permission === "granted") {
-            new Notification(`Mensaje de ${payload.payload?.senderName ?? "alguien"}`, {
-              body: payload.payload?.preview ?? "Tenés un mensaje nuevo",
-              icon: "/icon-notification.png",
-            });
+          if (Notification.permission === "granted" && "serviceWorker" in navigator) {
+            navigator.serviceWorker.ready.then((reg) =>
+              reg.showNotification(`Mensaje de ${payload.payload?.senderName ?? "alguien"}`, {
+                body: payload.payload?.preview ?? "Tenés un mensaje nuevo",
+                icon: "/icon-notification.png",
+                badge: "/notification-badge.png",
+                tag: payload.payload?.conversationId ?? "message",
+                data: { url: payload.payload?.conversationId ? `/messages?conv=${payload.payload.conversationId}` : "/messages" },
+              })
+            ).catch(() => {});
           }
         }
       })
