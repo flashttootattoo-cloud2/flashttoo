@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     subs.map((row) =>
       webpush.sendNotification(row.subscription, payload, {
         urgency: "high",
-        TTL: 60,          // 60 seconds — if not delivered in 1 min, drop it (message is already in DB)
+        TTL: 86400,       // 24 hours — survives Chrome being closed and reconnecting to FCM
       })
     )
   );
