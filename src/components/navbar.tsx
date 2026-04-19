@@ -53,13 +53,15 @@ async function registerPush(_userId: string) {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") return;
 
-    // Force a fresh subscription so VAPID keys always match the server.
-    const existing = await reg.pushManager.getSubscription();
-    if (existing) await existing.unsubscribe();
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-    });
+    // Reuse existing subscription if valid — avoids creating a new endpoint
+    // every session which causes stale entries and missed pushes on mobile.
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      });
+    }
 
     const res = await fetch("/api/push/subscribe", {
       method: "POST",
