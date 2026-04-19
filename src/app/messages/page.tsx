@@ -46,6 +46,7 @@ function MessagesContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeConvRef = useRef<string | null>(null);
   const [convMenu, setConvMenu] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [confirmDeleteConvId, setConfirmDeleteConvId] = useState<string | null>(null);
   const [deletingConv, setDeletingConv] = useState(false);
 
@@ -385,23 +386,21 @@ function MessagesContent() {
                 </button>
                 {/* Options button */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); setConvMenu(menuOpen ? null : conv.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (menuOpen) {
+                      setConvMenu(null);
+                      setMenuPos(null);
+                    } else {
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                      setConvMenu(conv.id);
+                    }
+                  }}
                   className="shrink-0 mr-2 p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                 >
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
-                {/* Dropdown */}
-                {menuOpen && (
-                  <div className="absolute right-2 top-12 z-30 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
-                    <button
-                      onClick={() => { setConfirmDeleteConvId(conv.id); setConvMenu(null); }}
-                      className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-400 hover:bg-zinc-700 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4 shrink-0" />
-                      Eliminar chat
-                    </button>
-                  </div>
-                )}
               </div>
             );
           })
@@ -493,6 +492,22 @@ function MessagesContent() {
           </div>
         )}
       </div>
+
+      {/* Dropdown fixed — outside overflow so it's never clipped */}
+      {convMenu && menuPos && (
+        <div
+          className="fixed z-[150] bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden min-w-[160px]"
+          style={{ top: menuPos.top, right: menuPos.right }}
+        >
+          <button
+            onClick={() => { setConfirmDeleteConvId(convMenu); setConvMenu(null); setMenuPos(null); }}
+            className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-400 hover:bg-zinc-700 transition-colors"
+          >
+            <Trash2 className="w-4 h-4 shrink-0" />
+            Eliminar chat
+          </button>
+        </div>
+      )}
 
       {/* Confirm delete dialog — outside overflow container so it's always visible */}
       <Dialog open={!!confirmDeleteConvId} onOpenChange={(o) => { if (!o) setConfirmDeleteConvId(null); }}>
