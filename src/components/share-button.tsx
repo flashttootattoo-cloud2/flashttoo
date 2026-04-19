@@ -40,8 +40,8 @@ export function ShareButton({ username, className }: ShareButtonProps) {
         </>
       ) : (
         <>
-          <Share2 className="w-4 h-4" />
-          Compartir perfil
+          <Share2 className="w-4 h-4 shrink-0" />
+          <span className="truncate">Compartir</span>
         </>
       )}
     </Button>

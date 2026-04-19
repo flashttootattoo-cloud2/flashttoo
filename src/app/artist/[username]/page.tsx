@@ -251,23 +251,23 @@ export default async function ArtistProfilePage({
           </div>
 
           {isOwnProfile ? (
-            <div className="flex gap-2 w-full">
-              <ShareButton username={artist.username} className="flex-1" />
-              <Button asChild size="sm" variant="outline" className="flex-1 border-zinc-700 hover:bg-zinc-800">
+            <div className="flex flex-wrap gap-2 w-full">
+              <ShareButton username={artist.username} className="flex-1 min-w-0" />
+              <Button asChild size="sm" variant="outline" className="flex-1 min-w-0 border-zinc-700 hover:bg-zinc-800">
                 <Link href="/dashboard">
-                  <LayoutDashboard className="w-4 h-4 mr-1.5" />
-                  Dashboard
+                  <LayoutDashboard className="w-4 h-4 mr-1.5 shrink-0" />
+                  <span className="truncate">Dashboard</span>
                 </Link>
               </Button>
             </div>
           ) : (
-            <div className="flex gap-2 w-full items-center">
-              <ShareButton username={artist.username} className="flex-1" />
+            <div className="flex flex-wrap gap-2 w-full items-center">
+              <ShareButton username={artist.username} className="flex-1 min-w-0" />
               {user && (
-                <Button asChild size="sm" className="flex-1 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold">
+                <Button asChild size="sm" className="flex-1 min-w-0 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold">
                   <Link href={`/messages?user=${artist.id}`}>
-                    <MessageSquare className="w-4 h-4 mr-1.5" />
-                    Mensaje
+                    <MessageSquare className="w-4 h-4 mr-1.5 shrink-0" />
+                    <span className="truncate">Mensaje</span>
                   </Link>
                 </Button>
               )}
