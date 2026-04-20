@@ -293,35 +293,41 @@ export default async function DashboardPage() {
               return (
                 <div
                   key={res.id}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center gap-4"
+                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-4"
                 >
-                  {res.design?.image_url && (
-                    <div className="relative shrink-0">
-                      <img
-                        src={res.design.image_url}
-                        alt={res.design.title ?? ""}
-                        className="w-14 h-14 rounded-lg object-cover"
-                      />
-                      {(res.status === "confirmed" || res.status === "completed") && (
-                        <div className="absolute inset-0 bg-zinc-950/60 rounded-lg flex items-center justify-center">
-                          <span className="text-[9px] font-bold text-red-400 leading-tight text-center px-1">RESERVADO</span>
-                        </div>
+                  {/* Top row: image + info */}
+                  <div className="flex items-start gap-3 mb-3">
+                    {res.design?.image_url && (
+                      <div className="relative shrink-0">
+                        <img
+                          src={res.design.image_url}
+                          alt={res.design.title ?? ""}
+                          className="w-14 h-14 rounded-lg object-cover"
+                        />
+                        {(res.status === "confirmed" || res.status === "completed") && (
+                          <div className="absolute inset-0 bg-zinc-950/60 rounded-lg flex items-center justify-center">
+                            <span className="text-[9px] font-bold text-red-400 leading-tight text-center px-1">RESERVADO</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">
+                        {res.design?.title ?? "Diseño"}
+                      </p>
+                      <p className="text-zinc-400 text-xs mt-0.5">
+                        por <span className="text-white">{(res.client as any)?.full_name ?? "Cliente"}</span>
+                      </p>
+                      {res.preferred_date && (
+                        <p className="text-zinc-500 text-xs mt-0.5">{res.preferred_date}</p>
+                      )}
+                      {res.message && (
+                        <p className="text-zinc-500 text-xs mt-1 line-clamp-2">"{res.message}"</p>
                       )}
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">
-                      {res.design?.title ?? "Diseño"}
-                    </p>
-                    <p className="text-zinc-400 text-xs">
-                      por {(res.client as any)?.full_name ?? "Cliente"}
-                      {res.preferred_date && ` · ${res.preferred_date}`}
-                    </p>
-                    {res.message && (
-                      <p className="text-zinc-500 text-xs mt-0.5 truncate">"{res.message}"</p>
-                    )}
                   </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
+                  {/* Bottom row: status + actions */}
+                  <div className="flex items-center justify-between gap-2">
                     <Badge className={`text-xs border ${status.className}`}>
                       <StatusIcon className="w-3 h-3 mr-1" />
                       {status.label}

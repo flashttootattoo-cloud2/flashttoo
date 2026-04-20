@@ -34,7 +34,7 @@ function MessagesContent() {
   };
 
   const closeConversation = () => {
-    router.back();
+    router.push("/messages");
   };
 
   const [conversations, setConversations] = useState<(Conversation & { other_user: Profile })[]>([]);
