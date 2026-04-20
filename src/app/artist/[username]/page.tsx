@@ -200,7 +200,7 @@ export default async function ArtistProfilePage({
             ) : (artist.plan === "pro" || artist.plan === "premium") ? (
               <Badge className="bg-amber-400/10 text-amber-400 border-amber-400/30 text-xs">Pro</Badge>
             ) : null}
-            {!artist.is_blocked && (
+            {(trustScore >= 60 || isVerified) && (
               <span className={`text-xs font-medium ${trustColor(trustScore, isVerified)}`} title={`Score de confianza: ${trustScore}/100`}>
                 ✦ {trustLabel(trustScore, isVerified)}
               </span>
