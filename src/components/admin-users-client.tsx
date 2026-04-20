@@ -351,6 +351,7 @@ function TrustModal({
   onUpdate: (manual: number, isVerified: boolean) => void;
 }) {
   const { score } = getTrustScore(user);
+  const naturalScore = score - (user.trust_score_manual ?? 0);
   const isVerified = user.is_verified ?? false;
   const [manualInput, setManualInput] = useState(user.trust_score_manual ?? 0);
   const [saving, setSaving] = useState(false);
@@ -463,14 +464,16 @@ function TrustModal({
                 className="w-16 text-center bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:border-amber-400"
               />
             </div>
-            <p className="text-xs text-zinc-600 mt-1">
-              Score resultante: <span className={`font-semibold ${trustColor(previewScore, false)}`}>{previewScore}/100</span>
-              {manualInput !== 0 && (
-                <span className={`ml-1 ${manualInput > 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  ({manualInput > 0 ? "+" : ""}{manualInput} manual)
-                </span>
-              )}
-            </p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-zinc-500">
+              <span>Natural: <span className="text-zinc-300 font-medium">{naturalScore} pts</span> <span className="text-zinc-600">(perfil + edad, sin likes/diseños)</span></span>
+              <span>Resultante: <span className={`font-semibold ${trustColor(previewScore, false)}`}>{previewScore}/100</span>
+                {manualInput !== 0 && (
+                  <span className={`ml-1 ${manualInput > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    ({manualInput > 0 ? "+" : ""}{manualInput} manual)
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
 
           {/* Save button */}
