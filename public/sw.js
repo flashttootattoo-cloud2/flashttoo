@@ -27,21 +27,20 @@ self.addEventListener("pushsubscriptionchange", (event) => {
 
 self.addEventListener("push", (event) => {
   const data = event.data?.json() ?? {};
-  const show = self.registration.showNotification(data.title ?? "Nuevo mensaje", {
+  const base = {
     body: data.body ?? "",
     icon: data.icon ?? "/icon-notification.png",
     badge: "/notification-badge.png",
     tag: data.tag ?? "flashttoo",
     renotify: true,
-    vibrate: [200, 100, 200],
     data: { url: data.url ?? "/" },
+  };
+  // Try with vibrate first; some Android versions reject it — fall back without
+  const show = self.registration.showNotification(data.title ?? "Nuevo mensaje", {
+    ...base,
+    vibrate: [200, 100, 200],
   }).catch(() =>
-    self.registration.showNotification(data.title ?? "Nuevo mensaje", {
-      body: data.body ?? "",
-      tag: data.tag ?? "flashttoo",
-      renotify: true,
-      data: { url: data.url ?? "/" },
-    })
+    self.registration.showNotification(data.title ?? "Nuevo mensaje", base)
   );
   event.waitUntil(show);
 });
