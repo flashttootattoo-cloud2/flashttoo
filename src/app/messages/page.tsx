@@ -113,6 +113,15 @@ function MessagesContent() {
     setUnreadConvIds(unreadIds);
   };
 
+  // Refresh conversations + unread dots when app comes back to foreground
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && user) loadConversations();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [user]);
+
   // Load conversations
   useEffect(() => {
     if (!user) return;
