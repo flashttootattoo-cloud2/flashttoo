@@ -27,14 +27,25 @@ function MessagesContent() {
   const targetUserId = searchParams.get("user");
   const convParam = searchParams.get("conv");
 
-  // activeConversationId is driven by the URL so the hardware back button works
   const activeConversationId = convParam;
+
+  // mobileChatOpen controls the mobile view independently of URL so the back
+  // button always works even in PWA standalone mode where URL routing may not
+  // trigger a re-render within the same route.
+  const [mobileChatOpen, setMobileChatOpen] = useState(!!convParam);
+
+  // Sync when arriving fresh from a push notification deep link
+  useEffect(() => {
+    if (convParam) setMobileChatOpen(true);
+  }, [convParam]);
 
   const openConversation = (convId: string) => {
     router.push(`/messages?conv=${convId}`, { scroll: false });
+    setMobileChatOpen(true);
   };
 
   const closeConversation = () => {
+    setMobileChatOpen(false);
     router.replace("/messages", { scroll: false });
   };
 
@@ -397,7 +408,7 @@ function MessagesContent() {
     <div className={cn(
       "flex flex-col bg-zinc-900 border-zinc-800",
       "md:w-72 md:border-r md:rounded-none",
-      showChat ? "hidden md:flex" : "flex w-full border rounded-2xl"
+      mobileChatOpen ? "hidden md:flex" : "flex w-full border rounded-2xl"
     )}>
       {convMenu && <div className="fixed inset-0 z-20" onClick={() => setConvMenu(null)} />}
       <div className="p-3 border-b border-zinc-800">
@@ -485,6 +496,7 @@ function MessagesContent() {
         {showChat ? (
           <div className={cn(
             "flex flex-col flex-1",
+            !mobileChatOpen && "hidden md:flex",
             "h-[calc(100vh-10rem)] md:h-auto",
             "bg-zinc-900 border border-zinc-800 rounded-2xl md:rounded-none md:border-0"
           )}>
