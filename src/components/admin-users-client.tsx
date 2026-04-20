@@ -351,9 +351,20 @@ function TrustModal({
   onUpdate: (manual: number, isVerified: boolean) => void;
 }) {
   const { score } = getTrustScore(user);
-  const naturalScore = score - (user.trust_score_manual ?? 0);
   const isVerified = user.is_verified ?? false;
   const [manualInput, setManualInput] = useState(user.trust_score_manual ?? 0);
+  const [realNatural, setRealNatural] = useState<number | null>(null);
+  const [loadingReal, setLoadingReal] = useState(true);
+
+  // Fetch real natural score (includes likes + designs) on modal open
+  useEffect(() => {
+    fetch(`/api/admin/trust-real?userId=${user.id}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setRealNatural(d.natural); })
+      .finally(() => setLoadingReal(false));
+  }, [user.id]);
+
+  const naturalScore = realNatural ?? (score - (user.trust_score_manual ?? 0));
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
@@ -465,7 +476,10 @@ function TrustModal({
               />
             </div>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-zinc-500">
-              <span>Natural: <span className="text-zinc-300 font-medium">{naturalScore} pts</span> <span className="text-zinc-600">(perfil + edad, sin likes/diseños)</span></span>
+              <span>Natural: {loadingReal
+                ? <span className="text-zinc-600">cargando…</span>
+                : <><span className="text-zinc-300 font-medium">{naturalScore} pts</span>{realNatural !== null && <span className="text-zinc-600"> (real, incluye likes/diseños)</span>}</>
+              }</span>
               <span>Resultante: <span className={`font-semibold ${trustColor(previewScore, false)}`}>{previewScore}/100</span>
                 {manualInput !== 0 && (
                   <span className={`ml-1 ${manualInput > 0 ? "text-emerald-400" : "text-red-400"}`}>
