@@ -87,6 +87,13 @@ export default async function ArtistProfilePage({
   const user = session?.user ?? null;
   const isOwnProfile = user?.id === artist.id;
 
+  // Track profile visit (fire-and-forget, skip own visits and blocked profiles)
+  if (!isOwnProfile && !artist.is_blocked) {
+    supabase.from("view_events")
+      .insert({ artist_id: artist.id, type: "profile" })
+      .then(({ error }) => { if (error) console.error("[profile view]", error.message); });
+  }
+
   // designs + follow + trust data in parallel
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const sevenDaysAgo  = new Date(Date.now() -  7 * 24 * 60 * 60 * 1000).toISOString();

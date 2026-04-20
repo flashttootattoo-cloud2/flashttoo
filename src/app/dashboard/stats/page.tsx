@@ -30,7 +30,7 @@ export default async function StatsPage() {
   // Pro/Studio only: reservations for conversion/chart
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: designs }, { data: reservations }, { data: viewEvents }] = await Promise.all([
+  const [{ data: designs }, { data: reservations }, { data: viewEvents }, { data: profileViewEvents }] = await Promise.all([
     supabase
       .from("designs")
       .select("id, title, image_url, views_count, likes_count, created_at")
@@ -45,6 +45,15 @@ export default async function StatsPage() {
           .from("view_events")
           .select("viewed_at")
           .eq("artist_id", user.id)
+          .eq("type", "design")
+          .gte("viewed_at", thirtyDaysAgo)
+      : Promise.resolve({ data: [], error: null }),
+    isPremium
+      ? supabase
+          .from("view_events")
+          .select("viewed_at")
+          .eq("artist_id", user.id)
+          .eq("type", "profile")
           .gte("viewed_at", thirtyDaysAgo)
       : Promise.resolve({ data: [], error: null }),
   ]);
@@ -66,6 +75,23 @@ export default async function StatsPage() {
       dailyViews.push({ date: key, views: countByDay[key] ?? 0 });
     }
   }
+
+  // Profile views daily series
+  const profileViewsReady = isPremium && Array.isArray(profileViewEvents);
+  const dailyProfileViews: { date: string; views: number }[] = [];
+  if (profileViewsReady) {
+    const countByDay: Record<string, number> = {};
+    for (const ev of profileViewEvents!) {
+      const day = (ev as any).viewed_at.slice(0, 10);
+      countByDay[day] = (countByDay[day] ?? 0) + 1;
+    }
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      dailyProfileViews.push({ date: key, views: countByDay[key] ?? 0 });
+    }
+  }
+  const totalProfileViews = profileViewEvents?.length ?? 0;
 
   const totalViews = designs?.reduce((a, d) => a + (d.views_count ?? 0), 0) ?? 0;
   const totalLikes = designs?.reduce((a, d) => a + (d.likes_count ?? 0), 0) ?? 0;
@@ -108,18 +134,20 @@ export default async function StatsPage() {
         </span>
       </div>
 
-      {/* Overview — basic: vistas + guardados | premium: + reservas + conversión */}
-      <div className={`grid grid-cols-2 ${isPremium ? "lg:grid-cols-4" : "lg:grid-cols-2"} gap-4 mb-8`}>
+      {/* Overview — basic: vistas + guardados | premium: + reservas + conversión + visitas perfil */}
+      <div className={`grid grid-cols-2 ${isPremium ? "lg:grid-cols-5" : "lg:grid-cols-2"} gap-4 mb-8`}>
         {[
-          { label: "Vistas totales", value: totalViews, icon: Eye, color: "text-emerald-400", show: true },
+          { label: "Vistas diseños", value: totalViews, icon: Eye, color: "text-emerald-400", show: true },
           { label: "Guardados totales", value: totalLikes, icon: Bookmark, color: "text-amber-400", show: true },
+          { label: "Visitas al perfil", value: totalProfileViews, icon: TrendingUp, color: "text-blue-400", show: isPremium, sub: "últimos 30 días" },
           { label: "Reservas recibidas", value: totalReservations, icon: CalendarDays, color: "text-amber-400", show: isPremium },
           { label: "Vistas → reserva", value: `${conversionRate}%`, icon: TrendingUp, color: "text-blue-400", show: isPremium },
-        ].filter((s) => s.show).map(({ label, value, icon: Icon, color }) => (
+        ].filter((s) => s.show).map(({ label, value, icon: Icon, color, sub }) => (
           <div key={label} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className={`${color} mb-2`}><Icon className="w-5 h-5" /></div>
             <p className="text-2xl font-bold">{typeof value === "number" ? fmt(value) : value}</p>
             <p className="text-zinc-400 text-sm">{label}</p>
+            {sub && <p className="text-zinc-600 text-xs mt-0.5">{sub}</p>}
           </div>
         ))}
       </div>
@@ -151,6 +179,30 @@ export default async function StatsPage() {
                 create table public.view_events (...)
               </code>
               <p className="text-zinc-600 text-xs">Ver instrucciones en el chat con el desarrollador</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Profile visits chart — premium only */}
+      {isPremium && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-semibold flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-blue-400" />
+              Visitas al perfil — últimos 30 días
+            </h2>
+            {profileViewsReady && (
+              <span className="text-xs text-zinc-500">
+                {totalProfileViews} visitas totales
+              </span>
+            )}
+          </div>
+          {profileViewsReady ? (
+            <ViewsChart data={dailyProfileViews} />
+          ) : (
+            <div className="flex items-center justify-center h-32 text-zinc-500 text-sm">
+              Sin datos aún
             </div>
           )}
         </div>
