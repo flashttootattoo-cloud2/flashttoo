@@ -31,8 +31,9 @@ export async function POST(req: Request) {
   // 5. Design likes by this user
   await s.from("design_likes").delete().eq("user_id", userId);
 
-  // 6. Reservations by this user as client
-  await s.from("reservations").delete().eq("user_id", userId);
+  // 6. Reservations by this user as client or artist
+  await s.from("reservations").delete().eq("client_id", userId);
+  await s.from("reservations").delete().eq("artist_id", userId);
 
   // 7. View events
   await s.from("view_events").delete().eq("user_id", userId);

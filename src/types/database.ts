@@ -16,9 +16,15 @@ export interface Profile {
   instagram: string | null;
   plan: PlanType;
   plan_expires_at: string | null;
+  paypal_subscription_id: string | null;
   designs_count: number;
   followers_count: number;
   is_blocked: boolean;
+  is_verified: boolean | null;
+  trust_score_manual: number | null;
+  early_bird: boolean | null;
+  username_changed_at: string | null;
+  username_change_count: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -95,6 +101,8 @@ export interface Conversation {
   participant_2: string;
   last_message: string | null;
   last_message_at: string | null;
+  deleted_by_1: boolean;
+  deleted_by_2: boolean;
   created_at: string;
   other_user?: Profile;
   unread_count?: number;
