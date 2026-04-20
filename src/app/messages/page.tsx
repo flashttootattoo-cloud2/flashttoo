@@ -16,7 +16,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Conversation, Message, Profile } from "@/types/database";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
+
 import { Suspense } from "react";
 
 function MessagesContent() {
@@ -45,8 +45,9 @@ function MessagesContent() {
   };
 
   const closeConversation = () => {
-    setMobileChatOpen(false);
-    router.replace("/messages", { scroll: false });
+    // Hard navigation ensures the back button always works in PWA standalone
+    // mode regardless of whether routing triggers a re-render or not.
+    window.location.href = "/messages";
   };
 
   const [conversations, setConversations] = useState<(Conversation & { other_user: Profile })[]>([]);
@@ -502,12 +503,12 @@ function MessagesContent() {
           )}>
             {/* Header */}
             <div className="p-3 border-b border-zinc-800 flex items-center gap-3">
-              <Link
-                href="/messages"
+              <button
+                onClick={closeConversation}
                 className="md:hidden text-zinc-400 hover:text-white p-1 -ml-1"
               >
                 <ArrowLeft className="w-5 h-5" />
-              </Link>
+              </button>
               <Avatar className="w-8 h-8 shrink-0">
                 <AvatarImage src={chatUser?.avatar_url ?? ""} />
                 <AvatarFallback className="bg-amber-400 text-zinc-900 text-xs font-bold">
