@@ -46,6 +46,7 @@ function MessagesContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeConvRef = useRef<string | null>(null);
   const [pendingRecipient, setPendingRecipient] = useState<Profile | null>(null);
+  const [convChatUser, setConvChatUser] = useState<Profile | null>(null);
   const [convMenu, setConvMenu] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [confirmDeleteConvId, setConfirmDeleteConvId] = useState<string | null>(null);
@@ -343,6 +344,34 @@ function MessagesContent() {
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
+  // When opening from a push notification (?conv=id), the conversation may not
+  // be in the list yet (still loading) or may be soft-deleted. Fetch the other
+  // user's profile directly so the chat header always renders, and restore the
+  // conversation so it becomes visible again.
+  useEffect(() => {
+    if (!convParam || !user || loadingConvs) return;
+    if (activeConversation) { setConvChatUser(null); return; }
+
+    supabase
+      .from("conversations")
+      .select("participant_1, participant_2")
+      .eq("id", convParam)
+      .single()
+      .then(async ({ data: conv }) => {
+        if (!conv) return;
+        const otherId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1;
+        const { data: otherProfile } = await supabase.from("profiles").select("*").eq("id", otherId).single();
+        if (otherProfile) setConvChatUser(otherProfile as Profile);
+        // Restore soft-delete so the conversation reappears in the list
+        await fetch("/api/messages/restore-conversation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ conversationId: convParam }),
+        });
+        loadConversations();
+      });
+  }, [convParam, loadingConvs, activeConversation, user]);
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-[70vh] text-zinc-500">
@@ -351,8 +380,8 @@ function MessagesContent() {
     );
   }
 
-  const chatUser = activeConversation?.other_user ?? pendingRecipient;
-  const showChat = (activeConversationId && activeConversation) || !!pendingRecipient;
+  const chatUser = activeConversation?.other_user ?? convChatUser ?? pendingRecipient;
+  const showChat = !!activeConversationId || !!pendingRecipient;
 
   const conversationList = (
     <div className={cn(
