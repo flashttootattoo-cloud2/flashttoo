@@ -121,5 +121,6 @@ export function trustRingClass(score: number, isVerified?: boolean): string {
   if (isVerified) return "ring-2 ring-amber-400 ring-offset-2 ring-offset-zinc-950";
   if (score >= 80)  return "ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-zinc-950";
   if (score >= 60)  return "ring-2 ring-blue-400/60 ring-offset-2 ring-offset-zinc-950";
+  if (score >= 40)  return "ring-2 ring-zinc-500/50 ring-offset-2 ring-offset-zinc-950";
   return "";
 }
