@@ -251,7 +251,7 @@ function MessagesContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeConversationId]);
+  }, [activeConversationId, user?.id]);
 
 
   const sendMessage = async () => {
