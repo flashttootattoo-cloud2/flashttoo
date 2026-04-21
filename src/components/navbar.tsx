@@ -413,6 +413,10 @@ export function Navbar() {
               <Button asChild className="hidden md:flex bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold text-sm">
                 <Link href="/auth/register">Registrarse</Link>
               </Button>
+              {/* Mobile: explore shortcut for guests */}
+              <Link href="/explore" className="md:hidden p-2 text-zinc-400 hover:text-white transition-colors">
+                <Search className="w-5 h-5" />
+              </Link>
               {/* Mobile: login + register buttons for guests */}
               <Link href="/auth/login" className="md:hidden px-3 py-1.5 text-sm font-medium text-zinc-300 hover:text-white transition-colors">
                 Ingresar
