@@ -27,7 +27,14 @@ export function PayPalButtons({ planId, planName, userId, planType }: PayPalButt
       <PPButtons
         style={{ layout: "vertical", color: "gold", shape: "rect", label: "subscribe" }}
         createSubscription={(_data, actions) => {
-          return actions.subscription.create({ plan_id: planId });
+          return actions.subscription.create({
+            plan_id: planId,
+            application_context: {
+              shipping_preference: "NO_SHIPPING",
+              return_url: `${window.location.origin}/dashboard`,
+              cancel_url: `${window.location.origin}/plans`,
+            },
+          });
         }}
         onApprove={async (data) => {
           const res = await fetch("/api/paypal/activate", {
