@@ -156,9 +156,6 @@ export default async function HomePage({
       ) : (
         <div className="text-center py-24 text-zinc-500">
           <p className="text-lg">Aún no hay diseños publicados.</p>
-          <Button asChild className="mt-4 bg-amber-400 hover:bg-amber-300 text-zinc-900">
-            <Link href="/auth/register">Empezar ahora</Link>
-          </Button>
         </div>
       )}
     </div>
