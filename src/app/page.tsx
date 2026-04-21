@@ -111,7 +111,7 @@ export default async function HomePage({
   );
 
   // Inject 1 ad every 4 designs. If there are fewer than 4 designs, inject at the end.
-  const AD_INTERVAL = 4;
+  const AD_INTERVAL = 10;
   const feed: any[] = [];
   let adIdx = 0;
   for (let i = 0; i < designs.length; i++) {
