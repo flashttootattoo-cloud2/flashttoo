@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { MapPin, CheckCircle, Brush, ImageIcon } from "lucide-react";
+import { MapPin, CheckCircle, Brush, ImageIcon, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ExploreSearch } from "@/components/explore-search";
 
 export const revalidate = 30;
@@ -14,6 +15,7 @@ export default async function ExplorePage({
 }) {
   const params = await searchParams;
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   let query = supabase
     .from("profiles")
@@ -143,7 +145,27 @@ export default async function ExplorePage({
       </div>
 
       {/* Resultados */}
-      {artistsWithPreviews.length > 0 ? (
+      {!user ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center gap-6">
+          <div className="w-16 h-16 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
+            <Users className="w-8 h-8 text-amber-400" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">Unite a Flashttoo</h2>
+            <p className="text-zinc-400 max-w-sm">
+              La comunidad que conecta amantes de los tatuajes originales con artistas de todo el mundo. Registrate gratis para descubrir tatuadores cerca tuyo.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button asChild className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold px-6">
+              <Link href="/auth/register">Crear cuenta gratis</Link>
+            </Button>
+            <Button asChild variant="outline" className="border-zinc-700 text-white hover:bg-zinc-800 px-6">
+              <Link href="/auth/login">Iniciar sesión</Link>
+            </Button>
+          </div>
+        </div>
+      ) : artistsWithPreviews.length > 0 ? (
         <>
           <p className="text-zinc-500 text-sm mb-4">
             {artistsWithPreviews.length} tatuador{artistsWithPreviews.length !== 1 ? "es" : ""} encontrado{artistsWithPreviews.length !== 1 ? "s" : ""}
@@ -243,3 +265,4 @@ export default async function ExplorePage({
     </div>
   );
 }
+

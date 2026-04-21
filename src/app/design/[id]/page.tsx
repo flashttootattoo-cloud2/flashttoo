@@ -91,6 +91,36 @@ export default async function DesignDetailPage({
   const artist = design.artist as NonNullable<typeof design.artist>;
   if ((artist as any)?.is_blocked) notFound();
 
+  if (!user) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <Link href="/" className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          Volver al feed
+        </Link>
+        <div className="flex flex-col items-center justify-center py-24 text-center gap-6">
+          <div className="w-16 h-16 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
+            <UserCircle className="w-8 h-8 text-amber-400" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">Registrate para ver este diseño</h2>
+            <p className="text-zinc-400 max-w-sm">
+              Creá tu cuenta gratis para ver los detalles, reservar el diseño y hablar directamente con el artista.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button asChild className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold px-6">
+              <Link href="/auth/register">Crear cuenta gratis</Link>
+            </Button>
+            <Button asChild variant="outline" className="border-zinc-700 text-white hover:bg-zinc-800 px-6">
+              <Link href="/auth/login">Iniciar sesión</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Incrementar contador + registrar evento histórico (para gráfico premium)
   supabase.rpc("increment_design_views", { design_id: id }).then(() => {});
   supabase.from("view_events")
