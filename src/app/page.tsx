@@ -3,7 +3,7 @@ import { MasonryGrid } from "@/components/masonry-grid";
 import { StyleFilter } from "@/components/style-filter";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Flame, Search, Brush } from "lucide-react";
+import { Flame, Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -144,9 +144,6 @@ export default async function HomePage({
           <div className="flex flex-wrap gap-3 justify-center">
             <Button asChild size="lg" className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold px-8">
               <Link href="/explore"><Search className="w-4 h-4 mr-2" /> Explorar por ciudad</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="border-zinc-700 text-white hover:bg-zinc-800 px-8">
-              <Link href="/auth/register"><Brush className="w-4 h-4 mr-2" /> Soy tatuador/a</Link>
             </Button>
           </div>
         </section>
