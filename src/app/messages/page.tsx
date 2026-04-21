@@ -396,8 +396,8 @@ function MessagesContent() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center h-[70vh] text-zinc-500">
-        Debes iniciar sesión para ver tus mensajes.
+      <div className="flex items-center justify-center h-[70vh]">
+        <div className="w-6 h-6 rounded-full border-2 border-zinc-700 border-t-amber-400 animate-spin" />
       </div>
     );
   }
