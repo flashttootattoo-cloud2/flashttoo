@@ -105,7 +105,7 @@ export default async function ExplorePage({
         <h1 className="text-3xl font-bold mb-1">
           Explorá tatuadores <span className="text-amber-400">por ciudad</span>
         </h1>
-        <p className="text-zinc-400">Encontrá el tatuador perfecto en cualquier parte del mundo</p>
+        <p className="text-zinc-400">Buscá tatuadores en tu ciudad o cerca tuyo para tatuarte</p>
       </div>
 
       {/* Buscador unificado con autocompletado */}
