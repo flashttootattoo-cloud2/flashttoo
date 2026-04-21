@@ -277,11 +277,6 @@ export default async function PlansPage() {
                       </span>
                       <span className="text-zinc-400 text-sm mb-1">/mes</span>
                     </div>
-                    {"price_yearly" in plan && (
-                      <p className="text-zinc-500 text-xs mt-0.5">
-                        o USD {plan.price_yearly}/año · ahorrás 2 meses
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
