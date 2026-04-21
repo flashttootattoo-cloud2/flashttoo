@@ -196,8 +196,8 @@ export default async function PlansPage() {
         </div>
       )}
 
-      {/* Early Bird ya obtenido */}
-      {isEarlyBird && (
+      {/* Early Bird ya obtenido — solo mientras el cupo no esté completo */}
+      {isEarlyBird && earlyBirdOpen && (
         <div className="mb-8 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-6 py-4 space-y-3">
           <div className="flex items-center gap-3">
             <Gift className="w-5 h-5 text-emerald-400 shrink-0" />
