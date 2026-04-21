@@ -369,6 +369,14 @@ export function Navbar() {
                 </DropdownMenu>
               </div>
 
+              {/* Mobile: explore shortcut */}
+              <Link
+                href="/explore"
+                className="md:hidden p-2 text-zinc-400 hover:text-white transition-colors"
+              >
+                <Search className="w-5 h-5" />
+              </Link>
+
               {/* Mobile: messages shortcut */}
               <Link
                 href="/messages"
