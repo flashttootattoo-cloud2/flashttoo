@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,17 +163,8 @@ export default function RegisterPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Image
-            src="/logo.png"
-            alt="Flashttoo"
-            width={180}
-            height={48}
-            className="h-12 w-auto mx-auto mb-6"
-            priority
-          />
-          <p className="text-zinc-400 text-sm uppercase tracking-widest font-medium">
-            Creá tu cuenta · Es gratis
-          </p>
+          <h1 className="text-2xl font-bold text-white mb-1">Creá tu cuenta</h1>
+          <p className="text-zinc-400 text-sm">Es gratis</p>
         </div>
 
         <form
