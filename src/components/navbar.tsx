@@ -26,7 +26,6 @@ import {
   User,
   Zap,
   X,
-  Menu,
   Download,
   Share,
   Bookmark,
@@ -414,10 +413,13 @@ export function Navbar() {
               <Button asChild className="hidden md:flex bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold text-sm">
                 <Link href="/auth/register">Registrarse</Link>
               </Button>
-              {/* Mobile: menú hamburguesa para no-logueados */}
-              <button onClick={() => setSheetOpen(!sheetOpen)} className="md:hidden p-2 text-zinc-400 hover:text-white">
-                {sheetOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
+              {/* Mobile: login + register buttons for guests */}
+              <Link href="/auth/login" className="md:hidden px-3 py-1.5 text-sm font-medium text-zinc-300 hover:text-white transition-colors">
+                Ingresar
+              </Link>
+              <Link href="/auth/register" className="md:hidden px-3 py-1.5 text-sm font-semibold bg-amber-400 hover:bg-amber-300 text-zinc-900 rounded-lg transition-colors">
+                Registrarse
+              </Link>
             </div>
           )}
         </div>
