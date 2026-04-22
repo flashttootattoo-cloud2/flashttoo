@@ -18,12 +18,12 @@ export async function POST(req: Request) {
   if (!artistId) return NextResponse.json({ error: "Missing artistId" }, { status: 400 });
 
   const service = createServiceClient();
-  const { data: followerProfile } = await service
-    .from("profiles")
-    .select("full_name, username")
-    .eq("id", user.id)
-    .single();
+  const [{ data: followerProfile }, { data: artistProfile }] = await Promise.all([
+    service.from("profiles").select("full_name, username").eq("id", user.id).single(),
+    service.from("profiles").select("username").eq("id", artistId).single(),
+  ]);
   const followerName = followerProfile?.full_name ?? followerProfile?.username ?? "Alguien";
+  const artistUsername = artistProfile?.username ?? "";
   const { data: subs } = await service
     .from("push_subscriptions")
     .select("id, subscription")
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   const payload = JSON.stringify({
     title: "Nuevo seguidor",
     body: `${followerName} empezó a seguirte`,
-    url: "/dashboard",
+    url: `/artist/${artistUsername}`,
     tag: `follow-${user.id}`,
   });
 
