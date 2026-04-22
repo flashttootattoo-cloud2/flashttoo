@@ -25,6 +25,11 @@ export function FollowButton({ artistId, artistName, userId, initialFollowing }:
     setFollowing(true);
     await supabase.from("follows")
       .insert({ follower_id: userId, following_id: artistId });
+    fetch("/api/follow/notify-artist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ artistId }),
+    }).catch(() => {});
     setLoading(false);
   };
 
