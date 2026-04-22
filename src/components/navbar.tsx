@@ -235,7 +235,7 @@ export function Navbar() {
     setSheetOpen(false);
     await supabase.auth.signOut();
     clear();
-    router.push("/");
+    window.location.href = "/";
   };
 
   const navLinks = [
