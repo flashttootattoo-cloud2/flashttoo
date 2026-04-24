@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     description:
       "La plataforma para tatuadores que quieren mostrar su galería flash y conectar con clientes.",
     siteName: "Flashttoo",
-    images: [{ url: "/logo.png", width: 512, height: 512 }],
+    images: [{ url: "/link.png", width: 1200, height: 630 }],
     type: "website",
   },
   twitter: {
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title: "Flashttoo – Descubrí tatuadores y diseños flash",
     description:
       "La plataforma para tatuadores que quieren mostrar su galería flash y conectar con clientes.",
-    images: ["/logo.png"],
+    images: ["/link.png"],
   },
   other: {
     "mobile-web-app-capable": "yes",
