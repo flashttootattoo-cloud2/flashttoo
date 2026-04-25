@@ -1,4 +1,4 @@
-export type UserRole = "client" | "tattoo_artist" | "administradorgeneral";
+export type UserRole = "client" | "tattoo_artist" | "administradorgeneral" | "publicistaflashttoo";
 export type PlanType = "free" | "pro" | "studio" | "basic" | "premium"; // basic/premium = legacy
 export type ReservationStatus = "pending" | "confirmed" | "rejected" | "completed";
 export type MessageStatus = "sent" | "read";

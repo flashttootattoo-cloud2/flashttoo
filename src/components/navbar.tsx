@@ -125,7 +125,7 @@ export function Navbar() {
   // Load notifications — keep only last 3, delete the rest
   useEffect(() => {
     if (!user || !profile) return;
-    if (profile.role === "administradorgeneral") return;
+    if (["administradorgeneral", "publicistaflashttoo"].includes(profile.role)) return;
 
     supabase
       .from("notifications")
@@ -228,7 +228,7 @@ export function Navbar() {
 
   const openSheet = async () => {
     setSheetOpen(true);
-    if (profile?.role !== "administradorgeneral") await markNotifsRead();
+    if (!["administradorgeneral", "publicistaflashttoo"].includes(profile?.role ?? "")) await markNotifsRead();
   };
 
   const handleLogout = async () => {
@@ -247,7 +247,7 @@ export function Navbar() {
       : []),
   ];
 
-  const showNotifs = !!user && profile?.role !== "administradorgeneral";
+  const showNotifs = !!user && !["administradorgeneral", "publicistaflashttoo"].includes(profile?.role ?? "");
 
   return (
     <header ref={headerRef} className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
@@ -355,9 +355,9 @@ export function Navbar() {
                         <Zap className="w-4 h-4 mr-2" /> Planes
                       </DropdownMenuItem>
                     )}
-                    {profile?.role === "administradorgeneral" && (
-                      <DropdownMenuItem onClick={() => router.push("/admin")} className="cursor-pointer text-amber-400">
-                        <ShieldCheck className="w-4 h-4 mr-2" /> Panel Admin
+                    {(profile?.role === "administradorgeneral" || profile?.role === "publicistaflashttoo") && (
+                      <DropdownMenuItem onClick={() => router.push(profile.role === "publicistaflashttoo" ? "/admin/publicidad" : "/admin")} className="cursor-pointer text-amber-400">
+                        <ShieldCheck className="w-4 h-4 mr-2" /> {profile.role === "publicistaflashttoo" ? "Publicidad" : "Panel Admin"}
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator className="bg-zinc-800" />
@@ -501,8 +501,8 @@ export function Navbar() {
                 {profile?.role === "tattoo_artist" && (
                   <SheetLink href="/plans" icon={Zap} label="Planes" onClose={() => setSheetOpen(false)} />
                 )}
-                {profile?.role === "administradorgeneral" && (
-                  <SheetLink href="/admin" icon={ShieldCheck} label="Panel Admin" onClose={() => setSheetOpen(false)} />
+                {(profile?.role === "administradorgeneral" || profile?.role === "publicistaflashttoo") && (
+                  <SheetLink href={profile.role === "publicistaflashttoo" ? "/admin/publicidad" : "/admin"} icon={ShieldCheck} label={profile.role === "publicistaflashttoo" ? "Publicidad" : "Panel Admin"} onClose={() => setSheetOpen(false)} />
                 )}
               </div>
             )}
