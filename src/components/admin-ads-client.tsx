@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   Plus, Trash2, ToggleLeft, ToggleRight, MapPin, ExternalLink,
-  Loader2, Pencil, MousePointerClick, Eye, X,
+  Loader2, Pencil, MousePointerClick, Eye, X, ChevronDown, ChevronRight, Search, Globe,
 } from "lucide-react";
 
 interface Ad {
@@ -119,6 +119,9 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
   };
 
   const [confirmingAd, setConfirmingAd] = useState<Ad | null>(null);
+  const [citySearch, setCitySearch] = useState("");
+  const [openBrands, setOpenBrands] = useState<Record<string, boolean>>({});
+  const toggleBrand = (key: string) => setOpenBrands((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleDelete = async (ad: Ad) => {
     const res = await fetch("/api/admin/delete-ad", {
@@ -260,88 +263,149 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
         </div>
       )}
 
-      {/* Ads grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {ads.map((ad) => (
-          <div
-            key={ad.id}
-            className={`bg-zinc-900 border rounded-2xl overflow-hidden ${ad.is_active ? "border-zinc-800" : "border-zinc-800 opacity-50"}`}
-          >
-            <div className="relative">
-              <img src={ad.image_url} alt={ad.brand_name} className="w-full h-40 object-cover" />
-              {!ad.is_active && (
-                <div className="absolute inset-0 bg-zinc-950/60 flex items-center justify-center">
-                  <span className="bg-zinc-900 text-zinc-400 text-xs px-3 py-1 rounded-full border border-zinc-700">Inactiva</span>
-                </div>
-              )}
-            </div>
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <p className="font-semibold text-sm">{ad.brand_name}</p>
-                {ad.city && (
-                  <span className="flex items-center gap-1 text-xs text-zinc-500 shrink-0">
-                    <MapPin className="w-3 h-3" />{ad.city}
-                  </span>
-                )}
-              </div>
-
-              {/* Stats */}
-              <div className="flex items-center gap-3 mb-2">
-                <span className="flex items-center gap-1 text-xs text-zinc-500">
-                  <Eye className="w-3 h-3" />{ad.views_count ?? 0} vistas
-                </span>
-                <span className="flex items-center gap-1 text-xs text-zinc-500">
-                  <MousePointerClick className="w-3 h-3" />{ad.clicks_count ?? 0} clicks
-                </span>
-              </div>
-
-              {ad.expires_at && (
-                <p className="text-xs text-zinc-500 mb-1">
-                  Vence: {new Date(ad.expires_at).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
-                  {new Date(ad.expires_at) < new Date() && <span className="text-red-400 ml-1">· Expirada</span>}
-                </p>
-              )}
-              {ad.contact_url && (
-                <a href={ad.contact_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-amber-400 transition-colors mb-3 truncate">
-                  <ExternalLink className="w-3 h-3 shrink-0" />
-                  {ad.contact_url}
-                </a>
-              )}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => toggleActive(ad)}
-                  className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${ad.is_active ? "text-emerald-400 hover:text-emerald-300" : "text-zinc-500 hover:text-zinc-300"}`}
-                >
-                  {ad.is_active
-                    ? <><ToggleRight className="w-4 h-4" /> Activa</>
-                    : <><ToggleLeft className="w-4 h-4" /> Inactiva</>}
-                </button>
-                <span className="ml-auto" />
-                <button
-                  onClick={() => openEdit(ad)}
-                  className="text-zinc-600 hover:text-amber-400 transition-colors"
-                  title="Editar"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setConfirmingAd(ad)}
-                  className="text-zinc-600 hover:text-red-400 transition-colors"
-                  title="Eliminar"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-        {ads.length === 0 && (
-          <div className="col-span-full text-center py-16 text-zinc-500 text-sm">
-            No hay publicidades todavía. Crea la primera.
-          </div>
-        )}
+      {/* City search */}
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+        <Input
+          value={citySearch}
+          onChange={(e) => setCitySearch(e.target.value)}
+          placeholder="Buscar por ciudad..."
+          className="pl-9 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
+        />
       </div>
+
+      {/* Grouped by city → brand */}
+      {(() => {
+        const filtered = ads.filter((a) =>
+          !citySearch.trim() ||
+          (a.city ?? "Global").toLowerCase().includes(citySearch.toLowerCase())
+        );
+
+        // Group by city
+        const byCity: Record<string, Ad[]> = {};
+        for (const ad of filtered) {
+          const key = ad.city?.trim() || "Global";
+          if (!byCity[key]) byCity[key] = [];
+          byCity[key].push(ad);
+        }
+
+        const cities = Object.keys(byCity).sort((a, b) =>
+          a === "Global" ? -1 : b === "Global" ? 1 : a.localeCompare(b)
+        );
+
+        if (cities.length === 0) {
+          return (
+            <div className="text-center py-16 text-zinc-500 text-sm">
+              {ads.length === 0 ? "No hay publicidades todavía. Crea la primera." : "No se encontraron resultados."}
+            </div>
+          );
+        }
+
+        return cities.map((city) => {
+          // Group by brand within city
+          const byBrand: Record<string, Ad[]> = {};
+          for (const ad of byCity[city]) {
+            if (!byBrand[ad.brand_name]) byBrand[ad.brand_name] = [];
+            byBrand[ad.brand_name].push(ad);
+          }
+
+          return (
+            <div key={city} className="mb-8">
+              {/* City header */}
+              <div className="flex items-center gap-2 mb-3">
+                {city === "Global"
+                  ? <Globe className="w-4 h-4 text-zinc-400" />
+                  : <MapPin className="w-4 h-4 text-amber-400" />}
+                <h2 className="font-semibold text-sm text-white">{city}</h2>
+                <span className="text-xs text-zinc-600">{byCity[city].length} publicidad{byCity[city].length !== 1 ? "es" : ""}</span>
+              </div>
+
+              {/* Brand folders */}
+              <div className="space-y-3">
+                {Object.entries(byBrand).map(([brand, brandAds]) => {
+                  const folderKey = `${city}::${brand}`;
+                  const isOpen = openBrands[folderKey] ?? true;
+                  return (
+                    <div key={brand} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                      {/* Brand header */}
+                      <button
+                        onClick={() => toggleBrand(folderKey)}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-800/50 transition-colors"
+                      >
+                        {isOpen
+                          ? <ChevronDown className="w-4 h-4 text-zinc-500 shrink-0" />
+                          : <ChevronRight className="w-4 h-4 text-zinc-500 shrink-0" />}
+                        <span className="font-medium text-sm text-white flex-1 text-left">{brand}</span>
+                        <span className="text-xs text-zinc-500">{brandAds.length} aviso{brandAds.length !== 1 ? "s" : ""}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ml-2 ${
+                          brandAds.some((a) => a.is_active)
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : "bg-zinc-800 text-zinc-500"
+                        }`}>
+                          {brandAds.filter((a) => a.is_active).length} activo{brandAds.filter((a) => a.is_active).length !== 1 ? "s" : ""}
+                        </span>
+                      </button>
+
+                      {/* Ads inside brand */}
+                      {isOpen && (
+                        <div className="border-t border-zinc-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                          {brandAds.map((ad) => (
+                            <div key={ad.id} className={`border rounded-xl overflow-hidden ${ad.is_active ? "border-zinc-700" : "border-zinc-800 opacity-50"}`}>
+                              <div className="relative">
+                                <img src={ad.image_url} alt={ad.brand_name} className="w-full h-36 object-cover" />
+                                {!ad.is_active && (
+                                  <div className="absolute inset-0 bg-zinc-950/60 flex items-center justify-center">
+                                    <span className="bg-zinc-900 text-zinc-400 text-xs px-3 py-1 rounded-full border border-zinc-700">Inactiva</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="p-3">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className="flex items-center gap-1 text-xs text-zinc-500">
+                                    <Eye className="w-3 h-3" />{ad.views_count ?? 0}
+                                  </span>
+                                  <span className="flex items-center gap-1 text-xs text-zinc-500">
+                                    <MousePointerClick className="w-3 h-3" />{ad.clicks_count ?? 0}
+                                  </span>
+                                </div>
+                                {ad.expires_at && (
+                                  <p className="text-xs text-zinc-500 mb-1">
+                                    Vence: {new Date(ad.expires_at).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                                    {new Date(ad.expires_at) < new Date() && <span className="text-red-400 ml-1">· Expirada</span>}
+                                  </p>
+                                )}
+                                {ad.contact_url && (
+                                  <a href={ad.contact_url} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-amber-400 transition-colors mb-2 truncate">
+                                    <ExternalLink className="w-3 h-3 shrink-0" />{ad.contact_url}
+                                  </a>
+                                )}
+                                <div className="flex items-center gap-2">
+                                  <button onClick={() => toggleActive(ad)}
+                                    className={`flex items-center gap-1 text-xs font-medium transition-colors ${ad.is_active ? "text-emerald-400 hover:text-emerald-300" : "text-zinc-500 hover:text-zinc-300"}`}>
+                                    {ad.is_active ? <><ToggleRight className="w-4 h-4" /> Activa</> : <><ToggleLeft className="w-4 h-4" /> Inactiva</>}
+                                  </button>
+                                  <span className="ml-auto" />
+                                  <button onClick={() => openEdit(ad)} className="text-zinc-600 hover:text-amber-400 transition-colors" title="Editar">
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button onClick={() => setConfirmingAd(ad)} className="text-zinc-600 hover:text-red-400 transition-colors" title="Eliminar">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        });
+      })()}
     </div>
   );
 }
