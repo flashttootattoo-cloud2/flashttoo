@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -25,7 +24,6 @@ interface Ad {
 }
 
 export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
-  const supabase = createClient();
   const [ads, setAds] = useState<Ad[]>(initial);
   const [showForm, setShowForm] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -123,7 +121,12 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
   const [confirmingAd, setConfirmingAd] = useState<Ad | null>(null);
 
   const handleDelete = async (ad: Ad) => {
-    await supabase.from("ads").delete().eq("id", ad.id);
+    const res = await fetch("/api/admin/delete-ad", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: ad.id }),
+    });
+    if (!res.ok) { toast.error("No se pudo eliminar"); return; }
     setAds((prev) => prev.filter((a) => a.id !== ad.id));
     setConfirmingAd(null);
     toast.success("Publicidad eliminada");
