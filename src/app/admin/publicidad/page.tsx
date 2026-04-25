@@ -1,11 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { AdminAdsClient } from "@/components/admin-ads-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPublicidadPage() {
-  const supabase = await createClient();
-  const { data: ads } = await supabase
+  const service = createServiceClient();
+  const { data: ads } = await service
     .from("ads")
     .select("*")
     .order("created_at", { ascending: false });
