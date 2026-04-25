@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
   if (isAdmin) {
     if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    if (profile?.role !== "administradorgeneral") return NextResponse.redirect(new URL("/", request.url));
+    if (!["administradorgeneral", "publicistaflashttoo"].includes(profile?.role ?? "")) return NextResponse.redirect(new URL("/", request.url));
   }
 
   return supabaseResponse;
