@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { Users, Brush, CalendarDays, TrendingUp, UserCheck, CreditCard, Clock } from "lucide-react";
+import { GrowthChart } from "@/components/growth-chart";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export default async function AdminMetricasPage() {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+
   const [
     { count: totalUsers },
     { count: totalArtists },
@@ -35,6 +38,7 @@ export default async function AdminMetricasPage() {
     { count: totalReservations },
     { data: planBreakdown },
     { count: activeAds },
+    { data: growthRaw },
   ] = await Promise.all([
     service.from("profiles").select("*", { count: "exact", head: true }),
     service.from("profiles").select("*", { count: "exact", head: true }).eq("role", "tattoo_artist").eq("is_blocked", false),
@@ -44,7 +48,27 @@ export default async function AdminMetricasPage() {
     service.from("reservations").select("*", { count: "exact", head: true }),
     service.from("profiles").select("plan").eq("role", "tattoo_artist").eq("is_blocked", false),
     service.from("ads").select("*", { count: "exact", head: true }).eq("is_active", true),
+    service.from("profiles").select("created_at, role").gte("created_at", ninetyDaysAgo),
   ]);
+  // Build 90-day cumulative growth series
+  const countByDay: Record<string, { artists: number; clients: number }> = {};
+  for (const p of growthRaw ?? []) {
+    const day = (p.created_at as string).slice(0, 10);
+    if (!countByDay[day]) countByDay[day] = { artists: 0, clients: 0 };
+    if (p.role === "tattoo_artist") countByDay[day].artists++;
+    else countByDay[day].clients++;
+  }
+  // Cumulative over 90 days
+  let cumArtists = 0;
+  let cumClients = 0;
+  const growthData = [];
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const key = d.toISOString().slice(0, 10);
+    cumArtists += countByDay[key]?.artists ?? 0;
+    cumClients += countByDay[key]?.clients ?? 0;
+    growthData.push({ date: key, artists: cumArtists, clients: cumClients });
+  }
 
   const plans = (planBreakdown ?? []).reduce((acc: Record<string, number>, p) => {
     acc[p.plan] = (acc[p.plan] ?? 0) + 1;
@@ -69,6 +93,13 @@ export default async function AdminMetricasPage() {
         <StatCard label="Reservas este mes" value={reservationsMonth ?? 0} sub={now.toLocaleString("es-AR", { month: "long", year: "numeric" })} icon={TrendingUp} color="text-emerald-400" />
         <StatCard label="Nuevos usuarios" value={newUsersWeek ?? 0} sub="últimos 7 días" icon={Clock} color="text-blue-400" />
         <StatCard label="Publicidades activas" value={activeAds ?? 0} icon={CreditCard} color="text-amber-400" />
+      </div>
+
+      {/* Growth chart */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 mb-6">
+        <h2 className="font-semibold mb-1 text-sm">Crecimiento — últimos 90 días</h2>
+        <p className="text-xs text-zinc-500 mb-4">Usuarios acumulados desde hace 90 días</p>
+        <GrowthChart data={growthData} />
       </div>
 
       {/* Plan breakdown */}
