@@ -59,5 +59,16 @@ export async function GET(request: Request) {
   }
 
   if (downgraded > 0) console.log(`[cron/cleanup] ${downgraded} planes vencidos bajados a free`);
-  return NextResponse.json({ deleted: count, downgraded });
+
+  // Auto-deactivate expired ads
+  const { count: adsDeactivated } = await service
+    .from("ads")
+    .update({ is_active: false }, { count: "exact" })
+    .eq("is_active", true)
+    .not("expires_at", "is", null)
+    .lt("expires_at", now);
+
+  if (adsDeactivated) console.log(`[cron/cleanup] ${adsDeactivated} publicidades vencidas desactivadas`);
+
+  return NextResponse.json({ deleted: count, downgraded, adsDeactivated });
 }

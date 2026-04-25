@@ -21,6 +21,7 @@ interface Ad {
   clicks_count: number;
   views_count: number;
   created_at: string;
+  expires_at: string | null;
 }
 
 export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
@@ -34,6 +35,7 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
   const [brandName, setBrandName] = useState("");
   const [contactUrl, setContactUrl] = useState("");
   const [city, setCity] = useState("");
+  const [durationDays, setDurationDays] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
@@ -42,6 +44,7 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
   const [editBrand, setEditBrand] = useState("");
   const [editContact, setEditContact] = useState("");
   const [editCity, setEditCity] = useState("");
+  const [editDays, setEditDays] = useState("");
   const [saving, setSaving] = useState(false);
 
   const openEdit = (ad: Ad) => {
@@ -49,6 +52,7 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
     setEditBrand(ad.brand_name);
     setEditContact(ad.contact_url ?? "");
     setEditCity(ad.city ?? "");
+    setEditDays("");
   };
 
   const handleEdit = async () => {
@@ -57,7 +61,13 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
     const res = await fetch("/api/admin/update-ad", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editingAd.id, brand_name: editBrand.trim(), contact_url: editContact.trim(), city: editCity.trim() }),
+      body: JSON.stringify({
+        id: editingAd.id,
+        brand_name: editBrand.trim(),
+        contact_url: editContact.trim(),
+        city: editCity.trim(),
+        duration_days: editDays ? parseInt(editDays) : null,
+      }),
     });
     const { ad: updated, error } = await res.json();
     if (error || !updated) { toast.error("No se pudo guardar"); setSaving(false); return; }
@@ -80,7 +90,12 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
 
     const form = new FormData();
     form.append("file", file);
-    form.append("meta", JSON.stringify({ brand_name: brandName.trim(), contact_url: contactUrl.trim(), city: city.trim() }));
+    form.append("meta", JSON.stringify({
+      brand_name: brandName.trim(),
+      contact_url: contactUrl.trim(),
+      city: city.trim(),
+      duration_days: durationDays ? parseInt(durationDays) : null,
+    }));
     const upRes = await fetch("/api/admin/upload-ad-image", { method: "POST", body: form });
     if (!upRes.ok) { toast.error("Error al crear publicidad"); setUploading(false); return; }
     const { ad: newAd, error } = await upRes.json();
@@ -88,7 +103,7 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
     if (error || !newAd) { toast.error("Error al crear publicidad"); setUploading(false); return; }
 
     setAds((prev) => [{ clicks_count: 0, views_count: 0, ...newAd } as Ad, ...prev]);
-    setBrandName(""); setContactUrl(""); setCity(""); setFile(null); setPreview(null);
+    setBrandName(""); setContactUrl(""); setCity(""); setDurationDays(""); setFile(null); setPreview(null);
     setShowForm(false);
     setUploading(false);
     toast.success("Publicidad creada");
@@ -154,6 +169,12 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
                   placeholder="Ej: Buenos Aires"
                   className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500" />
               </div>
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5">Extender días activa (se suma al vencimiento actual)</label>
+                <Input value={editDays} onChange={(e) => setEditDays(e.target.value)}
+                  type="number" min="1" placeholder="Ej: 15"
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500" />
+              </div>
               <div className="flex gap-3 pt-2">
                 <Button onClick={() => setEditingAd(null)} variant="outline"
                   className="flex-1 border-zinc-700 hover:bg-zinc-800" disabled={saving}>Cancelar</Button>
@@ -217,6 +238,12 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
                   placeholder="Ej: Buenos Aires"
                   className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500" />
               </div>
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5">Días activa (vacío = sin vencimiento)</label>
+                <Input value={durationDays} onChange={(e) => setDurationDays(e.target.value)}
+                  type="number" min="1" placeholder="Ej: 30"
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500" />
+              </div>
               <div className="flex gap-2 mt-auto">
                 <Button onClick={handleCreate} disabled={uploading}
                   className="flex-1 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold" size="sm">
@@ -265,6 +292,12 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
                 </span>
               </div>
 
+              {ad.expires_at && (
+                <p className="text-xs text-zinc-500 mb-1">
+                  Vence: {new Date(ad.expires_at).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+                  {new Date(ad.expires_at) < new Date() && <span className="text-red-400 ml-1">· Expirada</span>}
+                </p>
+              )}
               {ad.contact_url && (
                 <a href={ad.contact_url} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1 text-xs text-zinc-500 hover:text-amber-400 transition-colors mb-3 truncate">

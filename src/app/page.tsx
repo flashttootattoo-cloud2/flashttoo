@@ -98,7 +98,7 @@ export default async function HomePage({
 
   const [{ data: rawDesigns }, { data: rawAds }] = await Promise.all([
     designQuery,
-    supabase.from("ads").select("*").eq("is_active", true),
+    supabase.from("ads").select("*").eq("is_active", true).or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`),
   ]);
 
   // Filter out blocked artists

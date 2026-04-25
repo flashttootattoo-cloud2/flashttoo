@@ -32,12 +32,16 @@ export async function POST(req: Request) {
   const body = formData.get("meta");
   if (body) {
     const meta = JSON.parse(body as string);
+    const expires_at = meta.duration_days
+      ? new Date(Date.now() + meta.duration_days * 24 * 60 * 60 * 1000).toISOString()
+      : null;
     const { data: newAd, error: insErr } = await service.from("ads").insert({
       brand_name: meta.brand_name,
       image_url: publicUrl,
       contact_url: meta.contact_url || null,
       city: meta.city || null,
       is_active: true,
+      expires_at,
     }).select().single();
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
     return NextResponse.json({ url: publicUrl, ad: newAd });
