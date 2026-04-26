@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   Plus, Trash2, ToggleLeft, ToggleRight, MapPin, ExternalLink,
-  Loader2, Pencil, MousePointerClick, Eye, X, ChevronDown, ChevronRight, Search, Globe,
+  Loader2, Pencil, MousePointerClick, Eye, X, ChevronDown, ChevronRight, Search, Globe, Clock,
 } from "lucide-react";
 
 interface Ad {
@@ -119,6 +119,7 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
   };
 
   const [confirmingAd, setConfirmingAd] = useState<Ad | null>(null);
+  const [showExpiryModal, setShowExpiryModal] = useState(false);
   const [citySearch, setCitySearch] = useState("");
   const [openBrands, setOpenBrands] = useState<Record<string, boolean>>({});
   const toggleBrand = (key: string) => setOpenBrands((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -194,16 +195,79 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
         </div>
       )}
 
+      {showExpiryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm" onClick={() => setShowExpiryModal(false)} />
+          <div className="relative z-10 w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 shrink-0">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-400" />
+                <h2 className="font-semibold text-sm">Por vencer</h2>
+              </div>
+              <button onClick={() => setShowExpiryModal(false)} className="text-zinc-500 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="overflow-y-auto divide-y divide-zinc-800">
+              {(() => {
+                const now = new Date();
+                const withExpiry = ads
+                  .filter((a) => a.is_active && a.expires_at)
+                  .map((a) => ({
+                    ...a,
+                    daysLeft: Math.ceil((new Date(a.expires_at!).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+                  }))
+                  .sort((a, b) => a.daysLeft - b.daysLeft);
+
+                if (withExpiry.length === 0) return (
+                  <p className="text-zinc-500 text-sm text-center py-10">No hay publicidades activas con vencimiento.</p>
+                );
+
+                return withExpiry.map((ad) => {
+                  const urgent = ad.daysLeft <= 7;
+                  const warning = ad.daysLeft > 7 && ad.daysLeft <= 30;
+                  const color = urgent ? "text-red-400" : warning ? "text-amber-400" : "text-emerald-400";
+                  const bg = urgent ? "bg-red-500/10" : warning ? "bg-amber-400/10" : "bg-emerald-500/10";
+                  return (
+                    <div key={ad.id} className="flex items-center gap-3 px-5 py-3.5">
+                      <img src={ad.image_url} alt={ad.brand_name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{ad.brand_name}</p>
+                        <p className="text-xs text-zinc-500">{ad.city ?? "Global"}</p>
+                      </div>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${color} ${bg}`}>
+                        {ad.daysLeft <= 0 ? "Vencida" : `${ad.daysLeft}d`}
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <p className="text-sm text-zinc-500">{ads.length} publicidades · {ads.filter(a => a.is_active).length} activas</p>
-        <Button
-          onClick={() => setShowForm((v) => !v)}
-          className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold"
-          size="sm"
-        >
-          <Plus className="w-4 h-4 mr-1.5" />
-          Nueva publicidad
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowExpiryModal(true)}
+            variant="outline"
+            className="border-zinc-700 hover:bg-zinc-800 text-zinc-300"
+            size="sm"
+          >
+            <Clock className="w-4 h-4 mr-1.5" />
+            Por vencer
+          </Button>
+          <Button
+            onClick={() => setShowForm((v) => !v)}
+            className="bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold"
+            size="sm"
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            Nueva publicidad
+          </Button>
+        </div>
       </div>
 
       {/* Create form */}
