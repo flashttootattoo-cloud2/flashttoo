@@ -565,7 +565,9 @@ function AdminDesignCard({ design, onRemove }: { design: any; onRemove: (id: str
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmHide, setConfirmHide] = useState(false);
+  const [confirmFeedHide, setConfirmFeedHide] = useState(false);
   const [hidden, setHidden] = useState<boolean>(design.is_admin_hidden);
+  const [feedHidden, setFeedHidden] = useState<boolean>(design.is_feed_hidden ?? false);
 
   const handleDelete = async () => {
     setLoading(true);
@@ -599,6 +601,25 @@ function AdminDesignCard({ design, onRemove }: { design: any; onRemove: (id: str
     setLoading(false);
   };
 
+  const handleToggleFeedHidden = async () => {
+    setLoading(true);
+    setConfirmFeedHide(false);
+    setMenuOpen(false);
+    const next = !feedHidden;
+    const res = await fetch("/api/admin/update-design", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ designId: design.id, is_feed_hidden: next }),
+    });
+    if (res.ok) {
+      setFeedHidden(next);
+      toast.success(next ? "Ocultado del inicio" : "Visible en el inicio");
+    } else {
+      toast.error("Error al actualizar");
+    }
+    setLoading(false);
+  };
+
   return (
     <>
       {confirmDelete && (
@@ -616,6 +637,15 @@ function AdminDesignCard({ design, onRemove }: { design: any; onRemove: (id: str
           confirmLabel={hidden ? "Mostrar" : "Ocultar"}
           onConfirm={handleToggleHidden}
           onCancel={() => setConfirmHide(false)}
+        />
+      )}
+      {confirmFeedHide && (
+        <ConfirmDialog
+          title={feedHidden ? `Mostrar en el inicio "${design.title}"` : `Ocultar del inicio "${design.title}"`}
+          description={feedHidden ? "El diseño volverá a aparecer en el feed general." : "El diseño seguirá visible en el perfil del artista pero no aparecerá en el feed general."}
+          confirmLabel={feedHidden ? "Mostrar en inicio" : "Ocultar del inicio"}
+          onConfirm={handleToggleFeedHidden}
+          onCancel={() => setConfirmFeedHide(false)}
         />
       )}
 
@@ -651,6 +681,14 @@ function AdminDesignCard({ design, onRemove }: { design: any; onRemove: (id: str
                   ? <><Eye className="w-5 h-5 text-zinc-700 shrink-0" /><span>Mostrar diseño</span></>
                   : <><EyeOff className="w-5 h-5 text-zinc-700 shrink-0" /><span>Ocultar diseño</span></>}
               </button>
+              <button
+                onClick={() => { setMenuOpen(false); setConfirmFeedHide(true); }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-amber-300/50 transition-colors text-left text-zinc-900"
+              >
+                {feedHidden
+                  ? <><Eye className="w-5 h-5 text-zinc-700 shrink-0" /><span>Mostrar en el inicio</span></>
+                  : <><EyeOff className="w-5 h-5 text-zinc-700 shrink-0" /><span>Ocultar del inicio</span></>}
+              </button>
               <div className="h-px bg-amber-500/30 mx-4 my-1" />
               <button
                 onClick={() => { setMenuOpen(false); setConfirmDelete(true); }}
@@ -674,6 +712,11 @@ function AdminDesignCard({ design, onRemove }: { design: any; onRemove: (id: str
         {hidden && (
           <div className="absolute inset-0 bg-zinc-950/60 flex items-center justify-center">
             <span className="text-[9px] text-red-400 font-semibold">Oculto</span>
+          </div>
+        )}
+        {!hidden && feedHidden && (
+          <div className="absolute bottom-0 left-0 right-0 bg-zinc-950/70 flex items-center justify-center py-0.5">
+            <span className="text-[8px] text-amber-400 font-semibold">Sin inicio</span>
           </div>
         )}
         {loading && (

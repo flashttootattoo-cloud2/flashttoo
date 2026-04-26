@@ -91,6 +91,7 @@ export default async function HomePage({
     .eq("is_available", true)
     .eq("is_archived", false)
     .eq("is_admin_hidden", false)
+    .eq("is_feed_hidden", false)
     .limit(80);
 
   if (params.style) designQuery = designQuery.eq("style", params.style);
