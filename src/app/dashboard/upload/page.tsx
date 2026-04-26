@@ -485,21 +485,14 @@ export default function UploadDesignPage() {
 
         {/* Originalidad */}
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
-          <p className="text-sm font-semibold text-white">Subí tu trabajo, no el de otro.</p>
+          <p className="text-sm font-semibold text-white">Subí tu propio trabajo</p>
           <p className="text-sm text-zinc-400 leading-relaxed">
-            Flashttoo nació para premiar la creatividad real. Queremos construir una comunidad donde el talento genuino se destaque y donde cada artista crezca por lo que es capaz de crear, no por lo que copia.
-          </p>
-          <p className="text-sm text-zinc-400 leading-relaxed">
-            Un diseño de autor es cualquier pieza que nació de tu mano o tu cabeza — un boceto propio, un tatuaje que realizaste, una composición que diseñaste vos aunque hayas usado referencias. Eso es lo que buscamos. Eso es lo que los clientes valoran y lo que hace que una plataforma como esta tenga sentido.
-          </p>
-          <p className="text-sm text-zinc-400 leading-relaxed">
-            Subir imágenes de internet, de otros artistas, o modificar un poco una imagen ajena tampoco te ayuda: los clientes que lleguen van a esperar ese nivel y van a quedar con otra persona. Tu reputación en la plataforma depende de lo que mostrás.
+            Flashttoo premia a los artistas que crean. Cada diseño original que subís construye tu reputación real, atrae clientes que valoran tu estilo y hace que la comunidad crezca con talento genuino.
           </p>
           <div className="flex items-start gap-2.5 pt-1 border-t border-zinc-800 mt-1">
             <span className="text-amber-400 mt-0.5 shrink-0">⚠️</span>
             <p className="text-xs text-zinc-500 leading-relaxed">
-              <span className="text-zinc-300 font-medium">Contenido original obligatorio.</span>{" "}
-              Flashttoo verifica los diseños reportados por la comunidad. Si un diseño tuyo es denunciado y confirmamos que no es de tu autoría, puede ser eliminado y tu cuenta suspendida sin previo aviso. No es una regla burocrática — es lo que hace posible que esta plataforma sea un lugar donde el talento genuino se destaca.
+              Flashttoo verifica los diseños reportados por la comunidad. Si un diseño tuyo es denunciado y confirmamos que no es de tu autoría, puede ser eliminado y tu cuenta suspendida sin previo aviso.
             </p>
           </div>
         </div>
