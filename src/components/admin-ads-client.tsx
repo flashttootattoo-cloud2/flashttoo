@@ -121,6 +121,7 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
   const [confirmingAd, setConfirmingAd] = useState<Ad | null>(null);
   const [showExpiryModal, setShowExpiryModal] = useState(false);
   const [citySearch, setCitySearch] = useState("");
+  const [brandSearch, setBrandSearch] = useState("");
   const [openBrands, setOpenBrands] = useState<Record<string, boolean>>({});
   const toggleBrand = (key: string) => setOpenBrands((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -327,22 +328,33 @@ export function AdminAdsClient({ ads: initial }: { ads: Ad[] }) {
         </div>
       )}
 
-      {/* City search */}
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-        <Input
-          value={citySearch}
-          onChange={(e) => setCitySearch(e.target.value)}
-          placeholder="Buscar por ciudad..."
-          className="pl-9 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
-        />
+      {/* Search */}
+      <div className="flex gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Input
+            value={citySearch}
+            onChange={(e) => setCitySearch(e.target.value)}
+            placeholder="Buscar por ciudad..."
+            className="pl-9 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
+          />
+        </div>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Input
+            value={brandSearch}
+            onChange={(e) => setBrandSearch(e.target.value)}
+            placeholder="Buscar por marca..."
+            className="pl-9 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
+          />
+        </div>
       </div>
 
       {/* Grouped by city → brand */}
       {(() => {
         const filtered = ads.filter((a) =>
-          !citySearch.trim() ||
-          (a.city ?? "Global").toLowerCase().includes(citySearch.toLowerCase())
+          (!citySearch.trim() || (a.city ?? "Global").toLowerCase().includes(citySearch.toLowerCase())) &&
+          (!brandSearch.trim() || a.brand_name.toLowerCase().includes(brandSearch.toLowerCase()))
         );
 
         // Group by city
