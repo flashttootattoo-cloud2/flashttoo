@@ -7,7 +7,7 @@ const BASE = 'https://flashttoo.com'
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: 'Flashttoo — Buscador de Tatuadores',
-  description: 'Encontrá tatuadores por ciudad, país y estilo. Conectá con artistas del tatuaje en toda Latinoamérica.',
+  description: 'Encontrá tatuadores por ciudad, país y estilo.',
   keywords: ['tatuadores', 'tattoo', 'tatuaje', 'buscador de tatuadores', 'artistas tatuaje', 'tatuadores argentina', 'tatuadores latinoamerica'],
   authors: [{ name: 'Flashttoo', url: BASE }],
   openGraph: {
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     url: BASE,
     siteName: 'Flashttoo',
     title: 'Flashttoo — Buscador de Tatuadores',
-    description: 'Encontrá tatuadores por ciudad, país y estilo. Conectá con artistas del tatuaje en toda Latinoamérica.',
+    description: 'Encontrá tatuadores por ciudad, país y estilo.',
     images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Flashttoo — Buscador de Tatuadores' }],
   },
   twitter: {
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/favicon-32.png',
-    apple: '/Icono-192.svg',
+    apple: '/app.png',
   },
   manifest: '/manifest.json',
 }
