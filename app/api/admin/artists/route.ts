@@ -14,7 +14,6 @@ function checkAuth(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { data, error } = await getAdminClient().from('artists').select('*').order('created_at', { ascending: false })
-  if (error) console.error('admin artists error:', error.message, error.code)
-  return NextResponse.json({ artists: data || [], _error: error?.message ?? null })
+  const { data } = await getAdminClient().from('artists').select('*').order('created_at', { ascending: false })
+  return NextResponse.json({ artists: data || [] })
 }
