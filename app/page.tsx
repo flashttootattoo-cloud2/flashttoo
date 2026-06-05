@@ -405,11 +405,12 @@ export default function Home() {
 
       {/* ── MODAL ──────────────────────────────────────────────── */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        <div className="fixed inset-0 z-50 overflow-y-auto"
           style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(20px)' }}
           onClick={closeModal}>
 
-          <div className="flex flex-col w-full" style={{ maxWidth: 320 }}>
+          <div className="flex justify-center items-start min-h-full p-4 py-6">
+          <div className="flex flex-col w-full" style={{ maxWidth: 320 }} onClick={e => e.stopPropagation()}>
           <div className="relative w-full overflow-hidden"
             style={{ background: '#111', borderRadius: editOpen ? '20px 20px 0 0' : 20, border: '1px solid rgba(255,255,255,0.08)', borderBottom: editOpen ? 'none' : '1px solid rgba(255,255,255,0.08)', boxShadow: editOpen ? 'none' : '0 40px 100px rgba(0,0,0,0.9)' }}>
 
@@ -554,6 +555,7 @@ export default function Home() {
               </button>
             </div>
           )}
+          </div>
           </div>
         </div>
       )}
