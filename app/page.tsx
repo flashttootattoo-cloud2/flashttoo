@@ -409,7 +409,7 @@ export default function Home() {
           style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(20px)' }}
           onClick={closeModal}>
 
-          <div className="flex justify-center items-start min-h-full p-4 py-6">
+          <div className="flex justify-center items-start min-h-full p-4 pt-6 pb-64">
           <div className="flex flex-col w-full" style={{ maxWidth: 320 }} onClick={e => e.stopPropagation()}>
           <div className="relative w-full overflow-hidden"
             style={{ background: '#111', borderRadius: editOpen ? '20px 20px 0 0' : 20, border: '1px solid rgba(255,255,255,0.08)', borderBottom: editOpen ? 'none' : '1px solid rgba(255,255,255,0.08)', boxShadow: editOpen ? 'none' : '0 40px 100px rgba(0,0,0,0.9)' }}>
