@@ -290,16 +290,16 @@ export default function AdminPage() {
 
   const loadAll = (p: string) => {
     setLoading(true)
-    Promise.all([
+    Promise.allSettled([
       fetch('/api/admin/artists', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/ads', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/stats/visits', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/pages', { headers: H(p) }).then(r => r.json()),
     ]).then(([a, b, v, pg]) => {
-      setArtists(a.artists || [])
-      setAds(b.ads || [])
-      setVisits(v.days || [])
-      setPages(pg.pages || [])
+      if (a.status === 'fulfilled') setArtists(a.value.artists || [])
+      if (b.status === 'fulfilled') setAds(b.value.ads || [])
+      if (v.status === 'fulfilled') setVisits(v.value.days || [])
+      if (pg.status === 'fulfilled') setPages(pg.value.pages || [])
       setLoading(false)
     })
   }
