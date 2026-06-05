@@ -390,18 +390,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* ── FOOTER ─────────────────────────────────────────────── */}
-      <footer className="max-w-7xl mx-auto px-5 py-8 flex items-center justify-center gap-6">
-        <Link href="/terminos" className="text-xs transition-colors hover:opacity-80"
-          style={{ color: 'rgba(255,255,255,0.2)' }}>
-          Términos y condiciones
-        </Link>
-        <span style={{ color: 'rgba(255,255,255,0.1)' }}>·</span>
-        <Link href="/privacidad" className="text-xs transition-colors hover:opacity-80"
-          style={{ color: 'rgba(255,255,255,0.2)' }}>
-          Política de privacidad
-        </Link>
-      </footer>
 
       {/* ── MODAL ──────────────────────────────────────────────── */}
       {selected && (
