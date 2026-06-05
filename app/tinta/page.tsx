@@ -1,0 +1,620 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+
+type DayVisit = { date: string; count: number }
+
+type Artist = {
+  id: string; name: string; city: string; country: string
+  photo_url: string; instagram: string | null; whatsapp: string | null
+  profile_views: number; instagram_clicks: number; whatsapp_clicks: number; likes: number
+  edit_key: string; visible: boolean; created_at: string
+}
+
+function fmtN(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace('.0', '') + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace('.0', '') + 'k'
+  return String(n)
+}
+
+type Ad = {
+  id: string; title: string; image_url: string; link: string
+  city: string | null; clicks: number; active: boolean; created_at: string
+}
+
+const H = (pass: string) => ({ 'x-admin-pass': pass })
+
+function Stat({ label, value, color }: { label: string; value: number; color?: string }) {
+  return (
+    <div className="rounded-lg py-1.5 px-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
+      <p className="text-xs font-bold" style={{ color: color || 'rgba(255,255,255,0.6)' }}>{value}</p>
+      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', marginTop: 1 }}>{label}</p>
+    </div>
+  )
+}
+
+function ArtistGrid({ artists, deleting, onDelete, onToggleVisible }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void }) {
+  const igCount: Record<string, number> = {}
+  artists.forEach(a => { if (a.instagram) { const k = a.instagram.toLowerCase(); igCount[k] = (igCount[k] || 0) + 1 } })
+  const isDupe = (a: Artist) => !!a.instagram && (igCount[a.instagram.toLowerCase()] || 0) > 1
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      {artists.map(a => (
+        <div key={a.id} className="rounded-xl overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isDupe(a) ? 'rgba(255,80,80,0.4)' : a.visible === false ? 'rgba(255,200,0,0.25)' : 'rgba(255,255,255,0.07)'}`, opacity: a.visible === false ? 0.5 : 1 }}>
+          <div className="relative" style={{ paddingBottom: '100%' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={a.photo_url} alt={a.name} className="absolute inset-0 w-full h-full object-cover" />
+          </div>
+          <div className="p-3 flex flex-col gap-2">
+            <div>
+              <p className="text-sm font-bold truncate text-white">{a.name}</p>
+              <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
+              {isDupe(a) && <p className="text-xs mt-1 font-bold" style={{ color: '#f87171' }}>⚠ Instagram duplicado</p>}
+            </div>
+            <div className="grid grid-cols-4 gap-1 text-center">
+              <Stat label="visitas" value={a.profile_views} />
+              <Stat label="IG" value={a.instagram_clicks} color="#c084fc" />
+              <Stat label="WA" value={a.whatsapp_clicks} color="#4ade80" />
+              <Stat label="likes" value={a.likes ?? 0} color="#f472b6" />
+            </div>
+            <div className="flex items-center justify-between px-2 py-1.5 rounded-lg"
+              style={{ background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.1)' }}>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>clave</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(239,255,66,0.6)', letterSpacing: '0.1em', fontFamily: 'monospace' }}>{a.edit_key}</span>
+            </div>
+            <div className="flex gap-1.5">
+              <button onClick={() => onToggleVisible(a.id, a.visible === false)}
+                className="flex-1 text-xs py-1.5 rounded-lg transition-colors"
+                style={{ border: `1px solid ${a.visible === false ? 'rgba(255,200,0,0.3)' : 'rgba(255,255,255,0.1)'}`, color: a.visible === false ? 'rgba(255,200,0,0.7)' : 'rgba(255,255,255,0.3)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                {a.visible === false ? 'mostrar' : 'ocultar'}
+              </button>
+              <button onClick={() => onDelete(a.id)} disabled={deleting === a.id}
+                className="flex-1 text-xs py-1.5 rounded-lg transition-colors"
+                style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.6)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,80,80,0.08)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                {deleting === a.id ? '...' : 'borrar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StatsPanel({ artists, visits }: { artists: Artist[]; visits: DayVisit[] }) {
+  const totalViews = artists.reduce((s, a) => s + a.profile_views, 0)
+  const totalIG    = artists.reduce((s, a) => s + a.instagram_clicks, 0)
+  const totalWA    = artists.reduce((s, a) => s + a.whatsapp_clicks, 0)
+  const totalLikes = artists.reduce((s, a) => s + (a.likes ?? 0), 0)
+
+  const now = new Date()
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1)
+    return {
+      label: d.toLocaleString('es', { month: 'short' }),
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      count: 0,
+    }
+  })
+  artists.forEach(a => {
+    const key = a.created_at.slice(0, 7)
+    const m = months.find(x => x.key === key)
+    if (m) m.count++
+  })
+  const maxMonth = Math.max(...months.map(m => m.count), 1)
+
+  const cityMap: Record<string, number> = {}
+  artists.forEach(a => { const k = `${a.city}, ${a.country}`; cityMap[k] = (cityMap[k] || 0) + 1 })
+  const topCities = Object.entries(cityMap).sort((a, b) => b[1] - a[1]).slice(0, 12)
+  const maxCity = Math.max(...topCities.map(c => c[1]), 1)
+
+  const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14 }
+  const sectionLabel = { fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: 16 }
+
+  return (
+    <div className="flex flex-col gap-8">
+
+      <div>
+        <p style={sectionLabel}>Totales</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {([
+            { label: 'Tatuadores', value: artists.length, color: '#efff42' },
+            { label: 'Visitas',    value: totalViews,     color: 'rgba(255,255,255,0.7)' },
+            { label: 'Clicks IG',  value: totalIG,        color: '#c084fc' },
+            { label: 'Clicks WA',  value: totalWA,        color: '#4ade80' },
+          ] as const).map(item => (
+            <div key={item.label} className="p-4" style={card}>
+              <p className="font-bold" style={{ fontSize: 28, color: item.color, lineHeight: 1 }}>{fmtN(item.value)}</p>
+              <p className="mt-1.5" style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{item.label}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 px-4 py-3 flex items-center justify-between" style={{ ...card, borderRadius: 10 }}>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Total likes</p>
+          <p className="font-bold" style={{ fontSize: 16, color: '#f472b6' }}>{fmtN(totalLikes)} ♥</p>
+        </div>
+      </div>
+
+      <div>
+        <p style={sectionLabel}>Crecimiento — últimos 12 meses</p>
+        <div className="p-5" style={card}>
+          <div className="flex items-end gap-1" style={{ height: 88 }}>
+            {months.map(m => (
+              <div key={m.key} className="flex-1 flex flex-col items-center gap-1">
+                {m.count > 0 && <span style={{ fontSize: 9, color: '#efff42', fontWeight: 700, lineHeight: 1 }}>{m.count}</span>}
+                <div className="w-full"
+                  style={{
+                    height: m.count ? Math.max(6, Math.round((m.count / maxMonth) * 68)) : 3,
+                    background: m.count ? '#efff42' : 'rgba(255,255,255,0.05)',
+                    borderRadius: '3px 3px 2px 2px',
+                  }} />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-1 mt-2">
+            {months.map(m => (
+              <div key={m.key} className="flex-1 text-center"
+                style={{ fontSize: 8, color: 'rgba(255,255,255,0.18)', textTransform: 'lowercase' }}>
+                {m.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Visitantes únicos por día ── */}
+      <div>
+        <p style={sectionLabel}>Visitantes únicos — últimos 30 días</p>
+        <div className="p-5" style={card}>
+          {visits.length === 0 ? (
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.15)' }}>Sin datos aún</p>
+          ) : (() => {
+            const max = Math.max(...visits.map(d => d.count), 1)
+            const total = visits.reduce((s, d) => s + d.count, 0)
+            const today = visits[visits.length - 1]?.count ?? 0
+            const W = 300, H = 72, PX = 8, PY = 10
+            const cW = W - PX * 2, cH = H - PY * 2
+            const pts = visits.map((d, i) => ({
+              x: PX + (i / (visits.length - 1)) * cW,
+              y: PY + cH - (d.count / max) * cH,
+              count: d.count,
+              date: d.date,
+            }))
+            const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+            const area = `${line} L${pts[pts.length-1].x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`
+
+            return (
+              <>
+                <div className="flex items-end gap-5 mb-4">
+                  <div>
+                    <p className="font-bold" style={{ fontSize: 26, color: '#efff42', lineHeight: 1 }}>{today}</p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>hoy</p>
+                  </div>
+                  <div>
+                    <p className="font-bold" style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)', lineHeight: 1 }}>{fmtN(total)}</p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>mes</p>
+                  </div>
+                  <div>
+                    <p className="font-bold" style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', lineHeight: 1 }}>{(total / 30).toFixed(1)}</p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>promedio</p>
+                  </div>
+                </div>
+                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+                  className="w-full" style={{ height: 72, display: 'block' }}>
+                  <defs>
+                    <linearGradient id="vg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#efff42" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="#efff42" stopOpacity="0.01" />
+                    </linearGradient>
+                  </defs>
+                  <path d={area} fill="url(#vg)" />
+                  <path d={line} fill="none" stroke="#efff42" strokeWidth="1.8"
+                    strokeLinecap="round" strokeLinejoin="round" />
+                  {pts.filter(p => p.count > 0).map((p, i) => (
+                    <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#efff42" />
+                  ))}
+                </svg>
+                <div className="flex justify-between mt-2" style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)' }}>
+                  <span>{visits[0]?.date.slice(5).replace('-', '/')}</span>
+                  <span>{visits[visits.length - 1]?.date.slice(5).replace('-', '/')}</span>
+                </div>
+              </>
+            )
+          })()}
+        </div>
+      </div>
+
+      <div>
+        <p style={sectionLabel}>Tatuadores por ciudad</p>
+        <div className="p-5 flex flex-col gap-3" style={card}>
+          {topCities.length === 0
+            ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.15)' }}>Sin datos</p>
+            : topCities.map(([city, count]) => (
+              <div key={city} className="flex items-center gap-3">
+                <div style={{ width: 150, fontSize: 12, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>
+                  {city}
+                </div>
+                <div className="flex-1 rounded-full overflow-hidden" style={{ height: 5, background: 'rgba(255,255,255,0.05)' }}>
+                  <div className="h-full rounded-full" style={{ width: `${(count / maxCity) * 100}%`, background: '#efff42' }} />
+                </div>
+                <div style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#efff42', flexShrink: 0 }}>
+                  {count}
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
+export default function AdminPage() {
+  const [pass, setPass]       = useState('')
+  const [auth, setAuth]       = useState(false)
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas'>('artistas')
+  const [artists, setArtists] = useState<Artist[]>([])
+  const [ads, setAds]         = useState<Ad[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState('')
+  const [deleting, setDeleting]   = useState<string | null>(null)
+  const [visits, setVisits]       = useState<DayVisit[]>([])
+  const [pages, setPages]         = useState<{ slug: string; title: string; content: string }[]>([])
+  const [editingPage, setEditingPage] = useState<string | null>(null)
+  const [pageForm, setPageForm]   = useState({ title: '', content: '' })
+  const [savingPage, setSavingPage] = useState(false)
+
+  // Ad form
+  const [adForm, setAdForm] = useState({ title: '', link: '', city: '' })
+  const [adPhoto, setAdPhoto] = useState<File | null>(null)
+  const [adPreview, setAdPreview] = useState<string | null>(null)
+  const [savingAd, setSavingAd] = useState(false)
+  const [adError, setAdError] = useState('')
+
+  const login = (e: { preventDefault: () => void }) => {
+    e.preventDefault()
+    fetch('/api/admin/verify', { method: 'POST', headers: H(pass) })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) { setAuth(true); loadAll(pass) }
+        else setError('Contraseña incorrecta')
+      })
+  }
+
+  const loadAll = (p: string) => {
+    setLoading(true)
+    Promise.all([
+      fetch('/api/admin/artists', { headers: H(p) }).then(r => r.json()),
+      fetch('/api/admin/ads', { headers: H(p) }).then(r => r.json()),
+      fetch('/api/admin/stats/visits', { headers: H(p) }).then(r => r.json()),
+      fetch('/api/admin/pages', { headers: H(p) }).then(r => r.json()),
+    ]).then(([a, b, v, pg]) => {
+      setArtists(a.artists || [])
+      setAds(b.ads || [])
+      setVisits(v.days || [])
+      setPages(pg.pages || [])
+      setLoading(false)
+    })
+  }
+
+  const savePage = async () => {
+    if (!editingPage) return
+    setSavingPage(true)
+    await fetch('/api/admin/pages', {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: editingPage, ...pageForm }),
+    })
+    setPages(prev => prev.map(p => p.slug === editingPage ? { ...p, ...pageForm } : p))
+    setEditingPage(null)
+    setSavingPage(false)
+  }
+
+  const deleteArtist = async (id: string) => {
+    if (!confirm('¿Borrar este tatuador?')) return
+    setDeleting(id)
+    await fetch(`/api/admin/artists/${id}`, { method: 'DELETE', headers: H(pass) })
+    setArtists(prev => prev.filter(a => a.id !== id))
+    setDeleting(null)
+  }
+
+  const toggleVisible = async (id: string, visible: boolean) => {
+    await fetch(`/api/admin/artists/${id}`, {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visible }),
+    })
+    setArtists(prev => prev.map(a => a.id === id ? { ...a, visible } : a))
+  }
+
+  const deleteAd = async (id: string) => {
+    if (!confirm('¿Borrar este aviso?')) return
+    setDeleting(id)
+    await fetch(`/api/admin/ads/${id}`, { method: 'DELETE', headers: H(pass) })
+    setAds(prev => prev.filter(a => a.id !== id))
+    setDeleting(null)
+  }
+
+  const toggleAd = async (id: string, active: boolean) => {
+    await fetch(`/api/admin/ads/${id}`, { method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !active }) })
+    setAds(prev => prev.map(a => a.id === id ? { ...a, active: !active } : a))
+  }
+
+  const handleAdPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return
+    setAdPreview(URL.createObjectURL(file))
+    const img = new window.Image()
+    img.onload = () => {
+      const MAX = 1200; let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => { if (blob) setAdPhoto(new File([blob], 'ad.webp', { type: 'image/webp' })) }, 'image/webp', 0.85)
+    }
+    img.src = URL.createObjectURL(file)
+  }
+
+  const saveAd = async (e: { preventDefault: () => void }) => {
+    e.preventDefault(); setAdError('')
+    if (!adPhoto) { setAdError('Agregá una imagen'); return }
+    if (!adForm.title.trim() || !adForm.link.trim()) { setAdError('Completá título y link'); return }
+    setSavingAd(true)
+    try {
+      const fd = new FormData()
+      fd.append('photo', adPhoto)
+      fd.append('title', adForm.title.trim())
+      fd.append('link', adForm.link.trim())
+      fd.append('city', adForm.city.trim())
+      const r = await fetch('/api/admin/ads', { method: 'POST', headers: H(pass), body: fd })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Error')
+      setAds(prev => [d.ad, ...prev])
+      setAdForm({ title: '', link: '', city: '' }); setAdPhoto(null); setAdPreview(null)
+    } catch (err: unknown) {
+      setAdError(err instanceof Error ? err.message : 'Error')
+    } finally { setSavingAd(false) }
+  }
+
+  // ── Login ──────────────────────────────────────────────────────────────────
+  if (!auth) return (
+    <main className="min-h-screen flex items-center justify-center p-6" style={{ background: '#000' }}>
+      <form onSubmit={login} className="w-full max-w-xs flex flex-col gap-4">
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em' }}>PANEL</p>
+        <input type="password" placeholder="contraseña" value={pass}
+          onChange={e => setPass(e.target.value)} autoFocus
+          className="py-2.5 px-4 text-sm text-white outline-none rounded-lg"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+        {error && <p className="text-xs text-red-400">{error}</p>}
+        <button type="submit" className="py-2.5 font-bold text-sm rounded-lg"
+          style={{ background: '#efff42', color: '#000' }}>Entrar</button>
+      </form>
+    </main>
+  )
+
+  // ── Panel ──────────────────────────────────────────────────────────────────
+  return (
+    <main className="min-h-screen p-6" style={{ background: '#000' }}>
+      <div className="max-w-5xl mx-auto">
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex gap-3 items-center">
+            <button onClick={() => setTab('artistas')}
+              className="text-sm font-bold transition-colors"
+              style={{ color: tab === 'artistas' ? '#efff42' : 'rgba(255,255,255,0.3)' }}>
+              Tatuadores ({artists.length})
+            </button>
+            <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
+            <button onClick={() => setTab('ads')}
+              className="text-sm font-bold transition-colors"
+              style={{ color: tab === 'ads' ? '#efff42' : 'rgba(255,255,255,0.3)' }}>
+              Publicidades ({ads.length})
+            </button>
+            <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
+            <button onClick={() => setTab('stats')}
+              className="text-sm font-bold transition-colors"
+              style={{ color: tab === 'stats' ? '#efff42' : 'rgba(255,255,255,0.3)' }}>
+              Estadísticas
+            </button>
+            <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
+            <button onClick={() => setTab('paginas')}
+              className="text-sm font-bold transition-colors"
+              style={{ color: tab === 'paginas' ? '#efff42' : 'rgba(255,255,255,0.3)' }}>
+              Páginas
+            </button>
+          </div>
+          <Link href="/" className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>ver web →</Link>
+        </div>
+
+        {loading ? (
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando...</p>
+        ) : tab === 'artistas' ? (
+
+          // ── ARTISTAS ────────────────────────────────────────────────────────
+          <ArtistGrid artists={artists} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} />
+
+        ) : tab === 'stats' ? (
+
+          // ── ESTADÍSTICAS ────────────────────────────────────────────────────
+          <StatsPanel artists={artists} visits={visits} />
+
+        ) : tab === 'paginas' ? (
+
+          // ── PÁGINAS LEGALES ─────────────────────────────────────────────────
+          <div className="flex flex-col gap-4">
+            {editingPage === null ? (
+              pages.map(p => (
+                <div key={p.slug} className="rounded-xl p-4 flex items-center justify-between"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div>
+                    <p className="text-sm font-bold text-white">{p.title}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      flashttoo.com/{p.slug}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setEditingPage(p.slug); setPageForm({ title: p.title, content: p.content }) }}
+                    className="text-xs px-4 py-2 rounded-lg transition-all"
+                    style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.4)')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}>
+                    editar
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold" style={{ color: '#efff42' }}>
+                    Editando: {pages.find(p => p.slug === editingPage)?.title}
+                  </p>
+                  <button onClick={() => setEditingPage(null)}
+                    className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    cancelar
+                  </button>
+                </div>
+                <div>
+                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Título</p>
+                  <input value={pageForm.title}
+                    onChange={e => setPageForm(f => ({ ...f, title: e.target.value }))}
+                    className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                </div>
+                <div>
+                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contenido</p>
+                  <textarea value={pageForm.content}
+                    onChange={e => setPageForm(f => ({ ...f, content: e.target.value }))}
+                    rows={20}
+                    className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'vertical', lineHeight: 1.7, fontFamily: 'monospace', fontSize: 13 }} />
+                </div>
+                <button onClick={savePage} disabled={savingPage}
+                  className="self-end px-6 py-2 rounded-lg font-bold text-sm disabled:opacity-50"
+                  style={{ background: '#efff42', color: '#000' }}>
+                  {savingPage ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            )}
+          </div>
+
+        ) : (
+
+          // ── ADS ─────────────────────────────────────────────────────────────
+          <div className="flex flex-col gap-8">
+
+            {/* Formulario nueva publicidad */}
+            <form onSubmit={saveAd} className="rounded-xl p-5 flex flex-col gap-4"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>NUEVA PUBLICIDAD</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Imagen */}
+                <label className="cursor-pointer block">
+                  <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Imagen</p>
+                  {adPreview ? (
+                    <div className="relative rounded-xl overflow-hidden" style={{ paddingBottom: '60%' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={adPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="rounded-xl flex items-center justify-center text-xs"
+                      style={{ paddingBottom: '60%', position: 'relative', border: '2px dashed rgba(255,255,255,0.08)' }}>
+                      <span className="absolute" style={{ color: 'rgba(255,255,255,0.2)' }}>subir imagen</span>
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" onChange={handleAdPhoto} className="hidden" />
+                </label>
+
+                <div className="flex flex-col gap-3">
+                  <AdField label="Título">
+                    <input value={adForm.title} onChange={e => setAdForm(f => ({ ...f, title: e.target.value }))}
+                      placeholder="Estudio Roma · Buenos Aires" className={iCls} />
+                  </AdField>
+                  <AdField label="Link (URL)">
+                    <input value={adForm.link} onChange={e => setAdForm(f => ({ ...f, link: e.target.value }))}
+                      placeholder="https://instagram.com/..." className={iCls} />
+                  </AdField>
+                  <AdField label="Ubicación (vacío = todos lados)">
+                    <input value={adForm.city} onChange={e => setAdForm(f => ({ ...f, city: e.target.value }))}
+                      placeholder="Buenos Aires · Argentina · vacío = global" className={iCls} />
+                  </AdField>
+                </div>
+              </div>
+
+              {adError && <p className="text-xs text-red-400">{adError}</p>}
+              <button type="submit" disabled={savingAd}
+                className="self-end px-6 py-2 rounded-lg font-bold text-sm disabled:opacity-50"
+                style={{ background: '#efff42', color: '#000' }}>
+                {savingAd ? 'Guardando...' : 'Publicar'}
+              </button>
+            </form>
+
+            {/* Lista ads */}
+            <div className="flex flex-col gap-3">
+              {ads.length === 0 && (
+                <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.1)' }}>Sin publicidades</p>
+              )}
+              {ads.map(ad => (
+                <div key={ad.id} className="rounded-xl p-4 flex items-center gap-4"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${ad.active ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.06)'}` }}>
+                  <div className="shrink-0 rounded-lg overflow-hidden" style={{ width: 80, height: 56 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{ad.title}</p>
+                    <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                      {ad.city || 'global — todos lados'}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: '#efff42', opacity: 0.7 }}>
+                      {ad.clicks} clicks
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => toggleAd(ad.id, ad.active)}
+                      className="text-xs px-3 py-1 rounded-full transition-all"
+                      style={{
+                        border: `1px solid ${ad.active ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                        color: ad.active ? '#efff42' : 'rgba(255,255,255,0.3)',
+                        background: ad.active ? 'rgba(239,255,66,0.07)' : 'transparent',
+                      }}>
+                      {ad.active ? 'activo' : 'pausado'}
+                    </button>
+                    <button onClick={() => deleteAd(ad.id)} disabled={deleting === ad.id}
+                      className="text-xs px-3 py-1 rounded-full transition-all"
+                      style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.5)' }}>
+                      {deleting === ad.id ? '...' : 'borrar'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
+  )
+}
+
+function AdField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+      {children}
+    </div>
+  )
+}
+
+const iCls = 'w-full py-2 px-3 text-sm text-white outline-none rounded-lg'
+  + ' bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20'
