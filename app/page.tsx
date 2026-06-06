@@ -227,6 +227,20 @@ export default function Home() {
     return () => window.removeEventListener('keydown', h)
   }, [closeModalFull])
 
+  // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
+  useEffect(() => {
+    const h = () => {
+      if (selected) {
+        setSelected(null)
+        setEditOpen(false)
+        setEditKey('')
+        setEditKeyError('')
+      }
+    }
+    window.addEventListener('popstate', h)
+    return () => window.removeEventListener('popstate', h)
+  }, [selected])
+
   const hasFilters = location.trim() || activeStyles.length > 0
 
   return (
