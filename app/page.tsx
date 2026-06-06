@@ -69,6 +69,7 @@ export default function Home() {
   const [liked, setLiked]             = useState(false)
   const [localLikes, setLocalLikes]   = useState(0)
   const [copied, setCopied]           = useState(false)
+  const [copiedEmail, setCopiedEmail] = useState(false)
   const [loading, setLoading]         = useState(true)
 
   useEffect(() => {
@@ -480,6 +481,25 @@ export default function Home() {
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>WhatsApp</p>
                     <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
                   </a>
+                )}
+                {selected.email && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(selected.email!)
+                      setCopiedEmail(true)
+                      setTimeout(() => setCopiedEmail(false), 2000)
+                    }}
+                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full relative"
+                    style={{ background: copiedEmail ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copiedEmail ? 'rgba(239,255,66,0.25)' : 'rgba(255,255,255,0.07)'}` }}
+                    onMouseEnter={e => { if (!copiedEmail) e.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
+                    onMouseLeave={e => { if (!copiedEmail) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}>
+                    <p style={{ fontSize: 13, color: copiedEmail ? '#efff42' : 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>
+                      {copiedEmail ? 'Mail copiado' : 'Email'}
+                    </p>
+                    <span style={{ color: copiedEmail ? '#efff42' : 'rgba(255,255,255,0.2)', fontSize: 14 }}>
+                      {copiedEmail ? '✓' : '⎘'}
+                    </span>
+                  </button>
                 )}
               </div>
 

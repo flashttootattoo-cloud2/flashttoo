@@ -14,6 +14,7 @@ export type Artist = {
   photo_url: string
   instagram: string | null
   whatsapp: string | null
+  email: string | null
   bio: string | null
   profile_views: number
   instagram_clicks: number

@@ -17,7 +17,7 @@ function genKey() {
 
 export default function AgregarPage() {
   const [form, setForm] = useState({
-    name: '', city: '', country: '', instagram: '', whatsapp: '', bio: '',
+    name: '', city: '', country: '', instagram: '', whatsapp: '', email: '', bio: '',
   })
   const BIO_MAX = 280
   const [editKey, setEditKey]   = useState(() => genKey())
@@ -119,6 +119,7 @@ export default function AgregarPage() {
         photo_url: urlData.publicUrl,
         instagram: form.instagram.trim() || null,
         whatsapp:  form.whatsapp.trim()  || null,
+        email:     form.email.trim()     || null,
         bio:       form.bio.trim()       || null,
         edit_key:  editKey.trim().toUpperCase(),
       })
@@ -276,6 +277,10 @@ export default function AgregarPage() {
           <Field label="WhatsApp">
             <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
               placeholder="+54 9 11 1234 5678" className={inputCls} />
+          </Field>
+          <Field label="Email">
+            <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              placeholder="hola@ejemplo.com" className={inputCls} />
           </Field>
 
           {/* Bio con contador */}

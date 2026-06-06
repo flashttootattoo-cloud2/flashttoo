@@ -32,6 +32,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     country:   artist.country,
     instagram: artist.instagram || '',
     whatsapp:  artist.whatsapp  || '',
+    email:     artist.email     || '',
     bio:       artist.bio       || '',
   })
   const [styles, setStyles]   = useState<string[]>(artist.styles || [])
@@ -109,6 +110,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
           ...form,
           instagram: form.instagram.trim() || null,
           whatsapp:  form.whatsapp.trim()  || null,
+          email:     form.email.trim()     || null,
           bio:       form.bio.trim()       || null,
           styles,
         }),
@@ -230,6 +232,10 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
               <Field label="WhatsApp">
                 <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
                   placeholder="+54 9 11 1234 5678" className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+              </Field>
+              <Field label="Email">
+                <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  placeholder="hola@ejemplo.com" className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
               </Field>
 
               <div>
