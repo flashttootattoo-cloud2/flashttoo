@@ -91,7 +91,7 @@ export default function Home() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('artists').select('*').order('created_at', { ascending: false }),
+      supabase.from('artists').select('*').or('status.eq.active,status.is.null').order('created_at', { ascending: false }),
       supabase.from('ads').select('id,title,image_url,link,city').eq('active', true),
     ]).then(([a, b]) => {
       setArtists(shuffle(a.data || []))

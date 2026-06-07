@@ -15,8 +15,11 @@ function checkAuth(req: NextRequest) {
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
-  const { visible } = await req.json()
-  const { error } = await getAdminClient().from('artists').update({ visible }).eq('id', id)
+  const body = await req.json()
+  const updates: Record<string, unknown> = {}
+  if ('visible' in body) updates.visible = body.visible
+  if ('status' in body) updates.status = body.status
+  const { error } = await getAdminClient().from('artists').update(updates).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

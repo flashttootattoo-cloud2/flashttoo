@@ -51,11 +51,16 @@ export default function AgregarPage() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+  const [moderation, setModeration] = useState(false)
   const [photo, setPhoto]       = useState<File | null>(null)
   const [preview, setPreview]   = useState<string | null>(null)
   const [loading, setLoading]   = useState(false)
-  const [done, setDone]         = useState(false)
+  const [done, setDone]         = useState<false | 'active' | 'pending'>(false)
   const [error, setError]       = useState('')
+
+  useEffect(() => {
+    fetch('/api/config').then(r => r.json()).then(d => setModeration(!!d.moderation)).catch(() => {})
+  }, [])
 
   const toggleStyle = (s: string) =>
     setStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
@@ -122,6 +127,7 @@ export default function AgregarPage() {
         email:     form.email.trim()     || null,
         bio:       form.bio.trim()       || null,
         edit_key:  editKey.trim().toUpperCase(),
+        status:    moderation ? 'pending' : 'active',
       })
       if (insErr) {
         setError(`Error al guardar: ${insErr.message}`)
@@ -129,7 +135,7 @@ export default function AgregarPage() {
         return
       }
 
-      setDone(true)
+      setDone(moderation ? 'pending' : 'active')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : JSON.stringify(err)
       setError(`Error inesperado: ${msg}`)
@@ -138,7 +144,18 @@ export default function AgregarPage() {
     }
   }
 
-  if (done) return (
+  if (done === 'pending') return (
+    <main className="min-h-screen flex items-center justify-center p-6">
+      <div className="text-center max-w-sm">
+        <h2 className="text-xl font-bold mb-2">Perfil en revisión</h2>
+        <p className="text-white/50 text-sm mb-2">Tu perfil fue enviado y está esperando aprobación.</p>
+        <p className="text-white/30 text-sm mb-6">Vas a aparecer en el buscador una vez que sea aprobado.</p>
+        <Link href="/" className="text-sm text-[#efff42] underline underline-offset-4">Volver al inicio</Link>
+      </div>
+    </main>
+  )
+
+  if (done === 'active') return (
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="text-center max-w-sm">
         <h2 className="text-xl font-bold mb-2">Listo.</h2>

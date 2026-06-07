@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 
 type DayVisit = { date: string; count: number }
@@ -9,7 +9,7 @@ type Artist = {
   id: string; name: string; city: string; country: string
   photo_url: string; instagram: string | null; whatsapp: string | null
   profile_views: number; instagram_clicks: number; whatsapp_clicks: number; likes: number
-  edit_key: string; visible: boolean; created_at: string
+  edit_key: string; visible: boolean; created_at: string; status: string
 }
 
 function fmtN(n: number): string {
@@ -25,61 +25,45 @@ type Ad = {
 
 const H = (pass: string) => ({ 'x-admin-pass': pass })
 
-function Stat({ label, value, color }: { label: string; value: number; color?: string }) {
-  return (
-    <div className="rounded-lg py-1.5 px-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
-      <p className="text-xs font-bold" style={{ color: color || 'rgba(255,255,255,0.6)' }}>{value}</p>
-      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', marginTop: 1 }}>{label}</p>
-    </div>
-  )
-}
 
 function ArtistGrid({ artists, deleting, onDelete, onToggleVisible }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void }) {
   const igCount: Record<string, number> = {}
   artists.forEach(a => { if (a.instagram) { const k = a.instagram.toLowerCase(); igCount[k] = (igCount[k] || 0) + 1 } })
   const isDupe = (a: Artist) => !!a.instagram && (igCount[a.instagram.toLowerCase()] || 0) > 1
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+    <div className="flex flex-col gap-2">
       {artists.map(a => (
-        <div key={a.id} className="rounded-xl overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isDupe(a) ? 'rgba(255,80,80,0.4)' : a.visible === false ? 'rgba(255,200,0,0.25)' : 'rgba(255,255,255,0.07)'}`, opacity: a.visible === false ? 0.5 : 1 }}>
-          <div className="relative" style={{ paddingBottom: '100%' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={a.photo_url} alt={a.name} className="absolute inset-0 w-full h-full object-cover" />
-          </div>
-          <div className="p-3 flex flex-col gap-2">
-            <div>
-              <p className="text-sm font-bold truncate text-white">{a.name}</p>
-              <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
-              {isDupe(a) && <p className="text-xs mt-1 font-bold" style={{ color: '#f87171' }}>⚠ Instagram duplicado</p>}
+        <div key={a.id} className="flex gap-3 p-3 rounded-xl items-start"
+          style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isDupe(a) ? 'rgba(255,80,80,0.4)' : a.visible === false ? 'rgba(255,200,0,0.25)' : 'rgba(255,255,255,0.07)'}`, opacity: a.visible === false ? 0.6 : 1 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={a.photo_url} alt={a.name} className="rounded-lg object-cover shrink-0" style={{ width: 56, height: 56 }} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-white truncate">{a.name}</p>
+                <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
+                {isDupe(a) && <p className="text-xs font-bold" style={{ color: '#f87171' }}>⚠ duplicado</p>}
+              </div>
+              <div className="flex gap-1.5 shrink-0">
+                <button onClick={() => onToggleVisible(a.id, a.visible === false)}
+                  className="text-xs px-2.5 py-1 rounded-lg"
+                  style={{ border: `1px solid ${a.visible === false ? 'rgba(255,200,0,0.3)' : 'rgba(255,255,255,0.1)'}`, color: a.visible === false ? 'rgba(255,200,0,0.7)' : 'rgba(255,255,255,0.3)' }}>
+                  {a.visible === false ? 'mostrar' : 'ocultar'}
+                </button>
+                <button onClick={() => onDelete(a.id)} disabled={deleting === a.id}
+                  className="text-xs px-2.5 py-1 rounded-lg"
+                  style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.6)' }}>
+                  {deleting === a.id ? '...' : 'borrar'}
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-4 gap-1 text-center">
-              <Stat label="visitas" value={a.profile_views} />
-              <Stat label="IG" value={a.instagram_clicks} color="#c084fc" />
-              <Stat label="WA" value={a.whatsapp_clicks} color="#4ade80" />
-              <Stat label="likes" value={a.likes ?? 0} color="#f472b6" />
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{fmtN(a.profile_views)} vis</span>
+              <span style={{ fontSize: 11, color: '#c084fc' }}>{fmtN(a.instagram_clicks)} IG</span>
+              <span style={{ fontSize: 11, color: '#4ade80' }}>{fmtN(a.whatsapp_clicks)} WA</span>
+              <span style={{ fontSize: 11, color: '#f472b6' }}>{fmtN(a.likes ?? 0)} ♥</span>
             </div>
-            <div className="flex items-center justify-between px-2 py-1.5 rounded-lg"
-              style={{ background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.1)' }}>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>clave</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(239,255,66,0.6)', letterSpacing: '0.1em', fontFamily: 'monospace' }}>{a.edit_key}</span>
-            </div>
-            <div className="flex gap-1.5">
-              <button onClick={() => onToggleVisible(a.id, a.visible === false)}
-                className="flex-1 text-xs py-1.5 rounded-lg transition-colors"
-                style={{ border: `1px solid ${a.visible === false ? 'rgba(255,200,0,0.3)' : 'rgba(255,255,255,0.1)'}`, color: a.visible === false ? 'rgba(255,200,0,0.7)' : 'rgba(255,255,255,0.3)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                {a.visible === false ? 'mostrar' : 'ocultar'}
-              </button>
-              <button onClick={() => onDelete(a.id)} disabled={deleting === a.id}
-                className="flex-1 text-xs py-1.5 rounded-lg transition-colors"
-                style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.6)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,80,80,0.08)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                {deleting === a.id ? '...' : 'borrar'}
-              </button>
-            </div>
+            <p className="mt-1" style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(239,255,66,0.55)', letterSpacing: '0.08em' }}>{a.edit_key}</p>
           </div>
         </div>
       ))}
@@ -259,7 +243,7 @@ function StatsPanel({ artists, visits }: { artists: Artist[]; visits: DayVisit[]
 export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config'>('artistas')
   const [artists, setArtists] = useState<Artist[]>([])
   const [ads, setAds]         = useState<Ad[]>([])
   const [loading, setLoading] = useState(false)
@@ -270,6 +254,18 @@ export default function AdminPage() {
   const [editingPage, setEditingPage] = useState<string | null>(null)
   const [pageForm, setPageForm]   = useState({ title: '', content: '' })
   const [savingPage, setSavingPage] = useState(false)
+  const [moderation, setModeration] = useState(false)
+  const [savingMod, setSavingMod]   = useState(false)
+  const [menuOpen, setMenuOpen]     = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
 
   // Ad form
   const [adForm, setAdForm] = useState({ title: '', link: '', city: '' })
@@ -295,13 +291,43 @@ export default function AdminPage() {
       fetch('/api/admin/ads', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/stats/visits', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/pages', { headers: H(p) }).then(r => r.json()),
-    ]).then(([a, b, v, pg]) => {
+      fetch('/api/admin/settings', { headers: H(p) }).then(r => r.json()),
+    ]).then(([a, b, v, pg, cfg]) => {
       if (a.status === 'fulfilled') setArtists(a.value.artists || [])
       if (b.status === 'fulfilled') setAds(b.value.ads || [])
       if (v.status === 'fulfilled') setVisits(v.value.days || [])
       if (pg.status === 'fulfilled') setPages(pg.value.pages || [])
+      if (cfg.status === 'fulfilled') setModeration(cfg.value.settings?.moderation === true)
       setLoading(false)
     })
+  }
+
+  const toggleModeration = async (val: boolean) => {
+    setSavingMod(true)
+    await fetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'moderation', value: val }),
+    })
+    setModeration(val)
+    setSavingMod(false)
+  }
+
+  const approveArtist = async (id: string) => {
+    await fetch(`/api/admin/artists/${id}`, {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'active' }),
+    })
+    setArtists(prev => prev.map(a => a.id === id ? { ...a, status: 'active' } : a))
+  }
+
+  const rejectArtist = async (id: string) => {
+    if (!confirm('¿Rechazar y eliminar este perfil?')) return
+    setDeleting(id)
+    await fetch(`/api/admin/artists/${id}`, { method: 'DELETE', headers: H(pass) })
+    setArtists(prev => prev.filter(a => a.id !== id))
+    setDeleting(null)
   }
 
   const savePage = async () => {
@@ -404,37 +430,56 @@ export default function AdminPage() {
 
   // ── Panel ──────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen p-6" style={{ background: '#000' }}>
+    <main className="min-h-screen px-4 py-4 sm:p-6" style={{ background: '#000' }}>
       <div className="max-w-5xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-3 items-center">
-            <button onClick={() => setTab('artistas')}
-              className="text-sm font-bold transition-colors"
-              style={{ color: tab === 'artistas' ? '#efff42' : 'rgba(255,255,255,0.3)' }}>
-              Tatuadores ({artists.length})
-            </button>
-            <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
-            <button onClick={() => setTab('ads')}
-              className="text-sm font-bold transition-colors"
-              style={{ color: tab === 'ads' ? '#efff42' : 'rgba(255,255,255,0.3)' }}>
-              Publicidades ({ads.length})
-            </button>
-            <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
-            <button onClick={() => setTab('stats')}
-              className="text-sm font-bold transition-colors"
-              style={{ color: tab === 'stats' ? '#efff42' : 'rgba(255,255,255,0.3)' }}>
-              Estadísticas
-            </button>
-            <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
-            <button onClick={() => setTab('paginas')}
-              className="text-sm font-bold transition-colors"
-              style={{ color: tab === 'paginas' ? '#efff42' : 'rgba(255,255,255,0.3)' }}>
-              Páginas
-            </button>
-          </div>
-          <Link href="/" className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>ver web →</Link>
+        <div className="flex items-center justify-between gap-3 mb-6">
+          {(() => {
+            const pendingCount = artists.filter(a => a.status === 'pending').length
+            const tabs = [
+              { key: 'artistas',   label: `Tatuadores (${artists.filter(a => a.status !== 'pending').length})` },
+              { key: 'ads',        label: `Publicidades (${ads.length})` },
+              { key: 'stats',      label: 'Estadísticas' },
+              { key: 'paginas',    label: 'Páginas' },
+              { key: 'pendientes', label: pendingCount > 0 ? `Pendientes (${pendingCount})` : 'Pendientes', alert: pendingCount > 0 },
+              { key: 'config',     label: 'Config' },
+            ] as const
+            const current = tabs.find(t => t.key === tab)
+            return (
+              <div ref={menuRef} className="relative" style={{ minWidth: 0, flex: 1, maxWidth: 280 }}>
+                <button onClick={() => setMenuOpen(v => !v)}
+                  className="w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}>
+                  <span className="truncate" style={{ color: ('alert' in (current ?? {}) && (current as {alert?:boolean}).alert) ? '#f87171' : '#fff' }}>
+                    {current?.label}
+                  </span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{menuOpen ? '▲' : '▼'}</span>
+                </button>
+                {menuOpen && (
+                  <div className="absolute left-0 right-0 mt-1 rounded-xl overflow-hidden z-50"
+                    style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.8)' }}>
+                    {tabs.map(t => (
+                      <button key={t.key}
+                        onClick={() => { setTab(t.key); setMenuOpen(false) }}
+                        className="w-full text-left px-4 py-3 text-sm transition-colors"
+                        style={{
+                          background: tab === t.key ? 'rgba(239,255,66,0.08)' : 'transparent',
+                          color: tab === t.key ? '#efff42' : ('alert' in t && t.alert) ? '#f87171' : 'rgba(255,255,255,0.6)',
+                          fontWeight: tab === t.key ? 700 : 400,
+                          borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        }}
+                        onMouseEnter={e => { if (tab !== t.key) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                        onMouseLeave={e => { if (tab !== t.key) e.currentTarget.style.background = 'transparent' }}>
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+          <Link href="/" className="text-xs shrink-0" style={{ color: 'rgba(255,255,255,0.25)' }}>ver web →</Link>
         </div>
 
         {loading ? (
@@ -442,7 +487,7 @@ export default function AdminPage() {
         ) : tab === 'artistas' ? (
 
           // ── ARTISTAS ────────────────────────────────────────────────────────
-          <ArtistGrid artists={artists} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} />
+          <ArtistGrid artists={artists.filter(a => a.status !== 'pending')} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} />
 
         ) : tab === 'stats' ? (
 
@@ -506,6 +551,86 @@ export default function AdminPage() {
                 </button>
               </div>
             )}
+          </div>
+
+        ) : tab === 'pendientes' ? (
+
+          // ── PENDIENTES ───────────────────────────────────────────────────────
+          (() => {
+            const pending = artists.filter(a => a.status === 'pending')
+            if (pending.length === 0) return (
+              <p className="text-sm py-12 text-center" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                No hay perfiles pendientes
+              </p>
+            )
+            return (
+              <div className="flex flex-col gap-3">
+                {pending.map(a => (
+                  <div key={a.id} className="rounded-xl overflow-hidden flex gap-4 p-4 items-center"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,200,0,0.2)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={a.photo_url} alt={a.name}
+                      className="rounded-lg object-cover shrink-0"
+                      style={{ width: 64, height: 64 }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{a.name}</p>
+                      <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
+                      {a.instagram && <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>{a.instagram}</p>}
+                      <p className="text-xs mt-1 font-mono" style={{ color: 'rgba(239,255,66,0.5)' }}>{a.edit_key}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <button onClick={() => approveArtist(a.id)}
+                        className="text-xs px-4 py-2 rounded-lg font-bold transition-colors"
+                        style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80' }}>
+                        Aprobar
+                      </button>
+                      <button onClick={() => rejectArtist(a.id)} disabled={deleting === a.id}
+                        className="text-xs px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
+                        style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.7)' }}>
+                        {deleting === a.id ? '...' : 'Rechazar'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          })()
+
+        ) : tab === 'config' ? (
+
+          // ── CONFIG ───────────────────────────────────────────────────────────
+          <div className="max-w-sm flex flex-col gap-6">
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Moderación de nuevos perfiles</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                    Cuando está activa, los perfiles nuevos quedan en revisión hasta que los apruebes.
+                  </p>
+                </div>
+                <button
+                  onClick={() => toggleModeration(!moderation)}
+                  disabled={savingMod}
+                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                  style={{
+                    width: 48, height: 28,
+                    background: moderation ? '#efff42' : 'rgba(255,255,255,0.1)',
+                    position: 'relative',
+                  }}>
+                  <span style={{
+                    position: 'absolute', top: 4,
+                    left: moderation ? 24 : 4,
+                    width: 20, height: 20,
+                    borderRadius: '50%',
+                    background: moderation ? '#000' : 'rgba(255,255,255,0.4)',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              <p className="text-xs mt-3 font-bold" style={{ color: moderation ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                {moderation ? 'Activada — nuevos perfiles van a revisión' : 'Desactivada — nuevos perfiles se publican directamente'}
+              </p>
+            </div>
           </div>
 
         ) : (
