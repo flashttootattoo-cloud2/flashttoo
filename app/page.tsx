@@ -54,7 +54,8 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
 export default function Home() {
   const [artists, setArtists]     = useState<Artist[]>([])
   const [ads, setAds]             = useState<Ad[]>([])
-  const [location, setLocation]   = useState('')
+  const [country, setCountry]     = useState('')
+  const [city, setCity]           = useState('')
   const [activeStyles, setStyles] = useState<string[]>([])
   const [stylesOpen, setStylesOpen] = useState(false)
   const stylesRef = useRef<HTMLDivElement>(null)
@@ -105,21 +106,20 @@ export default function Home() {
 
   const filtered = artists.filter(a => {
     if (a.visible === false) return false
-    const q = norm(location)
-    const locMatch = !q ||
-      norm(a.city).includes(q) ||
-      norm(a.country).includes(q)
-    const styleMatch = activeStyles.length === 0 ||
-      activeStyles.every(s => a.styles.includes(s))
-    return locMatch && styleMatch
+    const qCountry = norm(country)
+    const qCity    = norm(city)
+    const countryMatch = !qCountry || norm(a.country).includes(qCountry)
+    const cityMatch    = !qCity    || norm(a.city).includes(qCity)
+    const styleMatch   = activeStyles.length === 0 || activeStyles.every(s => a.styles.includes(s))
+    return countryMatch && cityMatch && styleMatch
   })
 
-  // Targeting: sin ciudad = global (siempre), con ciudad/país = solo cuando coincide
+  // Targeting: sin filtro = global (siempre), con filtro = solo cuando coincide
   const visibleAds = ads.filter(ad => {
-    if (!ad.city) return true  // global
-    if (!location.trim()) return false  // ad con target necesita búsqueda activa
+    if (!ad.city) return true
+    if (!country.trim() && !city.trim()) return false
     const t = norm(ad.city)
-    const l = norm(location)
+    const l = norm(city || country)
     return t.includes(l) || l.includes(t)
   })
 
@@ -242,7 +242,7 @@ export default function Home() {
     return () => window.removeEventListener('popstate', h)
   }, [selected])
 
-  const hasFilters = location.trim() || activeStyles.length > 0
+  const hasFilters = country.trim() || city.trim() || activeStyles.length > 0
 
   return (
     <main style={{ background: '#000', minHeight: '100vh' }}>
@@ -264,8 +264,16 @@ export default function Home() {
         {/* Búsqueda + estilos apilados */}
         <div className="max-w-7xl mx-auto px-5 pb-3 flex flex-col gap-2">
 
-          <input type="text" placeholder="ciudad o país" value={location}
-            onChange={e => setLocation(e.target.value)}
+          <input type="text" placeholder="país" value={country}
+            onChange={e => { setCountry(e.target.value); setCity('') }}
+            className="w-full py-2 px-4 text-sm text-white outline-none transition-all rounded-lg"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+            onFocus={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.5)')}
+            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')} />
+
+          <input type="text" placeholder={country.trim() ? `ciudad en ${country.trim()}` : 'ciudad'}
+            value={city}
+            onChange={e => setCity(e.target.value)}
             className="w-full py-2 px-4 text-sm text-white outline-none transition-all rounded-lg"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
             onFocus={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.5)')}
@@ -316,7 +324,7 @@ export default function Home() {
           </div>
 
           {hasFilters && (
-            <button onClick={() => { setLocation(''); setStyles([]) }}
+            <button onClick={() => { setCountry(''); setCity(''); setStyles([]) }}
               className="self-start text-xs px-3 py-1 rounded-full transition-all"
               style={{ border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.5)' }}>
               limpiar todo
