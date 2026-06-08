@@ -15,6 +15,10 @@ type Ad = {
   id: string; title: string; image_url: string; link: string; city: string | null
 }
 
+type ContentCard = {
+  id: string; title: string; body: string; active: boolean
+}
+
 const AD_INTERVAL = 4  // insertar un ad cada N tarjetas
 
 function shuffle<T>(arr: T[]): T[] {
@@ -73,6 +77,8 @@ export default function Home() {
   const [copied, setCopied]           = useState(false)
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [loading, setLoading]         = useState(true)
+  const [contentCards, setContentCards]     = useState<ContentCard[]>([])
+  const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -118,6 +124,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
+    fetch('/api/content-cards').then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -166,6 +173,49 @@ export default function Home() {
   // Ads que no entraron por falta de artistas → se agregan igual al final
   while (adIdx < visibleAds.length) {
     feedItems.push({ type: 'ad', data: visibleAds[adIdx++] })
+  }
+
+  // Cada 14 artistas hay uno grande; la posición dentro del grupo varía por grupo
+  const GROUP = 14
+  const GROUP_OFFSETS = [6, 3, 9, 2, 10, 4, 7, 5, 11, 3, 8, 6, 10, 4]
+  const artistItems = feedItems.filter(i => i.type === 'artist') as { type: 'artist'; data: Artist }[]
+  const featuredIds = new Set<string>()
+  for (let g = 0; g * GROUP < artistItems.length; g++) {
+    const offset = GROUP_OFFSETS[g % GROUP_OFFSETS.length]
+    const idx = g * GROUP + offset
+    if (idx < artistItems.length) featuredIds.add(artistItems[idx].data.id)
+  }
+
+  // Pre-armar bloques: featured → [featured, small1, small2] | single → [item]
+  type FI = typeof feedItems[0]
+  type Block =
+    | { kind: 'single'; item: FI; fi: number }
+    | { kind: 'featured'; big: FI; s1: FI; s2: FI; fi: number }
+    | { kind: 'content'; card: ContentCard; fi: number }
+  const blocks: Block[] = []
+  for (let fi = 0; fi < feedItems.length; ) {
+    const cur = feedItems[fi]
+    if (cur.type === 'artist' && featuredIds.has(cur.data.id) && fi + 2 < feedItems.length) {
+      blocks.push({ kind: 'featured', big: cur, s1: feedItems[fi + 1], s2: feedItems[fi + 2], fi })
+      fi += 3
+    } else {
+      blocks.push({ kind: 'single', item: cur, fi })
+      fi++
+    }
+  }
+
+  // Insertar tarjetas de contenido cada ~20 posiciones
+  const CONTENT_GAPS = [18, 22, 19, 21, 20, 23, 18, 21, 20, 22]
+  const finalBlocks: Block[] = []
+  let cInsert = CONTENT_GAPS[0], cGapIdx = 0, cCardIdx = 0
+  for (let i = 0; i < blocks.length; i++) {
+    if (i === cInsert && contentCards.length > 0) {
+      finalBlocks.push({ kind: 'content', card: contentCards[cCardIdx % contentCards.length], fi: -1 })
+      cCardIdx++
+      cGapIdx = (cGapIdx + 1) % CONTENT_GAPS.length
+      cInsert += CONTENT_GAPS[cGapIdx]
+    }
+    finalBlocks.push(blocks[i])
   }
 
   const openModal = useCallback((artist: Artist) => {
@@ -253,15 +303,22 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModalFull() }
+    const h = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (selectedContent) setSelectedContent(null)
+        else closeModalFull()
+      }
+    }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
-  }, [closeModalFull])
+  }, [closeModalFull, selectedContent])
 
   // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
   useEffect(() => {
     const h = () => {
-      if (selected) {
+      if (selectedContent) {
+        setSelectedContent(null)
+      } else if (selected) {
         setSelected(null)
         setEditOpen(false)
         setEditKey('')
@@ -270,7 +327,7 @@ export default function Home() {
     }
     window.addEventListener('popstate', h)
     return () => window.removeEventListener('popstate', h)
-  }, [selected])
+  }, [selected, selectedContent])
 
   const hasFilters = country.trim() || city.trim() || activeStyles.length > 0
 
@@ -374,10 +431,10 @@ export default function Home() {
       {/* ── GRID ───────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-5 py-4">
         {loading ? (
-          <div className="columns-3 sm:columns-4 lg:columns-5 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start">
             {Array.from({ length: 15 }).map((_, i) => (
-              <div key={i} className="break-inside-avoid mb-3 rounded-xl animate-pulse"
-                style={{ height: `${200 + (i % 4) * 50}px`, background: 'rgba(255,255,255,0.03)' }} />
+              <div key={i} className={`rounded-xl animate-pulse ${i === 11 ? 'col-span-2' : ''}`}
+                style={{ paddingBottom: i === 11 ? '66.5%' : '133%', background: 'rgba(255,255,255,0.03)' }} />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -385,24 +442,116 @@ export default function Home() {
             <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: 13 }}>sin resultados</p>
           </div>
         ) : (
-          <div className="columns-3 sm:columns-4 lg:columns-5 gap-3">
-            {feedItems.map((item, idx) =>
-              item.type === 'artist' ? (
-                <button key={item.data.id} onClick={() => openModal(item.data)}
-                  className="break-inside-avoid mb-3 w-full text-left group block relative overflow-hidden"
-                  style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div className="relative w-full overflow-hidden" style={{ paddingBottom: '133%', background: '#111' }}>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
-                      style={{ fontSize: 28, fontWeight: 700, color: 'rgba(255,255,255,0.04)', letterSpacing: '0.05em' }}>
-                      {item.data.name.slice(0, 2).toUpperCase()}
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start">
+            {finalBlocks.map(block => {
+              if (block.kind === 'content') return (
+                <button key={`cc-${block.card.id}-${block.fi}`}
+                  onClick={() => setSelectedContent(block.card)}
+                  className="col-span-2 text-left"
+                  style={{
+                    borderRadius: 12,
+                    border: '1px solid rgba(239,255,66,0.12)',
+                    background: 'rgba(239,255,66,0.03)',
+                    padding: '18px 16px 14px',
+                    minHeight: 110,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                  }}>
+                  <div>
+                    <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 8, textTransform: 'uppercase' }}>
+                      Flashttoo
                     </div>
+                    <p className="text-white font-bold" style={{ fontSize: 14, lineHeight: 1.3 }}>{block.card.title}</p>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 5, lineHeight: 1.5 }}>
+                      {block.card.body.slice(0, 70)}{block.card.body.length > 70 ? '…' : ''}
+                    </p>
+                  </div>
+                  <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', marginTop: 10, textAlign: 'right' }}>leer más →</p>
+                </button>
+              )
+              if (block.kind === 'featured') {
+                const big = block.big as { type: 'artist'; data: Artist }
+                return (
+                  <div key={`feat-${big.data.id}`}
+                    className="col-span-3"
+                    style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+                    {/* Grande: 2/3 del ancho */}
+                    <button onClick={() => openModal(big.data)}
+                      className="group relative overflow-hidden"
+                      style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ paddingBottom: '133%' }} />
+                      <div className="absolute inset-0" style={{ background: '#111' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={big.data.photo_url} alt={big.data.name}
+                          loading={block.fi < 4 ? 'eager' : 'lazy'}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          onError={e => { e.currentTarget.style.opacity = '0' }} />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <p className="text-white font-bold" style={{ fontSize: 16 }}>{big.data.name}</p>
+                          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{big.data.city}</p>
+                        </div>
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
+                          style={{ borderRadius: 11, boxShadow: 'inset 0 0 0 1px rgba(239,255,66,0.3)' }} />
+                      </div>
+                    </button>
+                    {/* 2 chicas apiladas: 1/3 del ancho */}
+                    <div className="flex flex-col gap-3">
+                      {[block.s1, block.s2].map((item, si) => item.type === 'artist' ? (
+                        <button key={item.data.id} onClick={() => openModal(item.data)}
+                          className="flex-1 min-h-0 group relative overflow-hidden"
+                          style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div className="absolute inset-0" style={{ background: '#111' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={item.data.photo_url} alt={item.data.name} loading="lazy"
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              onError={e => { e.currentTarget.style.opacity = '0' }} />
+                            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
+                            <div className="absolute bottom-0 left-0 right-0 p-2">
+                              <p className="text-white font-bold leading-tight" style={{ fontSize: 11 }}>{item.data.name}</p>
+                              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{item.data.city}</p>
+                            </div>
+                          </div>
+                        </button>
+                      ) : (
+                        <a key={`ad-s${si}-${item.data.id}`}
+                          href={item.data.link} target="_blank" rel="noopener noreferrer"
+                          onClick={() => trackClick(item.data.id, 'ad')}
+                          className="flex-1 min-h-0 group relative overflow-hidden"
+                          style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.15)' }}>
+                          <div className="absolute inset-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={item.data.image_url} alt={item.data.title} loading="lazy"
+                              className="absolute inset-0 w-full h-full object-cover"
+                              onError={e => { e.currentTarget.style.opacity = '0' }} />
+                            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 60%)' }} />
+                            <div className="absolute bottom-0 left-0 right-0 p-2">
+                              <p className="text-white font-bold" style={{ fontSize: 10 }}>{item.data.title}</p>
+                            </div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
+              // Tarjeta normal (artista o ad)
+              if (block.kind !== 'single') return null
+              const item = block.item
+              if (item.type === 'artist') return (
+                <button key={item.data.id} onClick={() => openModal(item.data)}
+                  className="group relative overflow-hidden"
+                  style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ paddingBottom: '133%' }} />
+                  <div className="absolute inset-0" style={{ background: '#111' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={item.data.photo_url} alt={item.data.name}
-                      loading={idx < 4 ? 'eager' : 'lazy'}
+                      loading={block.fi < 4 ? 'eager' : 'lazy'}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       onError={e => { e.currentTarget.style.opacity = '0' }} />
-                    <div className="absolute inset-0"
-                      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
                     <div className="absolute bottom-0 left-0 right-0 p-3">
                       <p className="text-white font-bold leading-tight" style={{ fontSize: 13 }}>{item.data.name}</p>
                       <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{item.data.city}</p>
@@ -411,26 +560,23 @@ export default function Home() {
                       style={{ borderRadius: 11, boxShadow: 'inset 0 0 0 1px rgba(239,255,66,0.3)' }} />
                   </div>
                 </button>
-              ) : (
-                // Ad card
-                <a key={`ad-${item.data.id}-${idx}`}
+              )
+              return (
+                <a key={`ad-${item.data.id}-${block.fi}`}
                   href={item.data.link} target="_blank" rel="noopener noreferrer"
                   onClick={() => trackClick(item.data.id, 'ad')}
-                  className="break-inside-avoid mb-3 w-full block relative overflow-hidden group"
+                  className="relative overflow-hidden group"
                   style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.15)' }}>
-                  <div className="relative w-full" style={{ paddingBottom: '133%' }}>
+                  <div style={{ paddingBottom: '133%' }} />
+                  <div className="absolute inset-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.data.image_url} alt={item.data.title}
-                      loading="lazy"
+                    <img src={item.data.image_url} alt={item.data.title} loading="lazy"
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       onError={e => { e.currentTarget.style.opacity = '0' }} />
-                    <div className="absolute inset-0"
-                      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }} />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }} />
                     <div className="absolute top-2 right-2">
-                      <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                        style={{ background: 'rgba(239,255,66,0.9)', color: '#000', fontSize: 9, letterSpacing: '0.06em' }}>
-                        PUBLICIDAD
-                      </span>
+                      <span style={{ background: 'rgba(239,255,66,0.9)', color: '#000', fontSize: 9, letterSpacing: '0.06em' }}
+                        className="text-xs px-2 py-0.5 rounded-full font-bold">PUBLICIDAD</span>
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 p-3">
                       <p className="text-white font-bold" style={{ fontSize: 12 }}>{item.data.title}</p>
@@ -438,7 +584,7 @@ export default function Home() {
                   </div>
                 </a>
               )
-            )}
+            })}
           </div>
         )}
       </div>
@@ -616,6 +762,33 @@ export default function Home() {
             </div>
           )}
           </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL CONTENIDO ────────────────────────────────────── */}
+      {selectedContent && (
+        <div className="fixed inset-0 z-50 overflow-y-auto"
+          style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)' }}
+          onClick={() => setSelectedContent(null)}>
+          <div className="flex justify-center items-start min-h-full p-6 pt-12 pb-24"
+            onClick={e => e.stopPropagation()}>
+            <div className="w-full" style={{ maxWidth: 400 }}>
+              <button onClick={() => setSelectedContent(null)}
+                className="mb-8 text-xs transition-opacity hover:opacity-60"
+                style={{ color: 'rgba(255,255,255,0.3)' }}>
+                ← cerrar
+              </button>
+              <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
+                Flashttoo
+              </div>
+              <h1 className="text-white font-bold" style={{ fontSize: 26, lineHeight: 1.2, marginBottom: 20 }}>
+                {selectedContent.title}
+              </h1>
+              <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+                {selectedContent.body}
+              </p>
+            </div>
           </div>
         </div>
       )}

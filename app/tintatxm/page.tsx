@@ -23,6 +23,10 @@ type Ad = {
   city: string | null; clicks: number; active: boolean; created_at: string
 }
 
+type ContentCard = {
+  id: string; title: string; body: string; active: boolean
+}
+
 const H = (pass: string) => ({ 'x-admin-pass': pass })
 
 const DEFAULT_STYLES = [
@@ -460,7 +464,7 @@ function StatsPanel({ artists, visits }: { artists: Artist[]; visits: DayVisit[]
 export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'agregar'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar'>('artistas')
   const [artists, setArtists] = useState<Artist[]>([])
   const [ads, setAds]         = useState<Ad[]>([])
   const [loading, setLoading] = useState(false)
@@ -476,6 +480,8 @@ export default function AdminPage() {
   const [adminStyles, setAdminStyles] = useState<string[]>(DEFAULT_STYLES)
   const [stylesInput, setStylesInput] = useState('')
   const [savingStyles, setSavingStyles] = useState(false)
+  const [contentCards, setContentCards] = useState<ContentCard[]>([])
+  const [savingContent, setSavingContent] = useState(false)
   const [menuOpen, setMenuOpen]     = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -521,6 +527,8 @@ export default function AdminPage() {
         setModeration(cfg.value.settings?.moderation === true)
         if (Array.isArray(cfg.value.settings?.styles) && cfg.value.settings.styles.length > 0)
           setAdminStyles(cfg.value.settings.styles)
+        if (Array.isArray(cfg.value.settings?.content_cards))
+          setContentCards(cfg.value.settings.content_cards)
       }
       setLoading(false)
     })
@@ -668,6 +676,7 @@ export default function AdminPage() {
               { key: 'paginas',    label: 'Páginas' },
               { key: 'pendientes', label: pendingCount > 0 ? `Pendientes (${pendingCount})` : 'Pendientes', alert: pendingCount > 0 },
               { key: 'config',     label: 'Config' },
+              { key: 'contenido',  label: 'Contenido' },
               { key: 'agregar',    label: '+ Agregar' },
             ] as const
             const current = tabs.find(t => t.key === tab)
@@ -918,6 +927,82 @@ export default function AdminPage() {
               </button>
             </div>
 
+          </div>
+
+        ) : tab === 'contenido' ? (
+
+          // ── CONTENIDO ────────────────────────────────────────────────────────
+          <div className="flex flex-col gap-5" style={{ maxWidth: 600 }}>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
+              Las tarjetas aparecen en el feed cada ~20 posiciones. Al hacer clic se abre un modal con el contenido completo.
+            </p>
+
+            {/* Lista de tarjetas existentes */}
+            <div className="flex flex-col gap-4">
+              {contentCards.map((card, idx) => (
+                <div key={card.id} className="rounded-xl p-4 flex flex-col gap-3"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={card.title}
+                      onChange={e => setContentCards(prev => prev.map((c, i) => i === idx ? { ...c, title: e.target.value } : c))}
+                      placeholder="Título"
+                      className="flex-1 py-2 px-3 text-sm font-bold text-white outline-none rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                    <button
+                      onClick={() => setContentCards(prev => prev.map((c, i) => i === idx ? { ...c, active: !c.active } : c))}
+                      className="text-xs px-3 py-1.5 rounded-full shrink-0"
+                      style={{
+                        border: `1px solid ${card.active ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                        color: card.active ? '#efff42' : 'rgba(255,255,255,0.3)',
+                        background: card.active ? 'rgba(239,255,66,0.07)' : 'transparent',
+                      }}>
+                      {card.active ? 'activa' : 'inactiva'}
+                    </button>
+                    <button
+                      onClick={() => setContentCards(prev => prev.filter((_, i) => i !== idx))}
+                      className="text-xs px-3 py-1.5 rounded-full shrink-0"
+                      style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.5)' }}>
+                      borrar
+                    </button>
+                  </div>
+                  <textarea
+                    value={card.body}
+                    onChange={e => setContentCards(prev => prev.map((c, i) => i === idx ? { ...c, body: e.target.value } : c))}
+                    rows={4}
+                    placeholder="Contenido del modal..."
+                    className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'vertical', lineHeight: 1.7 }} />
+                </div>
+              ))}
+            </div>
+
+            {/* Nueva tarjeta */}
+            <button
+              onClick={() => setContentCards(prev => [...prev, { id: Date.now().toString(36), title: '', body: '', active: true }])}
+              className="py-3 rounded-xl text-sm font-bold transition-all"
+              style={{ border: '2px dashed rgba(239,255,66,0.15)', color: 'rgba(239,255,66,0.4)' }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.35)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.15)')}>
+              + Nueva tarjeta
+            </button>
+
+            {/* Guardar */}
+            <button
+              onClick={async () => {
+                setSavingContent(true)
+                await fetch('/api/admin/settings', {
+                  method: 'PATCH',
+                  headers: { ...H(pass), 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ key: 'content_cards', value: contentCards }),
+                })
+                setSavingContent(false)
+              }}
+              disabled={savingContent}
+              className="self-end px-6 py-2.5 rounded-xl font-bold text-sm disabled:opacity-50"
+              style={{ background: '#efff42', color: '#000' }}>
+              {savingContent ? 'Guardando...' : 'Guardar tarjetas'}
+            </button>
           </div>
 
         ) : tab === 'agregar' ? (
