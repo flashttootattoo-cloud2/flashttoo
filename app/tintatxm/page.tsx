@@ -25,13 +25,13 @@ type Ad = {
 
 const H = (pass: string) => ({ 'x-admin-pass': pass })
 
-const STYLES = [
+const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
   'Japonés','Neo Tradicional','Minimalista','Old School','Dotwork',
-  'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Otros',
+  'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Ornamental','Otros',
 ]
 
-function AddArtistForm({ pass, onAdded }: { pass: string; onAdded: (a: Artist) => void }) {
+function AddArtistForm({ pass, onAdded, availableStyles }: { pass: string; onAdded: (a: Artist) => void; availableStyles: string[] }) {
   const [form, setForm] = useState({ name: '', city: '', country: '', instagram: '', whatsapp: '', email: '', bio: '' })
   const [styles, setStyles]     = useState<string[]>([])
   const [stylesOpen, setStylesOpen] = useState(false)
@@ -171,7 +171,7 @@ function AddArtistForm({ pass, onAdded }: { pass: string; onAdded: (a: Artist) =
         {stylesOpen && (
           <div className="rounded-xl mt-1 overflow-y-auto z-10 relative" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', maxHeight: 200 }}>
             <div className="grid grid-cols-2">
-              {STYLES.map(s => {
+              {availableStyles.map(s => {
                 const on = styles.includes(s)
                 return (
                   <button key={s} type="button" onClick={() => toggleStyle(s)}
@@ -473,6 +473,9 @@ export default function AdminPage() {
   const [savingPage, setSavingPage] = useState(false)
   const [moderation, setModeration] = useState(false)
   const [savingMod, setSavingMod]   = useState(false)
+  const [adminStyles, setAdminStyles] = useState<string[]>(DEFAULT_STYLES)
+  const [stylesInput, setStylesInput] = useState('')
+  const [savingStyles, setSavingStyles] = useState(false)
   const [menuOpen, setMenuOpen]     = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -514,7 +517,11 @@ export default function AdminPage() {
       if (b.status === 'fulfilled') setAds(b.value.ads || [])
       if (v.status === 'fulfilled') setVisits(v.value.days || [])
       if (pg.status === 'fulfilled') setPages(pg.value.pages || [])
-      if (cfg.status === 'fulfilled') setModeration(cfg.value.settings?.moderation === true)
+      if (cfg.status === 'fulfilled') {
+        setModeration(cfg.value.settings?.moderation === true)
+        if (Array.isArray(cfg.value.settings?.styles) && cfg.value.settings.styles.length > 0)
+          setAdminStyles(cfg.value.settings.styles)
+      }
       setLoading(false)
     })
   }
@@ -818,6 +825,8 @@ export default function AdminPage() {
 
           // ── CONFIG ───────────────────────────────────────────────────────────
           <div className="max-w-sm flex flex-col gap-6">
+
+            {/* Moderación */}
             <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <div className="flex items-center justify-between">
                 <div>
@@ -830,11 +839,7 @@ export default function AdminPage() {
                   onClick={() => toggleModeration(!moderation)}
                   disabled={savingMod}
                   className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
-                  style={{
-                    width: 48, height: 28,
-                    background: moderation ? '#efff42' : 'rgba(255,255,255,0.1)',
-                    position: 'relative',
-                  }}>
+                  style={{ width: 48, height: 28, background: moderation ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
                   <span style={{
                     position: 'absolute', top: 4,
                     left: moderation ? 24 : 4,
@@ -849,12 +854,76 @@ export default function AdminPage() {
                 {moderation ? 'Activada — nuevos perfiles van a revisión' : 'Desactivada — nuevos perfiles se publican directamente'}
               </p>
             </div>
+
+            {/* Estilos */}
+            <div className="rounded-xl p-5 flex flex-col gap-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div>
+                <p className="text-sm font-bold text-white">Estilos de tatuaje</p>
+                <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                  Estos estilos aparecen en el buscador y en los formularios de alta.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {adminStyles.map(s => (
+                  <span key={s} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
+                    {s}
+                    <button type="button"
+                      onClick={() => setAdminStyles(prev => prev.filter(x => x !== s))}
+                      style={{ color: 'rgba(255,100,100,0.6)', lineHeight: 1, marginLeft: 2 }}>×</button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  value={stylesInput}
+                  onChange={e => setStylesInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const v = stylesInput.trim()
+                      if (v && !adminStyles.includes(v)) setAdminStyles(prev => [...prev, v])
+                      setStylesInput('')
+                    }
+                  }}
+                  placeholder="Nuevo estilo..."
+                  className="flex-1 py-2 px-3 text-sm text-white outline-none rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                />
+                <button type="button"
+                  onClick={() => {
+                    const v = stylesInput.trim()
+                    if (v && !adminStyles.includes(v)) setAdminStyles(prev => [...prev, v])
+                    setStylesInput('')
+                  }}
+                  className="px-4 rounded-lg text-sm font-bold"
+                  style={{ background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', color: '#efff42' }}>
+                  +
+                </button>
+              </div>
+              <button
+                onClick={async () => {
+                  setSavingStyles(true)
+                  await fetch('/api/admin/settings', {
+                    method: 'PATCH',
+                    headers: { ...H(pass), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: 'styles', value: adminStyles }),
+                  })
+                  setSavingStyles(false)
+                }}
+                disabled={savingStyles}
+                className="self-end px-5 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+                style={{ background: '#efff42', color: '#000' }}>
+                {savingStyles ? 'Guardando...' : 'Guardar estilos'}
+              </button>
+            </div>
+
           </div>
 
         ) : tab === 'agregar' ? (
 
           // ── AGREGAR ──────────────────────────────────────────────────────────
-          <AddArtistForm pass={pass} onAdded={a => setArtists(prev => [a, ...prev])} />
+          <AddArtistForm pass={pass} onAdded={a => setArtists(prev => [a, ...prev])} availableStyles={adminStyles} />
 
         ) : (
 

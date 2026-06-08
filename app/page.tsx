@@ -5,10 +5,10 @@ import Link from 'next/link'
 import { supabase, type Artist } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
 
-const STYLES = [
+const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
   'Japonés','Neo Tradicional','Minimalista','Old School','Dotwork',
-  'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Otros',
+  'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Ornamental','Otros',
 ]
 
 type Ad = {
@@ -54,6 +54,7 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
 export default function Home() {
   const [artists, setArtists]     = useState<Artist[]>([])
   const [ads, setAds]             = useState<Ad[]>([])
+  const [allStyles, setAllStyles] = useState<string[]>(DEFAULT_STYLES)
   const [country, setCountry]     = useState(() => { try { return sessionStorage.getItem('s_country') || '' } catch { return '' } })
   const [city, setCity]           = useState(() => { try { return sessionStorage.getItem('s_city')    || '' } catch { return '' } })
   const [activeStyles, setStyles] = useState<string[]>(() => { try { return JSON.parse(sessionStorage.getItem('s_styles') || '[]') } catch { return [] } })
@@ -114,6 +115,10 @@ export default function Home() {
       }
     } catch {}
   }, [loading, artists.length])
+
+  useEffect(() => {
+    fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -321,7 +326,7 @@ export default function Home() {
               <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-xl overflow-y-auto"
                 style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)', maxHeight: 300 }}>
                 <div className="grid grid-cols-2">
-                  {STYLES.map(s => {
+                  {allStyles.map(s => {
                     const on = activeStyles.includes(s)
                     return (
                       <button key={s} onClick={() => toggleStyle(s)}

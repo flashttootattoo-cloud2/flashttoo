@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { type Artist } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 
-const STYLES = [
+const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
   'Japonés','Neo Tradicional','Minimalista','Old School','Dotwork',
-  'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Otros',
+  'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Ornamental','Otros',
 ]
 
 const BIO_MAX = 280
@@ -35,6 +35,10 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     email:     artist.email     || '',
     bio:       artist.bio       || '',
   })
+  const [allStyles, setAllStyles] = useState<string[]>(DEFAULT_STYLES)
+  useEffect(() => {
+    fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles?.length) setAllStyles(d.styles) }).catch(() => {})
+  }, [])
   const [styles, setStyles]   = useState<string[]>(artist.styles || [])
   const [photo, setPhoto]     = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -209,7 +213,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                 {stylesOpen && (
                   <div className="rounded-xl mt-1 overflow-y-auto" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', maxHeight: 220 }}>
                     <div className="grid grid-cols-2">
-                      {STYLES.map(s => {
+                      {allStyles.map((s: string) => {
                         const on = styles.includes(s)
                         return (
                           <button key={s} type="button" onClick={() => toggleStyle(s)}

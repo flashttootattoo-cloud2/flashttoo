@@ -4,10 +4,10 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
-const STYLES = [
+const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
   'Japonés','Neo Tradicional','Minimalista','Old School','Dotwork',
-  'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Otros',
+  'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Ornamental','Otros',
 ]
 
 function genKey() {
@@ -22,6 +22,7 @@ export default function AgregarPage() {
   const BIO_MAX = 280
   const [editKey, setEditKey]   = useState(() => genKey())
   const [keyCopied, setKeyCopied] = useState(false)
+  const [allStyles, setAllStyles]   = useState<string[]>(DEFAULT_STYLES)
   const [styles, setStyles]         = useState<string[]>([])
   const [stylesOpen, setStylesOpen] = useState(false)
   const stylesRef = useRef<HTMLDivElement>(null)
@@ -60,6 +61,7 @@ export default function AgregarPage() {
 
   useEffect(() => {
     fetch('/api/config').then(r => r.json()).then(d => setModeration(!!d.moderation)).catch(() => {})
+    fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles?.length) setAllStyles(d.styles) }).catch(() => {})
   }, [])
 
   const toggleStyle = (s: string) =>
@@ -239,7 +241,7 @@ export default function AgregarPage() {
                   maxHeight: 280,
                 }}>
                 <div className="grid grid-cols-2">
-                  {STYLES.map(s => {
+                  {allStyles.map((s: string) => {
                     const on = styles.includes(s)
                     return (
                       <button key={s} type="button" onClick={() => toggleStyle(s)}
