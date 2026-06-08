@@ -447,7 +447,7 @@ export default function Home() {
             {finalBlocks.map(block => {
               if (block.kind === 'content') return (
                 <button key={`cc-${block.card.id}-${block.fi}`}
-                  onClick={() => setSelectedContent(block.card)}
+                  onClick={() => { setSelectedContent(block.card); window.history.pushState({}, '', '/') }}
                   className={`col-span-2 relative overflow-hidden text-left${block.rightAlign ? ' col-start-2 sm:col-start-3 lg:col-start-4' : ''}`}
                   style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
                   <div style={{ paddingBottom: '66.5%' }} />
