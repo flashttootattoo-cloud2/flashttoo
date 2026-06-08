@@ -25,11 +25,217 @@ type Ad = {
 
 const H = (pass: string) => ({ 'x-admin-pass': pass })
 
+const STYLES = [
+  'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
+  'Japonés','Neo Tradicional','Minimalista','Old School','Dotwork',
+  'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Otros',
+]
+
+function AddArtistForm({ pass, onAdded }: { pass: string; onAdded: (a: Artist) => void }) {
+  const [form, setForm] = useState({ name: '', city: '', country: '', instagram: '', whatsapp: '', email: '', bio: '' })
+  const [styles, setStyles]     = useState<string[]>([])
+  const [stylesOpen, setStylesOpen] = useState(false)
+  const [photo, setPhoto]       = useState<File | null>(null)
+  const [preview, setPreview]   = useState<string | null>(null)
+  const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState('')
+  const [done, setDone]         = useState<{ name: string; editKey: string } | null>(null)
+  const [keyCopied, setKeyCopied] = useState(false)
+  const BIO_MAX = 280
+
+  const toggleStyle = (s: string) =>
+    setStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
+
+  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return
+    setPreview(URL.createObjectURL(file))
+    const img = new window.Image()
+    img.onload = () => {
+      const MAX = 900; let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => { if (blob) setPhoto(new File([blob], 'photo.webp', { type: 'image/webp' })) }, 'image/webp', 0.82)
+    }
+    img.src = URL.createObjectURL(file)
+  }
+
+  const save = async (e: { preventDefault: () => void }) => {
+    e.preventDefault(); setError('')
+    if (!photo) { setError('Agregá una foto'); return }
+    if (!form.name.trim() || !form.city.trim() || !form.country.trim()) { setError('Nombre, ciudad y país son obligatorios'); return }
+    setSaving(true)
+    try {
+      const fd = new FormData()
+      fd.append('photo', photo)
+      fd.append('name', form.name.trim())
+      fd.append('city', form.city.trim())
+      fd.append('country', form.country.trim())
+      fd.append('styles', JSON.stringify(styles))
+      fd.append('instagram', form.instagram.trim())
+      fd.append('whatsapp', form.whatsapp.trim())
+      fd.append('email', form.email.trim())
+      fd.append('bio', form.bio.trim())
+      const r = await fetch('/api/admin/artists', { method: 'POST', headers: H(pass), body: fd })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Error')
+      onAdded(d.artist)
+      setDone({ name: form.name.trim(), editKey: d.edit_key })
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error')
+    } finally { setSaving(false) }
+  }
+
+  const reset = () => {
+    setForm({ name: '', city: '', country: '', instagram: '', whatsapp: '', email: '', bio: '' })
+    setStyles([]); setPhoto(null); setPreview(null); setDone(null); setError('')
+  }
+
+  const iCls = 'w-full py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20'
+
+  if (done) return (
+    <div className="max-w-sm flex flex-col gap-4">
+      <div className="rounded-xl p-5" style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)' }}>
+        <p className="text-sm font-bold mb-1" style={{ color: '#4ade80' }}>Tatuador agregado</p>
+        <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>{done.name} ya está visible en el buscador.</p>
+        <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Clave de edición</p>
+        <div className="flex gap-2">
+          <span className="flex-1 py-2 px-3 rounded-lg text-center font-bold font-mono tracking-widest"
+            style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.2)', color: '#efff42', fontSize: 16 }}>
+            {done.editKey}
+          </span>
+          <button onClick={() => { navigator.clipboard.writeText(done.editKey); setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000) }}
+            className="px-4 rounded-lg text-xs font-bold"
+            style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${keyCopied ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: keyCopied ? '#4ade80' : '#efff42' }}>
+            {keyCopied ? '✓' : 'copiar'}
+          </button>
+        </div>
+      </div>
+      <button onClick={reset} className="w-full py-2.5 rounded-xl text-sm font-bold"
+        style={{ background: '#efff42', color: '#000' }}>
+        Agregar otro
+      </button>
+    </div>
+  )
+
+  return (
+    <form onSubmit={save} className="max-w-sm flex flex-col gap-4">
+      {/* Foto */}
+      <label className="cursor-pointer block">
+        <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Foto *</p>
+        {preview ? (
+          <div className="relative rounded-xl overflow-hidden" style={{ paddingBottom: '80%' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={preview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
+              <span className="text-xs text-white/60 bg-black/50 px-3 py-1.5 rounded-full">cambiar</span>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl" style={{ paddingBottom: '80%', position: 'relative', border: '2px dashed rgba(255,255,255,0.08)' }}>
+            <span className="absolute inset-0 flex items-center justify-center text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>subir foto</span>
+          </div>
+        )}
+        <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
+      </label>
+
+      <div>
+        <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Nombre *</p>
+        <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={iCls} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Ciudad *</p>
+          <input required value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} className={iCls} />
+        </div>
+        <div>
+          <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>País *</p>
+          <input required value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} className={iCls} />
+        </div>
+      </div>
+
+      {/* Estilos */}
+      <div className="relative">
+        <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Estilos</p>
+        <button type="button" onClick={() => setStylesOpen(v => !v)}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: styles.length ? '#fff' : 'rgba(255,255,255,0.2)' }}>
+          <span>{styles.length === 0 ? 'Seleccioná...' : `${styles.length} seleccionado${styles.length > 1 ? 's' : ''}`}</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{stylesOpen ? '▲' : '▼'}</span>
+        </button>
+        {stylesOpen && (
+          <div className="rounded-xl mt-1 overflow-y-auto z-10 relative" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', maxHeight: 200 }}>
+            <div className="grid grid-cols-2">
+              {STYLES.map(s => {
+                const on = styles.includes(s)
+                return (
+                  <button key={s} type="button" onClick={() => toggleStyle(s)}
+                    className="flex items-center justify-between px-3 py-2 text-sm text-left"
+                    style={{ background: on ? 'rgba(239,255,66,0.1)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)', borderRight: '1px solid rgba(255,255,255,0.04)', color: on ? '#efff42' : 'rgba(255,255,255,0.55)', fontWeight: on ? 700 : 400 }}>
+                    {s} {on && <span style={{ color: '#efff42', fontSize: 12 }}>✓</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Instagram</p>
+        <input value={form.instagram} onChange={e => setForm(f => ({ ...f, instagram: e.target.value }))} placeholder="@usuario" className={iCls} />
+      </div>
+      <div>
+        <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>WhatsApp</p>
+        <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="+54 9 11 1234 5678" className={iCls} />
+      </div>
+      <div>
+        <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Email</p>
+        <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="hola@ejemplo.com" className={iCls} />
+      </div>
+
+      <div>
+        <div className="flex justify-between mb-1.5">
+          <span className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Biografía</span>
+          <span className="text-xs tabular-nums" style={{ color: form.bio.length >= BIO_MAX ? '#f87171' : 'rgba(255,255,255,0.2)' }}>{form.bio.length}/{BIO_MAX}</span>
+        </div>
+        <textarea value={form.bio} rows={3}
+          onChange={e => { if (e.target.value.length <= BIO_MAX) setForm(f => ({ ...f, bio: e.target.value })) }}
+          className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
+      </div>
+
+      {error && <p className="text-xs" style={{ color: '#f87171' }}>{error}</p>}
+
+      <button type="submit" disabled={saving} className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
+        style={{ background: '#efff42', color: '#000' }}>
+        {saving ? 'Guardando...' : 'Agregar tatuador'}
+      </button>
+    </form>
+  )
+}
+
+
+function buildMsg(a: Artist) {
+  return `Hola ${a.name}! Te agregué a flashttoo.com, es un buscador de tatuadores. Si querés editar o eliminar tu perfil, tu clave es: ${a.edit_key}. Es gratuito y sin compromiso. Si no querés estar, avisame o usá tu clave para eliminarte.`
+}
 
 function ArtistGrid({ artists, deleting, onDelete, onToggleVisible }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void }) {
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const igCount: Record<string, number> = {}
   artists.forEach(a => { if (a.instagram) { const k = a.instagram.toLowerCase(); igCount[k] = (igCount[k] || 0) + 1 } })
   const isDupe = (a: Artist) => !!a.instagram && (igCount[a.instagram.toLowerCase()] || 0) > 1
+
+  const copyMsg = (a: Artist) => {
+    navigator.clipboard.writeText(buildMsg(a))
+    setCopiedId(a.id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {artists.map(a => (
@@ -63,7 +269,18 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible }: { artists:
               <span style={{ fontSize: 11, color: '#4ade80' }}>{fmtN(a.whatsapp_clicks)} WA</span>
               <span style={{ fontSize: 11, color: '#f472b6' }}>{fmtN(a.likes ?? 0)} ♥</span>
             </div>
-            <p className="mt-1" style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(239,255,66,0.55)', letterSpacing: '0.08em' }}>{a.edit_key}</p>
+            <div className="flex items-center justify-between mt-1.5 gap-2">
+              <p style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(239,255,66,0.55)', letterSpacing: '0.08em' }}>{a.edit_key}</p>
+              <button onClick={() => copyMsg(a)}
+                className="text-xs px-2.5 py-1 rounded-lg shrink-0 transition-colors"
+                style={{
+                  background: copiedId === a.id ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${copiedId === a.id ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                  color: copiedId === a.id ? '#4ade80' : 'rgba(255,255,255,0.35)',
+                }}>
+                {copiedId === a.id ? '✓ copiado' : 'copiar mensaje'}
+              </button>
+            </div>
           </div>
         </div>
       ))}
@@ -243,7 +460,7 @@ function StatsPanel({ artists, visits }: { artists: Artist[]; visits: DayVisit[]
 export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'agregar'>('artistas')
   const [artists, setArtists] = useState<Artist[]>([])
   const [ads, setAds]         = useState<Ad[]>([])
   const [loading, setLoading] = useState(false)
@@ -444,6 +661,7 @@ export default function AdminPage() {
               { key: 'paginas',    label: 'Páginas' },
               { key: 'pendientes', label: pendingCount > 0 ? `Pendientes (${pendingCount})` : 'Pendientes', alert: pendingCount > 0 },
               { key: 'config',     label: 'Config' },
+              { key: 'agregar',    label: '+ Agregar' },
             ] as const
             const current = tabs.find(t => t.key === tab)
             return (
@@ -632,6 +850,11 @@ export default function AdminPage() {
               </p>
             </div>
           </div>
+
+        ) : tab === 'agregar' ? (
+
+          // ── AGREGAR ──────────────────────────────────────────────────────────
+          <AddArtistForm pass={pass} onAdded={a => setArtists(prev => [a, ...prev])} />
 
         ) : (
 

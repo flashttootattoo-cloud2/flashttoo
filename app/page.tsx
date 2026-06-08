@@ -54,9 +54,9 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
 export default function Home() {
   const [artists, setArtists]     = useState<Artist[]>([])
   const [ads, setAds]             = useState<Ad[]>([])
-  const [country, setCountry]     = useState('')
-  const [city, setCity]           = useState('')
-  const [activeStyles, setStyles] = useState<string[]>([])
+  const [country, setCountry]     = useState(() => { try { return sessionStorage.getItem('s_country') || '' } catch { return '' } })
+  const [city, setCity]           = useState(() => { try { return sessionStorage.getItem('s_city')    || '' } catch { return '' } })
+  const [activeStyles, setStyles] = useState<string[]>(() => { try { return JSON.parse(sessionStorage.getItem('s_styles') || '[]') } catch { return [] } })
   const [stylesOpen, setStylesOpen] = useState(false)
   const stylesRef = useRef<HTMLDivElement>(null)
   const deepLinkHandled = useRef(false)
@@ -89,6 +89,31 @@ export default function Home() {
       localStorage.setItem('last_visit', today)
     }
   }, [])
+
+  // Persistir filtros en sessionStorage para restaurarlos si el browser recarga la pestaña
+  useEffect(() => { try { sessionStorage.setItem('s_country', country) } catch {} }, [country])
+  useEffect(() => { try { sessionStorage.setItem('s_city', city) } catch {} }, [city])
+  useEffect(() => { try { sessionStorage.setItem('s_styles', JSON.stringify(activeStyles)) } catch {} }, [activeStyles])
+
+  // Guardar posición de scroll mientras navega
+  useEffect(() => {
+    const save = () => { try { sessionStorage.setItem('s_scroll', String(window.scrollY)) } catch {} }
+    window.addEventListener('scroll', save, { passive: true })
+    return () => window.removeEventListener('scroll', save)
+  }, [])
+
+  // Restaurar scroll después de que carguen los artistas (solo si no hay modal abierto por deep link)
+  useEffect(() => {
+    if (loading || artists.length === 0) return
+    const hasDeepLink = new URLSearchParams(window.location.search).has('artista')
+    if (hasDeepLink) return
+    try {
+      const saved = sessionStorage.getItem('s_scroll')
+      if (saved && parseInt(saved) > 100) {
+        requestAnimationFrame(() => window.scrollTo({ top: parseInt(saved), behavior: 'instant' }))
+      }
+    } catch {}
+  }, [loading, artists.length])
 
   useEffect(() => {
     Promise.all([
