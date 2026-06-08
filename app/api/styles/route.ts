@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-export const DEFAULT_STYLES = [
+const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
   'Japonés','Neo Tradicional','Minimalista','Old School','Dotwork',
   'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Ornamental','Otros',
