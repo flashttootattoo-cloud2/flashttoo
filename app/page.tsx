@@ -374,7 +374,7 @@ export default function Home() {
       {/* ── GRID ───────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-5 py-4">
         {loading ? (
-          <div className="columns-2 sm:columns-3 lg:columns-5 gap-3">
+          <div className="columns-3 sm:columns-4 lg:columns-5 gap-3">
             {Array.from({ length: 15 }).map((_, i) => (
               <div key={i} className="break-inside-avoid mb-3 rounded-xl animate-pulse"
                 style={{ height: `${200 + (i % 4) * 50}px`, background: 'rgba(255,255,255,0.03)' }} />
@@ -385,7 +385,7 @@ export default function Home() {
             <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: 13 }}>sin resultados</p>
           </div>
         ) : (
-          <div className="columns-2 sm:columns-3 lg:columns-5 gap-3">
+          <div className="columns-3 sm:columns-4 lg:columns-5 gap-3">
             {feedItems.map((item, idx) =>
               item.type === 'artist' ? (
                 <button key={item.data.id} onClick={() => openModal(item.data)}
