@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { type Artist } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
+import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 
 const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
@@ -40,6 +41,12 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles?.length) setAllStyles(d.styles) }).catch(() => {})
   }, [])
   const [styles, setStyles]   = useState<string[]>(artist.styles || [])
+  const [interview, setInterview] = useState<Record<string, string>>(
+    (artist.interview as Record<string, string> | null) ?? {}
+  )
+  const [interviewOpen, setInterviewOpen] = useState(() =>
+    INTERVIEW_QUESTIONS.some(q => !!(artist.interview as Record<string, string> | null)?.[q.key]?.trim())
+  )
   const [photo, setPhoto]     = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [saving, setSaving]         = useState(false)
@@ -117,6 +124,9 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
           email:     form.email.trim()     || null,
           bio:       form.bio.trim()       || null,
           styles,
+          interview: Object.fromEntries(
+            Object.entries(interview).filter(([, v]) => v.trim())
+          ),
         }),
       })
       const d = await res.json()
@@ -252,6 +262,47 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                 <textarea value={form.bio} rows={3}
                   onChange={e => { if (e.target.value.length <= BIO_MAX) setForm(f => ({ ...f, bio: e.target.value })) }}
                   className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'none', lineHeight: 1.6 }} />
+              </div>
+
+              {/* Entrevista */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setInterviewOpen(v => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+                  style={{
+                    background: interviewOpen ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                >
+                  <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>Tu historia — opcional</span>
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{interviewOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {interviewOpen && (
+                  <div className="mt-4">
+                    <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
+                      Respondé las que quieras. Aparecen en tu perfil para que la gente te conozca.
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      {INTERVIEW_QUESTIONS.map(q => (
+                        <div key={q.key}>
+                          <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{q.label}</p>
+                          <textarea
+                            value={interview[q.key] || ''}
+                            onChange={e => {
+                              if (e.target.value.length <= 300)
+                                setInterview(prev => ({ ...prev, [q.key]: e.target.value }))
+                            }}
+                            rows={2}
+                            placeholder="Respuesta opcional..."
+                            className={iCls}
+                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'none', lineHeight: 1.6 }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {saveError && <p className="text-xs" style={{ color: '#f87171' }}>{saveError}</p>}

@@ -953,11 +953,11 @@ export default function AdminPage() {
                       onClick={() => setContentCards(prev => prev.map((c, i) => i === idx ? { ...c, active: !c.active } : c))}
                       className="text-xs px-3 py-1.5 rounded-full shrink-0"
                       style={{
-                        border: `1px solid ${card.active ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                        color: card.active ? '#efff42' : 'rgba(255,255,255,0.3)',
-                        background: card.active ? 'rgba(239,255,66,0.07)' : 'transparent',
+                        border: `1px solid ${card.active ? 'rgba(74,222,128,0.3)' : 'rgba(255,80,80,0.25)'}`,
+                        color: card.active ? '#4ade80' : 'rgba(255,100,100,0.6)',
+                        background: card.active ? 'rgba(74,222,128,0.07)' : 'rgba(255,80,80,0.05)',
                       }}>
-                      {card.active ? 'activa' : 'inactiva'}
+                      {card.active ? '✓ visible' : '✗ oculta'}
                     </button>
                     <button
                       onClick={() => setContentCards(prev => prev.filter((_, i) => i !== idx))}

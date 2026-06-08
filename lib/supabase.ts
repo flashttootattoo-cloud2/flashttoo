@@ -22,4 +22,5 @@ export type Artist = {
   likes: number
   visible: boolean
   created_at: string
+  interview?: Record<string, string> | null
 }

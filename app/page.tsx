@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { supabase, type Artist } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
+import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 
 const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
@@ -179,24 +180,24 @@ export default function Home() {
   const GROUP = 14
   const GROUP_OFFSETS = [6, 3, 9, 2, 10, 4, 7, 5, 11, 3, 8, 6, 10, 4]
   const artistItems = feedItems.filter(i => i.type === 'artist') as { type: 'artist'; data: Artist }[]
-  const featuredIds = new Set<string>()
+  const featuredMap = new Map<string, boolean>() // id → rightAlign
   for (let g = 0; g * GROUP < artistItems.length; g++) {
     const offset = GROUP_OFFSETS[g % GROUP_OFFSETS.length]
     const idx = g * GROUP + offset
-    if (idx < artistItems.length) featuredIds.add(artistItems[idx].data.id)
+    if (idx < artistItems.length) featuredMap.set(artistItems[idx].data.id, g % 2 === 1)
   }
 
   // Pre-armar bloques: featured → [featured, small1, small2] | single → [item]
   type FI = typeof feedItems[0]
   type Block =
     | { kind: 'single'; item: FI; fi: number }
-    | { kind: 'featured'; big: FI; s1: FI; s2: FI; fi: number }
-    | { kind: 'content'; card: ContentCard; fi: number }
+    | { kind: 'featured'; big: FI; s1: FI; s2: FI; fi: number; rightAlign: boolean }
+    | { kind: 'content'; card: ContentCard; fi: number; rightAlign: boolean }
   const blocks: Block[] = []
   for (let fi = 0; fi < feedItems.length; ) {
     const cur = feedItems[fi]
-    if (cur.type === 'artist' && featuredIds.has(cur.data.id) && fi + 2 < feedItems.length) {
-      blocks.push({ kind: 'featured', big: cur, s1: feedItems[fi + 1], s2: feedItems[fi + 2], fi })
+    if (cur.type === 'artist' && featuredMap.has(cur.data.id) && fi + 2 < feedItems.length) {
+      blocks.push({ kind: 'featured', big: cur, s1: feedItems[fi + 1], s2: feedItems[fi + 2], fi, rightAlign: featuredMap.get(cur.data.id)! })
       fi += 3
     } else {
       blocks.push({ kind: 'single', item: cur, fi })
@@ -204,13 +205,13 @@ export default function Home() {
     }
   }
 
-  // Insertar tarjetas de contenido cada ~20 posiciones
-  const CONTENT_GAPS = [18, 22, 19, 21, 20, 23, 18, 21, 20, 22]
+  // Insertar tarjetas de contenido cada ~20 posiciones, alternando izquierda/derecha
+  const CONTENT_GAPS = [12, 22, 19, 21, 20, 23, 18, 21, 20, 22]
   const finalBlocks: Block[] = []
   let cInsert = CONTENT_GAPS[0], cGapIdx = 0, cCardIdx = 0
   for (let i = 0; i < blocks.length; i++) {
     if (i === cInsert && contentCards.length > 0) {
-      finalBlocks.push({ kind: 'content', card: contentCards[cCardIdx % contentCards.length], fi: -1 })
+      finalBlocks.push({ kind: 'content', card: contentCards[cCardIdx % contentCards.length], fi: -1, rightAlign: cCardIdx % 2 === 1 })
       cCardIdx++
       cGapIdx = (cGapIdx + 1) % CONTENT_GAPS.length
       cInsert += CONTENT_GAPS[cGapIdx]
@@ -442,41 +443,38 @@ export default function Home() {
             <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: 13 }}>sin resultados</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
             {finalBlocks.map(block => {
               if (block.kind === 'content') return (
                 <button key={`cc-${block.card.id}-${block.fi}`}
                   onClick={() => setSelectedContent(block.card)}
-                  className="col-span-2 text-left"
-                  style={{
-                    borderRadius: 12,
-                    border: '1px solid rgba(239,255,66,0.12)',
+                  className={`col-span-2 relative overflow-hidden text-left${block.rightAlign ? ' col-start-2 sm:col-start-3 lg:col-start-4' : ''}`}
+                  style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
+                  <div style={{ paddingBottom: '66.5%' }} />
+                  <div className="absolute inset-0" style={{
                     background: 'rgba(239,255,66,0.03)',
-                    padding: '18px 16px 14px',
-                    minHeight: 110,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                    padding: '16px 14px 12px',
                   }}>
-                  <div>
-                    <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 8, textTransform: 'uppercase' }}>
-                      Flashttoo
+                    <div>
+                      <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 8, textTransform: 'uppercase' }}>
+                        Flashttoo
+                      </div>
+                      <p className="text-white font-bold" style={{ fontSize: 14, lineHeight: 1.3 }}>{block.card.title}</p>
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 5, lineHeight: 1.5 }}>
+                        {block.card.body.slice(0, 80)}{block.card.body.length > 80 ? '…' : ''}
+                      </p>
                     </div>
-                    <p className="text-white font-bold" style={{ fontSize: 14, lineHeight: 1.3 }}>{block.card.title}</p>
-                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 5, lineHeight: 1.5 }}>
-                      {block.card.body.slice(0, 70)}{block.card.body.length > 70 ? '…' : ''}
-                    </p>
+                    <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', textAlign: 'right' }}>leer más →</p>
                   </div>
-                  <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', marginTop: 10, textAlign: 'right' }}>leer más →</p>
                 </button>
               )
               if (block.kind === 'featured') {
                 const big = block.big as { type: 'artist'; data: Artist }
                 return (
                   <div key={`feat-${big.data.id}`}
-                    className="col-span-3"
-                    style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+                    className={block.rightAlign ? 'sm:col-start-2 lg:col-start-3' : ''}
+                    style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, gridColumnEnd: 'span 3' }}>
                     {/* Grande: 2/3 del ancho */}
                     <button onClick={() => openModal(big.data)}
                       className="group relative overflow-hidden"
@@ -501,8 +499,9 @@ export default function Home() {
                     <div className="flex flex-col gap-3">
                       {[block.s1, block.s2].map((item, si) => item.type === 'artist' ? (
                         <button key={item.data.id} onClick={() => openModal(item.data)}
-                          className="flex-1 min-h-0 group relative overflow-hidden"
+                          className="group relative overflow-hidden"
                           style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div style={{ paddingBottom: '133%' }} />
                           <div className="absolute inset-0" style={{ background: '#111' }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={item.data.photo_url} alt={item.data.name} loading="lazy"
@@ -519,8 +518,9 @@ export default function Home() {
                         <a key={`ad-s${si}-${item.data.id}`}
                           href={item.data.link} target="_blank" rel="noopener noreferrer"
                           onClick={() => trackClick(item.data.id, 'ad')}
-                          className="flex-1 min-h-0 group relative overflow-hidden"
+                          className="group relative overflow-hidden"
                           style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.15)' }}>
+                          <div style={{ paddingBottom: '133%' }} />
                           <div className="absolute inset-0">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={item.data.image_url} alt={item.data.title} loading="lazy"
@@ -593,11 +593,11 @@ export default function Home() {
       {/* ── MODAL ──────────────────────────────────────────────── */}
       {selected && (
         <div className="fixed inset-0 z-50 overflow-y-auto"
-          style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(20px)' }}
+          style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(20px)', animation: 'fadeInYellow 0.22s ease' }}
           onClick={closeModal}>
 
-          <div className="flex justify-center items-start min-h-full p-4 pt-6 pb-64">
-          <div className="flex flex-col w-full" style={{ maxWidth: 320 }} onClick={e => e.stopPropagation()}>
+          <div className="flex justify-center items-start min-h-full pb-64 sm:px-4 sm:pt-6">
+          <div className="flex flex-col w-full sm:max-w-sm" onClick={e => e.stopPropagation()}>
           <div className="relative w-full overflow-hidden"
             style={{ background: '#111', borderRadius: editOpen ? '20px 20px 0 0' : 20, border: '1px solid rgba(255,255,255,0.08)', borderBottom: editOpen ? 'none' : '1px solid rgba(255,255,255,0.08)', boxShadow: editOpen ? 'none' : '0 40px 100px rgba(0,0,0,0.9)' }}>
 
@@ -761,6 +761,31 @@ export default function Home() {
               </button>
             </div>
           )}
+          {/* Sección entrevista — tarjeta amarilla separada debajo de todo */}
+          {(() => {
+            const iv = (selected.interview ?? {}) as Record<string, string>
+            const answered = INTERVIEW_QUESTIONS.filter(q => iv[q.key]?.trim())
+            if (!answered.length) return null
+            return (
+              <div style={{ background: '#efff42', borderRadius: 20, marginTop: 8, padding: '22px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
+                <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', marginBottom: 20 }}>
+                  Conocé a {selected.name}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  {answered.map(q => (
+                    <div key={q.key}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 5, lineHeight: 1.4 }}>
+                        {q.label}
+                      </p>
+                      <p style={{ fontSize: 14, color: '#000', lineHeight: 1.65 }}>
+                        {iv[q.key]}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
           </div>
           </div>
         </div>
@@ -769,23 +794,23 @@ export default function Home() {
       {/* ── MODAL CONTENIDO ────────────────────────────────────── */}
       {selectedContent && (
         <div className="fixed inset-0 z-50 overflow-y-auto"
-          style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)' }}
+          style={{ background: '#efff42', animation: 'fadeInYellow 0.22s ease' }}
           onClick={() => setSelectedContent(null)}>
-          <div className="flex justify-center items-start min-h-full p-6 pt-12 pb-24"
+          <div className="flex justify-center items-start min-h-full pt-12 pb-24 sm:px-6"
             onClick={e => e.stopPropagation()}>
-            <div className="w-full" style={{ maxWidth: 400 }}>
+            <div className="w-full sm:max-w-md px-5 sm:px-0">
               <button onClick={() => setSelectedContent(null)}
-                className="mb-8 text-xs transition-opacity hover:opacity-60"
-                style={{ color: 'rgba(255,255,255,0.3)' }}>
+                className="mb-8 text-xs transition-opacity hover:opacity-50"
+                style={{ color: 'rgba(0,0,0,0.4)' }}>
                 ← cerrar
               </button>
-              <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
+              <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(0,0,0,0.3)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
                 Flashttoo
               </div>
-              <h1 className="text-white font-bold" style={{ fontSize: 26, lineHeight: 1.2, marginBottom: 20 }}>
+              <h1 className="font-bold" style={{ color: '#000', fontSize: 26, lineHeight: 1.2, marginBottom: 20 }}>
                 {selectedContent.title}
               </h1>
-              <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+              <p style={{ color: 'rgba(0,0,0,0.65)', fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
                 {selectedContent.body}
               </p>
             </div>
