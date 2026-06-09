@@ -225,7 +225,7 @@ function AddArtistForm({ pass, onAdded, availableStyles }: { pass: string; onAdd
 
 
 function buildMsg(a: Artist) {
-  return `Hola ${a.name}! Te agregué a Flashttoo, es un buscador de tatuadores. Si querés editar o eliminar tu perfil, tu clave es: ${a.edit_key}. Es gratuito y sin compromiso. Si no querés estar, avisame o usá tu clave para eliminarte.`
+  return `Hola ${a.name}! Te agregué a Flashttoo, es un buscador de tatuadores. Si querés editar y completar tu perfil, tu clave es: ${a.edit_key}. Es gratuito y sin compromiso. Si no querés estar, usá tu clave para eliminarte.`
 }
 
 function ArtistGrid({ artists, deleting, onDelete, onToggleVisible }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void }) {
