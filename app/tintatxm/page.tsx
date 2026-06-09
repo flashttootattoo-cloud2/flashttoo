@@ -405,6 +405,11 @@ function StatsPanel({ artists, visits }: { artists: Artist[]; visits: DayVisit[]
   const topCities = Object.entries(cityMap).sort((a, b) => b[1] - a[1]).slice(0, 12)
   const maxCity = Math.max(...topCities.map(c => c[1]), 1)
 
+  const countryMap: Record<string, number> = {}
+  artists.forEach(a => { const k = a.country || 'Sin país'; countryMap[k] = (countryMap[k] || 0) + 1 })
+  const topCountries = Object.entries(countryMap).sort((a, b) => b[1] - a[1])
+  const maxCountry = Math.max(...topCountries.map(c => c[1]), 1)
+
   const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14 }
   const sectionLabel = { fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: 16 }
 
@@ -518,6 +523,34 @@ function StatsPanel({ artists, visits }: { artists: Artist[]; visits: DayVisit[]
               </>
             )
           })()}
+        </div>
+      </div>
+
+      <div>
+        <p style={sectionLabel}>Tatuadores por país</p>
+        <div className="p-5 flex flex-col gap-3" style={card}>
+          {topCountries.length === 0
+            ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.15)' }}>Sin datos</p>
+            : topCountries.map(([country, count]) => {
+              const pct = Math.round((count / artists.length) * 100)
+              return (
+                <div key={country} className="flex items-center gap-3">
+                  <div style={{ width: 130, fontSize: 12, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0, fontWeight: 600 }}>
+                    {country}
+                  </div>
+                  <div className="flex-1 rounded-full overflow-hidden" style={{ height: 7, background: 'rgba(255,255,255,0.05)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${(count / maxCountry) * 100}%`, background: '#efff42' }} />
+                  </div>
+                  <div style={{ width: 38, textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>
+                    {pct}%
+                  </div>
+                  <div style={{ width: 22, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#efff42', flexShrink: 0 }}>
+                    {count}
+                  </div>
+                </div>
+              )
+            })
+          }
         </div>
       </div>
 
