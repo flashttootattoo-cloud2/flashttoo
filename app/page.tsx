@@ -79,6 +79,7 @@ export default function Home() {
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [loading, setLoading]         = useState(true)
   const [contentCards, setContentCards]     = useState<ContentCard[]>([])
+  const cardStartOffset = useRef(Math.floor(Math.random() * 100))
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
 
   useEffect(() => {
@@ -208,7 +209,7 @@ export default function Home() {
   // Insertar tarjetas de contenido cada ~20 posiciones, alternando izquierda/derecha
   const CONTENT_GAPS = [12, 22, 19, 21, 20, 23, 18, 21, 20, 22]
   const finalBlocks: Block[] = []
-  let cInsert = CONTENT_GAPS[0], cGapIdx = 0, cCardIdx = 0
+  let cInsert = CONTENT_GAPS[0], cGapIdx = 0, cCardIdx = cardStartOffset.current
   for (let i = 0; i < blocks.length; i++) {
     if (i === cInsert && contentCards.length > 0) {
       finalBlocks.push({ kind: 'content', card: contentCards[cCardIdx % contentCards.length], fi: -1, rightAlign: cCardIdx % 2 === 1 })
