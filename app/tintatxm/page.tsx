@@ -30,13 +30,59 @@ type ContentCard = {
 
 const H = (pass: string) => ({ 'x-admin-pass': pass })
 
+function SuggestInput({ value, onChange, suggestions, className, style, placeholder, required }: {
+  value: string
+  onChange: (v: string) => void
+  suggestions: string[]
+  className?: string
+  style?: React.CSSProperties
+  placeholder?: string
+  required?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const query = value.trim().toLowerCase()
+  const matches = open && query.length > 0
+    ? suggestions.filter(s => s.toLowerCase().includes(query) && s.toLowerCase() !== query).slice(0, 6)
+    : []
+
+  return (
+    <div className="relative">
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className={className}
+        style={style}
+        placeholder={placeholder}
+        required={required}
+      />
+      {matches.length > 0 && (
+        <div className="absolute left-0 right-0 mt-1 rounded-xl overflow-hidden z-20"
+          style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 8px 24px rgba(0,0,0,0.7)' }}>
+          {matches.map(s => (
+            <button key={s} type="button"
+              onMouseDown={() => { onChange(s); setOpen(false) }}
+              className="w-full text-left px-3 py-2 text-sm transition-colors"
+              style={{ color: 'rgba(255,255,255,0.65)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,255,66,0.07)'; e.currentTarget.style.color = '#efff42' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
   'Japonés','Neo Tradicional','Minimalista','Old School','Dotwork',
   'Fineline','Lettering','Tribal','Biomecánico','Cover-up','Ornamental','Otros',
 ]
 
-function AddArtistForm({ pass, onAdded, availableStyles }: { pass: string; onAdded: (a: Artist) => void; availableStyles: string[] }) {
+function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pass: string; onAdded: (a: Artist) => void; availableStyles: string[]; existingArtists: Artist[] }) {
   const [form, setForm] = useState({ name: '', city: '', country: '', instagram: '', whatsapp: '', email: '', bio: '' })
   const [styles, setStyles]     = useState<string[]>([])
   const [stylesOpen, setStylesOpen] = useState(false)
@@ -49,6 +95,10 @@ function AddArtistForm({ pass, onAdded, availableStyles }: { pass: string; onAdd
   const [igStatus, setIgStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const igTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const BIO_MAX = 280
+
+  const unique = (arr: string[]) => [...new Set(arr.filter(Boolean))]
+  const citySuggestions  = unique(existingArtists.map(a => a.city))
+  const countrySuggestions = unique(existingArtists.map(a => a.country))
 
   useEffect(() => {
     const handle = form.instagram.trim().replace('@', '')
@@ -171,11 +221,13 @@ function AddArtistForm({ pass, onAdded, availableStyles }: { pass: string; onAdd
       <div className="grid grid-cols-2 gap-3">
         <div>
           <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Ciudad *</p>
-          <input required value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} className={iCls} />
+          <SuggestInput required value={form.city} onChange={v => setForm(f => ({ ...f, city: v }))}
+            suggestions={citySuggestions} className={iCls} />
         </div>
         <div>
           <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>País *</p>
-          <input required value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} className={iCls} />
+          <SuggestInput required value={form.country} onChange={v => setForm(f => ({ ...f, country: v }))}
+            suggestions={countrySuggestions} className={iCls} />
         </div>
       </div>
 
@@ -1042,7 +1094,7 @@ export default function AdminPage() {
         ) : tab === 'agregar' ? (
 
           // ── AGREGAR ──────────────────────────────────────────────────────────
-          <AddArtistForm pass={pass} onAdded={a => setArtists(prev => [a, ...prev])} availableStyles={adminStyles} />
+          <AddArtistForm pass={pass} onAdded={a => setArtists(prev => [a, ...prev])} availableStyles={adminStyles} existingArtists={artists} />
 
         ) : (
 
