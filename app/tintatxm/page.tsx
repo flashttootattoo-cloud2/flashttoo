@@ -230,9 +230,14 @@ function buildMsg(a: Artist) {
 
 function ArtistGrid({ artists, deleting, onDelete, onToggleVisible }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void }) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
   const igCount: Record<string, number> = {}
   artists.forEach(a => { if (a.instagram) { const k = a.instagram.toLowerCase(); igCount[k] = (igCount[k] || 0) + 1 } })
   const isDupe = (a: Artist) => !!a.instagram && (igCount[a.instagram.toLowerCase()] || 0) > 1
+
+  const filtered = search.trim()
+    ? artists.filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
+    : artists
 
   const copyMsg = (a: Artist) => {
     navigator.clipboard.writeText(buildMsg(a))
@@ -242,7 +247,13 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible }: { artists:
 
   return (
     <div className="flex flex-col gap-2">
-      {artists.map(a => (
+      <input
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Buscar por nombre..."
+        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/30 transition-colors mb-1"
+      />
+      {filtered.map(a => (
         <div key={a.id} className="flex gap-3 p-3 rounded-xl items-start"
           style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isDupe(a) ? 'rgba(255,80,80,0.4)' : a.visible === false ? 'rgba(255,200,0,0.25)' : 'rgba(255,255,255,0.07)'}`, opacity: a.visible === false ? 0.6 : 1 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
