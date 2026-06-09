@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
 type DayVisit = { date: string; count: number }
 
@@ -45,7 +46,22 @@ function AddArtistForm({ pass, onAdded, availableStyles }: { pass: string; onAdd
   const [error, setError]       = useState('')
   const [done, setDone]         = useState<{ name: string; editKey: string } | null>(null)
   const [keyCopied, setKeyCopied] = useState(false)
+  const [igStatus, setIgStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
+  const igTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const BIO_MAX = 280
+
+  useEffect(() => {
+    const handle = form.instagram.trim().replace('@', '')
+    if (!handle) { setIgStatus('idle'); return }
+    setIgStatus('checking')
+    clearTimeout(igTimer.current)
+    igTimer.current = setTimeout(async () => {
+      const { data } = await supabase.from('artists').select('id')
+        .or(`instagram.ilike.${handle},instagram.ilike.@${handle}`).limit(1)
+      setIgStatus(data && data.length > 0 ? 'taken' : 'ok')
+    }, 600)
+    return () => clearTimeout(igTimer.current)
+  }, [form.instagram])
 
   const toggleStyle = (s: string) =>
     setStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
@@ -191,8 +207,15 @@ function AddArtistForm({ pass, onAdded, availableStyles }: { pass: string; onAdd
       </div>
 
       <div>
-        <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Instagram</p>
-        <input value={form.instagram} onChange={e => setForm(f => ({ ...f, instagram: e.target.value }))} placeholder="@usuario" className={iCls} />
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Instagram</p>
+          {igStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>verificando...</span>}
+          {igStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>✓ disponible</span>}
+          {igStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>✗ ya registrado</span>}
+        </div>
+        <input value={form.instagram} onChange={e => { setForm(f => ({ ...f, instagram: e.target.value })); setIgStatus('idle') }}
+          placeholder="@usuario" className={iCls}
+          style={{ borderColor: igStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igStatus === 'ok' ? 'rgba(74,222,128,0.4)' : undefined }} />
       </div>
       <div>
         <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>WhatsApp</p>
@@ -215,7 +238,7 @@ function AddArtistForm({ pass, onAdded, availableStyles }: { pass: string; onAdd
 
       {error && <p className="text-xs" style={{ color: '#f87171' }}>{error}</p>}
 
-      <button type="submit" disabled={saving} className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
+      <button type="submit" disabled={saving || igStatus === 'taken'} className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
         style={{ background: '#efff42', color: '#000' }}>
         {saving ? 'Guardando...' : 'Agregar tatuador'}
       </button>
