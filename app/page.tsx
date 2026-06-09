@@ -489,7 +489,7 @@ export default function Home() {
                           onError={e => { e.currentTarget.style.opacity = '0' }} />
                         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
                         <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <p className="text-white font-bold" style={{ fontSize: 16 }}>{big.data.name}</p>
+                          <p className="text-white font-bold" style={{ fontSize: 16, overflowWrap: 'break-word' }}>{big.data.name}</p>
                           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{big.data.city}</p>
                         </div>
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
@@ -510,7 +510,7 @@ export default function Home() {
                               onError={e => { e.currentTarget.style.opacity = '0' }} />
                             <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
                             <div className="absolute bottom-0 left-0 right-0 p-2">
-                              <p className="text-white font-bold leading-tight" style={{ fontSize: 11 }}>{item.data.name}</p>
+                              <p className="text-white font-bold leading-tight" style={{ fontSize: 11, overflowWrap: 'break-word' }}>{item.data.name}</p>
                               <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{item.data.city}</p>
                             </div>
                           </div>
@@ -554,7 +554,7 @@ export default function Home() {
                       onError={e => { e.currentTarget.style.opacity = '0' }} />
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
                     <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <p className="text-white font-bold leading-tight" style={{ fontSize: 13 }}>{item.data.name}</p>
+                      <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{item.data.name}</p>
                       <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{item.data.city}</p>
                     </div>
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
@@ -617,7 +617,7 @@ export default function Home() {
               {/* Visitas */}
 
               <div className="absolute bottom-0 left-0 right-0 p-5">
-                <h2 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1, color: '#fff' }}>{selected.name}</h2>
+                <h2 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1, color: '#fff', overflowWrap: 'break-word' }}>{selected.name}</h2>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{selected.city}, {selected.country}</p>
               </div>
             </div>
