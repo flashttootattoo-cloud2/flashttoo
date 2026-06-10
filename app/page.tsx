@@ -346,7 +346,7 @@ export default function Home() {
           <img src="/Logoprincipal.svg" alt="Flashttoo" className="h-7 shrink-0" />
           <Link href="/agregar" className="shrink-0 text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
             style={{ background: '#efff42', color: '#000' }}>
-            + agregar
+            + tatuador/a
           </Link>
         </div>
 
