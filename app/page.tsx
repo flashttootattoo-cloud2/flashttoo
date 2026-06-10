@@ -6,6 +6,23 @@ import { supabase, type Artist } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 
+function BioText({ text, style }: { text: string; style?: React.CSSProperties }) {
+  const parts = text.split(/(@[a-zA-Z0-9_.]{1,30})/g)
+  return (
+    <p style={style}>
+      {parts.map((part, i) =>
+        /^@[a-zA-Z0-9_.]{1,30}$/.test(part) ? (
+          <a key={i} href={`https://www.instagram.com/${part.slice(1)}`} target="_blank" rel="noopener noreferrer"
+            style={{ color: '#efff42', fontWeight: 600, textDecoration: 'none' }}
+            onClick={e => e.stopPropagation()}>
+            {part}
+          </a>
+        ) : part
+      )}
+    </p>
+  )
+}
+
 const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
   'Japonés','Neo Tradicional','Minimalista','Old School','Dotwork',
@@ -635,9 +652,7 @@ export default function Home() {
               )}
 
               {selected.bio && (
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 16 }}>
-                  {selected.bio}
-                </p>
+                <BioText text={selected.bio} style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 16 }} />
               )}
 
               <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 16 }} />
