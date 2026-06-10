@@ -55,6 +55,30 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleting, setDeleting]     = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [newKey, setNewKey]         = useState<string | null>(null)
+  const [keyCopied, setKeyCopied]   = useState(false)
+  const [savingNewKey, setSavingNewKey] = useState(false)
+
+  const genKey = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  }
+
+  const saveNewKey = async () => {
+    if (!newKey) return
+    setSavingNewKey(true)
+    const res = await fetch(`/api/artists/${artist.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ editKey: key.trim().toUpperCase(), new_edit_key: newKey }),
+    })
+    if (res.ok) {
+      setKey(newKey)
+      setNewKey(null)
+      setKeyCopied(false)
+    }
+    setSavingNewKey(false)
+  }
 
   const toggleStyle = (s: string) =>
     setStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
@@ -312,6 +336,51 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                 style={{ background: '#efff42', color: '#000' }}>
                 {saving ? 'Guardando...' : 'Guardar cambios'}
               </button>
+
+              {/* Cambiar clave */}
+              <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-xs uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.25)' }}>Clave de edición</p>
+                {newKey === null ? (
+                  <button onClick={() => setNewKey(genKey())}
+                    className="text-xs px-4 py-2 rounded-lg transition-all"
+                    style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}>
+                    Cambiar clave
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="rounded-lg p-3" style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.2)' }}>
+                      <p className="text-xs font-bold mb-1" style={{ color: '#efff42' }}>⚠ Guardá esta clave antes de confirmar</p>
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>Sin ella no vas a poder editar ni eliminar tu perfil.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1 py-2.5 px-4 rounded-lg text-center font-bold font-mono tracking-widest"
+                        style={{ background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', color: '#efff42', fontSize: 20, letterSpacing: '0.15em' }}>
+                        {newKey}
+                      </div>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(newKey); setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000) }}
+                        className="px-4 rounded-lg text-xs font-bold shrink-0 transition-all"
+                        style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${keyCopied ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: keyCopied ? '#4ade80' : '#efff42' }}>
+                        {keyCopied ? '✓' : 'copiar'}
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => { setNewKey(null); setKeyCopied(false) }}
+                        className="flex-1 py-2 rounded-lg text-xs"
+                        style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
+                        Cancelar
+                      </button>
+                      <button onClick={saveNewKey} disabled={savingNewKey}
+                        className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
+                        style={{ background: '#efff42', color: '#000' }}>
+                        {savingNewKey ? '...' : 'Confirmar cambio'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Eliminar perfil */}
               {!deleteConfirm ? (

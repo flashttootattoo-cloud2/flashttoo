@@ -23,6 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const updates: Record<string, unknown> = {}
   for (const k of allowed) { if (k in fields) updates[k] = fields[k] }
   if (photo_url) updates.photo_url = photo_url
+  if (fields.new_edit_key) updates.edit_key = String(fields.new_edit_key).trim().toUpperCase()
 
   const { data, error } = await sb().from('artists').update(updates).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
