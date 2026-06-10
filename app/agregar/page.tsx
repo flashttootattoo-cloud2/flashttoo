@@ -176,7 +176,7 @@ export default function AgregarPage() {
       <div className="max-w-md mx-auto">
         <div className="mb-8">
           <Link href="/" className="text-xs text-white/30 hover:text-white/60 transition-colors">← volver</Link>
-          <h1 className="text-xl font-bold mt-3">Agregar tatuador</h1>
+          <h1 className="text-xl font-bold mt-3">Agregáte como tatuador/a</h1>
           <p className="text-sm text-white/40 mt-1">Completá tu perfil para aparecer en el buscador.</p>
         </div>
 
