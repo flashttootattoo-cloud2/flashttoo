@@ -17,8 +17,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   const body = await req.json()
   const updates: Record<string, unknown> = {}
-  if ('visible' in body) updates.visible = body.visible
-  if ('status' in body) updates.status = body.status
+  if ('visible'   in body) updates.visible  = body.visible
+  if ('status'   in body) updates.status   = body.status
+  if ('edit_key' in body) updates.edit_key = String(body.edit_key).trim().toUpperCase()
   const { error } = await getAdminClient().from('artists').update(updates).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

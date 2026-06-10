@@ -303,9 +303,11 @@ function buildMsg(a: Artist) {
   return `Hola ${a.name}! Te agregué a Flashttoo, es un buscador de tatuadores. Si querés editar y completar tu perfil, tu clave es: ${a.edit_key}. Es gratuito y sin compromiso. Si no querés estar, usá tu clave para eliminarte.`
 }
 
-function ArtistGrid({ artists, deleting, onDelete, onToggleVisible }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void }) {
+function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void; onUpdateKey: (id: string, key: string) => void }) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [editingKey, setEditingKey] = useState<{ id: string; value: string } | null>(null)
+  const [savingKey, setSavingKey] = useState(false)
   const igCount: Record<string, number> = {}
   artists.forEach(a => { if (a.instagram) { const k = a.instagram.toLowerCase(); igCount[k] = (igCount[k] || 0) + 1 } })
   const isDupe = (a: Artist) => !!a.instagram && (igCount[a.instagram.toLowerCase()] || 0) > 1
@@ -360,7 +362,41 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible }: { artists:
               <span style={{ fontSize: 11, color: '#f472b6' }}>{fmtN(a.likes ?? 0)} ♥</span>
             </div>
             <div className="flex items-center justify-between mt-1.5 gap-2">
-              <p style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(239,255,66,0.55)', letterSpacing: '0.08em' }}>{a.edit_key}</p>
+              {editingKey?.id === a.id ? (
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                  <input
+                    value={editingKey.value}
+                    onChange={e => setEditingKey({ id: a.id, value: e.target.value.toUpperCase() })}
+                    onKeyDown={async e => {
+                      if (e.key === 'Enter') {
+                        setSavingKey(true)
+                        await onUpdateKey(a.id, editingKey.value)
+                        setEditingKey(null); setSavingKey(false)
+                      }
+                      if (e.key === 'Escape') setEditingKey(null)
+                    }}
+                    autoFocus
+                    className="flex-1 min-w-0 py-0.5 px-2 rounded text-xs font-mono font-bold outline-none"
+                    style={{ background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.35)', color: '#efff42', letterSpacing: '0.08em', maxWidth: 90 }}
+                  />
+                  <button onClick={async () => { setSavingKey(true); await onUpdateKey(a.id, editingKey.value); setEditingKey(null); setSavingKey(false) }}
+                    disabled={savingKey}
+                    className="text-xs px-2 py-0.5 rounded font-bold shrink-0 disabled:opacity-40"
+                    style={{ background: 'rgba(239,255,66,0.12)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>
+                    {savingKey ? '...' : 'ok'}
+                  </button>
+                  <button onClick={() => setEditingKey(null)}
+                    className="text-xs px-1.5 py-0.5 rounded shrink-0"
+                    style={{ color: 'rgba(255,255,255,0.25)' }}>✕</button>
+                </div>
+              ) : (
+                <button onClick={() => setEditingKey({ id: a.id, value: a.edit_key })}
+                  className="font-mono text-left transition-opacity hover:opacity-70"
+                  style={{ fontSize: 11, color: 'rgba(239,255,66,0.55)', letterSpacing: '0.08em' }}
+                  title="Editar clave">
+                  {a.edit_key}
+                </button>
+              )}
               <button onClick={() => copyMsg(a)}
                 className="text-xs px-2.5 py-1 rounded-lg shrink-0 transition-colors"
                 style={{
@@ -702,6 +738,17 @@ export default function AdminPage() {
     setDeleting(null)
   }
 
+  const updateArtistKey = async (id: string, key: string) => {
+    const trimmed = key.trim().toUpperCase()
+    if (!trimmed) return
+    await fetch(`/api/admin/artists/${id}`, {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ edit_key: trimmed }),
+    })
+    setArtists(prev => prev.map(a => a.id === id ? { ...a, edit_key: trimmed } : a))
+  }
+
   const toggleVisible = async (id: string, visible: boolean) => {
     await fetch(`/api/admin/artists/${id}`, {
       method: 'PATCH',
@@ -840,7 +887,7 @@ export default function AdminPage() {
         ) : tab === 'artistas' ? (
 
           // ── ARTISTAS ────────────────────────────────────────────────────────
-          <ArtistGrid artists={artists.filter(a => a.status !== 'pending')} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} />
+          <ArtistGrid artists={artists.filter(a => a.status !== 'pending')} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
 
         ) : tab === 'stats' ? (
 
