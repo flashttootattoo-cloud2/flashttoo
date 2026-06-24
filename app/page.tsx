@@ -96,6 +96,7 @@ export default function Home() {
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [loading, setLoading]         = useState(true)
   const [contentCards, setContentCards]     = useState<ContentCard[]>([])
+  const [showCount, setShowCount]           = useState(false)
   const cardStartOffset = useRef(Math.floor(Math.random() * 100))
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
 
@@ -144,6 +145,7 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
     fetch('/api/content-cards').then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
+    supabase.from('settings').select('value').eq('key', 'show_count').single().then(({ data }) => { if (data?.value === true) setShowCount(true) })
   }, [])
 
   useEffect(() => {
@@ -441,7 +443,7 @@ export default function Home() {
         </div>
       </header>
 
-      {!loading && (
+      {!loading && showCount && (
         <div className="max-w-7xl mx-auto px-5 pt-4 pb-1">
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.15)', letterSpacing: '0.05em' }}>
             {filtered.length} tatuador{filtered.length !== 1 ? 'es' : ''}
