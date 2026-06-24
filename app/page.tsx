@@ -241,6 +241,7 @@ export default function Home() {
     allBlocks.push(blocks[i])
   }
   const finalBlocks = isFiltering ? allBlocks.filter(b => b.kind !== 'content') : allBlocks
+  if (typeof window !== 'undefined') console.log('[feed] isFiltering:', isFiltering, '| country:', JSON.stringify(country), '| city:', JSON.stringify(city), '| styles:', activeStyles.length, '| content blocks:', allBlocks.filter(b=>b.kind==='content').length, '→ final:', finalBlocks.filter(b=>b.kind==='content').length)
 
   const openModal = useCallback((artist: Artist) => {
     setSelected(artist)
