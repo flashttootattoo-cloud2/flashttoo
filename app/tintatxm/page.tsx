@@ -300,7 +300,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
 
 
 function buildMsg(a: Artist) {
-  return `Hola ${a.name}! Te agregué a Flashttoo, es un buscador de tatuadores. Si querés editar a tu gusto y completar tu perfil, tu clave es: ${a.edit_key}. Es gratuito y sin compromiso. Si no querés estar, usá tu clave para eliminarte.`
+  return `Hola ${a.name}! Te agregamos a Flashttoo, nuestro buscador de tatuadores. Si querés editar a tu gusto y completar tu perfil, tu clave es: ${a.edit_key}. Es gratuito y sin compromiso. Si no querés estar, podes usá tu clave para eliminarte.`
 }
 
 function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void; onUpdateKey: (id: string, key: string) => void }) {
@@ -340,6 +340,13 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
               <div className="min-w-0">
                 <p className="text-sm font-bold text-white truncate">{a.name}</p>
                 <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
+                {a.instagram && (
+                  <a href={`https://www.instagram.com/${a.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                    className="text-xs truncate"
+                    style={{ color: '#c084fc', textDecoration: 'none' }}>
+                    {a.instagram.startsWith('@') ? a.instagram : `@${a.instagram}`}
+                  </a>
+                )}
                 {isDupe(a) && <p className="text-xs font-bold" style={{ color: '#f87171' }}>⚠ duplicado</p>}
               </div>
               <div className="flex gap-1.5 shrink-0">
