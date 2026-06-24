@@ -159,6 +159,11 @@ export default function Home() {
     })
   }, [])
 
+  useEffect(() => {
+    const filtering = !!country.trim() || !!city.trim() || activeStyles.length > 0
+    console.warn('DEBUG FLASHTTOO — isFiltering:', filtering, '| country:', country, '| city:', city, '| styles:', activeStyles)
+  }, [country, city, activeStyles])
+
   const toggleStyle = (s: string) =>
     setStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
 
@@ -241,7 +246,6 @@ export default function Home() {
     allBlocks.push(blocks[i])
   }
   const finalBlocks = isFiltering ? allBlocks.filter(b => b.kind !== 'content') : allBlocks
-  if (typeof window !== 'undefined') console.log('[feed] isFiltering:', isFiltering, '| country:', JSON.stringify(country), '| city:', JSON.stringify(city), '| styles:', activeStyles.length, '| content blocks:', allBlocks.filter(b=>b.kind==='content').length, '→ final:', finalBlocks.filter(b=>b.kind==='content').length)
 
   const openModal = useCallback((artist: Artist) => {
     setSelected(artist)
