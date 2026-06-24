@@ -473,7 +473,7 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
             {finalBlocks.map(block => {
-              if (block.kind === 'content') return (
+              if (block.kind === 'content') { console.warn('CONTENT CARD RENDERIZANDO — isFiltering:', isFiltering, '| country:', country, '| city:', city); return (
                 <button key={`cc-${block.card.id}-${block.fi}`}
                   onClick={() => { setSelectedContent(block.card); window.history.pushState({}, '', '/') }}
                   className={`col-span-2 relative overflow-hidden text-left${block.rightAlign ? ' col-start-2 sm:col-start-3 lg:col-start-4' : ''}`}
@@ -496,7 +496,7 @@ export default function Home() {
                     <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', textAlign: 'right' }}>leer más →</p>
                   </div>
                 </button>
-              )
+              )}
               if (block.kind === 'featured') {
                 const big = block.big as { type: 'artist'; data: Artist }
                 return (
