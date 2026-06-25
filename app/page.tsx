@@ -40,7 +40,7 @@ type ContentCard = {
   id: string; title: string; body: string; active: boolean
 }
 
-const AD_INTERVAL = 4  // insertar un ad cada N tarjetas
+const AD_INTERVAL = 15
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
