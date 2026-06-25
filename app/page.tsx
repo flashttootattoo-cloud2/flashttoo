@@ -162,7 +162,7 @@ export default function Home() {
   const prevIsFiltering = useRef(false)
   useEffect(() => {
     const filtering = !!country.trim() || !!city.trim() || activeStyles.length > 0
-    if (prevIsFiltering.current && !filtering) {
+    if (prevIsFiltering.current !== filtering) {
       window.scrollTo({ top: 0, behavior: 'instant' })
     }
     prevIsFiltering.current = filtering
@@ -475,7 +475,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
-            {finalBlocks.map(block => {
+            {finalBlocks.filter(b => !isFiltering || b.kind !== 'content').map(block => {
               if (block.kind === 'content') { return (
                 <button key={`cc-${block.card.id}-${block.fi}`}
                   onClick={() => { setSelectedContent(block.card); window.history.pushState({}, '', '/') }}
