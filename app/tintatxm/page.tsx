@@ -308,6 +308,10 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
   const [search, setSearch] = useState('')
   const [editingKey, setEditingKey] = useState<{ id: string; value: string } | null>(null)
   const [savingKey, setSavingKey] = useState(false)
+  const [marked, setMarked] = useState<Set<string>>(new Set())
+  const toggleMark = (id: string) => setMarked(prev => {
+    const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s
+  })
   const igCount: Record<string, number> = {}
   artists.forEach(a => { if (a.instagram) { const k = a.instagram.toLowerCase(); igCount[k] = (igCount[k] || 0) + 1 } })
   const isDupe = (a: Artist) => !!a.instagram && (igCount[a.instagram.toLowerCase()] || 0) > 1
@@ -330,9 +334,23 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
         placeholder="Buscar por nombre..."
         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/30 transition-colors mb-1"
       />
+      {marked.size > 0 && (
+        <p className="text-xs mb-1" style={{ color: 'rgba(239,255,66,0.6)' }}>{marked.size} marcado{marked.size !== 1 ? 's' : ''}</p>
+      )}
       {filtered.map(a => (
         <div key={a.id} className="flex gap-3 p-3 rounded-xl items-start"
-          style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isDupe(a) ? 'rgba(255,80,80,0.4)' : a.visible === false ? 'rgba(255,200,0,0.25)' : 'rgba(255,255,255,0.07)'}`, opacity: a.visible === false ? 0.6 : 1 }}>
+          style={{ background: marked.has(a.id) ? 'rgba(239,255,66,0.04)' : 'rgba(255,255,255,0.03)', border: `1px solid ${marked.has(a.id) ? 'rgba(239,255,66,0.25)' : isDupe(a) ? 'rgba(255,80,80,0.4)' : a.visible === false ? 'rgba(255,200,0,0.25)' : 'rgba(255,255,255,0.07)'}`, opacity: a.visible === false ? 0.6 : 1 }}>
+          <button onClick={() => toggleMark(a.id)}
+            className="shrink-0 mt-0.5 rounded"
+            style={{
+              width: 18, height: 18,
+              border: `1.5px solid ${marked.has(a.id) ? '#efff42' : 'rgba(255,255,255,0.2)'}`,
+              background: marked.has(a.id) ? '#efff42' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}>
+            {marked.has(a.id) && <span style={{ fontSize: 11, color: '#000', fontWeight: 900, lineHeight: 1 }}>✓</span>}
+          </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={a.photo_url} alt={a.name} className="rounded-lg object-cover shrink-0" style={{ width: 56, height: 56 }} />
           <div className="flex-1 min-w-0">
