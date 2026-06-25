@@ -159,9 +159,13 @@ export default function Home() {
     })
   }, [])
 
+  const prevIsFiltering = useRef(false)
   useEffect(() => {
     const filtering = !!country.trim() || !!city.trim() || activeStyles.length > 0
-    console.warn('DEBUG FLASHTTOO — isFiltering:', filtering, '| country:', country, '| city:', city, '| styles:', activeStyles)
+    if (prevIsFiltering.current && !filtering) {
+      window.scrollTo({ top: 0, behavior: 'instant' })
+    }
+    prevIsFiltering.current = filtering
   }, [country, city, activeStyles])
 
   const toggleStyle = (s: string) =>
@@ -473,10 +477,10 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
             {finalBlocks.map(block => {
-              if (block.kind === 'content') { console.warn('CONTENT CARD RENDERIZANDO — isFiltering:', isFiltering, '| country:', country, '| city:', city); return (
+              if (block.kind === 'content') { return (
                 <button key={`cc-${block.card.id}-${block.fi}`}
                   onClick={() => { setSelectedContent(block.card); window.history.pushState({}, '', '/') }}
-                  className={`col-span-2 relative overflow-hidden text-left${block.rightAlign ? ' col-start-2 sm:col-start-3 lg:col-start-4' : ''}`}
+                  className="col-span-2 relative overflow-hidden text-left"
                   style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
                   <div style={{ paddingBottom: '66.5%' }} />
                   <div className="absolute inset-0" style={{
