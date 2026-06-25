@@ -444,7 +444,15 @@ export default function Home() {
           </div>
 
           {hasFilters && (
-            <button onClick={() => { setCountry(''); setCity(''); setStyles([]) }}
+            <button onClick={() => {
+              try {
+                sessionStorage.removeItem('s_country')
+                sessionStorage.removeItem('s_city')
+                sessionStorage.removeItem('s_styles')
+                sessionStorage.removeItem('s_scroll')
+              } catch {}
+              window.location.href = '/'
+            }}
               className="self-start text-xs px-3 py-1 rounded-full transition-all"
               style={{ border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.5)' }}>
               limpiar todo
