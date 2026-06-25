@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json()
 
   const patch: Record<string, unknown> = {}
-  const allowed = ['active', 'title', 'city', 'country', 'instagram', 'whatsapp', 'website', 'link']
+  const allowed = ['active', 'show_global', 'title', 'city', 'country', 'instagram', 'whatsapp', 'website', 'link']
   for (const k of allowed) if (k in body) patch[k] = body[k]
   if (body.regen_key) patch.edit_key = genKey()
 

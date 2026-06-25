@@ -40,6 +40,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if (verify_only) return NextResponse.json({ ok: true })
 
+  if (!updates.city?.trim() || !updates.country?.trim()) {
+    return NextResponse.json({ error: 'Ciudad y país son obligatorios' }, { status: 400 })
+  }
+
   const patch: Record<string, string | null> = {}
 
   if (photo && photo.size > 0) {

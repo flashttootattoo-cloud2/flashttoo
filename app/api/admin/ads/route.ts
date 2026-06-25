@@ -30,6 +30,10 @@ export async function POST(req: NextRequest) {
   const website   = (form.get('website') as string)?.trim() || null
   const link      = (form.get('link') as string)?.trim() || null
 
+  if (!city || !country) {
+    return NextResponse.json({ error: 'Ciudad y país son obligatorios' }, { status: 400 })
+  }
+
   const ext  = photo.name.split('.').pop() || 'jpg'
   const path = `ads/${Date.now()}.${ext}`
   const { error: upErr } = await sb().storage.from('artist-photos').upload(path, photo, { contentType: photo.type })

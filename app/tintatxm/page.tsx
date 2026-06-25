@@ -25,6 +25,7 @@ type Ad = {
   city: string | null; country: string | null
   instagram: string | null; whatsapp: string | null; website: string | null
   edit_key: string | null; clicks: number; active: boolean; created_at: string
+  show_global: boolean
 }
 
 type ContentCard = {
@@ -760,6 +761,8 @@ export default function AdminPage() {
   const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar'>('artistas')
   const [artists, setArtists] = useState<Artist[]>([])
   const [ads, setAds]         = useState<Ad[]>([])
+  const [editingAd, setEditingAd] = useState<{ id: string; city: string; country: string } | null>(null)
+  const [savingAdEdit, setSavingAdEdit] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
   const [deleting, setDeleting]   = useState<string | null>(null)
@@ -923,6 +926,25 @@ export default function AdminPage() {
     setAds(prev => prev.map(a => a.id === id ? { ...a, active: !active } : a))
   }
 
+  const toggleAdGlobal = async (id: string, show_global: boolean) => {
+    await fetch(`/api/admin/ads/${id}`, { method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ show_global: !show_global }) })
+    setAds(prev => prev.map(a => a.id === id ? { ...a, show_global: !show_global } : a))
+  }
+
+  const saveAdLocation = async () => {
+    if (!editingAd) return
+    setSavingAdEdit(true)
+    const r = await fetch(`/api/admin/ads/${editingAd.id}`, {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city: editingAd.city.trim() || null, country: editingAd.country.trim() || null }),
+    })
+    const d = await r.json()
+    if (d.ad) setAds(prev => prev.map(a => a.id === editingAd.id ? { ...a, city: d.ad.city, country: d.ad.country } : a))
+    setEditingAd(null)
+    setSavingAdEdit(false)
+  }
+
   const handleAdPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
     setAdPreview(URL.createObjectURL(file))
@@ -945,6 +967,8 @@ export default function AdminPage() {
     e.preventDefault(); setAdError('')
     if (!adPhoto) { setAdError('Agregá una imagen'); return }
     if (!adForm.title.trim()) { setAdError('Completá el título'); return }
+    if (!adForm.city.trim()) { setAdError('La ciudad es obligatoria'); return }
+    if (!adForm.country.trim()) { setAdError('El país es obligatorio'); return }
     setSavingAd(true)
     try {
       const fd = new FormData()
@@ -1449,7 +1473,17 @@ export default function AdminPage() {
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: '#efff42', opacity: 0.7 }}>{ad.clicks} clicks</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                      <button onClick={() => toggleAdGlobal(ad.id, ad.show_global)}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{
+                          border: `1px solid ${ad.show_global ? 'rgba(96,165,250,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                          color: ad.show_global ? '#60a5fa' : 'rgba(255,255,255,0.25)',
+                          background: ad.show_global ? 'rgba(96,165,250,0.08)' : 'transparent',
+                        }}
+                        title="Mostrar en el inicio (sin búsqueda)">
+                        {ad.show_global ? 'en inicio' : 'sin inicio'}
+                      </button>
                       <button onClick={() => toggleAd(ad.id, ad.active)}
                         className="text-xs px-3 py-1 rounded-full transition-all"
                         style={{
@@ -1466,6 +1500,43 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </div>
+                  {/* Ciudad / país editable */}
+                  {editingAd?.id === ad.id ? (
+                    <div className="flex items-center gap-2 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                      <input
+                        value={editingAd.city}
+                        onChange={e => setEditingAd(v => v && ({ ...v, city: e.target.value }))}
+                        placeholder="Ciudad"
+                        className="flex-1 py-1 px-2 text-xs text-white outline-none rounded-lg"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)' }}
+                      />
+                      <input
+                        value={editingAd.country}
+                        onChange={e => setEditingAd(v => v && ({ ...v, country: e.target.value }))}
+                        placeholder="País"
+                        className="flex-1 py-1 px-2 text-xs text-white outline-none rounded-lg"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)' }}
+                      />
+                      <button onClick={saveAdLocation} disabled={savingAdEdit}
+                        className="text-xs px-3 py-1 rounded-full font-bold disabled:opacity-40"
+                        style={{ background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>
+                        {savingAdEdit ? '...' : 'ok'}
+                      </button>
+                      <button onClick={() => setEditingAd(null)}
+                        className="text-xs px-2 py-1 rounded-full"
+                        style={{ color: 'rgba(255,255,255,0.25)' }}>✕</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setEditingAd({ id: ad.id, city: ad.city || '', country: ad.country || '' })}
+                      className="text-left pt-1 w-full"
+                      style={{ borderTop: '1px solid rgba(255,255,255,0.04)', fontSize: 11, color: (!ad.city || !ad.country) ? 'rgba(255,100,100,0.5)' : 'rgba(255,255,255,0.2)' }}>
+                      {(!ad.city || !ad.country)
+                        ? '⚠ sin ciudad/país — clic para editar'
+                        : `${ad.city}, ${ad.country} — editar`}
+                    </button>
+                  )}
+
                   {/* Clave de edición */}
                   <div className="flex items-center gap-3 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                     <div className="flex-1">

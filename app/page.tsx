@@ -33,7 +33,7 @@ type Ad = {
   id: string; title: string; image_url: string; link: string | null
   city: string | null; country: string | null
   instagram: string | null; whatsapp: string | null; website: string | null
-  clicks: number
+  clicks: number; show_global: boolean
 }
 
 type ContentCard = {
@@ -161,12 +161,27 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
+    const loadAds = async (): Promise<Ad[]> => {
+      const { data, error } = await supabase
+        .from('ads')
+        .select('id,title,image_url,link,city,country,instagram,whatsapp,website,clicks,show_global')
+        .eq('active', true)
+      if (error) {
+        // columna show_global todavía no existe → fallback sin ella
+        const { data: fallback } = await supabase
+          .from('ads')
+          .select('id,title,image_url,link,city,country,instagram,whatsapp,website,clicks')
+          .eq('active', true)
+        return ((fallback || []) as Ad[]).map(ad => ({ ...ad, show_global: false }))
+      }
+      return ((data || []) as Ad[]).map(ad => ({ ...ad, show_global: ad.show_global ?? false }))
+    }
     Promise.all([
       supabase.from('artists').select('*').or('status.eq.active,status.is.null').order('created_at', { ascending: false }),
-      supabase.from('ads').select('id,title,image_url,link,city,country,instagram,whatsapp,website,clicks').eq('active', true),
-    ]).then(([a, b]) => {
+      loadAds(),
+    ]).then(([a, ads]) => {
       setArtists(shuffle(a.data || []))
-      setAds(shuffle((b.data || []) as Ad[]))
+      setAds(shuffle(ads))
       setLoading(false)
     })
   }, [])
@@ -184,10 +199,11 @@ export default function Home() {
   const toggleStyle = (s: string) =>
     setStyles(prev => prev.includes(s) ? [] : [s])
 
+  const qCountry = norm(country)
+  const qCity    = norm(city)
+
   const filtered = artists.filter(a => {
     if (a.visible === false) return false
-    const qCountry = norm(country)
-    const qCity    = norm(city)
     const today = new Date().toISOString().slice(0, 10)
     const futureVisits = (a.visits || []).filter(v => v.to >= today)
     const baseMatch = (!qCountry || norm(a.country).includes(qCountry)) &&
@@ -201,9 +217,16 @@ export default function Home() {
   })
 
   const isActiveSearch = !!country.trim() || !!city.trim() || activeStyles.length > 0
+  const hasLocationSearch = !!qCity || !!qCountry
 
-  // Sin búsqueda: mostrar todas las publicidades activas. Con búsqueda: solo tatuadores
-  const visibleAds = isActiveSearch ? [] : ads
+  // Sin ubicación: solo ads marcadas "en inicio" por el admin. Con ciudad/país: ads de esa ubicación
+  const visibleAds = !hasLocationSearch
+    ? ads.filter(ad => ad.show_global)
+    : ads.filter(ad => {
+        const cityMatch    = !qCity    || norm(ad.city).includes(qCity)
+        const countryMatch = !qCountry || norm(ad.country).includes(qCountry)
+        return cityMatch && countryMatch
+      })
 
   // Mezclar ads en el feed cada AD_INTERVAL tarjetas
   // Los ads restantes siempre se muestran aunque no haya suficientes artistas
