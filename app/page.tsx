@@ -598,24 +598,26 @@ export default function Home() {
             if (card) {
               cardIdx++
               nodes.push(
-                <button key={`cc-${card.id}-${start}`}
-                  onClick={() => { setSelectedContent(card); window.history.pushState({}, '', '/') }}
-                  className="w-full relative overflow-hidden text-left mb-3"
-                  style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
-                  <div style={{ paddingBottom: '18%' }} />
-                  <div className="absolute inset-0" style={{
-                    background: 'rgba(239,255,66,0.03)',
-                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                    padding: '14px 18px 12px',
-                  }}>
-                    <div>
-                      <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 6, textTransform: 'uppercase' }}>Flashttoo</div>
-                      <p className="text-white font-bold" style={{ fontSize: 15, lineHeight: 1.3 }}>{card.title}</p>
-                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4, lineHeight: 1.5 }}>{card.body.slice(0, 120)}{card.body.length > 120 ? '…' : ''}</p>
+                <div key={`cc-row-${start}`} className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                  <button
+                    className="col-span-2 relative overflow-hidden text-left"
+                    onClick={() => { setSelectedContent(card); window.history.pushState({}, '', '/') }}
+                    style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
+                    <div style={{ paddingBottom: '66.5%' }} />
+                    <div className="absolute inset-0" style={{
+                      background: 'rgba(239,255,66,0.03)',
+                      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                      padding: '14px 16px 12px',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 6, textTransform: 'uppercase' }}>Flashttoo</div>
+                        <p className="text-white font-bold" style={{ fontSize: 14, lineHeight: 1.3 }}>{card.title}</p>
+                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4, lineHeight: 1.5 }}>{card.body.slice(0, 100)}{card.body.length > 100 ? '…' : ''}</p>
+                      </div>
+                      <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', textAlign: 'right' }}>leer más →</p>
                     </div>
-                    <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', textAlign: 'right' }}>leer más →</p>
-                  </div>
-                </button>
+                  </button>
+                </div>
               )
             }
           }
