@@ -7,6 +7,10 @@ function sb() {
 function auth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
+function genKey() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
 
 export async function GET(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -18,19 +22,26 @@ export async function POST(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const form = await req.formData()
   const photo = form.get('photo') as File
-  const title = form.get('title') as string
-  const link  = form.get('link')  as string
-  const city  = (form.get('city') as string)?.trim() || null
+  const title     = (form.get('title') as string)?.trim()
+  const city      = (form.get('city') as string)?.trim() || null
+  const country   = (form.get('country') as string)?.trim() || null
+  const instagram = (form.get('instagram') as string)?.trim() || null
+  const whatsapp  = (form.get('whatsapp') as string)?.trim() || null
+  const website   = (form.get('website') as string)?.trim() || null
+  const link      = (form.get('link') as string)?.trim() || null
 
-  // Subir imagen
   const ext  = photo.name.split('.').pop() || 'jpg'
   const path = `ads/${Date.now()}.${ext}`
   const { error: upErr } = await sb().storage.from('artist-photos').upload(path, photo, { contentType: photo.type })
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
 
   const { data: urlData } = sb().storage.from('artist-photos').getPublicUrl(path)
+  const edit_key = genKey()
 
-  const { data, error } = await sb().from('ads').insert({ title, link, city, image_url: urlData.publicUrl }).select().single()
+  const { data, error } = await sb().from('ads').insert({
+    title, link, city, country, instagram, whatsapp, website,
+    image_url: urlData.publicUrl, edit_key,
+  }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ad: data })
 }

@@ -30,7 +30,10 @@ const DEFAULT_STYLES = [
 ]
 
 type Ad = {
-  id: string; title: string; image_url: string; link: string; city: string | null
+  id: string; title: string; image_url: string; link: string | null
+  city: string | null; country: string | null
+  instagram: string | null; whatsapp: string | null; website: string | null
+  clicks: number
 }
 
 type ContentCard = {
@@ -98,6 +101,13 @@ export default function Home() {
   const [contentCards, setContentCards]     = useState<ContentCard[]>([])
   const [showCount, setShowCount]           = useState(false)
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
+  const [selectedAd, setSelectedAd]           = useState<Ad | null>(null)
+  const [adEditSection, setAdEditSection]     = useState(false)
+  const [adKeyInput, setAdKeyInput]           = useState('')
+  const [adKeyError, setAdKeyError]           = useState('')
+  const [adKeyVerified, setAdKeyVerified]     = useState(false)
+  const [adEditForm, setAdEditForm]           = useState({ title: '', city: '', country: '', instagram: '', whatsapp: '', website: '' })
+  const [savingAdEdit, setSavingAdEdit]       = useState(false)
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -150,10 +160,10 @@ export default function Home() {
   useEffect(() => {
     Promise.all([
       supabase.from('artists').select('*').or('status.eq.active,status.is.null').order('created_at', { ascending: false }),
-      supabase.from('ads').select('id,title,image_url,link,city').eq('active', true),
+      supabase.from('ads').select('id,title,image_url,link,city,country,instagram,whatsapp,website,clicks').eq('active', true),
     ]).then(([a, b]) => {
       setArtists(shuffle(a.data || []))
-      setAds(shuffle(b.data || []))
+      setAds(shuffle((b.data || []) as Ad[]))
       setLoading(false)
     })
   }, [])
@@ -322,16 +332,51 @@ export default function Home() {
     window.history.pushState({}, '', '/')
   }, [])
 
+  const verifyAdKey = async () => {
+    if (!selectedAd || adKeyInput.length < 10) { setAdKeyError('La clave debe tener 10 caracteres'); return }
+    const r = await fetch(`/api/ads/${selectedAd.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ edit_key: adKeyInput, verify_only: true }),
+    })
+    if (!r.ok) { setAdKeyError('Clave incorrecta'); return }
+    setAdKeyVerified(true)
+  }
+
+  const saveAdEdit = async () => {
+    if (!selectedAd) return
+    setSavingAdEdit(true)
+    try {
+      const r = await fetch(`/api/ads/${selectedAd.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ edit_key: adKeyInput, ...adEditForm }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Error')
+      const updated = { ...selectedAd, ...adEditForm }
+      setSelectedAd(updated)
+      setAds(prev => prev.map(a => a.id === selectedAd.id ? { ...a, ...adEditForm } : a))
+      setAdEditSection(false)
+      setAdKeyVerified(false)
+    } catch (err: unknown) {
+      setAdKeyError(err instanceof Error ? err.message : 'Error al guardar')
+    } finally {
+      setSavingAdEdit(false)
+    }
+  }
+
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (selectedAd) { setSelectedAd(null); return }
         if (selectedContent) setSelectedContent(null)
         else closeModalFull()
       }
     }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
-  }, [closeModalFull, selectedContent])
+  }, [closeModalFull, selectedContent, selectedAd])
 
   // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
   useEffect(() => {
@@ -520,23 +565,23 @@ export default function Home() {
                             </div>
                           </button>
                         ) : (
-                          <a key={`ad-s${si}-${item.data.id}`}
-                            href={item.data.link} target="_blank" rel="noopener noreferrer"
-                            onClick={() => trackClick(item.data.id, 'ad')}
+                          <button key={`ad-s${si}-${item.data.id}`}
+                            onClick={() => { trackClick(item.data.id, 'ad'); setSelectedAd(item.data); setAdEditSection(false); setAdKeyInput(''); setAdKeyError(''); setAdKeyVerified(false); setAdEditForm({ title: item.data.title, city: item.data.city || '', country: item.data.country || '', instagram: item.data.instagram || '', whatsapp: item.data.whatsapp || '', website: item.data.website || '' }) }}
                             className="group relative overflow-hidden"
-                            style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.15)' }}>
+                            style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
                             <div style={{ paddingBottom: '133%' }} />
-                            <div className="absolute inset-0">
+                            <div className="absolute inset-0" style={{ background: '#111' }}>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={item.data.image_url} alt={item.data.title} loading="lazy"
-                                className="absolute inset-0 w-full h-full object-cover"
+                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                 onError={e => { e.currentTarget.style.opacity = '0' }} />
-                              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 60%)' }} />
+                              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
                               <div className="absolute bottom-0 left-0 right-0 p-2">
                                 <p className="text-white font-bold" style={{ fontSize: 10 }}>{item.data.title}</p>
+                                {item.data.city && <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{item.data.city}</p>}
                               </div>
                             </div>
-                          </a>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -567,27 +612,34 @@ export default function Home() {
                     )
                   } else {
                     nodes.push(
-                      <a key={`ad-${item.data.id}-${block.fi}`}
-                        href={item.data.link} target="_blank" rel="noopener noreferrer"
-                        onClick={() => trackClick(item.data.id, 'ad')}
+                      <div key={`ad-${item.data.id}-${block.fi}`}
                         className="relative overflow-hidden group"
-                        style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.15)' }}>
+                        style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}
+                        onClick={() => { trackClick(item.data.id, 'ad'); setSelectedAd(item.data); setAdEditSection(false); setAdKeyInput(''); setAdKeyError(''); setAdKeyVerified(false); setAdEditForm({ title: item.data.title, city: item.data.city || '', country: item.data.country || '', instagram: item.data.instagram || '', whatsapp: item.data.whatsapp || '', website: item.data.website || '' }) }}>
                         <div style={{ paddingBottom: '133%' }} />
-                        <div className="absolute inset-0">
+                        <div className="absolute inset-0" style={{ background: '#111' }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={item.data.image_url} alt={item.data.title} loading="lazy"
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             onError={e => { e.currentTarget.style.opacity = '0' }} />
-                          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }} />
-                          <div className="absolute top-2 right-2">
-                            <span style={{ background: 'rgba(239,255,66,0.9)', color: '#000', fontSize: 9, letterSpacing: '0.06em' }}
-                              className="text-xs px-2 py-0.5 rounded-full font-bold">PUBLICIDAD</span>
+                          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
+                          <button
+                            onClick={e => { e.stopPropagation(); trackClick(item.data.id, 'ad'); setSelectedAd(item.data); setAdEditSection(true); setAdKeyInput(''); setAdKeyError(''); setAdKeyVerified(false); setAdEditForm({ title: item.data.title, city: item.data.city || '', country: item.data.country || '', instagram: item.data.instagram || '', whatsapp: item.data.whatsapp || '', website: item.data.website || '' }) }}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, width: 28, height: 28, color: 'rgba(255,255,255,0.7)', fontSize: 16, letterSpacing: '-1px', lineHeight: 1 }}>
+                            ···
+                          </button>
+                          <div className="absolute top-2 left-2">
+                            <span style={{ fontSize: 8, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Publicidad</span>
                           </div>
                           <div className="absolute bottom-0 left-0 right-0 p-3">
-                            <p className="text-white font-bold" style={{ fontSize: 12 }}>{item.data.title}</p>
+                            <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{item.data.title}</p>
+                            {item.data.city && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{item.data.city}</p>}
                           </div>
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
+                            style={{ borderRadius: 11, boxShadow: 'inset 0 0 0 1px rgba(239,255,66,0.2)' }} />
                         </div>
-                      </a>
+                      </div>
                     )
                   }
                 }
@@ -865,6 +917,151 @@ export default function Home() {
                 {selectedContent.body}
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL PUBLICIDAD ───────────────────────────────────── */}
+      {selectedAd && (
+        <div className="fixed inset-0 z-50 overflow-y-auto"
+          style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(20px)', animation: 'fadeInYellow 0.22s ease' }}
+          onClick={() => setSelectedAd(null)}>
+          <div className="flex justify-center items-start min-h-full pb-24 sm:px-4 sm:pt-6">
+          <div className="flex flex-col w-full sm:max-w-sm" onClick={e => e.stopPropagation()}>
+          <div className="relative w-full overflow-hidden"
+            style={{ background: '#111', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
+
+            {/* Foto */}
+            <div className="relative w-full" style={{ paddingBottom: '115%' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={selectedAd.image_url} alt={selectedAd.title} className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #111 0%, rgba(0,0,0,0.5) 50%, transparent 100%)' }} />
+              <button onClick={() => setSelectedAd(null)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', fontSize: 18 }}>
+                ×
+              </button>
+              <div className="absolute top-4 left-4">
+                <span style={{ fontSize: 9, color: 'rgba(239,255,66,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Publicidad</span>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <h2 style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.1, color: '#fff', overflowWrap: 'break-word' }}>{selectedAd.title}</h2>
+                {(selectedAd.city || selectedAd.country) && (
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+                    {[selectedAd.city, selectedAd.country].filter(Boolean).join(', ')}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Contacto + editar */}
+            <div className="px-5 pb-5 pt-3">
+              <div className="flex flex-col gap-2">
+                {selectedAd.website && (
+                  <a href={selectedAd.website} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Sitio web</p>
+                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                  </a>
+                )}
+                {selectedAd.instagram && (
+                  <a href={`https://instagram.com/${selectedAd.instagram.replace('@', '')}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Instagram</p>
+                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                  </a>
+                )}
+                {selectedAd.whatsapp && (
+                  <a href={`https://wa.me/${selectedAd.whatsapp.replace(/\D/g, '')}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>WhatsApp</p>
+                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                  </a>
+                )}
+                {selectedAd.link && !selectedAd.website && (
+                  <a href={selectedAd.link} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Ver más</p>
+                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Sección editar */}
+              <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
+                {!adEditSection ? (
+                  <button onClick={() => setAdEditSection(true)}
+                    style={{ fontSize: 11, color: 'rgba(255,255,255,0.15)', letterSpacing: '-0.5px' }}>
+                    ···  editar publicidad
+                  </button>
+                ) : !adKeyVerified ? (
+                  <div className="flex flex-col gap-2">
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Clave de edición</p>
+                    <div className="flex gap-2">
+                      <input
+                        value={adKeyInput}
+                        onChange={e => { setAdKeyInput(e.target.value.toUpperCase()); setAdKeyError('') }}
+                        placeholder="••••••••••"
+                        maxLength={10}
+                        className="flex-1 py-2 px-3 text-sm text-white outline-none rounded-lg"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                        onKeyDown={e => { if (e.key === 'Enter') verifyAdKey() }}
+                      />
+                      <button onClick={verifyAdKey}
+                        className="px-4 py-2 rounded-lg text-sm font-bold"
+                        style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.2)' }}>
+                        OK
+                      </button>
+                    </div>
+                    {adKeyError && <p style={{ fontSize: 11, color: 'rgba(255,80,80,0.8)' }}>{adKeyError}</p>}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#efff42', letterSpacing: '0.08em' }}>EDITAR PUBLICIDAD</p>
+                    {[
+                      { label: 'Nombre / título', key: 'title' },
+                      { label: 'Ciudad', key: 'city' },
+                      { label: 'País', key: 'country' },
+                      { label: 'Instagram', key: 'instagram' },
+                      { label: 'WhatsApp', key: 'whatsapp' },
+                      { label: 'Sitio web', key: 'website' },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{f.label}</p>
+                        <input
+                          value={adEditForm[f.key as keyof typeof adEditForm]}
+                          onChange={e => setAdEditForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                          className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                        />
+                      </div>
+                    ))}
+                    {adKeyError && <p style={{ fontSize: 11, color: 'rgba(255,80,80,0.8)' }}>{adKeyError}</p>}
+                    <button onClick={saveAdEdit} disabled={savingAdEdit}
+                      className="self-end px-5 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+                      style={{ background: '#efff42', color: '#000' }}>
+                      {savingAdEdit ? 'Guardando...' : 'Guardar'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          </div>
           </div>
         </div>
       )}

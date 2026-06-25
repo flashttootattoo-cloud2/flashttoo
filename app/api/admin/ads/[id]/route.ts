@@ -7,6 +7,10 @@ function sb() {
 function auth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
+function genKey() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,7 +29,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
   const body = await req.json()
-  const { data, error } = await sb().from('ads').update({ active: body.active }).eq('id', id).select().single()
+
+  const patch: Record<string, unknown> = {}
+  const allowed = ['active', 'title', 'city', 'country', 'instagram', 'whatsapp', 'website', 'link']
+  for (const k of allowed) if (k in body) patch[k] = body[k]
+  if (body.regen_key) patch.edit_key = genKey()
+
+  const { data, error } = await sb().from('ads').update(patch).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ad: data })
 }

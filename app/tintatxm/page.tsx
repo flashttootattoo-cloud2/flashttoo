@@ -21,8 +21,10 @@ function fmtN(n: number): string {
 }
 
 type Ad = {
-  id: string; title: string; image_url: string; link: string
-  city: string | null; clicks: number; active: boolean; created_at: string
+  id: string; title: string; image_url: string; link: string | null
+  city: string | null; country: string | null
+  instagram: string | null; whatsapp: string | null; website: string | null
+  edit_key: string | null; clicks: number; active: boolean; created_at: string
 }
 
 type ContentCard = {
@@ -787,7 +789,7 @@ export default function AdminPage() {
   }, [])
 
   // Ad form
-  const [adForm, setAdForm] = useState({ title: '', link: '', city: '' })
+  const [adForm, setAdForm] = useState({ title: '', link: '', city: '', country: '', instagram: '', whatsapp: '', website: '' })
   const [adPhoto, setAdPhoto] = useState<File | null>(null)
   const [adPreview, setAdPreview] = useState<string | null>(null)
   const [savingAd, setSavingAd] = useState(false)
@@ -942,7 +944,7 @@ export default function AdminPage() {
   const saveAd = async (e: { preventDefault: () => void }) => {
     e.preventDefault(); setAdError('')
     if (!adPhoto) { setAdError('Agregá una imagen'); return }
-    if (!adForm.title.trim() || !adForm.link.trim()) { setAdError('Completá título y link'); return }
+    if (!adForm.title.trim()) { setAdError('Completá el título'); return }
     setSavingAd(true)
     try {
       const fd = new FormData()
@@ -950,11 +952,15 @@ export default function AdminPage() {
       fd.append('title', adForm.title.trim())
       fd.append('link', adForm.link.trim())
       fd.append('city', adForm.city.trim())
+      fd.append('country', adForm.country.trim())
+      fd.append('instagram', adForm.instagram.trim())
+      fd.append('whatsapp', adForm.whatsapp.trim())
+      fd.append('website', adForm.website.trim())
       const r = await fetch('/api/admin/ads', { method: 'POST', headers: H(pass), body: fd })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Error')
       setAds(prev => [d.ad, ...prev])
-      setAdForm({ title: '', link: '', city: '' }); setAdPhoto(null); setAdPreview(null)
+      setAdForm({ title: '', link: '', city: '', country: '', instagram: '', whatsapp: '', website: '' }); setAdPhoto(null); setAdPreview(null)
     } catch (err: unknown) {
       setAdError(err instanceof Error ? err.message : 'Error')
     } finally { setSavingAd(false) }
@@ -1388,13 +1394,29 @@ export default function AdminPage() {
                     <input value={adForm.title} onChange={e => setAdForm(f => ({ ...f, title: e.target.value }))}
                       placeholder="Estudio Roma · Buenos Aires" className={iCls} />
                   </AdField>
-                  <AdField label="Link (URL)">
-                    <input value={adForm.link} onChange={e => setAdForm(f => ({ ...f, link: e.target.value }))}
-                      placeholder="https://instagram.com/..." className={iCls} />
-                  </AdField>
-                  <AdField label="Ubicación (vacío = todos lados)">
+                  <AdField label="Ciudad">
                     <input value={adForm.city} onChange={e => setAdForm(f => ({ ...f, city: e.target.value }))}
-                      placeholder="Buenos Aires · Argentina · vacío = global" className={iCls} />
+                      placeholder="Buenos Aires" className={iCls} />
+                  </AdField>
+                  <AdField label="País">
+                    <input value={adForm.country} onChange={e => setAdForm(f => ({ ...f, country: e.target.value }))}
+                      placeholder="Argentina" className={iCls} />
+                  </AdField>
+                  <AdField label="Instagram">
+                    <input value={adForm.instagram} onChange={e => setAdForm(f => ({ ...f, instagram: e.target.value }))}
+                      placeholder="@estudioroma" className={iCls} />
+                  </AdField>
+                  <AdField label="WhatsApp">
+                    <input value={adForm.whatsapp} onChange={e => setAdForm(f => ({ ...f, whatsapp: e.target.value }))}
+                      placeholder="+54911..." className={iCls} />
+                  </AdField>
+                  <AdField label="Sitio web">
+                    <input value={adForm.website} onChange={e => setAdForm(f => ({ ...f, website: e.target.value }))}
+                      placeholder="https://..." className={iCls} />
+                  </AdField>
+                  <AdField label="Link directo (opcional)">
+                    <input value={adForm.link} onChange={e => setAdForm(f => ({ ...f, link: e.target.value }))}
+                      placeholder="https://..." className={iCls} />
                   </AdField>
                 </div>
               </div>
@@ -1413,35 +1435,54 @@ export default function AdminPage() {
                 <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.1)' }}>Sin publicidades</p>
               )}
               {ads.map(ad => (
-                <div key={ad.id} className="rounded-xl p-4 flex items-center gap-4"
+                <div key={ad.id} className="rounded-xl p-4 flex flex-col gap-3"
                   style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${ad.active ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.06)'}` }}>
-                  <div className="shrink-0 rounded-lg overflow-hidden" style={{ width: 80, height: 56 }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
+                  <div className="flex items-center gap-4">
+                    <div className="shrink-0 rounded-lg overflow-hidden" style={{ width: 72, height: 52 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{ad.title}</p>
+                      <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        {[ad.city, ad.country].filter(Boolean).join(', ') || 'global'}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: '#efff42', opacity: 0.7 }}>{ad.clicks} clicks</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button onClick={() => toggleAd(ad.id, ad.active)}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{
+                          border: `1px solid ${ad.active ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                          color: ad.active ? '#efff42' : 'rgba(255,255,255,0.3)',
+                          background: ad.active ? 'rgba(239,255,66,0.07)' : 'transparent',
+                        }}>
+                        {ad.active ? 'activo' : 'pausado'}
+                      </button>
+                      <button onClick={() => deleteAd(ad.id)} disabled={deleting === ad.id}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.5)' }}>
+                        {deleting === ad.id ? '...' : 'borrar'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{ad.title}</p>
-                    <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                      {ad.city || 'global — todos lados'}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: '#efff42', opacity: 0.7 }}>
-                      {ad.clicks} clicks
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => toggleAd(ad.id, ad.active)}
-                      className="text-xs px-3 py-1 rounded-full transition-all"
-                      style={{
-                        border: `1px solid ${ad.active ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                        color: ad.active ? '#efff42' : 'rgba(255,255,255,0.3)',
-                        background: ad.active ? 'rgba(239,255,66,0.07)' : 'transparent',
-                      }}>
-                      {ad.active ? 'activo' : 'pausado'}
-                    </button>
-                    <button onClick={() => deleteAd(ad.id)} disabled={deleting === ad.id}
-                      className="text-xs px-3 py-1 rounded-full transition-all"
-                      style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.5)' }}>
-                      {deleting === ad.id ? '...' : 'borrar'}
+                  {/* Clave de edición */}
+                  <div className="flex items-center gap-3 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div className="flex-1">
+                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Clave del anunciante</p>
+                      <p style={{ fontSize: 13, fontFamily: 'monospace', color: ad.edit_key ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.15)', letterSpacing: '0.12em' }}>
+                        {ad.edit_key || '— sin clave —'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const r = await fetch(`/api/admin/ads/${ad.id}`, { method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ regen_key: true }) })
+                        const d = await r.json()
+                        if (d.ad) setAds(prev => prev.map(a => a.id === ad.id ? { ...a, edit_key: d.ad.edit_key } : a))
+                      }}
+                      className="text-xs px-3 py-1 rounded-full"
+                      style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' }}>
+                      nueva clave
                     </button>
                   </div>
                 </div>
