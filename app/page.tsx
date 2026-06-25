@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { supabase, type Artist } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
@@ -469,160 +469,156 @@ export default function Home() {
           <div className="py-32 text-center">
             <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: 13 }}>sin resultados</p>
           </div>
-        ) : (() => {
-          const CHUNK = 15
-          const activeCards = isActiveSearch ? [] : contentCards.filter(c => c.active)
-          const gridCls = 'grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start'
-          const nodes = []
-          let cardIdx = 0
-          for (let start = 0; start < finalBlocks.length; start += CHUNK) {
-            const chunk = finalBlocks.slice(start, start + CHUNK)
-            nodes.push(
-              <div key={`g-${start}`} className={gridCls} style={{ gridAutoFlow: 'dense', marginBottom: 12 }}>
-                {chunk.map(block => {
-                  if (block.kind === 'featured') {
-                    const big = block.big as { type: 'artist'; data: Artist }
-                    return (
-                      <div key={`feat-${big.data.id}`}
-                        style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, gridColumnEnd: 'span 3' }}>
-                        <button onClick={() => openModal(big.data)}
-                          className="group relative overflow-hidden"
-                          style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div style={{ paddingBottom: '133%' }} />
-                          <div className="absolute inset-0" style={{ background: '#111' }}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={big.data.photo_url} alt={big.data.name}
-                              loading={block.fi < 4 ? 'eager' : 'lazy'}
-                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                              onError={e => { e.currentTarget.style.opacity = '0' }} />
-                            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
-                            <div className="absolute bottom-0 left-0 right-0 p-3">
-                              <p className="text-white font-bold" style={{ fontSize: 16, overflowWrap: 'break-word' }}>{big.data.name}</p>
-                              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{big.data.city}</p>
-                            </div>
-                            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
-                              style={{ borderRadius: 11, boxShadow: 'inset 0 0 0 1px rgba(239,255,66,0.3)' }} />
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
+            {(() => {
+              const CHUNK = 15
+              const activeCards = isActiveSearch ? [] : contentCards.filter(c => c.active)
+              const nodes: React.ReactNode[] = []
+              let cardIdx = 0
+              finalBlocks.forEach((block, i) => {
+                if (block.kind === 'featured') {
+                  const big = block.big as { type: 'artist'; data: Artist }
+                  nodes.push(
+                    <div key={`feat-${big.data.id}`}
+                      style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, gridColumnEnd: 'span 3' }}>
+                      <button onClick={() => openModal(big.data)}
+                        className="group relative overflow-hidden"
+                        style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ paddingBottom: '133%' }} />
+                        <div className="absolute inset-0" style={{ background: '#111' }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={big.data.photo_url} alt={big.data.name}
+                            loading={block.fi < 4 ? 'eager' : 'lazy'}
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            onError={e => { e.currentTarget.style.opacity = '0' }} />
+                          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <p className="text-white font-bold" style={{ fontSize: 16, overflowWrap: 'break-word' }}>{big.data.name}</p>
+                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{big.data.city}</p>
                           </div>
-                        </button>
-                        <div className="flex flex-col gap-3">
-                          {[block.s1, block.s2].map((item, si) => item.type === 'artist' ? (
-                            <button key={item.data.id} onClick={() => openModal(item.data)}
-                              className="group relative overflow-hidden"
-                              style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                              <div style={{ paddingBottom: '133%' }} />
-                              <div className="absolute inset-0" style={{ background: '#111' }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={item.data.photo_url} alt={item.data.name} loading="lazy"
-                                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                  onError={e => { e.currentTarget.style.opacity = '0' }} />
-                                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
-                                <div className="absolute bottom-0 left-0 right-0 p-2">
-                                  <p className="text-white font-bold leading-tight" style={{ fontSize: 11, overflowWrap: 'break-word' }}>{item.data.name}</p>
-                                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{item.data.city}</p>
-                                </div>
-                              </div>
-                            </button>
-                          ) : (
-                            <a key={`ad-s${si}-${item.data.id}`}
-                              href={item.data.link} target="_blank" rel="noopener noreferrer"
-                              onClick={() => trackClick(item.data.id, 'ad')}
-                              className="group relative overflow-hidden"
-                              style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.15)' }}>
-                              <div style={{ paddingBottom: '133%' }} />
-                              <div className="absolute inset-0">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={item.data.image_url} alt={item.data.title} loading="lazy"
-                                  className="absolute inset-0 w-full h-full object-cover"
-                                  onError={e => { e.currentTarget.style.opacity = '0' }} />
-                                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 60%)' }} />
-                                <div className="absolute bottom-0 left-0 right-0 p-2">
-                                  <p className="text-white font-bold" style={{ fontSize: 10 }}>{item.data.title}</p>
-                                </div>
-                              </div>
-                            </a>
-                          ))}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
+                            style={{ borderRadius: 11, boxShadow: 'inset 0 0 0 1px rgba(239,255,66,0.3)' }} />
                         </div>
+                      </button>
+                      <div className="flex flex-col gap-3">
+                        {[block.s1, block.s2].map((item, si) => item.type === 'artist' ? (
+                          <button key={item.data.id} onClick={() => openModal(item.data)}
+                            className="group relative overflow-hidden"
+                            style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ paddingBottom: '133%' }} />
+                            <div className="absolute inset-0" style={{ background: '#111' }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={item.data.photo_url} alt={item.data.name} loading="lazy"
+                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                onError={e => { e.currentTarget.style.opacity = '0' }} />
+                              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
+                              <div className="absolute bottom-0 left-0 right-0 p-2">
+                                <p className="text-white font-bold leading-tight" style={{ fontSize: 11, overflowWrap: 'break-word' }}>{item.data.name}</p>
+                                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{item.data.city}</p>
+                              </div>
+                            </div>
+                          </button>
+                        ) : (
+                          <a key={`ad-s${si}-${item.data.id}`}
+                            href={item.data.link} target="_blank" rel="noopener noreferrer"
+                            onClick={() => trackClick(item.data.id, 'ad')}
+                            className="group relative overflow-hidden"
+                            style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.15)' }}>
+                            <div style={{ paddingBottom: '133%' }} />
+                            <div className="absolute inset-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={item.data.image_url} alt={item.data.title} loading="lazy"
+                                className="absolute inset-0 w-full h-full object-cover"
+                                onError={e => { e.currentTarget.style.opacity = '0' }} />
+                              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 60%)' }} />
+                              <div className="absolute bottom-0 left-0 right-0 p-2">
+                                <p className="text-white font-bold" style={{ fontSize: 10 }}>{item.data.title}</p>
+                              </div>
+                            </div>
+                          </a>
+                        ))}
                       </div>
+                    </div>
+                  )
+                } else if (block.kind === 'single') {
+                  const item = block.item
+                  if (item.type === 'artist') {
+                    nodes.push(
+                      <button key={item.data.id} onClick={() => openModal(item.data)}
+                        className="group relative overflow-hidden"
+                        style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ paddingBottom: '133%' }} />
+                        <div className="absolute inset-0" style={{ background: '#111' }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={item.data.photo_url} alt={item.data.name}
+                            loading={block.fi < 4 ? 'eager' : 'lazy'}
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            onError={e => { e.currentTarget.style.opacity = '0' }} />
+                          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{item.data.name}</p>
+                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{item.data.city}</p>
+                          </div>
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
+                            style={{ borderRadius: 11, boxShadow: 'inset 0 0 0 1px rgba(239,255,66,0.3)' }} />
+                        </div>
+                      </button>
+                    )
+                  } else {
+                    nodes.push(
+                      <a key={`ad-${item.data.id}-${block.fi}`}
+                        href={item.data.link} target="_blank" rel="noopener noreferrer"
+                        onClick={() => trackClick(item.data.id, 'ad')}
+                        className="relative overflow-hidden group"
+                        style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.15)' }}>
+                        <div style={{ paddingBottom: '133%' }} />
+                        <div className="absolute inset-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={item.data.image_url} alt={item.data.title} loading="lazy"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            onError={e => { e.currentTarget.style.opacity = '0' }} />
+                          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }} />
+                          <div className="absolute top-2 right-2">
+                            <span style={{ background: 'rgba(239,255,66,0.9)', color: '#000', fontSize: 9, letterSpacing: '0.06em' }}
+                              className="text-xs px-2 py-0.5 rounded-full font-bold">PUBLICIDAD</span>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <p className="text-white font-bold" style={{ fontSize: 12 }}>{item.data.title}</p>
+                          </div>
+                        </div>
+                      </a>
                     )
                   }
-                  if (block.kind !== 'single') return null
-                  const item = block.item
-                  if (item.type === 'artist') return (
-                    <button key={item.data.id} onClick={() => openModal(item.data)}
-                      className="group relative overflow-hidden"
-                      style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ paddingBottom: '133%' }} />
-                      <div className="absolute inset-0" style={{ background: '#111' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.data.photo_url} alt={item.data.name}
-                          loading={block.fi < 4 ? 'eager' : 'lazy'}
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          onError={e => { e.currentTarget.style.opacity = '0' }} />
-                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
-                        <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{item.data.name}</p>
-                          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{item.data.city}</p>
+                }
+                if ((i + 1) % CHUNK === 0 && cardIdx < activeCards.length) {
+                  const card = activeCards[cardIdx++]
+                  nodes.push(
+                    <button key={`cc-${card.id}-${i}`}
+                      onClick={() => { setSelectedContent(card); window.history.pushState({}, '', '/') }}
+                      className="text-left relative overflow-hidden"
+                      style={{ gridColumn: '1 / span 2', borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
+                      <div style={{ paddingBottom: '66.5%' }} />
+                      <div className="absolute inset-0" style={{
+                        background: 'rgba(239,255,66,0.03)',
+                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                        padding: '14px 16px 12px',
+                      }}>
+                        <div>
+                          <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 6, textTransform: 'uppercase' }}>Flashttoo</div>
+                          <p className="text-white font-bold" style={{ fontSize: 14, lineHeight: 1.3 }}>{card.title}</p>
+                          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4, lineHeight: 1.5 }}>{card.body.slice(0, 100)}{card.body.length > 100 ? '…' : ''}</p>
                         </div>
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
-                          style={{ borderRadius: 11, boxShadow: 'inset 0 0 0 1px rgba(239,255,66,0.3)' }} />
+                        <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', textAlign: 'right' }}>leer más →</p>
                       </div>
                     </button>
                   )
-                  return (
-                    <a key={`ad-${item.data.id}-${block.fi}`}
-                      href={item.data.link} target="_blank" rel="noopener noreferrer"
-                      onClick={() => trackClick(item.data.id, 'ad')}
-                      className="relative overflow-hidden group"
-                      style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.15)' }}>
-                      <div style={{ paddingBottom: '133%' }} />
-                      <div className="absolute inset-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.data.image_url} alt={item.data.title} loading="lazy"
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          onError={e => { e.currentTarget.style.opacity = '0' }} />
-                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }} />
-                        <div className="absolute top-2 right-2">
-                          <span style={{ background: 'rgba(239,255,66,0.9)', color: '#000', fontSize: 9, letterSpacing: '0.06em' }}
-                            className="text-xs px-2 py-0.5 rounded-full font-bold">PUBLICIDAD</span>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <p className="text-white font-bold" style={{ fontSize: 12 }}>{item.data.title}</p>
-                        </div>
-                      </div>
-                    </a>
-                  )
-                })}
-              </div>
-            )
-            const card = activeCards[cardIdx]
-            if (card) {
-              cardIdx++
-              nodes.push(
-                <div key={`cc-row-${start}`} className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-                  <button
-                    className="col-span-2 relative overflow-hidden text-left"
-                    onClick={() => { setSelectedContent(card); window.history.pushState({}, '', '/') }}
-                    style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
-                    <div style={{ paddingBottom: '66.5%' }} />
-                    <div className="absolute inset-0" style={{
-                      background: 'rgba(239,255,66,0.03)',
-                      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                      padding: '14px 16px 12px',
-                    }}>
-                      <div>
-                        <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 6, textTransform: 'uppercase' }}>Flashttoo</div>
-                        <p className="text-white font-bold" style={{ fontSize: 14, lineHeight: 1.3 }}>{card.title}</p>
-                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4, lineHeight: 1.5 }}>{card.body.slice(0, 100)}{card.body.length > 100 ? '…' : ''}</p>
-                      </div>
-                      <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', textAlign: 'right' }}>leer más →</p>
-                    </div>
-                  </button>
-                </div>
-              )
-            }
-          }
-          return nodes
-        })()}
+                }
+              })
+              return nodes
+            })()}
+          </div>
+        )}
       </div>
 
 
