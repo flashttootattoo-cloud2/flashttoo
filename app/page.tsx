@@ -181,14 +181,10 @@ export default function Home() {
     return countryMatch && cityMatch && styleMatch
   })
 
-  // Targeting: sin filtro = global (siempre), con filtro = solo cuando coincide
-  const visibleAds = ads.filter(ad => {
-    if (!ad.city) return true
-    if (!country.trim() && !city.trim()) return false
-    const t = norm(ad.city)
-    const l = norm(city || country)
-    return t.includes(l) || l.includes(t)
-  })
+  const isActiveSearch = !!country.trim() || !!city.trim() || activeStyles.length > 0
+
+  // Sin búsqueda: mostrar publicidades globales. Con búsqueda: solo tatuadores
+  const visibleAds = isActiveSearch ? [] : ads.filter(ad => !ad.city)
 
   // Mezclar ads en el feed cada AD_INTERVAL tarjetas
   // Los ads restantes siempre se muestran aunque no haya suficientes artistas
@@ -234,14 +230,12 @@ export default function Home() {
     }
   }
 
-  const isFiltering = !!country.trim() || !!city.trim() || activeStyles.length > 0
-
   // Insertar tarjetas de contenido cada ~20 posiciones, solo cuando no hay búsqueda activa
   const CONTENT_GAPS = [12, 22, 19, 21, 20, 23, 18, 21, 20, 22]
   const finalBlocks: Block[] = []
   let cInsert = CONTENT_GAPS[0], cGapIdx = 0, cCardIdx = cardStartOffset.current
   for (let i = 0; i < blocks.length; i++) {
-    if (!isFiltering && i === cInsert && contentCards.length > 0) {
+    if (!isActiveSearch && i === cInsert && contentCards.length > 0) {
       finalBlocks.push({ kind: 'content', card: contentCards[cCardIdx % contentCards.length], fi: -1, rightAlign: cCardIdx % 2 === 1 })
       cCardIdx++
       cGapIdx = (cGapIdx + 1) % CONTENT_GAPS.length
@@ -475,8 +469,8 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
-            {finalBlocks.filter(b => !isFiltering || b.kind !== 'content').map(block => {
-              if (block.kind === 'content') { return (
+            {finalBlocks.filter(b => !isActiveSearch || b.kind !== 'content').map(block => {
+              if (block.kind === 'content') { if (isActiveSearch) return null; return (
                 <button key={`cc-${block.card.id}-${block.fi}`}
                   onClick={() => { setSelectedContent(block.card); window.history.pushState({}, '', '/') }}
                   className="col-span-2 relative overflow-hidden text-left"
