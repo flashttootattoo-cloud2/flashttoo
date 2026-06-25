@@ -415,9 +415,13 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
   const [search, setSearch] = useState('')
   const [editingKey, setEditingKey] = useState<{ id: string; value: string } | null>(null)
   const [savingKey, setSavingKey] = useState(false)
-  const [marked, setMarked] = useState<Set<string>>(new Set())
+  const [marked, setMarked] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('admin_marked') || '[]')) } catch { return new Set() }
+  })
   const toggleMark = (id: string) => setMarked(prev => {
-    const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s
+    const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id)
+    try { localStorage.setItem('admin_marked', JSON.stringify([...s])) } catch {}
+    return s
   })
   const igCount: Record<string, number> = {}
   artists.forEach(a => { if (a.instagram) { const k = a.instagram.toLowerCase(); igCount[k] = (igCount[k] || 0) + 1 } })
