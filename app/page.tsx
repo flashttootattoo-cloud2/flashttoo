@@ -51,7 +51,8 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function norm(s: string): string {
+function norm(s: string | null | undefined): string {
+  if (!s) return ''
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
 
@@ -107,6 +108,8 @@ export default function Home() {
   const [adKeyError, setAdKeyError]           = useState('')
   const [adKeyVerified, setAdKeyVerified]     = useState(false)
   const [adEditForm, setAdEditForm]           = useState({ title: '', city: '', country: '', instagram: '', whatsapp: '', website: '' })
+  const [adEditPhoto, setAdEditPhoto]         = useState<File | null>(null)
+  const [adEditPhotoPreview, setAdEditPhotoPreview] = useState<string | null>(null)
   const [savingAdEdit, setSavingAdEdit]       = useState(false)
 
   useEffect(() => {
@@ -347,18 +350,20 @@ export default function Home() {
     if (!selectedAd) return
     setSavingAdEdit(true)
     try {
-      const r = await fetch(`/api/ads/${selectedAd.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ edit_key: adKeyInput, ...adEditForm }),
-      })
+      const fd = new FormData()
+      fd.append('edit_key', adKeyInput)
+      Object.entries(adEditForm).forEach(([k, v]) => fd.append(k, v))
+      if (adEditPhoto) fd.append('photo', adEditPhoto)
+      const r = await fetch(`/api/ads/${selectedAd.id}`, { method: 'PATCH', body: fd })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Error')
-      const updated = { ...selectedAd, ...adEditForm }
+      const updated = { ...selectedAd, ...adEditForm, ...(d.ad?.image_url ? { image_url: d.ad.image_url } : {}) }
       setSelectedAd(updated)
-      setAds(prev => prev.map(a => a.id === selectedAd.id ? { ...a, ...adEditForm } : a))
+      setAds(prev => prev.map(a => a.id === selectedAd.id ? { ...a, ...updated } : a))
       setAdEditSection(false)
       setAdKeyVerified(false)
+      setAdEditPhoto(null)
+      setAdEditPhotoPreview(null)
     } catch (err: unknown) {
       setAdKeyError(err instanceof Error ? err.message : 'Error al guardar')
     } finally {
@@ -1005,8 +1010,8 @@ export default function Home() {
               <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
                 {!adEditSection ? (
                   <button onClick={() => setAdEditSection(true)}
-                    style={{ fontSize: 11, color: 'rgba(255,255,255,0.15)', letterSpacing: '-0.5px' }}>
-                    ···  editar publicidad
+                    style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', letterSpacing: '-2px', lineHeight: 1 }}>
+                    ···
                   </button>
                 ) : !adKeyVerified ? (
                   <div className="flex flex-col gap-2">
@@ -1032,6 +1037,43 @@ export default function Home() {
                 ) : (
                   <div className="flex flex-col gap-3">
                     <p style={{ fontSize: 11, fontWeight: 700, color: '#efff42', letterSpacing: '0.08em' }}>EDITAR PUBLICIDAD</p>
+                    {/* Foto */}
+                    <div>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Foto</p>
+                      <label className="block cursor-pointer">
+                        <div className="relative rounded-xl overflow-hidden" style={{ paddingBottom: '60%' }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={adEditPhotoPreview || selectedAd.image_url}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center"
+                            style={{ background: 'rgba(0,0,0,0.45)' }}>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>cambiar foto</span>
+                          </div>
+                        </div>
+                        <input type="file" accept="image/*" className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0]; if (!file) return
+                            const preview = URL.createObjectURL(file)
+                            setAdEditPhotoPreview(preview)
+                            const img = new window.Image()
+                            img.onload = () => {
+                              const MAX = 1200; let { width, height } = img
+                              if (width > MAX || height > MAX) {
+                                if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+                                else { width = Math.round(width * MAX / height); height = MAX }
+                              }
+                              const canvas = document.createElement('canvas')
+                              canvas.width = width; canvas.height = height
+                              canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+                              canvas.toBlob(blob => { if (blob) setAdEditPhoto(new File([blob], 'ad.webp', { type: 'image/webp' })) }, 'image/webp', 0.85)
+                            }
+                            img.src = preview
+                          }} />
+                      </label>
+                    </div>
                     {[
                       { label: 'Nombre / título', key: 'title' },
                       { label: 'Ciudad', key: 'city' },
