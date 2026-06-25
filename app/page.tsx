@@ -97,7 +97,6 @@ export default function Home() {
   const [loading, setLoading]         = useState(true)
   const [contentCards, setContentCards]     = useState<ContentCard[]>([])
   const [showCount, setShowCount]           = useState(false)
-  const cardStartOffset = useRef(Math.floor(Math.random() * 100))
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
 
   useEffect(() => {
@@ -237,19 +236,7 @@ export default function Home() {
     }
   }
 
-  // Insertar tarjetas de contenido cada ~20 posiciones, solo cuando no hay búsqueda activa
-  const CONTENT_GAPS = [12, 22, 19, 21, 20, 23, 18, 21, 20, 22]
-  const finalBlocks: Block[] = []
-  let cInsert = CONTENT_GAPS[0], cGapIdx = 0, cCardIdx = cardStartOffset.current
-  for (let i = 0; i < blocks.length; i++) {
-    if (!isActiveSearch && i === cInsert && contentCards.length > 0) {
-      finalBlocks.push({ kind: 'content', card: contentCards[cCardIdx % contentCards.length], fi: -1, rightAlign: cCardIdx % 2 === 1 })
-      cCardIdx++
-      cGapIdx = (cGapIdx + 1) % CONTENT_GAPS.length
-      cInsert += CONTENT_GAPS[cGapIdx]
-    }
-    finalBlocks.push(blocks[i])
-  }
+  const finalBlocks = blocks
 
   const openModal = useCallback((artist: Artist) => {
     setSelected(artist)
@@ -469,6 +456,36 @@ export default function Home() {
         </div>
       )}
 
+      {/* ── TARJETAS DE CONTENIDO — solo sin búsqueda activa ───── */}
+      {!isActiveSearch && !loading && contentCards.filter(c => c.active).length > 0 && (
+        <div className="max-w-7xl mx-auto px-5 pb-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {contentCards.filter(c => c.active).map(card => (
+            <button key={card.id}
+              onClick={() => { setSelectedContent(card); window.history.pushState({}, '', '/') }}
+              className="relative overflow-hidden text-left"
+              style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
+              <div style={{ paddingBottom: '66.5%' }} />
+              <div className="absolute inset-0" style={{
+                background: 'rgba(239,255,66,0.03)',
+                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                padding: '16px 14px 12px',
+              }}>
+                <div>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 8, textTransform: 'uppercase' }}>
+                    Flashttoo
+                  </div>
+                  <p className="text-white font-bold" style={{ fontSize: 14, lineHeight: 1.3 }}>{card.title}</p>
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 5, lineHeight: 1.5 }}>
+                    {card.body.slice(0, 80)}{card.body.length > 80 ? '…' : ''}
+                  </p>
+                </div>
+                <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', textAlign: 'right' }}>leer más →</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── GRID ───────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-5 py-4">
         {loading ? (
@@ -484,31 +501,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
-            {finalBlocks.filter(b => !isActiveSearch || b.kind !== 'content').map(block => {
-              if (block.kind === 'content') { if (isActiveSearch) return null; return (
-                <button key={`cc-${block.card.id}-${block.fi}`}
-                  onClick={() => { setSelectedContent(block.card); window.history.pushState({}, '', '/') }}
-                  className="col-span-2 relative overflow-hidden text-left"
-                  style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
-                  <div style={{ paddingBottom: '66.5%' }} />
-                  <div className="absolute inset-0" style={{
-                    background: 'rgba(239,255,66,0.03)',
-                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                    padding: '16px 14px 12px',
-                  }}>
-                    <div>
-                      <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 8, textTransform: 'uppercase' }}>
-                        Flashttoo
-                      </div>
-                      <p className="text-white font-bold" style={{ fontSize: 14, lineHeight: 1.3 }}>{block.card.title}</p>
-                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 5, lineHeight: 1.5 }}>
-                        {block.card.body.slice(0, 80)}{block.card.body.length > 80 ? '…' : ''}
-                      </p>
-                    </div>
-                    <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', textAlign: 'right' }}>leer más →</p>
-                  </div>
-                </button>
-              )}
+            {finalBlocks.map(block => {
               if (block.kind === 'featured') {
                 const big = block.big as { type: 'artist'; data: Artist }
                 return (
