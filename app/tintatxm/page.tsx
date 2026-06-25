@@ -322,6 +322,9 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
 
         {visitOpen && (
           <div className="mt-3 flex flex-col gap-2">
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
+              Las fechas se eliminan automáticamente al día siguiente de que expiran.
+            </p>
             {visits.map((v, i) => (
               <div key={i} className="flex items-start justify-between px-3 py-2.5 rounded-xl"
                 style={{ background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.12)' }}>
