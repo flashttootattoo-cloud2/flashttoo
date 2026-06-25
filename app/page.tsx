@@ -504,7 +504,6 @@ export default function Home() {
                 const big = block.big as { type: 'artist'; data: Artist }
                 return (
                   <div key={`feat-${big.data.id}`}
-                    className={block.rightAlign ? 'sm:col-start-2 lg:col-start-3' : ''}
                     style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, gridColumnEnd: 'span 3' }}>
                     {/* Grande: 2/3 del ancho */}
                     <button onClick={() => openModal(big.data)}
