@@ -363,8 +363,8 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
 
                 {visitOpen && (
                   <div className="mt-3 flex flex-col gap-2">
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
-                      Las fechas se eliminan automáticamente al día siguiente de que expiran.
+                    <p className="text-xs px-3 py-2 rounded-lg" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      Las fechas se eliminan automáticamente cuando expiran.
                     </p>
                     {visits.map((v, i) => (
                       <div key={i} className="flex items-start justify-between px-3 py-2.5 rounded-xl"
