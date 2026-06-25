@@ -96,6 +96,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
   const [igStatus, setIgStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [visits, setVisits] = useState<Visit[]>([])
   const [visitOpen, setVisitOpen] = useState(false)
+  const [addingVisit, setAddingVisit] = useState(false)
   const [newVisit, setNewVisit] = useState({ from: '', to: '', city: '', country: '' })
   const igTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const BIO_MAX = 280
@@ -168,7 +169,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
   const reset = () => {
     setForm({ name: '', city: '', country: '', instagram: '', whatsapp: '', email: '', bio: '' })
     setStyles([]); setPhoto(null); setPreview(null); setDone(null); setError('')
-    setVisits([]); setVisitOpen(false); setNewVisit({ from: '', to: '', city: '', country: '' })
+    setVisits([]); setVisitOpen(false); setAddingVisit(false); setNewVisit({ from: '', to: '', city: '', country: '' })
   }
 
   const iCls = 'w-full py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20'
@@ -296,19 +297,31 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
 
       {/* Próximas fechas */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Próximas fechas</p>
-          {!visitOpen && (
-            <button type="button" onClick={() => setVisitOpen(true)}
-              className="text-xs px-3 py-1 rounded-lg"
-              style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
-              + agregar
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => { setVisitOpen(v => !v); setAddingVisit(false) }}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+          style={{
+            background: visitOpen ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${visitOpen ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.08)'}`,
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium" style={{ color: visitOpen ? '#efff42' : 'rgba(255,255,255,0.6)' }}>
+              Próximas fechas — ¿dónde estarás?
+            </span>
+            {visits.length > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                style={{ background: 'rgba(239,255,66,0.15)', color: '#efff42' }}>
+                {visits.length}
+              </span>
+            )}
+          </div>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{visitOpen ? '▲' : '▼'}</span>
+        </button>
 
-        {visits.length > 0 && (
-          <div className="flex flex-col gap-2 mb-3">
+        {visitOpen && (
+          <div className="mt-3 flex flex-col gap-2">
             {visits.map((v, i) => (
               <div key={i} className="flex items-start justify-between px-3 py-2.5 rounded-xl"
                 style={{ background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.12)' }}>
@@ -322,53 +335,59 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
                   style={{ color: 'rgba(255,255,255,0.2)', fontSize: 20, lineHeight: 1, padding: '0 4px', marginTop: -2 }}>×</button>
               </div>
             ))}
-          </div>
-        )}
 
-        {visitOpen && (
-          <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Desde</p>
-                <input type="date" value={newVisit.from} onChange={e => setNewVisit(v => ({ ...v, from: e.target.value }))}
-                  className={iCls} />
+            {addingVisit ? (
+              <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Desde</p>
+                    <input type="date" value={newVisit.from} onChange={e => setNewVisit(v => ({ ...v, from: e.target.value }))}
+                      className={iCls} />
+                  </div>
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Hasta</p>
+                    <input type="date" value={newVisit.to} onChange={e => setNewVisit(v => ({ ...v, to: e.target.value }))}
+                      className={iCls} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Ciudad</p>
+                    <input value={newVisit.city} onChange={e => setNewVisit(v => ({ ...v, city: e.target.value }))}
+                      placeholder="Santiago" className={iCls} />
+                  </div>
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>País</p>
+                    <input value={newVisit.country} onChange={e => setNewVisit(v => ({ ...v, country: e.target.value }))}
+                      placeholder="Chile" className={iCls} />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { setAddingVisit(false); setNewVisit({ from: '', to: '', city: '', country: '' }) }}
+                    className="flex-1 py-2 rounded-lg text-xs"
+                    style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
+                    Cancelar
+                  </button>
+                  <button type="button"
+                    disabled={!newVisit.from || !newVisit.to || !newVisit.city.trim() || !newVisit.country.trim()}
+                    onClick={() => {
+                      setVisits(prev => [...prev, newVisit])
+                      setNewVisit({ from: '', to: '', city: '', country: '' })
+                      setAddingVisit(false)
+                    }}
+                    className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
+                    style={{ background: '#efff42', color: '#000' }}>
+                    Agregar
+                  </button>
+                </div>
               </div>
-              <div>
-                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Hasta</p>
-                <input type="date" value={newVisit.to} onChange={e => setNewVisit(v => ({ ...v, to: e.target.value }))}
-                  className={iCls} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Ciudad</p>
-                <input value={newVisit.city} onChange={e => setNewVisit(v => ({ ...v, city: e.target.value }))}
-                  placeholder="Santiago" className={iCls} />
-              </div>
-              <div>
-                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>País</p>
-                <input value={newVisit.country} onChange={e => setNewVisit(v => ({ ...v, country: e.target.value }))}
-                  placeholder="Chile" className={iCls} />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => { setVisitOpen(false); setNewVisit({ from: '', to: '', city: '', country: '' }) }}
-                className="flex-1 py-2 rounded-lg text-xs"
-                style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
-                Cancelar
+            ) : (
+              <button type="button" onClick={() => setAddingVisit(true)}
+                className="w-full py-2.5 rounded-xl text-xs transition-all"
+                style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}>
+                + Agregar fecha
               </button>
-              <button type="button"
-                disabled={!newVisit.from || !newVisit.to || !newVisit.city.trim() || !newVisit.country.trim()}
-                onClick={() => {
-                  setVisits(prev => [...prev, newVisit])
-                  setNewVisit({ from: '', to: '', city: '', country: '' })
-                  setVisitOpen(false)
-                }}
-                className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
-                style={{ background: '#efff42', color: '#000' }}>
-                Agregar
-              </button>
-            </div>
+            )}
           </div>
         )}
       </div>
