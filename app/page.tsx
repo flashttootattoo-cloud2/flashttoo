@@ -475,7 +475,7 @@ export default function Home() {
             <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: 13 }}>sin resultados</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start">
             {finalBlocks.map(block => {
               if (block.kind === 'content') { return (
                 <button key={`cc-${block.card.id}-${block.fi}`}
