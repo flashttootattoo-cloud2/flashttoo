@@ -176,10 +176,16 @@ export default function Home() {
     if (a.visible === false) return false
     const qCountry = norm(country)
     const qCity    = norm(city)
-    const countryMatch = !qCountry || norm(a.country).includes(qCountry)
-    const cityMatch    = !qCity    || norm(a.city).includes(qCity)
-    const styleMatch   = activeStyles.length === 0 || activeStyles.every(s => a.styles.includes(s))
-    return countryMatch && cityMatch && styleMatch
+    const today = new Date().toISOString().slice(0, 10)
+    const futureVisits = (a.visits || []).filter(v => v.to >= today)
+    const baseMatch = (!qCountry || norm(a.country).includes(qCountry)) &&
+                      (!qCity    || norm(a.city).includes(qCity))
+    const visitMatch = futureVisits.some(v =>
+      (!qCountry || norm(v.country).includes(qCountry)) &&
+      (!qCity    || norm(v.city).includes(qCity))
+    )
+    const styleMatch = activeStyles.length === 0 || activeStyles.every(s => a.styles.includes(s))
+    return (baseMatch || visitMatch) && styleMatch
   })
 
   const isActiveSearch = !!country.trim() || !!city.trim() || activeStyles.length > 0
@@ -661,6 +667,27 @@ export default function Home() {
               {selected.bio && (
                 <BioText text={selected.bio} style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 16 }} />
               )}
+
+              {(() => {
+                const today = new Date().toISOString().slice(0, 10)
+                const upcoming = (selected.visits || []).filter(v => v.to >= today).sort((a, b) => a.from.localeCompare(b.from))
+                if (!upcoming.length) return null
+                return (
+                  <div style={{ marginBottom: 16 }}>
+                    <p style={{ fontSize: 10, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 8 }}>Próximas fechas</p>
+                    <div className="flex flex-col gap-2">
+                      {upcoming.map((v, i) => (
+                        <div key={i} style={{ background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.12)', borderRadius: 10, padding: '10px 14px' }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#efff42', marginBottom: 2 }}>{v.city}, {v.country}</p>
+                          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                            {new Date(v.from + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })} – {new Date(v.to + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
 
               <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 16 }} />
 

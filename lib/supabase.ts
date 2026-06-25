@@ -5,6 +5,8 @@ const key  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(url, key)
 
+export type Visit = { from: string; to: string; city: string; country: string }
+
 export type Artist = {
   id: string
   name: string
@@ -23,4 +25,5 @@ export type Artist = {
   visible: boolean
   created_at: string
   interview?: Record<string, string> | null
+  visits?: Visit[]
 }

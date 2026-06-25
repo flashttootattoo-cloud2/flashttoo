@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
     whatsapp:  (fd.get('whatsapp') as string)?.trim() || null,
     email:     (fd.get('email') as string)?.trim()    || null,
     bio:       (fd.get('bio') as string)?.trim()      || null,
+    visits:    JSON.parse((fd.get('visits') as string) || '[]'),
     edit_key,
   }).select().single()
 
