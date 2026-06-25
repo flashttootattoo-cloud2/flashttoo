@@ -238,18 +238,17 @@ export default function Home() {
 
   // Insertar tarjetas de contenido cada ~20 posiciones, solo cuando no hay búsqueda activa
   const CONTENT_GAPS = [12, 22, 19, 21, 20, 23, 18, 21, 20, 22]
-  const allBlocks: Block[] = []
+  const finalBlocks: Block[] = []
   let cInsert = CONTENT_GAPS[0], cGapIdx = 0, cCardIdx = cardStartOffset.current
   for (let i = 0; i < blocks.length; i++) {
-    if (i === cInsert && contentCards.length > 0) {
-      allBlocks.push({ kind: 'content', card: contentCards[cCardIdx % contentCards.length], fi: -1, rightAlign: cCardIdx % 2 === 1 })
+    if (!isFiltering && i === cInsert && contentCards.length > 0) {
+      finalBlocks.push({ kind: 'content', card: contentCards[cCardIdx % contentCards.length], fi: -1, rightAlign: cCardIdx % 2 === 1 })
       cCardIdx++
       cGapIdx = (cGapIdx + 1) % CONTENT_GAPS.length
       cInsert += CONTENT_GAPS[cGapIdx]
     }
-    allBlocks.push(blocks[i])
+    finalBlocks.push(blocks[i])
   }
-  const finalBlocks = isFiltering ? allBlocks.filter(b => b.kind !== 'content') : allBlocks
 
   const openModal = useCallback((artist: Artist) => {
     setSelected(artist)
@@ -475,7 +474,7 @@ export default function Home() {
             <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: 13 }}>sin resultados</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
             {finalBlocks.map(block => {
               if (block.kind === 'content') { return (
                 <button key={`cc-${block.card.id}-${block.fi}`}
