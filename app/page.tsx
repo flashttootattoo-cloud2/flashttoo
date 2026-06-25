@@ -199,8 +199,8 @@ export default function Home() {
 
   const isActiveSearch = !!country.trim() || !!city.trim() || activeStyles.length > 0
 
-  // Sin búsqueda: mostrar publicidades globales. Con búsqueda: solo tatuadores
-  const visibleAds = isActiveSearch ? [] : ads.filter(ad => !ad.city)
+  // Sin búsqueda: mostrar todas las publicidades activas. Con búsqueda: solo tatuadores
+  const visibleAds = isActiveSearch ? [] : ads
 
   // Mezclar ads en el feed cada AD_INTERVAL tarjetas
   // Los ads restantes siempre se muestran aunque no haya suficientes artistas
