@@ -170,7 +170,7 @@ export default function Home() {
   }, [country, city, activeStyles])
 
   const toggleStyle = (s: string) =>
-    setStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
+    setStyles(prev => prev.includes(s) ? [] : [s])
 
   const filtered = artists.filter(a => {
     if (a.visible === false) return false
@@ -402,7 +402,7 @@ export default function Home() {
                 border: `1px solid ${stylesOpen || activeStyles.length > 0 ? 'rgba(239,255,66,0.5)' : 'rgba(255,255,255,0.08)'}`,
                 color: activeStyles.length > 0 ? '#efff42' : 'rgba(255,255,255,0.35)',
               }}>
-              <span>{activeStyles.length > 0 ? `${activeStyles.length} estilo${activeStyles.length > 1 ? 's' : ''} seleccionado${activeStyles.length > 1 ? 's' : ''}` : 'Estilos de tatuaje'}</span>
+              <span>{activeStyles.length > 0 ? activeStyles[0] : 'Estilos de tatuaje'}</span>
               <span style={{ fontSize: 9, opacity: 0.5 }}>{stylesOpen ? '▲' : '▼'}</span>
             </button>
 
@@ -430,7 +430,7 @@ export default function Home() {
                     style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,100,100,0.6)' }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,80,80,0.05)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                    limpiar selección
+                    quitar estilo
                   </button>
                 )}
               </div>
