@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { supabase, type Artist } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
@@ -160,10 +160,11 @@ export default function Home() {
   }, [])
 
   const prevIsFiltering = useRef(false)
-  useEffect(() => {
+  useLayoutEffect(() => {
     const filtering = !!country.trim() || !!city.trim() || activeStyles.length > 0
     if (prevIsFiltering.current !== filtering) {
       window.scrollTo({ top: 0, behavior: 'instant' })
+      try { sessionStorage.setItem('s_scroll', '0') } catch {}
     }
     prevIsFiltering.current = filtering
   }, [country, city, activeStyles])
