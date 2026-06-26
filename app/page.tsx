@@ -33,7 +33,7 @@ type Ad = {
   id: string; title: string; image_url: string; link: string | null
   city: string | null; country: string | null
   instagram: string | null; whatsapp: string | null; website: string | null
-  clicks: number; show_global: boolean
+  clicks: number; show_global: boolean; expires_at: string | null
 }
 
 type ContentCard = {
@@ -162,19 +162,21 @@ export default function Home() {
 
   useEffect(() => {
     const loadAds = async (): Promise<Ad[]> => {
+      const now = new Date().toISOString()
       const { data, error } = await supabase
         .from('ads')
-        .select('id,title,image_url,link,city,country,instagram,whatsapp,website,clicks,show_global')
+        .select('id,title,image_url,link,city,country,instagram,whatsapp,website,clicks,show_global,expires_at')
         .eq('active', true)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
       if (error) {
-        // columna show_global todavía no existe → fallback sin ella
+        // columnas nuevas todavía no existen → fallback sin ellas
         const { data: fallback } = await supabase
           .from('ads')
           .select('id,title,image_url,link,city,country,instagram,whatsapp,website,clicks')
           .eq('active', true)
-        return ((fallback || []) as Ad[]).map(ad => ({ ...ad, show_global: false }))
+        return ((fallback || []) as Ad[]).map(ad => ({ ...ad, show_global: false, expires_at: null }))
       }
-      return ((data || []) as Ad[]).map(ad => ({ ...ad, show_global: ad.show_global ?? false }))
+      return ((data || []) as Ad[]).map(ad => ({ ...ad, show_global: ad.show_global ?? false, expires_at: ad.expires_at ?? null }))
     }
     Promise.all([
       supabase.from('artists').select('*').or('status.eq.active,status.is.null').order('created_at', { ascending: false }),
@@ -1060,6 +1062,21 @@ export default function Home() {
                 ) : (
                   <div className="flex flex-col gap-3">
                     <p style={{ fontSize: 11, fontWeight: 700, color: '#efff42', letterSpacing: '0.08em' }}>EDITAR PUBLICIDAD</p>
+                    {/* Métricas */}
+                    <div className="flex gap-4 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div>
+                        <p style={{ fontSize: 22, fontWeight: 700, color: '#efff42', lineHeight: 1 }}>{selectedAd.clicks}</p>
+                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>clicks</p>
+                      </div>
+                      {selectedAd.expires_at && (
+                        <div style={{ borderLeft: '1px solid rgba(255,255,255,0.07)', paddingLeft: 16 }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1, color: new Date(selectedAd.expires_at) < new Date() ? '#f87171' : 'rgba(255,255,255,0.55)' }}>
+                            {new Date(selectedAd.expires_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>vence</p>
+                        </div>
+                      )}
+                    </div>
                     {/* Foto */}
                     <div>
                       <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Foto</p>

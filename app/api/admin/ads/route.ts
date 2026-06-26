@@ -28,7 +28,9 @@ export async function POST(req: NextRequest) {
   const instagram = (form.get('instagram') as string)?.trim() || null
   const whatsapp  = (form.get('whatsapp') as string)?.trim() || null
   const website   = (form.get('website') as string)?.trim() || null
-  const link      = (form.get('link') as string)?.trim() || null
+  const link       = (form.get('link') as string)?.trim() || null
+  const expiresRaw = (form.get('expires_at') as string)?.trim() || null
+  const expires_at = expiresRaw ? new Date(expiresRaw).toISOString() : null
 
   if (!city || !country) {
     return NextResponse.json({ error: 'Ciudad y país son obligatorios' }, { status: 400 })
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
   const edit_key = genKey()
 
   const { data, error } = await sb().from('ads').insert({
-    title, link, city, country, instagram, whatsapp, website,
+    title, link, city, country, instagram, whatsapp, website, expires_at,
     image_url: urlData.publicUrl, edit_key,
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

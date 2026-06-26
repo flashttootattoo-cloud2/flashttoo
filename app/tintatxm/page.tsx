@@ -26,7 +26,7 @@ type Ad = {
   city: string | null; country: string | null
   instagram: string | null; whatsapp: string | null; website: string | null
   edit_key: string | null; clicks: number; active: boolean; created_at: string
-  show_global: boolean
+  show_global: boolean; expires_at: string | null
 }
 
 type ContentCard = {
@@ -827,7 +827,7 @@ export default function AdminPage() {
   const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar'>('artistas')
   const [artists, setArtists] = useState<Artist[]>([])
   const [ads, setAds]         = useState<Ad[]>([])
-  const [editingAd, setEditingAd] = useState<{ id: string; city: string; country: string } | null>(null)
+  const [editingAd, setEditingAd] = useState<{ id: string; city: string; country: string; expires_at: string } | null>(null)
   const [savingAdEdit, setSavingAdEdit] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
@@ -859,7 +859,7 @@ export default function AdminPage() {
   }, [])
 
   // Ad form
-  const [adForm, setAdForm] = useState({ title: '', link: '', city: '', country: '', instagram: '', whatsapp: '', website: '' })
+  const [adForm, setAdForm] = useState({ title: '', link: '', city: '', country: '', instagram: '', whatsapp: '', website: '', expires_at: '' })
   const [adPhoto, setAdPhoto] = useState<File | null>(null)
   const [adPreview, setAdPreview] = useState<string | null>(null)
   const [savingAd, setSavingAd] = useState(false)
@@ -1003,13 +1003,18 @@ export default function AdminPage() {
   const saveAdLocation = async () => {
     if (!editingAd) return
     setSavingAdEdit(true)
+    const body: Record<string, string | null> = {
+      city: editingAd.city.trim() || null,
+      country: editingAd.country.trim() || null,
+      expires_at: editingAd.expires_at ? new Date(editingAd.expires_at).toISOString() : null,
+    }
     const r = await fetch(`/api/admin/ads/${editingAd.id}`, {
       method: 'PATCH',
       headers: { ...H(pass), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ city: editingAd.city.trim() || null, country: editingAd.country.trim() || null }),
+      body: JSON.stringify(body),
     })
     const d = await r.json()
-    if (d.ad) setAds(prev => prev.map(a => a.id === editingAd.id ? { ...a, city: d.ad.city, country: d.ad.country } : a))
+    if (d.ad) setAds(prev => prev.map(a => a.id === editingAd.id ? { ...a, city: d.ad.city, country: d.ad.country, expires_at: d.ad.expires_at } : a))
     setEditingAd(null)
     setSavingAdEdit(false)
   }
@@ -1049,11 +1054,12 @@ export default function AdminPage() {
       fd.append('instagram', adForm.instagram.trim())
       fd.append('whatsapp', adForm.whatsapp.trim())
       fd.append('website', adForm.website.trim())
+      if (adForm.expires_at) fd.append('expires_at', new Date(adForm.expires_at).toISOString())
       const r = await fetch('/api/admin/ads', { method: 'POST', headers: H(pass), body: fd })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Error')
       setAds(prev => [d.ad, ...prev])
-      setAdForm({ title: '', link: '', city: '', country: '', instagram: '', whatsapp: '', website: '' }); setAdPhoto(null); setAdPreview(null)
+      setAdForm({ title: '', link: '', city: '', country: '', instagram: '', whatsapp: '', website: '', expires_at: '' }); setAdPhoto(null); setAdPreview(null)
     } catch (err: unknown) {
       setAdError(err instanceof Error ? err.message : 'Error')
     } finally { setSavingAd(false) }
@@ -1511,6 +1517,10 @@ export default function AdminPage() {
                     <input value={adForm.link} onChange={e => setAdForm(f => ({ ...f, link: e.target.value }))}
                       placeholder="https://..." className={iCls} />
                   </AdField>
+                  <AdField label="Vencimiento (opcional)">
+                    <input type="date" value={adForm.expires_at} onChange={e => setAdForm(f => ({ ...f, expires_at: e.target.value }))}
+                      className={iCls} style={{ colorScheme: 'dark' }} />
+                  </AdField>
                 </div>
               </div>
 
@@ -1541,6 +1551,16 @@ export default function AdminPage() {
                         {[ad.city, ad.country].filter(Boolean).join(', ') || 'global'}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: '#efff42', opacity: 0.7 }}>{ad.clicks} clicks</p>
+                      {ad.expires_at && (() => {
+                        const exp = new Date(ad.expires_at)
+                        const expired = exp < new Date()
+                        const days = Math.ceil((exp.getTime() - Date.now()) / 86400000)
+                        return (
+                          <p className="text-xs mt-0.5" style={{ color: expired ? '#f87171' : days <= 7 ? '#fb923c' : 'rgba(255,255,255,0.3)' }}>
+                            {expired ? `venció hace ${-days}d` : `vence en ${days}d`}
+                          </p>
+                        )
+                      })()}
                     </div>
                     <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                       <button onClick={() => toggleAdGlobal(ad.id, ad.show_global)}
@@ -1586,6 +1606,14 @@ export default function AdminPage() {
                         className="flex-1 py-1 px-2 text-xs text-white outline-none rounded-lg"
                         style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)' }}
                       />
+                      <input
+                        type="date"
+                        value={editingAd.expires_at}
+                        onChange={e => setEditingAd(v => v && ({ ...v, expires_at: e.target.value }))}
+                        title="Vencimiento (opcional)"
+                        className="py-1 px-2 text-xs text-white outline-none rounded-lg"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', colorScheme: 'dark', width: 110 }}
+                      />
                       <button onClick={saveAdLocation} disabled={savingAdEdit}
                         className="text-xs px-3 py-1 rounded-full font-bold disabled:opacity-40"
                         style={{ background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>
@@ -1597,7 +1625,7 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     <button
-                      onClick={() => setEditingAd({ id: ad.id, city: ad.city || '', country: ad.country || '' })}
+                      onClick={() => setEditingAd({ id: ad.id, city: ad.city || '', country: ad.country || '', expires_at: ad.expires_at ? ad.expires_at.slice(0, 10) : '' })}
                       className="text-left pt-1 w-full"
                       style={{ borderTop: '1px solid rgba(255,255,255,0.04)', fontSize: 11, color: (!ad.city || !ad.country) ? 'rgba(255,100,100,0.5)' : 'rgba(255,255,255,0.2)' }}>
                       {(!ad.city || !ad.country)
