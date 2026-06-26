@@ -14,29 +14,32 @@ export async function GET(req: NextRequest) {
   since.setDate(since.getDate() - 29)
   since.setHours(0, 0, 0, 0)
 
-  const [recent, all] = await Promise.all([
+  const [recentRes, allRes] = await Promise.all([
     sb.from('installs').select('installed_at,platform').gte('installed_at', since.toISOString()),
-    sb.from('installs').select('platform', { count: 'exact', head: false }),
+    sb.from('installs').select('platform'),
   ])
 
-  const counts: Record<string, number> = {}
-  const byPlatform: Record<string, number> = { ios: 0, android: 0, other: 0 }
-
-  recent.data?.forEach(row => {
+  // Gráfico: últimos 30 días
+  const dayCounts: Record<string, number> = {}
+  recentRes.data?.forEach(row => {
     const date = (row.installed_at as string).slice(0, 10)
-    counts[date] = (counts[date] || 0) + 1
-    if (row.platform in byPlatform) byPlatform[row.platform as keyof typeof byPlatform]++
+    dayCounts[date] = (dayCounts[date] || 0) + 1
   })
-
   const days = Array.from({ length: 30 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (29 - i))
     const key = d.toISOString().slice(0, 10)
-    return { date: key, count: counts[key] ?? 0 }
+    return { date: key, count: dayCounts[key] ?? 0 }
   })
 
-  // total histórico
-  const total = all.count ?? 0
+  // Total y byPlatform: all-time (misma fuente → siempre consistentes)
+  const byPlatform: Record<string, number> = { ios: 0, android: 0, other: 0 }
+  allRes.data?.forEach(row => {
+    const p = row.platform as string
+    if (p in byPlatform) byPlatform[p]++
+    else byPlatform.other++
+  })
+  const total = allRes.data?.length ?? 0
 
   return NextResponse.json({ days, byPlatform, total })
 }

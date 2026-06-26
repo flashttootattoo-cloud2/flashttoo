@@ -15,38 +15,25 @@ export default function InstallBanner() {
       window.matchMedia('(display-mode: standalone)').matches ||
       ('standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true)
 
-    // Trackear primera apertura en modo standalone (cubre iOS y Android)
-    if (isStandalone && !localStorage.getItem('install_tracked')) {
-      localStorage.setItem('install_tracked', '1')
-      const platform = ios ? 'ios' : android ? 'android' : 'other'
-      fetch('/api/track/install', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform }),
-      }).catch(() => {})
+    // Solo trackear la primera vez que se abre en modo standalone (única fuente de verdad)
+    if (isStandalone) {
+      if (!localStorage.getItem('install_tracked')) {
+        localStorage.setItem('install_tracked', '1')
+        const platform = ios ? 'ios' : android ? 'android' : 'other'
+        fetch('/api/track/install', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform }),
+        }).catch(() => {})
+      }
+      return
     }
-
-    if (isStandalone) return
 
     // Solo mostrar banner en móvil
     if (!ios && !android) return
 
     setIsIOS(ios)
     setShow(true)
-
-    // Trackear install via evento (Android/Chrome con prompt nativo)
-    const onInstalled = () => {
-      if (!localStorage.getItem('install_tracked')) {
-        localStorage.setItem('install_tracked', '1')
-        fetch('/api/track/install', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ platform: 'android' }),
-        }).catch(() => {})
-      }
-    }
-    window.addEventListener('appinstalled', onInstalled)
-    return () => window.removeEventListener('appinstalled', onInstalled)
   }, [])
 
   if (!show) return null
