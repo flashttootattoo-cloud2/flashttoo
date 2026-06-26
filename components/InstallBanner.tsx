@@ -31,9 +31,13 @@ export default function InstallBanner() {
 
     if (android) {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      if (isStandalone) return // ya instalada, no mostrar banner
+      if (isStandalone) {
+        // Ya instalada y abierta desde home screen — cuenta usuarios existentes
+        track('android')
+        return
+      }
       setShow(true)
-      // appinstalled dispara en el browser cuando el usuario instala — fuente confiable en Android
+      // appinstalled dispara cuando el usuario instala desde el browser — cuenta instalaciones nuevas
       const onInstalled = () => track('android')
       window.addEventListener('appinstalled', onInstalled)
       return () => window.removeEventListener('appinstalled', onInstalled)
