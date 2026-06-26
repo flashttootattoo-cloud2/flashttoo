@@ -7,33 +7,37 @@ export default function InstallBanner() {
   const [isIOS, setIsIOS]   = useState(false)
 
   useEffect(() => {
-    const ua  = navigator.userAgent
-    const ios = /iPhone|iPad|iPod/.test(ua)
+    const ua      = navigator.userAgent
+    const ios     = /iPhone|iPad|iPod/.test(ua)
     const android = /Android/.test(ua)
 
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      ('standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true)
+    function track(platform: string) {
+      if (localStorage.getItem('install_tracked')) return
+      localStorage.setItem('install_tracked', '1')
+      fetch('/api/track/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform }),
+      }).catch(() => {})
+    }
 
-    // Solo trackear la primera vez que se abre en modo standalone (única fuente de verdad)
-    if (isStandalone) {
-      if (!localStorage.getItem('install_tracked')) {
-        localStorage.setItem('install_tracked', '1')
-        const platform = ios ? 'ios' : android ? 'android' : 'other'
-        fetch('/api/track/install', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ platform }),
-        }).catch(() => {})
-      }
+    if (ios) {
+      // iOS: navigator.standalone es el único check confiable
+      const isIOSStandalone = (window.navigator as { standalone?: boolean }).standalone === true
+      if (isIOSStandalone) { track('ios'); return }
+      setIsIOS(true); setShow(true)
       return
     }
 
-    // Solo mostrar banner en móvil
-    if (!ios && !android) return
-
-    setIsIOS(ios)
-    setShow(true)
+    if (android) {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      if (isStandalone) return // ya instalada, no mostrar banner
+      setShow(true)
+      // appinstalled dispara en el browser cuando el usuario instala — fuente confiable en Android
+      const onInstalled = () => track('android')
+      window.addEventListener('appinstalled', onInstalled)
+      return () => window.removeEventListener('appinstalled', onInstalled)
+    }
   }, [])
 
   if (!show) return null
