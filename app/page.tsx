@@ -4,6 +4,7 @@ import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from
 import Link from 'next/link'
 import { supabase, type Artist } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
+import SponsorsBanner from '@/components/SponsorsBanner'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 
 function BioText({ text, style }: { text: string; style?: React.CSSProperties }) {
@@ -427,7 +428,7 @@ export default function Home() {
   const hasFilters = country.trim() || city.trim() || activeStyles.length > 0
 
   return (
-    <main style={{ background: '#000', minHeight: '100vh' }}>
+    <main style={{ background: '#000', minHeight: '100vh', paddingBottom: 40 }}>
 
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30"
@@ -1167,6 +1168,8 @@ export default function Home() {
           }}
         />
       )}
+
+      <SponsorsBanner country={country} />
     </main>
   )
 }

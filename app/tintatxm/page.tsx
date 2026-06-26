@@ -33,6 +33,12 @@ type ContentCard = {
   id: string; title: string; body: string; active: boolean
 }
 
+type SponsorAdmin = {
+  id: string; name: string; logo_url: string; link: string | null
+  country: string | null; active: boolean; starts_at: string
+  expires_at: string | null; created_at: string; keep_color: boolean
+}
+
 const H = (pass: string) => ({ 'x-admin-pass': pass })
 
 function SuggestInput({ value, onChange, suggestions, className, style, placeholder, required }: {
@@ -824,7 +830,7 @@ function StatsPanel({ artists, visits, installs }: { artists: Artist[]; visits: 
 export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors'>('artistas')
   const [artists, setArtists] = useState<Artist[]>([])
   const [ads, setAds]         = useState<Ad[]>([])
   const [editingAd, setEditingAd] = useState<{ id: string; city: string; country: string; expires_at: string } | null>(null)
@@ -847,6 +853,14 @@ export default function AdminPage() {
   const [savingStyles, setSavingStyles] = useState(false)
   const [contentCards, setContentCards] = useState<ContentCard[]>([])
   const [savingContent, setSavingContent] = useState(false)
+  const [sponsors, setSponsors]           = useState<SponsorAdmin[]>([])
+  const [bannerActive, setBannerActive]   = useState(false)
+  const [savingBanner, setSavingBanner]   = useState(false)
+  const [sponsorForm, setSponsorForm]     = useState({ name: '', link: '', country: '', starts_at: '', expires_at: '', keep_color: false })
+  const [sponsorLogo, setSponsorLogo]     = useState<File | null>(null)
+  const [sponsorLogoPreview, setSponsorLogoPreview] = useState<string | null>(null)
+  const [savingSponsors, setSavingSponsors] = useState(false)
+  const [sponsorError, setSponsorError]   = useState('')
   const [menuOpen, setMenuOpen]     = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -884,12 +898,17 @@ export default function AdminPage() {
       fetch('/api/admin/pages', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/settings', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/stats/installs', { headers: H(p) }).then(r => r.json()),
-    ]).then(([a, b, v, pg, cfg, ins]) => {
+      fetch('/api/admin/sponsors', { headers: H(p) }).then(r => r.json()),
+    ]).then(([a, b, v, pg, cfg, ins, sp]) => {
       if (a.status === 'fulfilled') setArtists(a.value.artists || [])
       if (b.status === 'fulfilled') setAds(b.value.ads || [])
       if (v.status === 'fulfilled') setVisits(v.value.days || [])
       if (pg.status === 'fulfilled') setPages(pg.value.pages || [])
       if (ins.status === 'fulfilled' && ins.value.days) setInstalls(ins.value)
+      if (sp.status === 'fulfilled') {
+        setSponsors(sp.value.sponsors || [])
+        setBannerActive(sp.value.banner_active === true)
+      }
       if (cfg.status === 'fulfilled') {
         setModeration(cfg.value.settings?.moderation === true)
         setShowCount(cfg.value.settings?.show_count === true)
@@ -1098,6 +1117,7 @@ export default function AdminPage() {
               { key: 'pendientes', label: pendingCount > 0 ? `Pendientes (${pendingCount})` : 'Pendientes', alert: pendingCount > 0 },
               { key: 'config',     label: 'Config' },
               { key: 'contenido',  label: 'Contenido' },
+              { key: 'sponsors',   label: `Sponsors (${sponsors.length})` },
               { key: 'agregar',    label: '+ Agregar' },
             ] as const
             const current = tabs.find(t => t.key === tab)
@@ -1453,6 +1473,245 @@ export default function AdminPage() {
               style={{ background: '#efff42', color: '#000' }}>
               {savingContent ? 'Guardando...' : 'Guardar tarjetas'}
             </button>
+          </div>
+
+        ) : tab === 'sponsors' ? (
+
+          // ── SPONSORS ─────────────────────────────────────────────────────────
+          <div className="flex flex-col gap-6" style={{ maxWidth: 600 }}>
+
+            {/* Banner global toggle */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Banner de sponsors</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                    Activa o desactiva el banner completo en la página principal.
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setSavingBanner(true)
+                    const next = !bannerActive
+                    await fetch('/api/admin/settings', {
+                      method: 'PATCH',
+                      headers: { ...H(pass), 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ key: 'sponsors_banner_active', value: next }),
+                    })
+                    setBannerActive(next)
+                    setSavingBanner(false)
+                  }}
+                  disabled={savingBanner}
+                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                  style={{ width: 48, height: 28, background: bannerActive ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', top: 4,
+                    left: bannerActive ? 24 : 4,
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: bannerActive ? '#000' : 'rgba(255,255,255,0.4)',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              <p className="text-xs mt-3 font-bold" style={{ color: bannerActive ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                {bannerActive ? 'Activo — el banner se muestra en el pie de página' : 'Inactivo — banner oculto'}
+              </p>
+            </div>
+
+            {/* Formulario nuevo sponsor */}
+            <form
+              onSubmit={async e => {
+                e.preventDefault(); setSponsorError('')
+                if (!sponsorLogo) { setSponsorError('Seleccioná un logo PNG'); return }
+                setSavingSponsors(true)
+                try {
+                  const fd = new FormData()
+                  fd.append('logo', sponsorLogo)
+                  fd.append('name', sponsorForm.name.trim())
+                  fd.append('link', sponsorForm.link.trim())
+                  fd.append('country', sponsorForm.country.trim())
+                  fd.append('keep_color', String(sponsorForm.keep_color))
+                  if (sponsorForm.starts_at) fd.append('starts_at', new Date(sponsorForm.starts_at).toISOString())
+                  if (sponsorForm.expires_at) fd.append('expires_at', new Date(sponsorForm.expires_at).toISOString())
+                  const r = await fetch('/api/admin/sponsors', { method: 'POST', headers: H(pass), body: fd })
+                  const d = await r.json()
+                  if (!r.ok) throw new Error(d.error || 'Error')
+                  setSponsors(prev => [d.sponsor, ...prev])
+                  setSponsorForm({ name: '', link: '', country: '', starts_at: '', expires_at: '', keep_color: false })
+                  setSponsorLogo(null); setSponsorLogoPreview(null)
+                } catch (err: unknown) {
+                  setSponsorError(err instanceof Error ? err.message : 'Error')
+                } finally { setSavingSponsors(false) }
+              }}
+              className="rounded-xl p-5 flex flex-col gap-4"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>NUEVO SPONSOR</p>
+
+              {/* Logo preview */}
+              <label className="cursor-pointer block">
+                <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo PNG</p>
+                <div className="flex items-center gap-4">
+                  {sponsorLogoPreview ? (
+                    <div className="rounded-lg overflow-hidden flex items-center justify-center"
+                      style={{ width: 120, height: 40, background: sponsorForm.keep_color ? '#fff' : 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={sponsorLogoPreview} alt="" style={{ maxHeight: 32, maxWidth: 110, objectFit: 'contain', filter: sponsorForm.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sponsorForm.keep_color ? 1 : 0.6 }} />
+                    </div>
+                  ) : (
+                    <div className="rounded-lg flex items-center justify-center text-xs"
+                      style={{ width: 120, height: 40, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
+                      subir logo
+                    </div>
+                  )}
+                  <input type="file" accept="image/png,image/svg+xml,image/*" className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0]; if (!file) return
+                      setSponsorLogo(file)
+                      setSponsorLogoPreview(URL.createObjectURL(file))
+                    }} />
+                </div>
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <AdField label="Nombre">
+                  <input value={sponsorForm.name} onChange={e => setSponsorForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Estudio Roma" className={iCls} />
+                </AdField>
+                <AdField label="Link (al tocar el logo)">
+                  <input value={sponsorForm.link} onChange={e => setSponsorForm(f => ({ ...f, link: e.target.value }))}
+                    placeholder="https://..." className={iCls} />
+                </AdField>
+                <AdField label="País (vacío = todos)">
+                  <input value={sponsorForm.country} onChange={e => setSponsorForm(f => ({ ...f, country: e.target.value }))}
+                    placeholder="Argentina" className={iCls} />
+                </AdField>
+                <AdField label="Inicio (vacío = hoy)">
+                  <input type="date" value={sponsorForm.starts_at} onChange={e => setSponsorForm(f => ({ ...f, starts_at: e.target.value }))}
+                    className={iCls} style={{ colorScheme: 'dark' }} />
+                </AdField>
+                <AdField label="Vencimiento (opcional)">
+                  <input type="date" value={sponsorForm.expires_at} onChange={e => setSponsorForm(f => ({ ...f, expires_at: e.target.value }))}
+                    className={iCls} style={{ colorScheme: 'dark' }} />
+                </AdField>
+              </div>
+
+              {/* Mantener color original */}
+              <button type="button"
+                onClick={() => setSponsorForm(f => ({ ...f, keep_color: !f.keep_color }))}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left transition-all"
+                style={{
+                  background: sponsorForm.keep_color ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${sponsorForm.keep_color ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                }}>
+                <div className="shrink-0 rounded-full transition-all"
+                  style={{ width: 40, height: 24, background: sponsorForm.keep_color ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', top: 3,
+                    left: sponsorForm.keep_color ? 19 : 3,
+                    width: 18, height: 18, borderRadius: '50%',
+                    background: sponsorForm.keep_color ? '#000' : 'rgba(255,255,255,0.4)',
+                    transition: 'left 0.15s',
+                  }} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: sponsorForm.keep_color ? '#efff42' : 'rgba(255,255,255,0.5)' }}>
+                    Mantener color original
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    {sponsorForm.keep_color ? 'El logo se mostrará con sus colores reales' : 'El logo se convierte a negro en el banner'}
+                  </p>
+                </div>
+              </button>
+
+              {sponsorError && <p className="text-xs text-red-400">{sponsorError}</p>}
+              <button type="submit" disabled={savingSponsors}
+                className="self-end px-6 py-2 rounded-lg font-bold text-sm disabled:opacity-50"
+                style={{ background: '#efff42', color: '#000' }}>
+                {savingSponsors ? 'Guardando...' : 'Agregar'}
+              </button>
+            </form>
+
+            {/* Lista sponsors */}
+            <div className="flex flex-col gap-3">
+              {sponsors.length === 0 && (
+                <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.1)' }}>Sin sponsors</p>
+              )}
+              {sponsors.map(sp => {
+                const now = new Date()
+                const exp = sp.expires_at ? new Date(sp.expires_at) : null
+                const expired = exp && exp < now
+                const days = exp ? Math.ceil((exp.getTime() - now.getTime()) / 86400000) : null
+                return (
+                  <div key={sp.id} className="rounded-xl p-4 flex items-center gap-4"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${sp.active && !expired ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.06)'}`, opacity: expired ? 0.5 : 1 }}>
+                    {/* Logo */}
+                    <div className="shrink-0 rounded-lg flex items-center justify-center overflow-hidden"
+                      style={{ width: 80, height: 36, background: sp.keep_color ? '#fff' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={sp.logo_url} alt={sp.name ?? ''} style={{ maxHeight: 28, maxWidth: 74, objectFit: 'contain', filter: sp.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sp.keep_color ? 1 : 0.6 }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{sp.name || '—'}</p>
+                      <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        {sp.country || 'todos los países'}{sp.link ? ` · ${sp.link}` : ''}
+                      </p>
+                      {exp && (
+                        <p className="text-xs mt-0.5" style={{ color: expired ? '#f87171' : (days ?? 0) <= 7 ? '#fb923c' : 'rgba(255,255,255,0.25)' }}>
+                          {expired ? `venció hace ${-days!}d` : `vence en ${days}d`}
+                        </p>
+                      )}
+                      <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                        desde {new Date(sp.starts_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/admin/sponsors/${sp.id}`, {
+                            method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ keep_color: !sp.keep_color }),
+                          })
+                          setSponsors(prev => prev.map(s => s.id === sp.id ? { ...s, keep_color: !s.keep_color } : s))
+                        }}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{
+                          border: `1px solid ${sp.keep_color ? 'rgba(147,197,253,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                          color: sp.keep_color ? '#93c5fd' : 'rgba(255,255,255,0.3)',
+                          background: sp.keep_color ? 'rgba(147,197,253,0.07)' : 'transparent',
+                        }}>
+                        {sp.keep_color ? 'color' : 'negro'}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/admin/sponsors/${sp.id}`, {
+                            method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ active: !sp.active }),
+                          })
+                          setSponsors(prev => prev.map(s => s.id === sp.id ? { ...s, active: !s.active } : s))
+                        }}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{
+                          border: `1px solid ${sp.active ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                          color: sp.active ? '#efff42' : 'rgba(255,255,255,0.3)',
+                          background: sp.active ? 'rgba(239,255,66,0.07)' : 'transparent',
+                        }}>
+                        {sp.active ? 'activo' : 'inactivo'}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!confirm('¿Borrar este sponsor?')) return
+                          await fetch(`/api/admin/sponsors/${sp.id}`, { method: 'DELETE', headers: H(pass) })
+                          setSponsors(prev => prev.filter(s => s.id !== sp.id))
+                        }}
+                        className="text-xs px-3 py-1 rounded-full"
+                        style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.5)' }}>
+                        borrar
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
         ) : tab === 'agregar' ? (
