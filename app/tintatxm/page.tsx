@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 type DayVisit = { date: string; count: number }
 type Visit = { from: string; to: string; city: string; country: string }
+type InstallStats = { days: DayVisit[]; byPlatform: { ios: number; android: number; other: number }; total: number }
 
 type Artist = {
   id: string; name: string; city: string; country: string
@@ -553,7 +554,7 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
   )
 }
 
-function StatsPanel({ artists, visits }: { artists: Artist[]; visits: DayVisit[] }) {
+function StatsPanel({ artists, visits, installs }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats }) {
   const totalViews = artists.reduce((s, a) => s + a.profile_views, 0)
   const totalIG    = artists.reduce((s, a) => s + a.instagram_clicks, 0)
   const totalWA    = artists.reduce((s, a) => s + a.whatsapp_clicks, 0)
@@ -751,6 +752,71 @@ function StatsPanel({ artists, visits }: { artists: Artist[]; visits: DayVisit[]
         </div>
       </div>
 
+      {/* ── Installs PWA ── */}
+      <div>
+        <p style={sectionLabel}>Instalaciones de la app</p>
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {([
+            { label: 'Total', value: installs.total, color: '#60a5fa' },
+            { label: 'iOS',   value: installs.byPlatform.ios,     color: '#c084fc' },
+            { label: 'Android', value: installs.byPlatform.android, color: '#4ade80' },
+          ] as const).map(item => (
+            <div key={item.label} className="p-4" style={card}>
+              <p className="font-bold" style={{ fontSize: 24, color: item.color, lineHeight: 1 }}>{fmtN(item.value)}</p>
+              <p className="mt-1.5" style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{item.label}</p>
+            </div>
+          ))}
+        </div>
+        <div className="p-5" style={card}>
+          {installs.days.every(d => d.count === 0) ? (
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.15)' }}>Sin instalaciones en los últimos 30 días</p>
+          ) : (() => {
+            const max = Math.max(...installs.days.map(d => d.count), 1)
+            const total30 = installs.days.reduce((s, d) => s + d.count, 0)
+            const W = 300, H = 72, PX = 8, PY = 10
+            const cW = W - PX * 2, cH = H - PY * 2
+            const pts = installs.days.map((d, i) => ({
+              x: PX + (i / (installs.days.length - 1)) * cW,
+              y: PY + cH - (d.count / max) * cH,
+              count: d.count,
+            }))
+            const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+            const area = `${line} L${pts[pts.length-1].x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`
+            return (
+              <>
+                <div className="flex items-end gap-5 mb-4">
+                  <div>
+                    <p className="font-bold" style={{ fontSize: 26, color: '#60a5fa', lineHeight: 1 }}>{installs.days[installs.days.length - 1]?.count ?? 0}</p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>hoy</p>
+                  </div>
+                  <div>
+                    <p className="font-bold" style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)', lineHeight: 1 }}>{total30}</p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>últimos 30 días</p>
+                  </div>
+                </div>
+                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full" style={{ height: 72, display: 'block' }}>
+                  <defs>
+                    <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.01" />
+                    </linearGradient>
+                  </defs>
+                  <path d={area} fill="url(#ig)" />
+                  <path d={line} fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  {pts.filter(p => p.count > 0).map((p, i) => (
+                    <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#60a5fa" />
+                  ))}
+                </svg>
+                <div className="flex justify-between mt-2" style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)' }}>
+                  <span>{installs.days[0]?.date.slice(5).replace('-', '/')}</span>
+                  <span>{installs.days[installs.days.length - 1]?.date.slice(5).replace('-', '/')}</span>
+                </div>
+              </>
+            )
+          })()}
+        </div>
+      </div>
+
     </div>
   )
 }
@@ -767,6 +833,7 @@ export default function AdminPage() {
   const [error, setError]     = useState('')
   const [deleting, setDeleting]   = useState<string | null>(null)
   const [visits, setVisits]       = useState<DayVisit[]>([])
+  const [installs, setInstalls]   = useState<InstallStats>({ days: [], byPlatform: { ios: 0, android: 0, other: 0 }, total: 0 })
   const [pages, setPages]         = useState<{ slug: string; title: string; content: string }[]>([])
   const [editingPage, setEditingPage] = useState<string | null>(null)
   const [pageForm, setPageForm]   = useState({ title: '', content: '' })
@@ -816,11 +883,13 @@ export default function AdminPage() {
       fetch('/api/admin/stats/visits', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/pages', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/settings', { headers: H(p) }).then(r => r.json()),
-    ]).then(([a, b, v, pg, cfg]) => {
+      fetch('/api/admin/stats/installs', { headers: H(p) }).then(r => r.json()),
+    ]).then(([a, b, v, pg, cfg, ins]) => {
       if (a.status === 'fulfilled') setArtists(a.value.artists || [])
       if (b.status === 'fulfilled') setAds(b.value.ads || [])
       if (v.status === 'fulfilled') setVisits(v.value.days || [])
       if (pg.status === 'fulfilled') setPages(pg.value.pages || [])
+      if (ins.status === 'fulfilled' && ins.value.days) setInstalls(ins.value)
       if (cfg.status === 'fulfilled') {
         setModeration(cfg.value.settings?.moderation === true)
         setShowCount(cfg.value.settings?.show_count === true)
@@ -1072,7 +1141,7 @@ export default function AdminPage() {
         ) : tab === 'stats' ? (
 
           // ── ESTADÍSTICAS ────────────────────────────────────────────────────
-          <StatsPanel artists={artists} visits={visits} />
+          <StatsPanel artists={artists} visits={visits} installs={installs} />
 
         ) : tab === 'paginas' ? (
 
