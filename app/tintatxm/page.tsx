@@ -285,6 +285,11 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
         <input value={form.instagram} onChange={e => { setForm(f => ({ ...f, instagram: e.target.value })); setIgStatus('idle') }}
           placeholder="@usuario" className={iCls}
           style={{ borderColor: igStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igStatus === 'ok' ? 'rgba(74,222,128,0.4)' : undefined }} />
+        {igStatus === 'taken' && (
+          <p className="text-xs leading-relaxed" style={{ color: 'rgba(248,113,113,0.7)', marginTop: 6 }}>
+            Este Instagram ya tiene un perfil en Flashttoo. Si es tuyo y perdiste la clave, escribinos.
+          </p>
+        )}
       </div>
       <div>
         <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>WhatsApp</p>
