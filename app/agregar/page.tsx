@@ -301,6 +301,11 @@ export default function AgregarPage() {
               className={inputCls}
               style={{ borderColor: igStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igStatus === 'ok' ? 'rgba(74,222,128,0.4)' : undefined }}
             />
+            {igStatus === 'taken' && (
+              <p className="text-xs leading-relaxed" style={{ color: 'rgba(248,113,113,0.7)', marginTop: 6 }}>
+                Este Instagram ya tiene un perfil en Flashttoo. Si es tuyo y perdiste la clave, escribinos.
+              </p>
+            )}
           </div>
           <Field label="WhatsApp">
             <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
