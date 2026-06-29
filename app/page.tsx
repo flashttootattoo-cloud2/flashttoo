@@ -462,6 +462,11 @@ export default function Home() {
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
             onFocus={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.5)')}
             onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')} />
+          {city.trim() && !country.trim() && (
+            <p className="text-xs px-1" style={{ color: 'rgba(239,255,66,0.5)', marginTop: -4 }}>
+              Agregá el país para resultados más precisos
+            </p>
+          )}
 
           {/* Dropdown estilos — mismo tamaño que el input */}
           <div ref={stylesRef} className="relative w-full">

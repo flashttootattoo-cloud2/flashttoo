@@ -24,7 +24,13 @@ function filterSponsors(all: Sponsor[], city?: string, country?: string): Sponso
   return all.filter(s => {
     if (s.level === 'global') return true
     if (s.level === 'country' && country) return matchesAny(s.country, country)
-    if (s.level === 'city' && city) return matchesAny(s.city, city)
+    if (s.level === 'city' && city) {
+      if (!matchesAny(s.city, city)) return false
+      // Si el usuario también puso país y el sponsor tiene país, exigir que coincidan
+      // Evita mostrar sponsors de "Santiago, Chile" a usuarios de "Santiago, España"
+      if (country && s.country) return matchesAny(s.country, country)
+      return true
+    }
     return false
   })
 }
