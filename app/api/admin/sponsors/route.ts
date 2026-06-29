@@ -11,6 +11,15 @@ function auth(req: NextRequest) {
 export async function GET(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const client = sb()
+  const now = new Date().toISOString()
+
+  // Marcar vencidos como inactivos automáticamente
+  await client.from('sponsors')
+    .update({ active: false })
+    .eq('active', true)
+    .not('expires_at', 'is', null)
+    .lt('expires_at', now)
+
   const [{ data: sponsors }, { data: setting }] = await Promise.all([
     client.from('sponsors').select('*').order('created_at', { ascending: false }),
     client.from('settings').select('value').eq('key', 'sponsors_banner_active').single(),
