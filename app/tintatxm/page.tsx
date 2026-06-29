@@ -41,7 +41,7 @@ type SponsorAdmin = {
 
 type SponsorV2Admin = {
   id: string; name: string; logo_url: string; bg_image_url: string | null
-  detail_logo_url: string | null
+  detail_logo_url: string | null; detail_logo_mode: string | null
   description: string | null; link: string | null; level: string
   city: string | null; country: string | null; active: boolean
   keep_color: boolean; starts_at: string; expires_at: string | null
@@ -878,7 +878,7 @@ export default function AdminPage() {
   const [sponsorsV2, setSponsorsV2]           = useState<SponsorV2Admin[]>([])
   const [bannerV2Active, setBannerV2Active]   = useState(false)
   const [savingBannerV2, setSavingBannerV2]   = useState(false)
-  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '' })
+  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white' })
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
   const [sponsorV2Bg, setSponsorV2Bg]         = useState<File | null>(null)
@@ -888,7 +888,7 @@ export default function AdminPage() {
   const [savingSponsorsV2, setSavingSponsorsV2] = useState(false)
   const [sponsorV2Error, setSponsorV2Error]   = useState('')
   const [editingV2, setEditingV2]             = useState<string | null>(null)
-  const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '', notes: '' })
+  const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '', notes: '', detail_logo_mode: 'white' })
   const [editV2BgFile, setEditV2BgFile]       = useState<File | null>(null)
   const [editV2BgPreview, setEditV2BgPreview] = useState<string | null>(null)
   const [editV2DetailLogoFile, setEditV2DetailLogoFile] = useState<File | null>(null)
@@ -1577,11 +1577,12 @@ export default function AdminPage() {
                   if (sponsorV2Form.starts_at) fd.append('starts_at', new Date(sponsorV2Form.starts_at).toISOString())
                   if (sponsorV2Form.expires_at) fd.append('expires_at', new Date(sponsorV2Form.expires_at).toISOString())
                   fd.append('notes', sponsorV2Form.notes.trim())
+                  fd.append('detail_logo_mode', sponsorV2Form.detail_logo_mode)
                   const r = await fetch('/api/admin/sponsors-v2', { method: 'POST', headers: H(pass), body: fd })
                   const d = await r.json()
                   if (!r.ok) throw new Error(d.error || 'Error')
                   setSponsorsV2(prev => [d.sponsor, ...prev])
-                  setSponsorV2Form({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '' })
+                  setSponsorV2Form({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white' })
                   setSponsorV2Logo(null); setSponsorV2LogoPreview(null)
                   setSponsorV2Bg(null); setSponsorV2BgPreview(null)
                   setSponsorV2DetailLogo(null); setSponsorV2DetailLogoPreview(null)
@@ -1664,6 +1665,28 @@ export default function AdminPage() {
                       }} />
                   </div>
                 </label>
+              </div>
+
+              {/* Modo logo modal */}
+              <div>
+                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo en modal</p>
+                <div className="flex gap-2">
+                  {([['white', 'Blanco'], ['color', 'Color'], ['shadow', 'Sombra']] as const).map(([val, label]) => (
+                    <button key={val} type="button"
+                      onClick={() => setSponsorV2Form(f => ({ ...f, detail_logo_mode: val }))}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
+                      style={{
+                        background: sponsorV2Form.detail_logo_mode === val ? '#efff42' : 'rgba(255,255,255,0.05)',
+                        color: sponsorV2Form.detail_logo_mode === val ? '#000' : 'rgba(255,255,255,0.4)',
+                        border: `1px solid ${sponsorV2Form.detail_logo_mode === val ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
+                      }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                  {sponsorV2Form.detail_logo_mode === 'white' ? 'Logo invertido a blanco — para logos negros' : sponsorV2Form.detail_logo_mode === 'color' ? 'Logo en sus colores originales' : 'Logo original con halo blanco — para logos negros sin invertir'}
+                </p>
               </div>
 
               {/* Nivel */}
@@ -1871,6 +1894,7 @@ export default function AdminPage() {
                             starts_at: sp.starts_at ? sp.starts_at.slice(0, 10) : '',
                             expires_at: sp.expires_at ? sp.expires_at.slice(0, 10) : '',
                             notes: sp.notes || '',
+                            detail_logo_mode: sp.detail_logo_mode || 'white',
                           })
                           setEditV2DetailLogoFile(null); setEditV2DetailLogoPreview(null)
                         }}
@@ -2009,6 +2033,24 @@ export default function AdminPage() {
                           </div>
                         </label>
                       </div>
+                      {/* Modo logo modal */}
+                      <div>
+                        <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Logo en modal</p>
+                        <div className="flex gap-2">
+                          {([['white', 'Blanco'], ['color', 'Color'], ['shadow', 'Sombra']] as const).map(([val, label]) => (
+                            <button key={val} type="button"
+                              onClick={() => setEditV2Form(f => ({ ...f, detail_logo_mode: val }))}
+                              className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
+                              style={{
+                                background: editV2Form.detail_logo_mode === val ? '#efff42' : 'rgba(255,255,255,0.05)',
+                                color: editV2Form.detail_logo_mode === val ? '#000' : 'rgba(255,255,255,0.4)',
+                                border: `1px solid ${editV2Form.detail_logo_mode === val ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
+                              }}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                       <button type="button" onClick={() => setEditV2Form(f => ({ ...f, keep_color: !f.keep_color }))}
                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left"
                         style={{ background: editV2Form.keep_color ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.03)', border: `1px solid ${editV2Form.keep_color ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}` }}>
@@ -2043,6 +2085,7 @@ export default function AdminPage() {
                               if (editV2Form.starts_at) fd.append('starts_at', new Date(editV2Form.starts_at).toISOString())
                               if (editV2Form.expires_at) fd.append('expires_at', new Date(editV2Form.expires_at).toISOString())
                               fd.append('notes', editV2Form.notes.trim())
+                              fd.append('detail_logo_mode', editV2Form.detail_logo_mode)
                               r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'PATCH', headers: H(pass), body: fd })
                             } else {
                               r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
@@ -2059,6 +2102,7 @@ export default function AdminPage() {
                                   ...(editV2Form.starts_at ? { starts_at: new Date(editV2Form.starts_at).toISOString() } : {}),
                                   expires_at: editV2Form.expires_at ? new Date(editV2Form.expires_at).toISOString() : null,
                                   notes: editV2Form.notes.trim() || null,
+                                  detail_logo_mode: editV2Form.detail_logo_mode,
                                 }),
                               })
                             }

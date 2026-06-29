@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 type Sponsor = {
   id: string; name: string; logo_url: string; bg_image_url: string | null
-  detail_logo_url: string | null
+  detail_logo_url: string | null; detail_logo_mode: string | null
   description: string | null; link: string | null; level: string
   city: string | null; country: string | null; keep_color: boolean | null
 }
@@ -290,8 +290,10 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={sel.detail_logo_url || sel.logo_url} alt={sel.name} style={{
                       maxHeight: 80, maxWidth: '65%', objectFit: 'contain',
-                      filter: (sel.detail_logo_url || sel.keep_color) ? 'none' : 'brightness(0) invert(1)',
-                      opacity: (sel.detail_logo_url || sel.keep_color) ? 1 : 0.92,
+                      filter: sel.detail_logo_mode === 'color' ? 'none'
+                        : sel.detail_logo_mode === 'shadow' ? 'drop-shadow(0 0 10px rgba(255,255,255,0.95)) drop-shadow(0 0 4px rgba(255,255,255,0.8))'
+                        : 'brightness(0) invert(1)',
+                      opacity: 1,
                     } as React.CSSProperties} />
                   </div>
 

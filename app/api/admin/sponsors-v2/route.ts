@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
   const level       = (form.get('level') as string)?.trim() || 'global'
   const city        = (form.get('city') as string)?.trim() || null
   const country     = (form.get('country') as string)?.trim() || null
-  const keep_color  = form.get('keep_color') === 'true'
+  const keep_color       = form.get('keep_color') === 'true'
+  const detail_logo_mode = (form.get('detail_logo_mode') as string)?.trim() || 'white'
   const startsRaw   = (form.get('starts_at') as string)?.trim() || null
   const expiresRaw  = (form.get('expires_at') as string)?.trim() || null
   const starts_at   = startsRaw  ? new Date(startsRaw).toISOString()  : new Date().toISOString()
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await client.from('sponsors_v2').insert({
       name, description, link, level, city, country, keep_color, starts_at, expires_at,
-      logo_url, bg_image_url, detail_logo_url, notes,
+      logo_url, bg_image_url, detail_logo_url, detail_logo_mode, notes,
     }).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ sponsor: data })
