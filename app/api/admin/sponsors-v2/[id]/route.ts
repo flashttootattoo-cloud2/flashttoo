@@ -1,0 +1,63 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+function sb() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+}
+function auth(req: NextRequest) {
+  return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
+}
+
+const JSON_ALLOWED = ['active', 'name', 'description', 'link', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url']
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { id } = await params
+  const contentType = req.headers.get('content-type') || ''
+  const client = sb()
+  const patch: Record<string, unknown> = {}
+
+  if (contentType.includes('multipart/form-data')) {
+    const form = await req.formData()
+    // Subir nueva imagen de fondo si se envió
+    const bgFile = form.get('bg_image') as File | null
+    if (bgFile?.size) {
+      const ext  = bgFile.name.split('.').pop() || 'jpg'
+      const path = `sponsors-v2/bg-${Date.now()}.${ext}`
+      const { error: upErr } = await client.storage.from('artist-photos').upload(path, bgFile, { contentType: bgFile.type })
+      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
+      patch.bg_image_url = client.storage.from('artist-photos').getPublicUrl(path).data.publicUrl
+    }
+    const textFields = ['name', 'description', 'link', 'level', 'city', 'country', 'starts_at', 'expires_at']
+    for (const k of textFields) {
+      const v = form.get(k) as string | null
+      if (v !== null) patch[k] = v.trim() || null
+    }
+    const kc = form.get('keep_color')
+    if (kc !== null) patch.keep_color = kc === 'true'
+  } else {
+    const body = await req.json()
+    for (const k of JSON_ALLOWED) if (k in body) patch[k] = body[k]
+  }
+
+  const { data, error } = await client.from('sponsors_v2').update(patch).eq('id', id).select().single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ sponsor: data })
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { id } = await params
+  const client = sb()
+  const { data: sp } = await client.from('sponsors_v2').select('logo_url,bg_image_url').eq('id', id).single()
+  const toRemove: string[] = []
+  for (const url of [sp?.logo_url, sp?.bg_image_url]) {
+    if (url) {
+      const path = url.split('/artist-photos/')[1]
+      if (path) toRemove.push(path)
+    }
+  }
+  if (toRemove.length) await client.storage.from('artist-photos').remove(toRemove)
+  await client.from('sponsors_v2').delete().eq('id', id)
+  return NextResponse.json({ ok: true })
+}

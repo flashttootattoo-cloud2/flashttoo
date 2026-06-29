@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase, type Artist } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
 import SponsorsBanner from '@/components/SponsorsBanner'
+import SponsorsBannerV2 from '@/components/SponsorsBannerV2'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 
 function BioText({ text, style }: { text: string; style?: React.CSSProperties }) {
@@ -714,7 +715,7 @@ export default function Home() {
           <div className="flex justify-center items-start min-h-full pb-64 sm:px-4 sm:pt-6">
           <div className="flex flex-col w-full sm:max-w-sm" onClick={e => e.stopPropagation()}>
           <div className="relative w-full overflow-hidden"
-            style={{ background: '#111', borderRadius: editOpen ? '20px 20px 0 0' : 20, border: '1px solid rgba(255,255,255,0.08)', borderBottom: editOpen ? 'none' : '1px solid rgba(255,255,255,0.08)', boxShadow: editOpen ? 'none' : '0 40px 100px rgba(0,0,0,0.9)' }}>
+            style={{ background: '#111', borderRadius: editOpen ? '0 0 0 0' : '0 0 20px 20px', border: '1px solid rgba(255,255,255,0.08)', borderBottom: editOpen ? 'none' : '1px solid rgba(255,255,255,0.08)', boxShadow: editOpen ? 'none' : '0 40px 100px rgba(0,0,0,0.9)' }}>
 
             <div className="relative w-full" style={{ paddingBottom: '115%' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1170,6 +1171,7 @@ export default function Home() {
       )}
 
       <SponsorsBanner country={country} />
+      <SponsorsBannerV2 city={city} country={country} />
     </main>
   )
 }
