@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     .lt('expires_at', now)
 
   const [{ data: sponsors }, { data: setting }] = await Promise.all([
-    client.from('sponsors_v2').select('*').order('created_at', { ascending: false }),
+    client.from('sponsors_v2').select('*').order('expires_at', { ascending: true, nullsFirst: false }),
     client.from('settings').select('value').eq('key', 'sponsors_v2_banner_active').single(),
   ])
   return NextResponse.json({ sponsors: sponsors || [], banner_active: setting?.value === true })
