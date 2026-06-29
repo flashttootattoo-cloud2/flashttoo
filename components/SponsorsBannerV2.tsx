@@ -33,12 +33,14 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const allRef   = useRef<Sponsor[]>([])
-  const trackRef = useRef<HTMLDivElement>(null)
-  const firstRef = useRef<HTMLDivElement>(null)
-  const posRef   = useRef(0)
-  const loopRef  = useRef(0)
-  const dragRef  = useRef({ on: false, startX: 0, startPos: 0, moved: false })
+  const allRef        = useRef<Sponsor[]>([])
+  const trackRef      = useRef<HTMLDivElement>(null)
+  const firstRef      = useRef<HTMLDivElement>(null)
+  const posRef        = useRef(0)
+  const loopRef       = useRef(0)
+  const dragRef       = useRef({ on: false, startX: 0, startPos: 0, moved: false })
+  const histDepthRef  = useRef(0)  // cuántos estados pushState tiene el overlay
+  const skipPopsRef   = useRef(0)  // popstate a ignorar tras history.go(-n)
 
   // Fetch una sola vez — mezcla aleatoria fija en este montaje
   useEffect(() => {
@@ -90,11 +92,16 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
   useEffect(() => {
     document.body.style.overflow = expanded ? 'hidden' : ''
     if (expanded && sponsors.length) {
-      setSelectedId(sponsors[0].id)
-      history.pushState({ sv2: 'detail' }, '')
+      // grid (1) + detalle del primer sponsor (2)
       history.pushState({ sv2: 'grid' }, '')
+      history.pushState({ sv2: 'detail' }, '')
+      histDepthRef.current = 2
+      setSelectedId(sponsors[0].id)
     }
-    if (!expanded) setSelectedId(null)
+    if (!expanded) {
+      setSelectedId(null)
+      histDepthRef.current = 0
+    }
     return () => { document.body.style.overflow = '' }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded])
@@ -102,15 +109,33 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
   // Botón físico atrás del celular
   useEffect(() => {
     const onPop = () => {
-      if (selectedId) {
-        setSelectedId(null)
-      } else if (expanded) {
-        setExpanded(false)
-      }
+      if (skipPopsRef.current > 0) { skipPopsRef.current--; return }
+      histDepthRef.current = Math.max(0, histDepthRef.current - 1)
+      if (selectedId) setSelectedId(null)
+      else if (expanded) setExpanded(false)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [selectedId, expanded])
+
+  const openSponsor = (id: string) => {
+    history.pushState({ sv2: 'detail' }, '')
+    histDepthRef.current++
+    setSelectedId(id)
+  }
+
+  const closeDetail = () => history.back()  // consume el estado → popstate → setSelectedId(null)
+
+  const closeAll = () => {
+    const depth = histDepthRef.current
+    histDepthRef.current = 0
+    setExpanded(false)
+    setSelectedId(null)
+    if (depth > 0) {
+      skipPopsRef.current = depth
+      history.go(-depth)
+    }
+  }
 
   const startDrag = (clientX: number) => {
     dragRef.current = { on: true, startX: clientX, startPos: posRef.current, moved: false }
@@ -157,7 +182,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
               <p style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.22em', textTransform: 'uppercase', margin: 0 }}>
                 Sponsors
               </p>
-              <button onClick={() => { setExpanded(false); setSelectedId(null) }} style={{
+              <button onClick={closeAll} style={{
                 width: 32, height: 32, borderRadius: '50%',
                 background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.08)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -166,7 +191,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
               {sponsors.map(s => (
-                <button key={s.id} onClick={() => setSelectedId(s.id)} style={{
+                <button key={s.id} onClick={() => openSponsor(s.id)} style={{
                   position: 'relative', overflow: 'hidden',
                   border: '1px solid rgba(255,255,255,0.07)',
                   borderRadius: 14, padding: 0,
@@ -238,13 +263,13 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
 
                 {/* Botones de navegación */}
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '20px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 3 }}>
-                  <button onClick={() => setSelectedId(null)} style={{
+                  <button onClick={closeDetail} style={{
                     width: 36, height: 36, borderRadius: '50%',
                     background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer', color: '#fff', fontSize: 16,
                   }}>←</button>
-                  <button onClick={() => { setExpanded(false); setSelectedId(null) }} style={{
+                  <button onClick={closeAll} style={{
                     width: 36, height: 36, borderRadius: '50%',
                     background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
