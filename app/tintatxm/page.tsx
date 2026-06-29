@@ -41,9 +41,11 @@ type SponsorAdmin = {
 
 type SponsorV2Admin = {
   id: string; name: string; logo_url: string; bg_image_url: string | null
+  detail_logo_url: string | null
   description: string | null; link: string | null; level: string
   city: string | null; country: string | null; active: boolean
-  keep_color: boolean; starts_at: string; expires_at: string | null; created_at: string
+  keep_color: boolean; starts_at: string; expires_at: string | null
+  created_at: string; notes: string | null
 }
 
 const H = (pass: string) => ({ 'x-admin-pass': pass })
@@ -876,17 +878,21 @@ export default function AdminPage() {
   const [sponsorsV2, setSponsorsV2]           = useState<SponsorV2Admin[]>([])
   const [bannerV2Active, setBannerV2Active]   = useState(false)
   const [savingBannerV2, setSavingBannerV2]   = useState(false)
-  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false })
+  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '' })
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
   const [sponsorV2Bg, setSponsorV2Bg]         = useState<File | null>(null)
   const [sponsorV2BgPreview, setSponsorV2BgPreview] = useState<string | null>(null)
+  const [sponsorV2DetailLogo, setSponsorV2DetailLogo] = useState<File | null>(null)
+  const [sponsorV2DetailLogoPreview, setSponsorV2DetailLogoPreview] = useState<string | null>(null)
   const [savingSponsorsV2, setSavingSponsorsV2] = useState(false)
   const [sponsorV2Error, setSponsorV2Error]   = useState('')
   const [editingV2, setEditingV2]             = useState<string | null>(null)
-  const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '' })
+  const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '', notes: '' })
   const [editV2BgFile, setEditV2BgFile]       = useState<File | null>(null)
   const [editV2BgPreview, setEditV2BgPreview] = useState<string | null>(null)
+  const [editV2DetailLogoFile, setEditV2DetailLogoFile] = useState<File | null>(null)
+  const [editV2DetailLogoPreview, setEditV2DetailLogoPreview] = useState<string | null>(null)
   const [savingEditV2, setSavingEditV2]       = useState(false)
   const [menuOpen, setMenuOpen]     = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -1560,6 +1566,7 @@ export default function AdminPage() {
                   const fd = new FormData()
                   fd.append('logo', sponsorV2Logo)
                   if (sponsorV2Bg) fd.append('bg_image', sponsorV2Bg)
+                  if (sponsorV2DetailLogo) fd.append('detail_logo', sponsorV2DetailLogo)
                   fd.append('name', sponsorV2Form.name.trim())
                   fd.append('description', sponsorV2Form.description.trim())
                   fd.append('link', sponsorV2Form.link.trim())
@@ -1569,13 +1576,15 @@ export default function AdminPage() {
                   fd.append('keep_color', String(sponsorV2Form.keep_color))
                   if (sponsorV2Form.starts_at) fd.append('starts_at', new Date(sponsorV2Form.starts_at).toISOString())
                   if (sponsorV2Form.expires_at) fd.append('expires_at', new Date(sponsorV2Form.expires_at).toISOString())
+                  fd.append('notes', sponsorV2Form.notes.trim())
                   const r = await fetch('/api/admin/sponsors-v2', { method: 'POST', headers: H(pass), body: fd })
                   const d = await r.json()
                   if (!r.ok) throw new Error(d.error || 'Error')
                   setSponsorsV2(prev => [d.sponsor, ...prev])
-                  setSponsorV2Form({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false })
+                  setSponsorV2Form({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '' })
                   setSponsorV2Logo(null); setSponsorV2LogoPreview(null)
                   setSponsorV2Bg(null); setSponsorV2BgPreview(null)
+                  setSponsorV2DetailLogo(null); setSponsorV2DetailLogoPreview(null)
                 } catch (err: unknown) {
                   setSponsorV2Error(err instanceof Error ? err.message : 'Error')
                 } finally { setSavingSponsorsV2(false) }
@@ -1629,6 +1638,29 @@ export default function AdminPage() {
                         const file = e.target.files?.[0]; if (!file) return
                         setSponsorV2Bg(file)
                         setSponsorV2BgPreview(URL.createObjectURL(file))
+                      }} />
+                  </div>
+                </label>
+                <label className="cursor-pointer block flex-1 min-w-[140px]">
+                  <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo a color (modal)</p>
+                  <div className="flex items-center gap-3">
+                    {sponsorV2DetailLogoPreview ? (
+                      <div className="rounded-lg overflow-hidden flex items-center justify-center"
+                        style={{ width: 100, height: 40, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={sponsorV2DetailLogoPreview} alt="" style={{ maxHeight: 32, maxWidth: 90, objectFit: 'contain' }} />
+                      </div>
+                    ) : (
+                      <div className="rounded-lg flex items-center justify-center text-xs text-center"
+                        style={{ width: 100, height: 40, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)', lineHeight: 1.3 }}>
+                        color<br/>(opcional)
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0]; if (!file) return
+                        setSponsorV2DetailLogo(file)
+                        setSponsorV2DetailLogoPreview(URL.createObjectURL(file))
                       }} />
                   </div>
                 </label>
@@ -1697,6 +1729,15 @@ export default function AdminPage() {
                   className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
               </div>
 
+              {/* Notas internas */}
+              <div>
+                <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Notas internas</p>
+                <textarea value={sponsorV2Form.notes} rows={2}
+                  onChange={e => setSponsorV2Form(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Precio acordado, contacto, condiciones..."
+                  className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
+              </div>
+
               {/* Mantener color */}
               <button type="button"
                 onClick={() => setSponsorV2Form(f => ({ ...f, keep_color: !f.keep_color }))}
@@ -1745,10 +1786,19 @@ export default function AdminPage() {
                   <div className="rounded-xl p-4 flex items-start gap-4"
                     style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${sp.active && !expired ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.06)'}`, opacity: expired ? 0.5 : 1 }}>
                     {/* Logo */}
-                    <div className="shrink-0 rounded-lg flex items-center justify-center overflow-hidden"
-                      style={{ width: 80, height: 36, background: sp.keep_color ? '#fff' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={sp.logo_url} alt={sp.name} style={{ maxHeight: 28, maxWidth: 74, objectFit: 'contain', filter: sp.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sp.keep_color ? 1 : 0.6 }} />
+                    <div className="shrink-0 flex flex-col gap-1">
+                      <div className="rounded-lg flex items-center justify-center overflow-hidden"
+                        style={{ width: 80, height: 32, background: sp.keep_color ? '#fff' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={sp.logo_url} alt={sp.name} style={{ maxHeight: 26, maxWidth: 72, objectFit: 'contain', filter: sp.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sp.keep_color ? 1 : 0.6 }} />
+                      </div>
+                      {sp.detail_logo_url && (
+                        <div className="rounded-lg flex items-center justify-center overflow-hidden"
+                          style={{ width: 80, height: 24, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(239,255,66,0.15)' }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={sp.detail_logo_url} alt="" style={{ maxHeight: 18, maxWidth: 72, objectFit: 'contain' }} />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -1761,6 +1811,11 @@ export default function AdminPage() {
                       {sp.description && (
                         <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
                           {sp.description.length > 80 ? sp.description.slice(0, 80) + '…' : sp.description}
+                        </p>
+                      )}
+                      {sp.notes && (
+                        <p className="text-xs mt-1 px-2 py-0.5 rounded" style={{ color: 'rgba(239,255,66,0.6)', background: 'rgba(239,255,66,0.05)', lineHeight: 1.5 }}>
+                          {sp.notes.length > 100 ? sp.notes.slice(0, 100) + '…' : sp.notes}
                         </p>
                       )}
                       {exp && (
@@ -1815,7 +1870,9 @@ export default function AdminPage() {
                             keep_color: sp.keep_color,
                             starts_at: sp.starts_at ? sp.starts_at.slice(0, 10) : '',
                             expires_at: sp.expires_at ? sp.expires_at.slice(0, 10) : '',
+                            notes: sp.notes || '',
                           })
+                          setEditV2DetailLogoFile(null); setEditV2DetailLogoPreview(null)
                         }}
                         className="text-xs px-3 py-1 rounded-full transition-all"
                         style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)' }}>
@@ -1891,32 +1948,67 @@ export default function AdminPage() {
                           onChange={e => setEditV2Form(f => ({ ...f, description: e.target.value }))}
                           className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
                       </div>
-                      {/* Imagen de fondo */}
-                      <label className="cursor-pointer block">
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Imagen de fondo</p>
-                        <div className="flex items-center gap-3">
-                          {editV2BgPreview || sp.bg_image_url ? (
-                            <div className="rounded-lg overflow-hidden" style={{ width: 80, height: 36, border: '1px solid rgba(255,255,255,0.1)' }}>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={editV2BgPreview || sp.bg_image_url!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            </div>
-                          ) : (
-                            <div className="rounded-lg flex items-center justify-center text-xs"
-                              style={{ width: 80, height: 36, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
-                              sin fondo
-                            </div>
-                          )}
-                          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                            {editV2BgPreview ? 'nueva imagen seleccionada' : 'clic para cambiar'}
-                          </span>
-                          <input type="file" accept="image/*" className="hidden"
-                            onChange={e => {
-                              const file = e.target.files?.[0]; if (!file) return
-                              setEditV2BgFile(file)
-                              setEditV2BgPreview(URL.createObjectURL(file))
-                            }} />
-                        </div>
-                      </label>
+                      <div>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Notas internas</p>
+                        <textarea value={editV2Form.notes} rows={2}
+                          onChange={e => setEditV2Form(f => ({ ...f, notes: e.target.value }))}
+                          placeholder="Precio acordado, contacto, condiciones..."
+                          className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
+                      </div>
+                      {/* Imágenes */}
+                      <div className="flex gap-3 flex-wrap">
+                        <label className="cursor-pointer block flex-1 min-w-[140px]">
+                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Imagen de fondo</p>
+                          <div className="flex items-center gap-3">
+                            {editV2BgPreview || sp.bg_image_url ? (
+                              <div className="rounded-lg overflow-hidden" style={{ width: 80, height: 36, border: '1px solid rgba(255,255,255,0.1)' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={editV2BgPreview || sp.bg_image_url!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              </div>
+                            ) : (
+                              <div className="rounded-lg flex items-center justify-center text-xs"
+                                style={{ width: 80, height: 36, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
+                                sin fondo
+                              </div>
+                            )}
+                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                              {editV2BgPreview ? 'nueva seleccionada' : 'clic para cambiar'}
+                            </span>
+                            <input type="file" accept="image/*" className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0]; if (!file) return
+                                setEditV2BgFile(file)
+                                setEditV2BgPreview(URL.createObjectURL(file))
+                              }} />
+                          </div>
+                        </label>
+                        <label className="cursor-pointer block flex-1 min-w-[140px]">
+                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Logo a color (modal)</p>
+                          <div className="flex items-center gap-3">
+                            {editV2DetailLogoPreview || sp.detail_logo_url ? (
+                              <div className="rounded-lg overflow-hidden flex items-center justify-center"
+                                style={{ width: 80, height: 36, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(239,255,66,0.2)' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={editV2DetailLogoPreview || sp.detail_logo_url!} alt="" style={{ maxHeight: 28, maxWidth: 74, objectFit: 'contain' }} />
+                              </div>
+                            ) : (
+                              <div className="rounded-lg flex items-center justify-center text-xs"
+                                style={{ width: 80, height: 36, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
+                                sin color
+                              </div>
+                            )}
+                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                              {editV2DetailLogoPreview ? 'nueva seleccionada' : 'clic para cambiar'}
+                            </span>
+                            <input type="file" accept="image/*" className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0]; if (!file) return
+                                setEditV2DetailLogoFile(file)
+                                setEditV2DetailLogoPreview(URL.createObjectURL(file))
+                              }} />
+                          </div>
+                        </label>
+                      </div>
                       <button type="button" onClick={() => setEditV2Form(f => ({ ...f, keep_color: !f.keep_color }))}
                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left"
                         style={{ background: editV2Form.keep_color ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.03)', border: `1px solid ${editV2Form.keep_color ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}` }}>
@@ -1937,9 +2029,10 @@ export default function AdminPage() {
                           onClick={async () => {
                             setSavingEditV2(true)
                             let r: Response
-                            if (editV2BgFile) {
+                            if (editV2BgFile || editV2DetailLogoFile) {
                               const fd = new FormData()
-                              fd.append('bg_image', editV2BgFile)
+                              if (editV2BgFile) fd.append('bg_image', editV2BgFile)
+                              if (editV2DetailLogoFile) fd.append('detail_logo', editV2DetailLogoFile)
                               fd.append('name', editV2Form.name.trim())
                               fd.append('description', editV2Form.description.trim())
                               fd.append('link', editV2Form.link.trim())
@@ -1949,6 +2042,7 @@ export default function AdminPage() {
                               fd.append('keep_color', String(editV2Form.keep_color))
                               if (editV2Form.starts_at) fd.append('starts_at', new Date(editV2Form.starts_at).toISOString())
                               if (editV2Form.expires_at) fd.append('expires_at', new Date(editV2Form.expires_at).toISOString())
+                              fd.append('notes', editV2Form.notes.trim())
                               r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'PATCH', headers: H(pass), body: fd })
                             } else {
                               r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
@@ -1964,6 +2058,7 @@ export default function AdminPage() {
                                   keep_color: editV2Form.keep_color,
                                   ...(editV2Form.starts_at ? { starts_at: new Date(editV2Form.starts_at).toISOString() } : {}),
                                   expires_at: editV2Form.expires_at ? new Date(editV2Form.expires_at).toISOString() : null,
+                                  notes: editV2Form.notes.trim() || null,
                                 }),
                               })
                             }
@@ -1971,6 +2066,7 @@ export default function AdminPage() {
                             if (d.sponsor) setSponsorsV2(prev => prev.map(s => s.id === sp.id ? d.sponsor : s))
                             setEditingV2(null)
                             setEditV2BgFile(null); setEditV2BgPreview(null)
+                            setEditV2DetailLogoFile(null); setEditV2DetailLogoPreview(null)
                             setSavingEditV2(false)
                           }}
                           className="px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-40"

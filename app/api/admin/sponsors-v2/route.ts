@@ -38,11 +38,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const form = await req.formData()
-  const logo     = form.get('logo') as File
-  const bgFile   = form.get('bg_image') as File | null
+  const logo           = form.get('logo') as File
+  const bgFile         = form.get('bg_image') as File | null
+  const detailLogoFile = form.get('detail_logo') as File | null
   const name        = (form.get('name') as string)?.trim() || null
   const description = (form.get('description') as string)?.trim() || null
   const link        = (form.get('link') as string)?.trim() || null
+  const notes       = (form.get('notes') as string)?.trim() || null
   const level       = (form.get('level') as string)?.trim() || 'global'
   const city        = (form.get('city') as string)?.trim() || null
   const country     = (form.get('country') as string)?.trim() || null
@@ -57,12 +59,13 @@ export async function POST(req: NextRequest) {
 
   const client = sb()
   try {
-    const logo_url     = await uploadFile(client, logo, 'logo')
-    const bg_image_url = bgFile?.size ? await uploadFile(client, bgFile, 'bg') : null
+    const logo_url        = await uploadFile(client, logo, 'logo')
+    const bg_image_url    = bgFile?.size ? await uploadFile(client, bgFile, 'bg') : null
+    const detail_logo_url = detailLogoFile?.size ? await uploadFile(client, detailLogoFile, 'detail') : null
 
     const { data, error } = await client.from('sponsors_v2').insert({
       name, description, link, level, city, country, keep_color, starts_at, expires_at,
-      logo_url, bg_image_url,
+      logo_url, bg_image_url, detail_logo_url, notes,
     }).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ sponsor: data })

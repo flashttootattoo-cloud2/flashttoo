@@ -8,7 +8,7 @@ function auth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
-const JSON_ALLOWED = ['active', 'name', 'description', 'link', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url']
+const JSON_ALLOWED = ['active', 'name', 'description', 'link', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url', 'detail_logo_url', 'notes']
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -19,8 +19,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if (contentType.includes('multipart/form-data')) {
     const form = await req.formData()
-    // Subir nueva imagen de fondo si se envió
-    const bgFile = form.get('bg_image') as File | null
+    const bgFile         = form.get('bg_image') as File | null
+    const detailLogoFile = form.get('detail_logo') as File | null
     if (bgFile?.size) {
       const ext  = bgFile.name.split('.').pop() || 'jpg'
       const path = `sponsors-v2/bg-${Date.now()}.${ext}`
@@ -28,7 +28,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
       patch.bg_image_url = client.storage.from('artist-photos').getPublicUrl(path).data.publicUrl
     }
-    const textFields = ['name', 'description', 'link', 'level', 'city', 'country', 'starts_at', 'expires_at']
+    if (detailLogoFile?.size) {
+      const ext  = detailLogoFile.name.split('.').pop() || 'png'
+      const path = `sponsors-v2/detail-${Date.now()}.${ext}`
+      const { error: upErr } = await client.storage.from('artist-photos').upload(path, detailLogoFile, { contentType: detailLogoFile.type })
+      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
+      patch.detail_logo_url = client.storage.from('artist-photos').getPublicUrl(path).data.publicUrl
+    }
+    const textFields = ['name', 'description', 'link', 'level', 'city', 'country', 'starts_at', 'expires_at', 'notes']
     for (const k of textFields) {
       const v = form.get(k) as string | null
       if (v !== null) patch[k] = v.trim() || null
