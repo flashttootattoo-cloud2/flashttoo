@@ -455,18 +455,20 @@ export default function Home() {
             onFocus={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.5)')}
             onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')} />
 
-          <input type="text" placeholder={country.trim() ? `ciudad en ${country.trim()}` : 'ciudad'}
+          <input type="text"
+            placeholder={country.trim() ? `ciudad en ${country.trim()}` : 'ciudad (primero elegí un país)'}
             value={city}
+            disabled={!country.trim()}
             onChange={e => setCity(e.target.value)}
-            className="w-full py-2 px-4 text-sm text-white outline-none transition-all rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-            onFocus={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.5)')}
+            className="w-full py-2 px-4 text-sm outline-none transition-all rounded-lg"
+            style={{
+              background: country.trim() ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: country.trim() ? '#fff' : 'rgba(255,255,255,0.2)',
+              cursor: country.trim() ? 'text' : 'not-allowed',
+            }}
+            onFocus={e => { if (country.trim()) e.currentTarget.style.borderColor = 'rgba(239,255,66,0.5)' }}
             onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')} />
-          {city.trim() && !country.trim() && (
-            <p className="text-xs px-1" style={{ color: 'rgba(239,255,66,0.5)', marginTop: -4 }}>
-              Agregá el país para resultados más precisos
-            </p>
-          )}
 
           {/* Dropdown estilos — mismo tamaño que el input */}
           <div ref={stylesRef} className="relative w-full">
