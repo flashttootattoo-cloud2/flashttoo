@@ -45,7 +45,7 @@ type SponsorV2Admin = {
   description: string | null; link: string | null; level: string
   city: string | null; country: string | null; active: boolean
   keep_color: boolean; starts_at: string; expires_at: string | null
-  created_at: string; notes: string | null
+  created_at: string; notes: string | null; clicks: number
 }
 
 const H = (pass: string) => ({ 'x-admin-pass': pass })
@@ -1846,6 +1846,9 @@ export default function AdminPage() {
                           {expired ? `venció hace ${-days!}d` : `vence en ${days}d`}
                         </p>
                       )}
+                      <p className="text-xs mt-1" style={{ color: sp.clicks > 0 ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.15)' }}>
+                        {sp.clicks > 0 ? `${sp.clicks} clic${sp.clicks !== 1 ? 's' : ''}` : 'sin clics'}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button

@@ -308,11 +308,13 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                       </p>
                     )}
                     {sel.link ? (
-                      <a href={sel.link} target="_blank" rel="noopener noreferrer" style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                        padding: '13px 26px', background: '#efff42', color: '#000',
-                        borderRadius: 14, fontSize: 14, fontWeight: 800, textDecoration: 'none',
-                      }}>Ver más →</a>
+                      <a href={sel.link} target="_blank" rel="noopener noreferrer"
+                        onClick={() => { fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {}) }}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 8,
+                          padding: '13px 26px', background: '#efff42', color: '#000',
+                          borderRadius: 14, fontSize: 14, fontWeight: 800, textDecoration: 'none',
+                        }}>Ver más →</a>
                     ) : (
                       <div style={{ height: 12 }} />
                     )}
