@@ -19,6 +19,15 @@ async function uploadFile(client: ReturnType<typeof sb>, file: File, prefix: str
 export async function GET(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const client = sb()
+  const now = new Date().toISOString()
+
+  // Marcar vencidos como inactivos automáticamente
+  await client.from('sponsors_v2')
+    .update({ active: false })
+    .eq('active', true)
+    .not('expires_at', 'is', null)
+    .lt('expires_at', now)
+
   const [{ data: sponsors }, { data: setting }] = await Promise.all([
     client.from('sponsors_v2').select('*').order('created_at', { ascending: false }),
     client.from('settings').select('value').eq('key', 'sponsors_v2_banner_active').single(),

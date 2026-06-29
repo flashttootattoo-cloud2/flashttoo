@@ -8,6 +8,14 @@ export async function GET() {
   if (!setting || setting.value !== true) return NextResponse.json({ sponsors: [] })
 
   const now = new Date().toISOString()
+
+  // Marcar vencidos como inactivos automáticamente
+  await sb.from('sponsors_v2')
+    .update({ active: false })
+    .eq('active', true)
+    .not('expires_at', 'is', null)
+    .lt('expires_at', now)
+
   const { data } = await sb
     .from('sponsors_v2')
     .select('id,name,logo_url,bg_image_url,description,link,level,city,country,keep_color')
