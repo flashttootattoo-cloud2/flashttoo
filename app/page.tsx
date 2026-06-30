@@ -25,6 +25,13 @@ function BioText({ text, style }: { text: string; style?: React.CSSProperties })
   )
 }
 
+function initialsOf(name: string) {
+  const parts = name.trim().split(/\s+/)
+  const first = parts[0]?.[0] || ''
+  const last  = parts.length > 1 ? parts[parts.length - 1][0] : ''
+  return (first + last).toUpperCase()
+}
+
 const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
   'Japonés','Neo Tradicional','Minimalista','Old School','Dotwork',
@@ -102,6 +109,9 @@ export default function Home() {
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [loading, setLoading]         = useState(true)
   const [contentCards, setContentCards]     = useState<ContentCard[]>([])
+  const [brokenPhotoIds, setBrokenPhotoIds] = useState<Set<string>>(new Set())
+  const markPhotoBroken = (id: string) =>
+    setBrokenPhotoIds(prev => prev.has(id) ? prev : new Set(prev).add(id))
   const shuffledContentCards = useMemo(
     () => [...contentCards].filter(c => c.active).sort(() => Math.random() - 0.5),
     [contentCards]
@@ -224,6 +234,7 @@ export default function Home() {
     return (baseMatch || visitMatch) && styleMatch
   })
 
+  const isActiveSearch = !!country.trim() || !!city.trim() || activeStyles.length > 0
   const hasLocationSearch = !!qCity || !!qCountry
 
   // Sin ubicación: solo ads marcadas "en inicio" por el admin. Con ciudad/país: ads de esa ubicación
@@ -560,7 +571,7 @@ export default function Home() {
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
             {(() => {
               const CHUNK = 15
-              const activeCards = shuffledContentCards
+              const activeCards = isActiveSearch ? [] : shuffledContentCards
               const nodes: React.ReactNode[] = []
               let cardIdx = 0
               finalBlocks.forEach((block, i) => {
@@ -574,11 +585,17 @@ export default function Home() {
                         style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
                         <div style={{ paddingBottom: '133%' }} />
                         <div className="absolute inset-0" style={{ background: '#111' }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={big.data.photo_url} alt={big.data.name}
-                            loading={block.fi < 4 ? 'eager' : 'lazy'}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                            onError={e => { e.currentTarget.style.opacity = '0' }} />
+                          {brokenPhotoIds.has(big.data.id) ? (
+                            <div className="absolute inset-0 flex items-center justify-center" style={{ color: 'rgba(239,255,66,0.4)', fontSize: 32, fontWeight: 700 }}>
+                              {initialsOf(big.data.name)}
+                            </div>
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={big.data.photo_url} alt={big.data.name}
+                              loading={block.fi < 4 ? 'eager' : 'lazy'}
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              onError={() => markPhotoBroken(big.data.id)} />
+                          )}
                           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
                           <div className="absolute bottom-0 left-0 right-0 p-3">
                             <p className="text-white font-bold" style={{ fontSize: 16, overflowWrap: 'break-word' }}>{big.data.name}</p>
@@ -595,10 +612,16 @@ export default function Home() {
                             style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
                             <div style={{ paddingBottom: '133%' }} />
                             <div className="absolute inset-0" style={{ background: '#111' }}>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={item.data.photo_url} alt={item.data.name} loading="lazy"
-                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                onError={e => { e.currentTarget.style.opacity = '0' }} />
+                              {brokenPhotoIds.has(item.data.id) ? (
+                                <div className="absolute inset-0 flex items-center justify-center" style={{ color: 'rgba(239,255,66,0.4)', fontSize: 22, fontWeight: 700 }}>
+                                  {initialsOf(item.data.name)}
+                                </div>
+                              ) : (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={item.data.photo_url} alt={item.data.name} loading="lazy"
+                                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                  onError={() => markPhotoBroken(item.data.id)} />
+                              )}
                               <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
                               <div className="absolute bottom-0 left-0 right-0 p-2">
                                 <p className="text-white font-bold leading-tight" style={{ fontSize: 11, overflowWrap: 'break-word' }}>{item.data.name}</p>
@@ -637,11 +660,17 @@ export default function Home() {
                         style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
                         <div style={{ paddingBottom: '133%' }} />
                         <div className="absolute inset-0" style={{ background: '#111' }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={item.data.photo_url} alt={item.data.name}
-                            loading={block.fi < 4 ? 'eager' : 'lazy'}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                            onError={e => { e.currentTarget.style.opacity = '0' }} />
+                          {brokenPhotoIds.has(item.data.id) ? (
+                            <div className="absolute inset-0 flex items-center justify-center" style={{ color: 'rgba(239,255,66,0.4)', fontSize: 28, fontWeight: 700 }}>
+                              {initialsOf(item.data.name)}
+                            </div>
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={item.data.photo_url} alt={item.data.name}
+                              loading={block.fi < 4 ? 'eager' : 'lazy'}
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              onError={() => markPhotoBroken(item.data.id)} />
+                          )}
                           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
                           <div className="absolute bottom-0 left-0 right-0 p-3">
                             <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{item.data.name}</p>
