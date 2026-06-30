@@ -8,7 +8,7 @@ function auth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
-const JSON_ALLOWED = ['active', 'name', 'description', 'link', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url', 'detail_logo_url', 'detail_logo_mode', 'notes']
+const JSON_ALLOWED = ['active', 'name', 'description', 'link', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url', 'detail_logo_url', 'detail_logo_mode', 'notes', 'logo_scale']
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -42,6 +42,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     const kc = form.get('keep_color')
     if (kc !== null) patch.keep_color = kc === 'true'
+    const ls = form.get('logo_scale')
+    if (ls !== null) {
+      const parsed = parseInt(ls as string, 10)
+      patch.logo_scale = Number.isFinite(parsed) && parsed > 0 ? parsed : 100
+    }
   } else {
     const body = await req.json()
     for (const k of JSON_ALLOWED) if (k in body) patch[k] = body[k]

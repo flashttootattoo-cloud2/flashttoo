@@ -7,6 +7,7 @@ type Sponsor = {
   detail_logo_url: string | null; detail_logo_mode: string | null
   description: string | null; link: string | null; level: string
   city: string | null; country: string | null; keep_color: boolean | null
+  logo_scale: number | null
 }
 
 function norm(s: string) {
@@ -220,13 +221,14 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                   {/* Velo oscuro */}
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)' }} />
                   {/* Logo nítido */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.logo_url} alt={s.name} style={{
-                    position: 'relative', zIndex: 1,
-                    maxHeight: 30, maxWidth: '70%', objectFit: 'contain',
-                    filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
-                    opacity: s.keep_color ? 1 : 0.88,
-                  }} />
+                  <div style={{ position: 'relative', zIndex: 1, width: '70%', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={s.logo_url} alt={s.name} style={{
+                      maxHeight: `${s.logo_scale || 100}%`, maxWidth: `${s.logo_scale || 100}%`, objectFit: 'contain',
+                      filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
+                      opacity: s.keep_color ? 1 : 0.88,
+                    }} />
+                  </div>
                 </button>
               ))}
             </div>
@@ -293,14 +295,16 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                 }}>
                   {/* Logo */}
                   <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={sel.detail_logo_url || sel.logo_url} alt={sel.name} style={{
-                      maxHeight: 80, maxWidth: '65%', objectFit: 'contain',
-                      filter: sel.detail_logo_mode === 'color' ? 'none'
-                        : sel.detail_logo_mode === 'shadow' ? 'drop-shadow(0 0 10px rgba(255,255,255,0.95)) drop-shadow(0 0 4px rgba(255,255,255,0.8))'
-                        : 'brightness(0) invert(1)',
-                      opacity: 1,
-                    } as React.CSSProperties} />
+                    <div style={{ width: '65%', maxWidth: 280, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={sel.detail_logo_url || sel.logo_url} alt={sel.name} style={{
+                        maxHeight: `${sel.logo_scale || 100}%`, maxWidth: `${sel.logo_scale || 100}%`, objectFit: 'contain',
+                        filter: sel.detail_logo_mode === 'color' ? 'none'
+                          : sel.detail_logo_mode === 'shadow' ? 'drop-shadow(0 0 10px rgba(255,255,255,0.95)) drop-shadow(0 0 4px rgba(255,255,255,0.8))'
+                          : 'brightness(0) invert(1)',
+                        opacity: 1,
+                      } as React.CSSProperties} />
+                    </div>
                   </div>
 
                   {/* Texto y botón */}
@@ -383,11 +387,13 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
 
 function Logo({ s, dragRef }: { s: Sponsor; dragRef: React.RefObject<{ moved: boolean }> }) {
   const img = (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={s.logo_url} alt={s.name ?? ''} draggable={false}
-      style={{ height: 20, maxWidth: 90, objectFit: 'contain', filter: s.keep_color ? 'none' : 'brightness(0)', display: 'block' }}
-    />
+    <div style={{ width: 84, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={s.logo_url} alt={s.name ?? ''} draggable={false}
+        style={{ maxHeight: `${s.logo_scale || 100}%`, maxWidth: `${s.logo_scale || 100}%`, objectFit: 'contain', filter: s.keep_color ? 'none' : 'brightness(0)', display: 'block' }}
+      />
+    </div>
   )
   if (s.link) {
     return (

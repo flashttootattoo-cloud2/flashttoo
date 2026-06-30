@@ -45,7 +45,7 @@ type SponsorV2Admin = {
   description: string | null; link: string | null; level: string
   city: string | null; country: string | null; active: boolean
   keep_color: boolean; starts_at: string; expires_at: string | null
-  created_at: string; notes: string | null; clicks: number
+  created_at: string; notes: string | null; clicks: number; logo_scale: number | null
 }
 
 const H = (pass: string) => ({ 'x-admin-pass': pass })
@@ -878,7 +878,7 @@ export default function AdminPage() {
   const [sponsorsV2, setSponsorsV2]           = useState<SponsorV2Admin[]>([])
   const [bannerV2Active, setBannerV2Active]   = useState(false)
   const [savingBannerV2, setSavingBannerV2]   = useState(false)
-  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white' })
+  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white', logo_scale: 100 })
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
   const [sponsorV2Bg, setSponsorV2Bg]         = useState<File | null>(null)
@@ -889,7 +889,7 @@ export default function AdminPage() {
   const [sponsorV2Error, setSponsorV2Error]   = useState('')
   const [editingV2, setEditingV2]             = useState<string | null>(null)
   const [previewV2, setPreviewV2]             = useState<SponsorV2Admin | null>(null)
-  const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '', notes: '', detail_logo_mode: 'white' })
+  const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '', notes: '', detail_logo_mode: 'white', logo_scale: 100 })
   const [editV2BgFile, setEditV2BgFile]       = useState<File | null>(null)
   const [editV2BgPreview, setEditV2BgPreview] = useState<string | null>(null)
   const [editV2DetailLogoFile, setEditV2DetailLogoFile] = useState<File | null>(null)
@@ -1579,11 +1579,12 @@ export default function AdminPage() {
                   if (sponsorV2Form.expires_at) fd.append('expires_at', new Date(sponsorV2Form.expires_at).toISOString())
                   fd.append('notes', sponsorV2Form.notes.trim())
                   fd.append('detail_logo_mode', sponsorV2Form.detail_logo_mode)
+                  fd.append('logo_scale', String(sponsorV2Form.logo_scale))
                   const r = await fetch('/api/admin/sponsors-v2', { method: 'POST', headers: H(pass), body: fd })
                   const d = await r.json()
                   if (!r.ok) throw new Error(d.error || 'Error')
                   setSponsorsV2(prev => [d.sponsor, ...prev])
-                  setSponsorV2Form({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white' })
+                  setSponsorV2Form({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white', logo_scale: 100 })
                   setSponsorV2Logo(null); setSponsorV2LogoPreview(null)
                   setSponsorV2Bg(null); setSponsorV2BgPreview(null)
                   setSponsorV2DetailLogo(null); setSponsorV2DetailLogoPreview(null)
@@ -1687,6 +1688,20 @@ export default function AdminPage() {
                 </div>
                 <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>
                   {sponsorV2Form.detail_logo_mode === 'white' ? 'Logo invertido a blanco — para logos negros' : sponsorV2Form.detail_logo_mode === 'color' ? 'Logo en sus colores originales' : 'Logo original con halo blanco — para logos negros sin invertir'}
+                </p>
+              </div>
+
+              {/* Tamaño del logo */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tamaño del logo</p>
+                  <span className="text-xs font-bold" style={{ color: '#efff42' }}>{sponsorV2Form.logo_scale}%</span>
+                </div>
+                <input type="range" min={50} max={150} step={5} value={sponsorV2Form.logo_scale}
+                  onChange={e => setSponsorV2Form(f => ({ ...f, logo_scale: parseInt(e.target.value, 10) }))}
+                  className="w-full" />
+                <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                  Ajustá si este logo se ve más chico o más grande que los demás (banner y vista de detalle).
                 </p>
               </div>
 
@@ -1905,6 +1920,7 @@ export default function AdminPage() {
                             expires_at: sp.expires_at ? sp.expires_at.slice(0, 10) : '',
                             notes: sp.notes || '',
                             detail_logo_mode: sp.detail_logo_mode || 'white',
+                            logo_scale: sp.logo_scale || 100,
                           })
                           setEditV2DetailLogoFile(null); setEditV2DetailLogoPreview(null)
                         }}
@@ -2061,6 +2077,16 @@ export default function AdminPage() {
                           ))}
                         </div>
                       </div>
+                      {/* Tamaño del logo */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Tamaño del logo</p>
+                          <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.logo_scale}%</span>
+                        </div>
+                        <input type="range" min={50} max={150} step={5} value={editV2Form.logo_scale}
+                          onChange={e => setEditV2Form(f => ({ ...f, logo_scale: parseInt(e.target.value, 10) }))}
+                          className="w-full" />
+                      </div>
                       <button type="button" onClick={() => setEditV2Form(f => ({ ...f, keep_color: !f.keep_color }))}
                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left"
                         style={{ background: editV2Form.keep_color ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.03)', border: `1px solid ${editV2Form.keep_color ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}` }}>
@@ -2096,6 +2122,7 @@ export default function AdminPage() {
                               if (editV2Form.expires_at) fd.append('expires_at', new Date(editV2Form.expires_at).toISOString())
                               fd.append('notes', editV2Form.notes.trim())
                               fd.append('detail_logo_mode', editV2Form.detail_logo_mode)
+                              fd.append('logo_scale', String(editV2Form.logo_scale))
                               r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'PATCH', headers: H(pass), body: fd })
                             } else {
                               r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
@@ -2113,6 +2140,7 @@ export default function AdminPage() {
                                   expires_at: editV2Form.expires_at ? new Date(editV2Form.expires_at).toISOString() : null,
                                   notes: editV2Form.notes.trim() || null,
                                   detail_logo_mode: editV2Form.detail_logo_mode,
+                                  logo_scale: editV2Form.logo_scale,
                                 }),
                               })
                             }
@@ -2164,14 +2192,16 @@ export default function AdminPage() {
                   padding: '80px 36px 32px',
                 }}>
                   <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={previewV2.detail_logo_url || previewV2.logo_url} alt={previewV2.name} style={{
-                      maxHeight: 80, maxWidth: '65%', objectFit: 'contain',
-                      filter: previewV2.detail_logo_mode === 'color' ? 'none'
-                        : previewV2.detail_logo_mode === 'shadow' ? 'drop-shadow(0 0 10px rgba(255,255,255,0.95)) drop-shadow(0 0 4px rgba(255,255,255,0.8))'
-                        : 'brightness(0) invert(1)',
-                      opacity: 1,
-                    } as React.CSSProperties} />
+                    <div style={{ width: '65%', maxWidth: 280, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={previewV2.detail_logo_url || previewV2.logo_url} alt={previewV2.name} style={{
+                        maxHeight: `${previewV2.logo_scale || 100}%`, maxWidth: `${previewV2.logo_scale || 100}%`, objectFit: 'contain',
+                        filter: previewV2.detail_logo_mode === 'color' ? 'none'
+                          : previewV2.detail_logo_mode === 'shadow' ? 'drop-shadow(0 0 10px rgba(255,255,255,0.95)) drop-shadow(0 0 4px rgba(255,255,255,0.8))'
+                          : 'brightness(0) invert(1)',
+                        opacity: 1,
+                      } as React.CSSProperties} />
+                    </div>
                   </div>
                   <div style={{ width: '100%', maxWidth: 480 }}>
                     <p style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: '0 0 10px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>
