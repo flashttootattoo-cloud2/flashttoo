@@ -888,6 +888,7 @@ export default function AdminPage() {
   const [savingSponsorsV2, setSavingSponsorsV2] = useState(false)
   const [sponsorV2Error, setSponsorV2Error]   = useState('')
   const [editingV2, setEditingV2]             = useState<string | null>(null)
+  const [previewV2, setPreviewV2]             = useState<SponsorV2Admin | null>(null)
   const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '', notes: '', detail_logo_mode: 'white' })
   const [editV2BgFile, setEditV2BgFile]       = useState<File | null>(null)
   const [editV2BgPreview, setEditV2BgPreview] = useState<string | null>(null)
@@ -1884,6 +1885,12 @@ export default function AdminPage() {
                         {sp.active ? 'activo' : 'inactivo'}
                       </button>
                       <button
+                        onClick={() => setPreviewV2(sp)}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{ border: '1px solid rgba(147,197,253,0.25)', color: '#93c5fd' }}>
+                        vista previa
+                      </button>
+                      <button
                         onClick={() => {
                           setEditingV2(sp.id)
                           setEditV2Form({
@@ -2127,6 +2134,68 @@ export default function AdminPage() {
                 )
               })}
             </div>
+
+            {/* Vista previa — réplica del modal público */}
+            {previewV2 && (
+              <div style={{ position: 'fixed', inset: 0, zIndex: 80, background: '#000', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={previewV2.bg_image_url || previewV2.logo_url} alt="" aria-hidden style={{
+                    position: 'absolute', inset: 0, width: '100%', height: '100%',
+                    objectFit: 'cover', objectPosition: 'center', transform: 'scale(1.04)', opacity: 0.6,
+                  }} />
+                </div>
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.93) 68%, rgba(0,0,0,1) 100%)',
+                }} />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '20px 20px 0', display: 'flex', justifyContent: 'flex-end', zIndex: 3 }}>
+                  <button onClick={() => setPreviewV2(null)} style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: 14,
+                  }}>✕</button>
+                </div>
+                <div style={{
+                  position: 'absolute', inset: 0, zIndex: 2,
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  padding: '80px 36px 32px',
+                }}>
+                  <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={previewV2.detail_logo_url || previewV2.logo_url} alt={previewV2.name} style={{
+                      maxHeight: 80, maxWidth: '65%', objectFit: 'contain',
+                      filter: previewV2.detail_logo_mode === 'color' ? 'none'
+                        : previewV2.detail_logo_mode === 'shadow' ? 'drop-shadow(0 0 10px rgba(255,255,255,0.95)) drop-shadow(0 0 4px rgba(255,255,255,0.8))'
+                        : 'brightness(0) invert(1)',
+                      opacity: 1,
+                    } as React.CSSProperties} />
+                  </div>
+                  <div style={{ width: '100%', maxWidth: 480 }}>
+                    <p style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: '0 0 10px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>
+                      {previewV2.name}
+                    </p>
+                    {previewV2.description && (
+                      <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.52)', lineHeight: 1.75, margin: '0 0 28px' }}>
+                        {previewV2.description}
+                      </p>
+                    )}
+                    {previewV2.link ? (
+                      <a href={previewV2.link} target="_blank" rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 8,
+                          padding: '13px 26px', background: '#efff42', color: '#000',
+                          borderRadius: 14, fontSize: 14, fontWeight: 800, textDecoration: 'none',
+                        }}>Ver más →</a>
+                    ) : (
+                      <div style={{ height: 12 }} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
         ) : tab === 'agregar' ? (

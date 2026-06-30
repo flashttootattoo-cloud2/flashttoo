@@ -292,7 +292,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                   padding: '80px 36px 32px',
                 }}>
                   {/* Logo */}
-                  <div style={{ flexShrink: 0, marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={sel.detail_logo_url || sel.logo_url} alt={sel.name} style={{
                       maxHeight: 80, maxWidth: '65%', objectFit: 'contain',
