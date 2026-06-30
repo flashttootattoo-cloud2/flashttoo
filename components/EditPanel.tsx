@@ -295,47 +295,6 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                   className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'none', lineHeight: 1.6 }} />
               </div>
 
-              {/* Entrevista */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setInterviewOpen(v => !v)}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
-                  style={{
-                    background: interviewOpen ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                >
-                  <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>Tu historia — opcional</span>
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{interviewOpen ? '▲' : '▼'}</span>
-                </button>
-
-                {interviewOpen && (
-                  <div className="mt-4">
-                    <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
-                      Respondé las que quieras. Aparecen en tu perfil para que la gente te conozca.
-                    </p>
-                    <div className="flex flex-col gap-4">
-                      {INTERVIEW_QUESTIONS.map(q => (
-                        <div key={q.key}>
-                          <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{q.label}</p>
-                          <textarea
-                            value={interview[q.key] || ''}
-                            onChange={e => {
-                              if (e.target.value.length <= 300)
-                                setInterview(prev => ({ ...prev, [q.key]: e.target.value }))
-                            }}
-                            rows={2}
-                            placeholder="Respuesta opcional..."
-                            className={iCls}
-                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'none', lineHeight: 1.6 }} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Próximas fechas */}
               <div>
                 <button
@@ -343,12 +302,14 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                   onClick={() => { setVisitOpen(v => !v); setAddingVisit(false) }}
                   className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
                   style={{
-                    background: visitOpen ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${visitOpen ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.08)'}`,
+                    background: visitOpen
+                      ? 'linear-gradient(135deg, rgba(239,255,66,0.16), rgba(239,255,66,0.04))'
+                      : 'linear-gradient(135deg, rgba(239,255,66,0.08), rgba(239,255,66,0.015))',
+                    border: `1px solid rgba(239,255,66,${visitOpen ? 0.25 : 0.14})`,
                   }}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium" style={{ color: visitOpen ? '#efff42' : 'rgba(255,255,255,0.6)' }}>
+                    <span className="text-sm font-medium" style={{ color: visitOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>
                       Próximas fechas — ¿dónde estarás?
                     </span>
                     {visits.length > 0 && (
@@ -432,6 +393,49 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                         + Agregar fecha
                       </button>
                     )}
+                  </div>
+                )}
+              </div>
+
+              {/* Entrevista */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setInterviewOpen(v => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+                  style={{
+                    background: interviewOpen
+                      ? 'linear-gradient(135deg, rgba(239,255,66,0.16), rgba(239,255,66,0.04))'
+                      : 'linear-gradient(135deg, rgba(239,255,66,0.08), rgba(239,255,66,0.015))',
+                    border: `1px solid rgba(239,255,66,${interviewOpen ? 0.25 : 0.14})`,
+                  }}
+                >
+                  <span className="text-sm font-medium" style={{ color: interviewOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>Tu historia — opcional</span>
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{interviewOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {interviewOpen && (
+                  <div className="mt-4">
+                    <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
+                      Respondé las que quieras. Aparecen en tu perfil para que la gente te conozca.
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      {INTERVIEW_QUESTIONS.map(q => (
+                        <div key={q.key}>
+                          <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{q.label}</p>
+                          <textarea
+                            value={interview[q.key] || ''}
+                            onChange={e => {
+                              if (e.target.value.length <= 300)
+                                setInterview(prev => ({ ...prev, [q.key]: e.target.value }))
+                            }}
+                            rows={2}
+                            placeholder="Respuesta opcional..."
+                            className={iCls}
+                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'none', lineHeight: 1.6 }} />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
