@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { supabase, type Artist } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
@@ -102,6 +102,10 @@ export default function Home() {
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [loading, setLoading]         = useState(true)
   const [contentCards, setContentCards]     = useState<ContentCard[]>([])
+  const shuffledContentCards = useMemo(
+    () => [...contentCards].filter(c => c.active).sort(() => Math.random() - 0.5),
+    [contentCards]
+  )
   const [showCount, setShowCount]           = useState(false)
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
   const [selectedAd, setSelectedAd]           = useState<Ad | null>(null)
@@ -220,7 +224,6 @@ export default function Home() {
     return (baseMatch || visitMatch) && styleMatch
   })
 
-  const isActiveSearch = !!country.trim() || !!city.trim() || activeStyles.length > 0
   const hasLocationSearch = !!qCity || !!qCountry
 
   // Sin ubicación: solo ads marcadas "en inicio" por el admin. Con ciudad/país: ads de esa ubicación
@@ -557,7 +560,7 @@ export default function Home() {
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
             {(() => {
               const CHUNK = 15
-              const activeCards = isActiveSearch ? [] : contentCards.filter(c => c.active)
+              const activeCards = shuffledContentCards
               const nodes: React.ReactNode[] = []
               let cardIdx = 0
               finalBlocks.forEach((block, i) => {
