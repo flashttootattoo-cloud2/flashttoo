@@ -24,17 +24,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     })(),
   ])
 
-  // Inicializar los últimos 6 meses
-  type Bucket = { detail_open: number; link_click: number; grid_view: number }
+  type Bucket = { detail_open: number; banner_click: number; detail_click: number }
   const monthly: Record<string, Bucket> = {}
   for (let i = 5; i >= 0; i--) {
     const d = new Date()
     d.setMonth(d.getMonth() - i)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    monthly[key] = { detail_open: 0, link_click: 0, grid_view: 0 }
+    monthly[key] = { detail_open: 0, banner_click: 0, detail_click: 0 }
   }
 
-  const totals: Bucket = { detail_open: 0, link_click: 0, grid_view: 0 }
+  const totals: Bucket = { detail_open: 0, banner_click: 0, detail_click: 0 }
   for (const ev of events ?? []) {
     const d = new Date(ev.created_at)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`

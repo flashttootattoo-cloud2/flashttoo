@@ -107,10 +107,6 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
       setSelectedId(sponsors[0].id)
       // Trackear vista del detalle del primer sponsor (auto-mostrado)
       fetch(`/api/sponsors-v2/${sponsors[0].id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_open' }) }).catch(() => {})
-      // Trackear impresión en el listado para cada sponsor visible
-      sponsors.forEach(s => {
-        fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'grid_view' }) }).catch(() => {})
-      })
     }
     if (!expanded) {
       setSelectedId(null)
@@ -328,7 +324,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                       <a href={sel.link} target="_blank" rel="noopener noreferrer"
                         onClick={() => {
                           fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {})
-                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'link_click' }) }).catch(() => {})
+                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_click' }) }).catch(() => {})
                         }}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -412,7 +408,7 @@ function Logo({ s, dragRef }: { s: Sponsor; dragRef: React.RefObject<{ moved: bo
         onClick={e => {
           if (dragRef.current?.moved) { e.preventDefault(); return }
           fetch(`/api/sponsors-v2/${s.id}/click`, { method: 'POST' }).catch(() => {})
-          fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'link_click' }) }).catch(() => {})
+          fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'banner_click' }) }).catch(() => {})
         }}>
         {img}
       </a>

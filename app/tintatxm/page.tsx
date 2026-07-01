@@ -48,11 +48,16 @@ type SponsorV2Admin = {
   created_at: string; notes: string | null; clicks: number; logo_scale: number | null
 }
 
-type StatsV2Bucket = { detail_open: number; link_click: number; grid_view: number }
+type StatsV2Bucket = { detail_open: number; banner_click: number; detail_click: number }
 type StatsV2Data = {
   sponsor: { id: string; name: string; logo_url: string; keep_color: boolean; logo_scale: number | null; clicks: number }
   totals: StatsV2Bucket
   monthly: Record<string, StatsV2Bucket>
+}
+
+function fmtAvg(total: number): string {
+  const v = total / 6
+  return v === Math.floor(v) ? String(Math.floor(v)) : v.toFixed(1)
 }
 
 const MONTH_NAMES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -2490,7 +2495,7 @@ export default function AdminPage() {
           ) : statsV2Data && (() => {
             const { sponsor, totals, monthly } = statsV2Data
             const entries = Object.entries(monthly)
-            const maxVal = Math.max(1, ...entries.flatMap(([, d]) => [d.detail_open, d.link_click]))
+            const maxVal = Math.max(1, ...entries.flatMap(([, d]) => [d.detail_open, d.banner_click, d.detail_click]))
             return (
               <div style={{ maxWidth: 480, margin: '0 auto', padding: '28px 20px 60px', display: 'flex', flexDirection: 'column', gap: 28 }}>
 
@@ -2512,12 +2517,12 @@ export default function AdminPage() {
                   <p style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>{sponsor.name}</p>
                 </div>
 
-                {/* Métricas */}
+                {/* Totales */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                   {([
-                    { label: 'Vistas del\ndetalle', value: totals.detail_open, color: '#60a5fa' },
-                    { label: 'Clics al\nenlace', value: sponsor.clicks, color: '#efff42' },
-                    { label: 'Aperturas\ndel listado', value: totals.grid_view, color: '#c084fc' },
+                    { label: 'Vistas\ndetalle', value: totals.detail_open, color: '#60a5fa' },
+                    { label: 'Clics\nbanner', value: totals.banner_click, color: '#34d399' },
+                    { label: 'Clics\ndetalle', value: totals.detail_click, color: '#efff42' },
                   ] as { label: string; value: number; color: string }[]).map(({ label, value, color }) => (
                     <div key={label} style={{
                       background: 'rgba(255,255,255,0.03)', borderRadius: 16,
@@ -2532,45 +2537,67 @@ export default function AdminPage() {
 
                 {/* Gráfico de barras — últimos 6 meses */}
                 <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: '20px 16px 16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.16em', textTransform: 'uppercase', margin: '0 0 20px' }}>Últimos 6 meses</p>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.16em', textTransform: 'uppercase', margin: '0 0 4px' }}>Últimos 6 meses</p>
+
+                  {/* Promedios mensuales */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 20 }}>
+                    {([
+                      { label: 'Prom. vistas', value: fmtAvg(totals.detail_open), color: '#60a5fa' },
+                      { label: 'Prom. clic banner', value: fmtAvg(totals.banner_click), color: '#34d399' },
+                      { label: 'Prom. clic detalle', value: fmtAvg(totals.detail_click), color: '#efff42' },
+                    ] as { label: string; value: string; color: string }[]).map(({ label, value, color }) => (
+                      <div key={label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 8px', textAlign: 'center', border: `1px solid ${color}15` }}>
+                        <p style={{ fontSize: 20, fontWeight: 800, color, margin: '0 0 3px', lineHeight: 1 }}>{value}</p>
+                        <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', margin: 0, lineHeight: 1.4 }}>{label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Barras */}
                   <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
                     {entries.map(([key, data]) => {
-                      const detailH = Math.round((data.detail_open / maxVal) * 72)
-                      const clickH  = Math.round((data.link_click  / maxVal) * 72)
+                      const detailH  = Math.round((data.detail_open  / maxVal) * 72)
+                      const bannerH  = Math.round((data.banner_click / maxVal) * 72)
+                      const dClickH  = Math.round((data.detail_click / maxVal) * 72)
+                      const empty = data.detail_open === 0 && data.banner_click === 0 && data.detail_click === 0
                       return (
                         <div key={key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                          {/* Números encima */}
-                          <div style={{ width: '100%', display: 'flex', gap: 2, justifyContent: 'center', marginBottom: 2 }}>
-                            {data.detail_open > 0 && (
-                              <span style={{ flex: 1, fontSize: 8, fontWeight: 700, color: '#60a5fa', textAlign: 'center', lineHeight: 1 }}>{data.detail_open}</span>
-                            )}
-                            {data.link_click > 0 && (
-                              <span style={{ flex: 1, fontSize: 8, fontWeight: 700, color: '#efff42', textAlign: 'center', lineHeight: 1 }}>{data.link_click}</span>
-                            )}
-                            {data.detail_open === 0 && data.link_click === 0 && (
-                              <span style={{ flex: 1, fontSize: 8, color: 'rgba(255,255,255,0.1)', textAlign: 'center', lineHeight: 1 }}>—</span>
+                          {/* Números */}
+                          <div style={{ width: '100%', display: 'flex', gap: 1, justifyContent: 'center', marginBottom: 2 }}>
+                            {empty ? (
+                              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.1)', lineHeight: 1 }}>—</span>
+                            ) : (
+                              <>
+                                {data.detail_open  > 0 && <span style={{ flex: 1, fontSize: 7, fontWeight: 700, color: '#60a5fa', textAlign: 'center', lineHeight: 1 }}>{data.detail_open}</span>}
+                                {data.banner_click > 0 && <span style={{ flex: 1, fontSize: 7, fontWeight: 700, color: '#34d399', textAlign: 'center', lineHeight: 1 }}>{data.banner_click}</span>}
+                                {data.detail_click > 0 && <span style={{ flex: 1, fontSize: 7, fontWeight: 700, color: '#efff42', textAlign: 'center', lineHeight: 1 }}>{data.detail_click}</span>}
+                              </>
                             )}
                           </div>
                           {/* Barras */}
-                          <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', height: 72 }}>
-                            <div style={{ flex: 1, background: '#60a5fa', borderRadius: '3px 3px 0 0', height: Math.max(detailH, data.detail_open > 0 ? 3 : 0), minHeight: 0 }} />
-                            <div style={{ flex: 1, background: '#efff42', borderRadius: '3px 3px 0 0', height: Math.max(clickH,  data.link_click  > 0 ? 3 : 0), minHeight: 0 }} />
+                          <div style={{ width: '100%', display: 'flex', gap: 1, alignItems: 'flex-end', height: 72 }}>
+                            <div style={{ flex: 1, background: '#60a5fa', borderRadius: '3px 3px 0 0', height: Math.max(detailH, data.detail_open  > 0 ? 3 : 0), minHeight: 0 }} />
+                            <div style={{ flex: 1, background: '#34d399', borderRadius: '3px 3px 0 0', height: Math.max(bannerH, data.banner_click > 0 ? 3 : 0), minHeight: 0 }} />
+                            <div style={{ flex: 1, background: '#efff42', borderRadius: '3px 3px 0 0', height: Math.max(dClickH, data.detail_click > 0 ? 3 : 0), minHeight: 0 }} />
                           </div>
                           <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', margin: 0, letterSpacing: '0.04em' }}>{monthLabel(key)}</p>
                         </div>
                       )
                     })}
                   </div>
+
                   {/* Leyenda */}
-                  <div style={{ display: 'flex', gap: 18, marginTop: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: 2, background: '#60a5fa', flexShrink: 0 }} />
-                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: 0 }}>Vistas detalle</p>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: 2, background: '#efff42', flexShrink: 0 }} />
-                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: 0 }}>Clics al enlace</p>
-                    </div>
+                  <div style={{ display: 'flex', gap: 14, marginTop: 14, flexWrap: 'wrap' }}>
+                    {([
+                      { color: '#60a5fa', label: 'Vistas detalle' },
+                      { color: '#34d399', label: 'Clics banner' },
+                      { color: '#efff42', label: 'Clics detalle' },
+                    ] as { color: string; label: string }[]).map(({ color, label }) => (
+                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
+                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: 0 }}>{label}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const ALLOWED = ['detail_open', 'link_click', 'grid_view'] as const
+const ALLOWED = ['detail_open', 'banner_click', 'detail_click'] as const
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
