@@ -130,6 +130,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
     history.pushState({ sv2: 'detail' }, '')
     histDepthRef.current++
     setSelectedId(id)
+    fetch(`/api/sponsors-v2/${id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_open' }) }).catch(() => {})
   }
 
   const closeDetail = () => history.back()  // consume el estado → popstate → setSelectedId(null)
@@ -319,7 +320,10 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                     )}
                     {sel.link ? (
                       <a href={sel.link} target="_blank" rel="noopener noreferrer"
-                        onClick={() => { fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {}) }}
+                        onClick={() => {
+                          fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {})
+                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'link_click' }) }).catch(() => {})
+                        }}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 8,
                           padding: '13px 26px', background: '#efff42', color: '#000',

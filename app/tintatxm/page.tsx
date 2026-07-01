@@ -48,6 +48,18 @@ type SponsorV2Admin = {
   created_at: string; notes: string | null; clicks: number; logo_scale: number | null
 }
 
+type StatsV2Bucket = { detail_open: number; link_click: number; grid_view: number }
+type StatsV2Data = {
+  sponsor: { id: string; name: string; logo_url: string; keep_color: boolean; logo_scale: number | null; clicks: number }
+  totals: StatsV2Bucket
+  monthly: Record<string, StatsV2Bucket>
+}
+
+const MONTH_NAMES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+function monthLabel(key: string) {
+  return MONTH_NAMES[parseInt(key.split('-')[1], 10) - 1] ?? key
+}
+
 const H = (pass: string) => ({ 'x-admin-pass': pass })
 
 function SuggestInput({ value, onChange, suggestions, className, style, placeholder, required }: {
@@ -889,6 +901,9 @@ export default function AdminPage() {
   const [sponsorV2Error, setSponsorV2Error]   = useState('')
   const [editingV2, setEditingV2]             = useState<string | null>(null)
   const [previewV2, setPreviewV2]             = useState<SponsorV2Admin | null>(null)
+  const [statsV2Sp, setStatsV2Sp]             = useState<SponsorV2Admin | null>(null)
+  const [statsV2Data, setStatsV2Data]         = useState<StatsV2Data | null>(null)
+  const [statsV2Loading, setStatsV2Loading]   = useState(false)
   const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '', notes: '', detail_logo_mode: 'white', logo_scale: 100 })
   const [editV2BgFile, setEditV2BgFile]       = useState<File | null>(null)
   const [editV2BgPreview, setEditV2BgPreview] = useState<string | null>(null)
@@ -1138,6 +1153,19 @@ export default function AdminPage() {
       </form>
     </main>
   )
+
+  const loadStatsV2 = async (sp: SponsorV2Admin) => {
+    setStatsV2Sp(sp)
+    setStatsV2Data(null)
+    setStatsV2Loading(true)
+    try {
+      const res = await fetch(`/api/admin/sponsors-v2/${sp.id}/stats`, { headers: H(pass) })
+      const data: StatsV2Data = await res.json()
+      setStatsV2Data(data)
+    } finally {
+      setStatsV2Loading(false)
+    }
+  }
 
   // ── Panel ──────────────────────────────────────────────────────────────────
   return (
@@ -1822,51 +1850,54 @@ export default function AdminPage() {
                 const levelLabel = sp.level === 'global' ? 'Global' : sp.level === 'country' ? `País · ${sp.country}` : `Ciudad · ${sp.city}`
                 return (
                   <div key={sp.id} className="flex flex-col gap-0">
-                  <div className="rounded-xl p-4 flex items-start gap-4"
+                  <div className="rounded-xl p-4 flex flex-col gap-3"
                     style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${sp.active && !expired ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.06)'}`, opacity: expired ? 0.5 : 1 }}>
-                    {/* Logo */}
-                    <div className="shrink-0 flex flex-col gap-1">
-                      <div className="rounded-lg flex items-center justify-center overflow-hidden"
-                        style={{ width: 80, height: 32, background: sp.keep_color ? '#fff' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={sp.logo_url} alt={sp.name} style={{ maxHeight: 26, maxWidth: 72, objectFit: 'contain', filter: sp.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sp.keep_color ? 1 : 0.6 }} />
-                      </div>
-                      {sp.detail_logo_url && (
+                    {/* Fila superior: logo + info */}
+                    <div className="flex items-start gap-4">
+                      <div className="shrink-0 flex flex-col gap-1">
                         <div className="rounded-lg flex items-center justify-center overflow-hidden"
-                          style={{ width: 80, height: 24, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(239,255,66,0.15)' }}>
+                          style={{ width: 80, height: 32, background: sp.keep_color ? '#fff' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={sp.detail_logo_url} alt="" style={{ maxHeight: 18, maxWidth: 72, objectFit: 'contain' }} />
+                          <img src={sp.logo_url} alt={sp.name} style={{ maxHeight: 26, maxWidth: 72, objectFit: 'contain', filter: sp.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sp.keep_color ? 1 : 0.6 }} />
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <p className="text-sm font-bold text-white">{sp.name}</p>
-                        <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                          style={{ background: `${levelColor}18`, color: levelColor, fontSize: 10 }}>
-                          {levelLabel}
-                        </span>
+                        {sp.detail_logo_url && (
+                          <div className="rounded-lg flex items-center justify-center overflow-hidden"
+                            style={{ width: 80, height: 24, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(239,255,66,0.15)' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={sp.detail_logo_url} alt="" style={{ maxHeight: 18, maxWidth: 72, objectFit: 'contain' }} />
+                          </div>
+                        )}
                       </div>
-                      {sp.description && (
-                        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
-                          {sp.description.length > 80 ? sp.description.slice(0, 80) + '…' : sp.description}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <p className="text-sm font-bold text-white">{sp.name}</p>
+                          <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                            style={{ background: `${levelColor}18`, color: levelColor, fontSize: 10 }}>
+                            {levelLabel}
+                          </span>
+                        </div>
+                        {sp.description && (
+                          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
+                            {sp.description}
+                          </p>
+                        )}
+                        {sp.notes && (
+                          <p className="text-xs mt-1 px-2 py-0.5 rounded" style={{ color: 'rgba(239,255,66,0.6)', background: 'rgba(239,255,66,0.05)', lineHeight: 1.5 }}>
+                            {sp.notes}
+                          </p>
+                        )}
+                        {exp && (
+                          <p className="text-xs mt-1" style={{ color: expired ? '#f87171' : (days ?? 0) <= 7 ? '#fb923c' : 'rgba(255,255,255,0.25)' }}>
+                            {expired ? `venció hace ${-days!}d` : `vence en ${days}d`}
+                          </p>
+                        )}
+                        <p className="text-xs mt-1" style={{ color: sp.clicks > 0 ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.15)' }}>
+                          {sp.clicks > 0 ? `${sp.clicks} clic${sp.clicks !== 1 ? 's' : ''}` : 'sin clics'}
                         </p>
-                      )}
-                      {sp.notes && (
-                        <p className="text-xs mt-1 px-2 py-0.5 rounded" style={{ color: 'rgba(239,255,66,0.6)', background: 'rgba(239,255,66,0.05)', lineHeight: 1.5 }}>
-                          {sp.notes.length > 100 ? sp.notes.slice(0, 100) + '…' : sp.notes}
-                        </p>
-                      )}
-                      {exp && (
-                        <p className="text-xs mt-1" style={{ color: expired ? '#f87171' : (days ?? 0) <= 7 ? '#fb923c' : 'rgba(255,255,255,0.25)' }}>
-                          {expired ? `venció hace ${-days!}d` : `vence en ${days}d`}
-                        </p>
-                      )}
-                      <p className="text-xs mt-1" style={{ color: sp.clicks > 0 ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.15)' }}>
-                        {sp.clicks > 0 ? `${sp.clicks} clic${sp.clicks !== 1 ? 's' : ''}` : 'sin clics'}
-                      </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Fila inferior: botones */}
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={async () => {
                           await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
@@ -1904,6 +1935,12 @@ export default function AdminPage() {
                         className="text-xs px-3 py-1 rounded-full transition-all"
                         style={{ border: '1px solid rgba(147,197,253,0.25)', color: '#93c5fd' }}>
                         vista previa
+                      </button>
+                      <button
+                        onClick={() => loadStatsV2(sp)}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{ border: '1px solid rgba(167,243,208,0.25)', color: '#6ee7b7' }}>
+                        estadísticas
                       </button>
                       <button
                         onClick={() => {
@@ -2432,6 +2469,108 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de estadísticas */}
+      {statsV2Sp && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 90, background: '#0a0a0a', overflowY: 'auto' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 0', position: 'sticky', top: 0, background: '#0a0a0a', zIndex: 1 }}>
+            <p style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.2em', textTransform: 'uppercase', margin: 0 }}>Estadísticas</p>
+            <button
+              onClick={() => { setStatsV2Sp(null); setStatsV2Data(null) }}
+              style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ✕
+            </button>
+          </div>
+
+          {statsV2Loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
+              <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Cargando...</p>
+            </div>
+          ) : statsV2Data && (() => {
+            const { sponsor, totals, monthly } = statsV2Data
+            const entries = Object.entries(monthly)
+            const maxVal = Math.max(1, ...entries.flatMap(([, d]) => [d.detail_open, d.link_click]))
+            return (
+              <div style={{ maxWidth: 480, margin: '0 auto', padding: '28px 20px 60px', display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+                {/* Logo + nombre */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, paddingTop: 8 }}>
+                  <div style={{
+                    width: 160, height: 64,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: sponsor.keep_color ? '#fff' : 'rgba(255,255,255,0.04)',
+                    borderRadius: 16, padding: '10px 20px',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                  }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={sponsor.logo_url} alt={sponsor.name} style={{
+                      maxHeight: `${sponsor.logo_scale || 100}%`, maxWidth: '100%', objectFit: 'contain',
+                      filter: sponsor.keep_color ? 'none' : 'brightness(0) invert(1)',
+                    }} />
+                  </div>
+                  <p style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>{sponsor.name}</p>
+                </div>
+
+                {/* Métricas */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                  {([
+                    { label: 'Vistas del\ndetalle', value: totals.detail_open, color: '#60a5fa' },
+                    { label: 'Clics al\nenlace', value: sponsor.clicks, color: '#efff42' },
+                    { label: 'Aperturas\ndel listado', value: totals.grid_view, color: '#c084fc' },
+                  ] as { label: string; value: number; color: string }[]).map(({ label, value, color }) => (
+                    <div key={label} style={{
+                      background: 'rgba(255,255,255,0.03)', borderRadius: 16,
+                      padding: '18px 12px', textAlign: 'center',
+                      border: `1px solid ${color}20`,
+                    }}>
+                      <p style={{ fontSize: 34, fontWeight: 900, color, margin: '0 0 6px', lineHeight: 1 }}>{value}</p>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', margin: 0, lineHeight: 1.5, whiteSpace: 'pre-line' }}>{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Gráfico de barras — últimos 6 meses */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: '20px 16px 16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.16em', textTransform: 'uppercase', margin: '0 0 20px' }}>Últimos 6 meses</p>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 100 }}>
+                    {entries.map(([key, data]) => {
+                      const detailH = Math.round((data.detail_open / maxVal) * 76)
+                      const clickH  = Math.round((data.link_click  / maxVal) * 76)
+                      return (
+                        <div key={key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                          <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', height: 76 }}>
+                            <div style={{ flex: 1, background: '#60a5fa', borderRadius: '3px 3px 0 0', height: Math.max(detailH, data.detail_open > 0 ? 3 : 0), minHeight: 0 }} />
+                            <div style={{ flex: 1, background: '#efff42', borderRadius: '3px 3px 0 0', height: Math.max(clickH,  data.link_click  > 0 ? 3 : 0), minHeight: 0 }} />
+                          </div>
+                          <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', margin: 0, letterSpacing: '0.04em' }}>{monthLabel(key)}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {/* Leyenda */}
+                  <div style={{ display: 'flex', gap: 18, marginTop: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: 2, background: '#60a5fa', flexShrink: 0 }} />
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: 0 }}>Vistas detalle</p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: 2, background: '#efff42', flexShrink: 0 }} />
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: 0 }}>Clics al enlace</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nota */}
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
+                  El seguimiento de vistas del detalle comenzó a registrarse a partir de ahora.{'\n'}Los clics al enlace incluyen el historial completo.
+                </p>
+
+              </div>
+            )
+          })()}
+        </div>
+      )}
     </main>
   )
 }
