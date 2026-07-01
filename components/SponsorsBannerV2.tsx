@@ -409,7 +409,11 @@ function Logo({ s, dragRef }: { s: Sponsor; dragRef: React.RefObject<{ moved: bo
     return (
       <a href={s.link} target="_blank" rel="noopener noreferrer"
         style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}
-        onClick={e => { if (dragRef.current?.moved) e.preventDefault() }}>
+        onClick={e => {
+          if (dragRef.current?.moved) { e.preventDefault(); return }
+          fetch(`/api/sponsors-v2/${s.id}/click`, { method: 'POST' }).catch(() => {})
+          fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'link_click' }) }).catch(() => {})
+        }}>
         {img}
       </a>
     )
