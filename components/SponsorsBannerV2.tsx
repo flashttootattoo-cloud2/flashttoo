@@ -105,6 +105,12 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
       history.pushState({ sv2: 'detail' }, '')
       histDepthRef.current = 2
       setSelectedId(sponsors[0].id)
+      // Trackear vista del detalle del primer sponsor (auto-mostrado)
+      fetch(`/api/sponsors-v2/${sponsors[0].id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_open' }) }).catch(() => {})
+      // Trackear impresión en el listado para cada sponsor visible
+      sponsors.forEach(s => {
+        fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'grid_view' }) }).catch(() => {})
+      })
     }
     if (!expanded) {
       setSelectedId(null)
