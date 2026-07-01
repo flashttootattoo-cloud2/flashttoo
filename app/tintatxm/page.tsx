@@ -2533,13 +2533,26 @@ export default function AdminPage() {
                 {/* Gráfico de barras — últimos 6 meses */}
                 <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: '20px 16px 16px', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.16em', textTransform: 'uppercase', margin: '0 0 20px' }}>Últimos 6 meses</p>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 100 }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
                     {entries.map(([key, data]) => {
-                      const detailH = Math.round((data.detail_open / maxVal) * 76)
-                      const clickH  = Math.round((data.link_click  / maxVal) * 76)
+                      const detailH = Math.round((data.detail_open / maxVal) * 72)
+                      const clickH  = Math.round((data.link_click  / maxVal) * 72)
                       return (
-                        <div key={key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                          <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', height: 76 }}>
+                        <div key={key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          {/* Números encima */}
+                          <div style={{ width: '100%', display: 'flex', gap: 2, justifyContent: 'center', marginBottom: 2 }}>
+                            {data.detail_open > 0 && (
+                              <span style={{ flex: 1, fontSize: 8, fontWeight: 700, color: '#60a5fa', textAlign: 'center', lineHeight: 1 }}>{data.detail_open}</span>
+                            )}
+                            {data.link_click > 0 && (
+                              <span style={{ flex: 1, fontSize: 8, fontWeight: 700, color: '#efff42', textAlign: 'center', lineHeight: 1 }}>{data.link_click}</span>
+                            )}
+                            {data.detail_open === 0 && data.link_click === 0 && (
+                              <span style={{ flex: 1, fontSize: 8, color: 'rgba(255,255,255,0.1)', textAlign: 'center', lineHeight: 1 }}>—</span>
+                            )}
+                          </div>
+                          {/* Barras */}
+                          <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', height: 72 }}>
                             <div style={{ flex: 1, background: '#60a5fa', borderRadius: '3px 3px 0 0', height: Math.max(detailH, data.detail_open > 0 ? 3 : 0), minHeight: 0 }} />
                             <div style={{ flex: 1, background: '#efff42', borderRadius: '3px 3px 0 0', height: Math.max(clickH,  data.link_click  > 0 ? 3 : 0), minHeight: 0 }} />
                           </div>
