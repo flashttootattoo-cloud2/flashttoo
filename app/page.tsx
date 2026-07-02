@@ -117,6 +117,8 @@ export default function Home() {
     [contentCards]
   )
   const [showCount, setShowCount]           = useState(false)
+  const [galleryEnabled, setGalleryEnabled] = useState(false)
+  const [fullscreenImg, setFullscreenImg]   = useState<string | null>(null)
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
   const [selectedAd, setSelectedAd]           = useState<Ad | null>(null)
   const [adEditSection, setAdEditSection]     = useState(false)
@@ -173,6 +175,7 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
     fetch('/api/content-cards').then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true) }).catch(() => {})
     supabase.from('settings').select('value').eq('key', 'show_count').single().then(({ data }) => { if (data?.value === true) setShowCount(true) })
   }, [])
 
@@ -792,6 +795,23 @@ export default function Home() {
                 <BioText text={selected.bio} style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 16 }} />
               )}
 
+              {galleryEnabled && (() => {
+                const photos = [selected.gallery_photo_1, selected.gallery_photo_2, selected.gallery_photo_3].filter(Boolean) as string[]
+                if (!photos.length) return null
+                return (
+                  <div className="grid grid-cols-3 gap-1.5 mb-4">
+                    {photos.map((src, i) => (
+                      <button key={i} onClick={() => setFullscreenImg(src)}
+                        className="relative rounded-xl overflow-hidden"
+                        style={{ paddingBottom: '100%', background: '#111' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={src} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
+
               {(() => {
                 const today = new Date().toISOString().slice(0, 10)
                 const upcoming = (selected.visits || []).filter(v => v.to >= today).sort((a, b) => a.from.localeCompare(b.from))
@@ -1211,6 +1231,21 @@ export default function Home() {
 
       <SponsorsBanner country={country} />
       <SponsorsBannerV2 city={city} country={country} />
+
+      {/* Visor fullscreen galería */}
+      {fullscreenImg && (
+        <div
+          onClick={() => setFullscreenImg(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={fullscreenImg} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+          <button
+            onClick={() => setFullscreenImg(null)}
+            style={{ position: 'absolute', top: 20, right: 20, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            ×
+          </button>
+        </div>
+      )}
     </main>
   )
 }

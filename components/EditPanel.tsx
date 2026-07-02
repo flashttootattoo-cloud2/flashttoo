@@ -64,6 +64,12 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
   const [visitOpen, setVisitOpen] = useState(false)
   const [addingVisit, setAddingVisit] = useState(false)
   const [newVisit, setNewVisit] = useState({ from: '', to: '', city: '', country: '' })
+  const [galleryFiles, setGalleryFiles]     = useState<(File | null)[]>([null, null, null])
+  const [galleryPreviews, setGalleryPreviews] = useState<(string | null)[]>([
+    artist.gallery_photo_1 ?? null,
+    artist.gallery_photo_2 ?? null,
+    artist.gallery_photo_3 ?? null,
+  ])
 
   const genKey = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -131,6 +137,32 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     img.src = URL.createObjectURL(file)
   }
 
+  const handleGalleryPhoto = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return
+    const objectUrl = URL.createObjectURL(file)
+    setGalleryPreviews(prev => { const n = [...prev]; n[index] = objectUrl; return n })
+    const img = new window.Image()
+    img.onload = () => {
+      const MAX = 1200; let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => {
+        if (blob) setGalleryFiles(prev => { const n = [...prev]; n[index] = new File([blob!], `gallery-${index}.webp`, { type: 'image/webp' }); return n })
+      }, 'image/webp', 0.85)
+    }
+    img.src = objectUrl
+  }
+
+  const clearGallerySlot = (index: number) => {
+    setGalleryPreviews(prev => { const n = [...prev]; n[index] = null; return n })
+    setGalleryFiles(prev => { const n = [...prev]; n[index] = null; return n })
+  }
+
   const save = async () => {
     setSaving(true); setSaveError('')
     try {
@@ -142,6 +174,19 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
         const { data } = supabase.storage.from('artist-photos').getPublicUrl(path)
         photo_url = data.publicUrl
       }
+
+      // Subir fotos de galería que hayan cambiado
+      const galleryUrls: (string | null)[] = [...galleryPreviews]
+      for (let i = 0; i < 3; i++) {
+        const file = galleryFiles[i]
+        if (file) {
+          const path = `gallery-${artist.id}-${i}-${Date.now()}.webp`
+          const { error: upErr } = await supabase.storage.from('artist-photos').upload(path, file, { contentType: 'image/webp' })
+          if (upErr) throw upErr
+          galleryUrls[i] = supabase.storage.from('artist-photos').getPublicUrl(path).data.publicUrl
+        }
+      }
+
       const res = await fetch(`/api/artists/${artist.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -158,6 +203,9 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
             Object.entries(interview).filter(([, v]) => v.trim())
           ),
           visits,
+          gallery_photo_1: galleryUrls[0],
+          gallery_photo_2: galleryUrls[1],
+          gallery_photo_3: galleryUrls[2],
         }),
       })
       const d = await res.json()
@@ -293,6 +341,44 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                 <textarea value={form.bio} rows={3}
                   onChange={e => { if (e.target.value.length <= BIO_MAX) setForm(f => ({ ...f, bio: e.target.value })) }}
                   className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'none', lineHeight: 1.6 }} />
+              </div>
+
+              {/* Galería de diseños */}
+              <div>
+                <p className="text-xs mb-3 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Galería — hasta 3 fotos</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="relative" style={{ paddingBottom: '100%' }}>
+                      <div className="absolute inset-0 rounded-xl overflow-hidden"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        {galleryPreviews[i] ? (
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={galleryPreviews[i]!} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => clearGallerySlot(i)}
+                              className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center"
+                              style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 14, lineHeight: 1 }}>
+                              ×
+                            </button>
+                            <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 flex items-end justify-center pb-2"
+                              style={{ background: 'rgba(0,0,0,0.4)' }}>
+                              <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">cambiar</span>
+                              <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
+                            </label>
+                          </>
+                        ) : (
+                          <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-1">
+                            <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.15)' }}>+</span>
+                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>foto {i + 1}</span>
+                            <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Próximas fechas */}

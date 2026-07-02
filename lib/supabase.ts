@@ -26,4 +26,7 @@ export type Artist = {
   created_at: string
   interview?: Record<string, string> | null
   visits?: Visit[]
+  gallery_photo_1?: string | null
+  gallery_photo_2?: string | null
+  gallery_photo_3?: string | null
 }

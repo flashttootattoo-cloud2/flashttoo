@@ -879,6 +879,8 @@ export default function AdminPage() {
   const [savingMod, setSavingMod]   = useState(false)
   const [showCount, setShowCount]   = useState(false)
   const [savingShowCount, setSavingShowCount] = useState(false)
+  const [galleryEnabled, setGalleryEnabled] = useState(false)
+  const [savingGallery, setSavingGallery]   = useState(false)
   const [adminStyles, setAdminStyles] = useState<string[]>(DEFAULT_STYLES)
   const [stylesInput, setStylesInput] = useState('')
   const [savingStyles, setSavingStyles] = useState(false)
@@ -971,6 +973,7 @@ export default function AdminPage() {
       if (cfg.status === 'fulfilled') {
         setModeration(cfg.value.settings?.moderation === true)
         setShowCount(cfg.value.settings?.show_count === true)
+        setGalleryEnabled(cfg.value.settings?.artist_gallery_enabled === true)
         if (Array.isArray(cfg.value.settings?.styles) && cfg.value.settings.styles.length > 0)
           setAdminStyles(cfg.value.settings.styles)
         if (Array.isArray(cfg.value.settings?.content_cards))
@@ -1403,6 +1406,44 @@ export default function AdminPage() {
               </div>
               <p className="text-xs mt-3 font-bold" style={{ color: showCount ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
                 {showCount ? 'Activado — se ve el contador en la home' : 'Desactivado — contador oculto'}
+              </p>
+            </div>
+
+            {/* Galería de tatuadores */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Galería de diseños</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                    Permite a los tatuadores subir hasta 3 fotos de sus mejores diseños, visibles en su perfil público.
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setSavingGallery(true)
+                    const next = !galleryEnabled
+                    await fetch('/api/admin/settings', {
+                      method: 'PATCH',
+                      headers: { ...H(pass), 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ key: 'artist_gallery_enabled', value: next }),
+                    })
+                    setGalleryEnabled(next)
+                    setSavingGallery(false)
+                  }}
+                  disabled={savingGallery}
+                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                  style={{ width: 48, height: 28, background: galleryEnabled ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', top: 4,
+                    left: galleryEnabled ? 24 : 4,
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: galleryEnabled ? '#000' : 'rgba(255,255,255,0.4)',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              <p className="text-xs mt-3 font-bold" style={{ color: galleryEnabled ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                {galleryEnabled ? 'Activada — los tatuadores pueden subir fotos de diseños' : 'Desactivada'}
               </p>
             </div>
 
