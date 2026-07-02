@@ -65,10 +65,14 @@ export default function AgregarPage() {
   const [loading, setLoading]   = useState(false)
   const [done, setDone]         = useState<false | 'active' | 'pending'>(false)
   const [error, setError]       = useState('')
+  const [galleryEnabled, setGalleryEnabled] = useState(false)
+  const [galleryFiles, setGalleryFiles]     = useState<(File | null)[]>([null, null, null])
+  const [galleryPreviews, setGalleryPreviews] = useState<(string | null)[]>([null, null, null])
 
   useEffect(() => {
     fetch('/api/config').then(r => r.json()).then(d => setModeration(!!d.moderation)).catch(() => {})
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles?.length) setAllStyles(d.styles) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => setGalleryEnabled(!!d.artist_gallery)).catch(() => {})
   }, [])
 
   const toggleStyle = (s: string) =>
@@ -98,6 +102,37 @@ export default function AgregarPage() {
     img.src = URL.createObjectURL(file)
   }
 
+  const handleGalleryPhoto = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const previewUrl = URL.createObjectURL(file)
+    setGalleryPreviews(prev => { const next = [...prev]; next[index] = previewUrl; return next })
+    const img = new window.Image()
+    img.onload = () => {
+      const MAX = 1200
+      let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => {
+        if (blob) {
+          const f = new File([blob], `gallery-${index}.webp`, { type: 'image/webp' })
+          setGalleryFiles(prev => { const next = [...prev]; next[index] = f; return next })
+        }
+      }, 'image/webp', 0.82)
+    }
+    img.src = previewUrl
+  }
+
+  const clearGallerySlot = (index: number) => {
+    setGalleryFiles(prev => { const next = [...prev]; next[index] = null; return next })
+    setGalleryPreviews(prev => { const next = [...prev]; next[index] = null; return next })
+  }
+
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
     setError('')
@@ -124,6 +159,20 @@ export default function AgregarPage() {
 
       if (igStatus === 'taken') { setLoading(false); return }
 
+      // Subir fotos de galería
+      const galleryUrls: (string | null)[] = [null, null, null]
+      for (let i = 0; i < 3; i++) {
+        const gf = galleryFiles[i]
+        if (gf) {
+          const gPath = `gallery-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}.webp`
+          const { error: gErr } = await supabase.storage.from('artist-photos').upload(gPath, gf, { contentType: 'image/webp' })
+          if (!gErr) {
+            const { data: gUrl } = supabase.storage.from('artist-photos').getPublicUrl(gPath)
+            galleryUrls[i] = gUrl.publicUrl
+          }
+        }
+      }
+
       // Insertar artista
       const { error: insErr } = await supabase.from('artists').insert({
         name:      form.name.trim(),
@@ -139,6 +188,9 @@ export default function AgregarPage() {
         status:    moderation ? 'pending' : 'active',
         interview: Object.fromEntries(Object.entries(interview).filter(([, v]) => v.trim())),
         visits,
+        gallery_photo_1: galleryUrls[0],
+        gallery_photo_2: galleryUrls[1],
+        gallery_photo_3: galleryUrls[2],
       })
       if (insErr) {
         setError(`Error al guardar: ${insErr.message}`)
@@ -334,6 +386,42 @@ export default function AgregarPage() {
               style={{ resize: 'none', lineHeight: 1.6 }}
             />
           </div>
+
+          {/* Galería de diseños */}
+          {galleryEnabled && (
+            <div>
+              <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">Galería de diseños — opcional</label>
+              <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
+                Hasta 3 fotos de tus mejores trabajos.
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    {galleryPreviews[i] ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={galleryPreviews[i]!} alt={`galería ${i + 1}`} className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => clearGallerySlot(i)}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                          style={{ background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.8)' }}>×</button>
+                        <label className="absolute inset-0 cursor-pointer flex items-end justify-center pb-1.5 opacity-0 hover:opacity-100 transition-opacity"
+                          style={{ background: 'rgba(0,0,0,0.4)' }}>
+                          <span className="text-xs text-white">cambiar</span>
+                          <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
+                        </label>
+                      </>
+                    ) : (
+                      <label className="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-white/5 transition-colors">
+                        <span className="text-2xl" style={{ color: 'rgba(255,255,255,0.15)' }}>+</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Próximas fechas */}
           <div>

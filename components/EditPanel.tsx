@@ -70,6 +70,10 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     artist.gallery_photo_2 ?? null,
     artist.gallery_photo_3 ?? null,
   ])
+  const [galleryEnabled, setGalleryEnabled] = useState(false)
+  useEffect(() => {
+    fetch('/api/features').then(r => r.json()).then(d => setGalleryEnabled(!!d.artist_gallery)).catch(() => {})
+  }, [])
 
   const genKey = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -344,42 +348,47 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
               </div>
 
               {/* Galería de diseños */}
-              <div>
-                <p className="text-xs mb-3 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Galería — hasta 3 fotos</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {[0, 1, 2].map(i => (
-                    <div key={i} className="relative" style={{ paddingBottom: '100%' }}>
-                      <div className="absolute inset-0 rounded-xl overflow-hidden"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                        {galleryPreviews[i] ? (
-                          <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={galleryPreviews[i]!} alt="" className="w-full h-full object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => clearGallerySlot(i)}
-                              className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center"
-                              style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 14, lineHeight: 1 }}>
-                              ×
-                            </button>
-                            <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 flex items-end justify-center pb-2"
-                              style={{ background: 'rgba(0,0,0,0.4)' }}>
-                              <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">cambiar</span>
+              {galleryEnabled && (
+                <div>
+                  <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">Galería de diseños — opcional</label>
+                  <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
+                    Hasta 3 fotos de tus mejores trabajos.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[0, 1, 2].map(i => (
+                      <div key={i} className="relative" style={{ paddingBottom: '100%' }}>
+                        <div className="absolute inset-0 rounded-xl overflow-hidden"
+                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          {galleryPreviews[i] ? (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={galleryPreviews[i]!} alt="" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => clearGallerySlot(i)}
+                                className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center z-10"
+                                style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 14, lineHeight: 1 }}>
+                                ×
+                              </button>
+                              <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 flex items-end justify-center pb-2"
+                                style={{ background: 'rgba(0,0,0,0.4)' }}>
+                                <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">cambiar</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
+                              </label>
+                            </>
+                          ) : (
+                            <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-1">
+                              <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.15)' }}>+</span>
+                              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>foto {i + 1}</span>
                               <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
                             </label>
-                          </>
-                        ) : (
-                          <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-1">
-                            <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.15)' }}>+</span>
-                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>foto {i + 1}</span>
-                            <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
-                          </label>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Próximas fechas */}
               <div>
