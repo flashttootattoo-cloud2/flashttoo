@@ -119,10 +119,14 @@ export default function Home() {
   const [showCount, setShowCount]           = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [fullscreenImg, setFullscreenImg]   = useState<string | null>(null)
-  const PAGE_BLOCKS = 20
-  const [displayedBlocks, setDisplayedBlocks] = useState(PAGE_BLOCKS)
-  const sentinelRef = useRef<HTMLDivElement>(null)
-  const hasMoreRef  = useRef(false)
+  const BATCH = 50
+  const [hasMoreArtists, setHasMoreArtists] = useState(true)
+  const [loadingMore, setLoadingMore]       = useState(false)
+  const sentinelRef    = useRef<HTMLDivElement>(null)
+  const offsetRef      = useRef(0)
+  const loadingMoreRef = useRef(false)
+  const filterRef      = useRef({ country, city, styles: activeStyles })
+  filterRef.current = { country, city, styles: activeStyles }
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
   const [selectedAd, setSelectedAd]           = useState<Ad | null>(null)
   const [adEditSection, setAdEditSection]     = useState(false)
@@ -133,6 +137,38 @@ export default function Home() {
   const [adEditPhoto, setAdEditPhoto]         = useState<File | null>(null)
   const [adEditPhotoPreview, setAdEditPhotoPreview] = useState<string | null>(null)
   const [savingAdEdit, setSavingAdEdit]       = useState(false)
+
+  const loadArtistsPage = useCallback(async (
+    offset: number,
+    append: boolean,
+    filters: { country: string; city: string; styles: string[] }
+  ) => {
+    if (loadingMoreRef.current && append) return
+    loadingMoreRef.current = true
+    if (append) setLoadingMore(true)
+
+    const c  = norm(filters.country)
+    const ci = norm(filters.city)
+    let q = supabase.from('artists').select('*')
+      .or('status.eq.active,status.is.null')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + BATCH - 1)
+    if (c)              q = q.ilike('country', `%${c}%`)
+    if (ci)             q = q.ilike('city',    `%${ci}%`)
+    if (filters.styles.length) q = q.contains('styles', filters.styles)
+
+    const { data } = await q
+    const batch = shuffle(data || [])
+    if (append) {
+      setArtists(prev => [...prev, ...batch])
+    } else {
+      setArtists(batch)
+    }
+    offsetRef.current = offset + batch.length
+    setHasMoreArtists(batch.length === BATCH)
+    loadingMoreRef.current = false
+    if (append) setLoadingMore(false)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -201,30 +237,32 @@ export default function Home() {
       }
       return ((data || []) as Ad[]).map(ad => ({ ...ad, show_global: ad.show_global ?? false, expires_at: ad.expires_at ?? null }))
     }
-    Promise.all([
-      supabase.from('artists').select('*').or('status.eq.active,status.is.null').order('created_at', { ascending: false }),
-      loadAds(),
-    ]).then(([a, ads]) => {
-      setArtists(shuffle(a.data || []))
-      setAds(shuffle(ads))
-      setLoading(false)
-    })
-  }, [])
+    loadAds().then(ads => setAds(shuffle(ads)))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reset pagination when filters change
+  // Initial load + refetch on filter change
   const filterKey = `${country}|${city}|${activeStyles.join(',')}`
-  useEffect(() => { setDisplayedBlocks(PAGE_BLOCKS) }, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    offsetRef.current = 0
+    loadingMoreRef.current = false
+    setHasMoreArtists(true)
+    setLoading(true)
+    loadArtistsPage(0, false, { country, city, styles: activeStyles })
+      .then(() => setLoading(false))
+  }, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Infinite scroll observer (set up once)
+  // Infinite scroll observer
   useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && hasMoreRef.current) setDisplayedBlocks(n => n + PAGE_BLOCKS)
+      if (entry.isIntersecting && hasMoreArtists) {
+        loadArtistsPage(offsetRef.current, true, filterRef.current)
+      }
     }, { rootMargin: '400px' })
     obs.observe(el)
     return () => obs.disconnect()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasMoreArtists, loadArtistsPage]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const prevIsFiltering = useRef(false)
   useLayoutEffect(() => {
@@ -242,19 +280,7 @@ export default function Home() {
   const qCountry = norm(country)
   const qCity    = norm(city)
 
-  const filtered = artists.filter(a => {
-    if (a.visible === false) return false
-    const today = new Date().toISOString().slice(0, 10)
-    const futureVisits = (a.visits || []).filter(v => v.to >= today)
-    const baseMatch = (!qCountry || norm(a.country).includes(qCountry)) &&
-                      (!qCity    || norm(a.city).includes(qCity))
-    const visitMatch = futureVisits.some(v =>
-      (!qCountry || norm(v.country).includes(qCountry)) &&
-      (!qCity    || norm(v.city).includes(qCity))
-    )
-    const styleMatch = activeStyles.length === 0 || activeStyles.every(s => a.styles.includes(s))
-    return (baseMatch || visitMatch) && styleMatch
-  })
+  const filtered = artists.filter(a => a.visible !== false)
 
   const isActiveSearch = !!country.trim() || !!city.trim() || activeStyles.length > 0
   const hasLocationSearch = !!qCity || !!qCountry
@@ -313,7 +339,6 @@ export default function Home() {
   }
 
   const finalBlocks = blocks
-  hasMoreRef.current = displayedBlocks < finalBlocks.length
 
   const openModal = useCallback((artist: Artist) => {
     setSelected(artist)
@@ -597,7 +622,7 @@ export default function Home() {
               const activeCards = isActiveSearch ? [] : shuffledContentCards
               const nodes: React.ReactNode[] = []
               let cardIdx = 0
-              finalBlocks.slice(0, displayedBlocks).forEach((block, i) => {
+              finalBlocks.forEach((block, i) => {
                 if (block.kind === 'featured') {
                   const big = block.big as { type: 'artist'; data: Artist }
                   nodes.push(
@@ -764,6 +789,9 @@ export default function Home() {
               return nodes
             })()}
           </div>
+        )}
+        {loadingMore && (
+          <p className="text-center py-6" style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>cargando más...</p>
         )}
         <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
