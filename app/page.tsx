@@ -119,6 +119,10 @@ export default function Home() {
   const [showCount, setShowCount]           = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [fullscreenImg, setFullscreenImg]   = useState<string | null>(null)
+  const PAGE_BLOCKS = 20
+  const [displayedBlocks, setDisplayedBlocks] = useState(PAGE_BLOCKS)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const hasMoreRef  = useRef(false)
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
   const [selectedAd, setSelectedAd]           = useState<Ad | null>(null)
   const [adEditSection, setAdEditSection]     = useState(false)
@@ -207,6 +211,21 @@ export default function Home() {
     })
   }, [])
 
+  // Reset pagination when filters change
+  const filterKey = `${country}|${city}|${activeStyles.join(',')}`
+  useEffect(() => { setDisplayedBlocks(PAGE_BLOCKS) }, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Infinite scroll observer (set up once)
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && hasMoreRef.current) setDisplayedBlocks(n => n + PAGE_BLOCKS)
+    }, { rootMargin: '400px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const prevIsFiltering = useRef(false)
   useLayoutEffect(() => {
     const filtering = !!country.trim() || !!city.trim() || activeStyles.length > 0
@@ -294,6 +313,7 @@ export default function Home() {
   }
 
   const finalBlocks = blocks
+  hasMoreRef.current = displayedBlocks < finalBlocks.length
 
   const openModal = useCallback((artist: Artist) => {
     setSelected(artist)
@@ -577,7 +597,7 @@ export default function Home() {
               const activeCards = isActiveSearch ? [] : shuffledContentCards
               const nodes: React.ReactNode[] = []
               let cardIdx = 0
-              finalBlocks.forEach((block, i) => {
+              finalBlocks.slice(0, displayedBlocks).forEach((block, i) => {
                 if (block.kind === 'featured') {
                   const big = block.big as { type: 'artist'; data: Artist }
                   nodes.push(
@@ -745,6 +765,7 @@ export default function Home() {
             })()}
           </div>
         )}
+        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
 
 
