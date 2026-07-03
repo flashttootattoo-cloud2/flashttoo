@@ -147,17 +147,13 @@ export default function Home() {
     loadingMoreRef.current = true
     if (append) setLoadingMore(true)
 
-    const c  = norm(filters.country)
-    const ci = norm(filters.city)
-    let q = supabase.from('artists').select('*')
-      .or('status.eq.active,status.is.null')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + BATCH - 1)
-    if (c)              q = q.ilike('country', `%${c}%`)
-    if (ci)             q = q.ilike('city',    `%${ci}%`)
-    if (filters.styles.length) q = q.contains('styles', filters.styles)
-
-    const { data } = await q
+    const { data } = await supabase.rpc('search_artists', {
+      p_country: filters.country,
+      p_city:    filters.city,
+      p_styles:  filters.styles,
+      p_offset:  offset,
+      p_limit:   BATCH,
+    })
     const batch = shuffle(data || [])
     if (append) {
       setArtists(prev => [...prev, ...batch])
