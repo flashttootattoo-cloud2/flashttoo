@@ -199,9 +199,11 @@ export default function Home() {
     return () => window.removeEventListener('scroll', save)
   }, [])
 
-  // Restaurar scroll después de que carguen los artistas (solo si no hay modal abierto por deep link)
+  // Restaurar scroll una sola vez al cargar la primera tanda de artistas
+  const scrollRestored = useRef(false)
   useEffect(() => {
-    if (loading || artists.length === 0) return
+    if (loading || artists.length === 0 || scrollRestored.current) return
+    scrollRestored.current = true
     const hasDeepLink = new URLSearchParams(window.location.search).has('artista')
     if (hasDeepLink) return
     try {
@@ -245,6 +247,7 @@ export default function Home() {
   useEffect(() => {
     offsetRef.current = 0
     loadingMoreRef.current = false
+    scrollRestored.current = false
     setHasMoreArtists(true)
     setLoading(true)
     loadArtistsPage(0, false, { country, city, styles: activeStyles })
@@ -356,7 +359,13 @@ export default function Home() {
     const id = new URLSearchParams(window.location.search).get('artista')
     if (!id) return
     const artist = artists.find(a => a.id === id)
-    if (artist) openModal(artist)
+    if (artist) {
+      openModal(artist)
+    } else {
+      // No está en el batch actual — buscar directamente por ID
+      supabase.from('artists').select('*').eq('id', id).single()
+        .then(({ data }) => { if (data) openModal(data as Artist) })
+    }
   }, [artists, loading, openModal])
 
   const toggleLike = useCallback(() => {
