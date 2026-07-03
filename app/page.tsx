@@ -154,7 +154,7 @@ export default function Home() {
       p_offset:  offset,
       p_limit:   BATCH,
     })
-    const batch = shuffle(data || [])
+    const batch = shuffle((data || []) as Artist[])
     if (append) {
       setArtists(prev => [...prev, ...batch])
     } else {
@@ -241,13 +241,16 @@ export default function Home() {
   // Initial load + refetch on filter change
   const filterKey = `${country}|${city}|${activeStyles.join(',')}`
   useEffect(() => {
-    offsetRef.current = 0
-    loadingMoreRef.current = false
-    scrollRestored.current = false
-    setHasMoreArtists(true)
-    setLoading(true)
-    loadArtistsPage(0, false, { country, city, styles: activeStyles })
-      .then(() => setLoading(false))
+    const timer = setTimeout(() => {
+      offsetRef.current = 0
+      loadingMoreRef.current = false
+      scrollRestored.current = false
+      setHasMoreArtists(true)
+      setLoading(true)
+      loadArtistsPage(0, false, { country, city, styles: activeStyles })
+        .then(() => setLoading(false))
+    }, 300)
+    return () => clearTimeout(timer)
   }, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Infinite scroll observer
