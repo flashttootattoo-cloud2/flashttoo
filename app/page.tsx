@@ -126,6 +126,7 @@ export default function Home() {
   const offsetRef      = useRef(0)
   const loadingMoreRef = useRef(false)
   const loadGenRef     = useRef(0)
+  const seedRef        = useRef(Math.random() * 2 - 1)
   const filterRef      = useRef({ country, city, styles: activeStyles })
   filterRef.current = { country, city, styles: activeStyles }
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
@@ -155,9 +156,10 @@ export default function Home() {
       p_styles:  filters.styles,
       p_offset:  offset,
       p_limit:   BATCH,
+      p_seed:    seedRef.current,
     })
     if (gen !== loadGenRef.current) return
-    const batch = shuffle((data || []) as Artist[])
+    const batch = (data || []) as Artist[]
     if (append) {
       setArtists(prev => [...prev, ...batch])
     } else {
@@ -246,6 +248,7 @@ export default function Home() {
   useEffect(() => {
     const timer = setTimeout(() => {
       loadGenRef.current++
+      seedRef.current = Math.random() * 2 - 1
       offsetRef.current = 0
       loadingMoreRef.current = false
       scrollRestored.current = false
