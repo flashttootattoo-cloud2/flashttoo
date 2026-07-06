@@ -453,7 +453,6 @@ function buildMsg(a: Artist) {
 
 function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void; onUpdateKey: (id: string, key: string) => void }) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
   const [editingKey, setEditingKey] = useState<{ id: string; value: string } | null>(null)
   const [savingKey, setSavingKey] = useState(false)
   const [marked, setMarked] = useState<Set<string>>(() => {
@@ -468,10 +467,6 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
   artists.forEach(a => { if (a.instagram) { const k = a.instagram.toLowerCase(); igCount[k] = (igCount[k] || 0) + 1 } })
   const isDupe = (a: Artist) => !!a.instagram && (igCount[a.instagram.toLowerCase()] || 0) > 1
 
-  const filtered = search.trim()
-    ? artists.filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
-    : artists
-
   const copyMsg = (a: Artist) => {
     navigator.clipboard.writeText(buildMsg(a))
     setCopiedId(a.id)
@@ -480,16 +475,10 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
 
   return (
     <div className="flex flex-col gap-2">
-      <input
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Buscar por nombre..."
-        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/30 transition-colors mb-1"
-      />
       {marked.size > 0 && (
         <p className="text-xs mb-1" style={{ color: 'rgba(239,255,66,0.6)' }}>{marked.size} marcado{marked.size !== 1 ? 's' : ''}</p>
       )}
-      {filtered.map(a => (
+      {artists.map(a => (
         <div key={a.id} className="flex gap-3 p-3 rounded-xl items-start"
           style={{ background: marked.has(a.id) ? 'rgba(239,255,66,0.04)' : 'rgba(255,255,255,0.03)', border: `1px solid ${marked.has(a.id) ? 'rgba(239,255,66,0.25)' : isDupe(a) ? 'rgba(255,80,80,0.4)' : a.visible === false ? 'rgba(255,200,0,0.25)' : 'rgba(255,255,255,0.07)'}`, opacity: a.visible === false ? 0.6 : 1 }}>
           <button onClick={() => toggleMark(a.id)}
@@ -867,6 +856,11 @@ export default function AdminPage() {
   const [artistsOffset, setArtistsOffset] = useState(0)
   const [loadingMoreArtists, setLoadingMoreArtists] = useState(false)
   const ARTISTS_PAGE = 10
+  const [statsArtists, setStatsArtists] = useState<Artist[]>([])
+  const [loadingStats, setLoadingStats] = useState(false)
+  const [artistSearch, setArtistSearch] = useState('')
+  const [searchResults, setSearchResults] = useState<Artist[] | null>(null)
+  const [loadingSearch, setLoadingSearch] = useState(false)
   const [ads, setAds]         = useState<Ad[]>([])
   const [editingAd, setEditingAd] = useState<{ id: string; city: string; country: string; expires_at: string } | null>(null)
   const [savingAdEdit, setSavingAdEdit] = useState(false)
@@ -989,6 +983,30 @@ export default function AdminPage() {
       }
       setLoading(false)
     })
+  }
+
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => {
+    if (!auth) return
+    clearTimeout(searchTimer.current)
+    if (!artistSearch.trim()) { setSearchResults(null); return }
+    setLoadingSearch(true)
+    searchTimer.current = setTimeout(async () => {
+      const r = await fetch(`/api/admin/artists?search=${encodeURIComponent(artistSearch.trim())}&limit=50&offset=0`, { headers: H(pass) })
+      const d = await r.json()
+      setSearchResults(d.artists || [])
+      setLoadingSearch(false)
+    }, 400)
+    return () => clearTimeout(searchTimer.current)
+  }, [artistSearch, auth, pass])
+
+  const loadStatsArtists = async (p: string) => {
+    if (statsArtists.length > 0 || loadingStats) return
+    setLoadingStats(true)
+    const r = await fetch('/api/admin/artists?limit=10000&offset=0', { headers: H(p) })
+    const d = await r.json()
+    setStatsArtists(d.artists || [])
+    setLoadingStats(false)
   }
 
   const loadMoreArtists = async () => {
@@ -1230,7 +1248,7 @@ export default function AdminPage() {
                     style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.8)' }}>
                     {tabs.map(t => (
                       <button key={t.key}
-                        onClick={() => { setTab(t.key); setMenuOpen(false) }}
+                        onClick={() => { setTab(t.key); setMenuOpen(false); if (t.key === 'stats') loadStatsArtists(pass) }}
                         className="w-full text-left px-4 py-3 text-sm transition-colors"
                         style={{
                           background: tab === t.key ? 'rgba(239,255,66,0.08)' : 'transparent',
@@ -1257,22 +1275,55 @@ export default function AdminPage() {
 
           // ── ARTISTAS ────────────────────────────────────────────────────────
           <div className="flex flex-col gap-3">
-            <ArtistGrid artists={artists.filter(a => a.status !== 'pending')} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
-            {artists.length < artistsTotal && (
-              <button
-                onClick={loadMoreArtists}
-                disabled={loadingMoreArtists}
-                className="self-center px-6 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40 transition-all"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
-                {loadingMoreArtists ? 'Cargando...' : `Cargar ${Math.min(ARTISTS_PAGE, artistsTotal - artists.length)} más (${artistsTotal - artists.length} restantes)`}
-              </button>
+            <div className="relative">
+              <input
+                value={artistSearch}
+                onChange={e => setArtistSearch(e.target.value)}
+                placeholder={`Buscar entre ${artistsTotal} tatuadores...`}
+                className="w-full py-2 px-3 text-sm text-white outline-none rounded-xl bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20"
+              />
+              {loadingSearch && (
+                <span className="absolute right-3 top-2 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>buscando...</span>
+              )}
+              {artistSearch && !loadingSearch && (
+                <button onClick={() => setArtistSearch('')}
+                  className="absolute right-3 top-2 text-xs"
+                  style={{ color: 'rgba(255,255,255,0.25)' }}>✕</button>
+              )}
+            </div>
+
+            {searchResults !== null ? (
+              <>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} para &quot;{artistSearch}&quot;
+                </p>
+                <ArtistGrid artists={searchResults} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
+              </>
+            ) : (
+              <>
+                <ArtistGrid artists={artists.filter(a => a.status !== 'pending')} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
+                {artists.filter(a => a.status !== 'pending').length < artistsTotal && (
+                  <button
+                    onClick={loadMoreArtists}
+                    disabled={loadingMoreArtists}
+                    className="self-center px-6 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40 transition-all"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
+                    {loadingMoreArtists ? 'Cargando...' : `Cargar ${Math.min(ARTISTS_PAGE, artistsTotal - artists.filter(a => a.status !== 'pending').length)} más (${artistsTotal - artists.filter(a => a.status !== 'pending').length} restantes)`}
+                  </button>
+                )}
+              </>
             )}
           </div>
 
         ) : tab === 'stats' ? (
 
           // ── ESTADÍSTICAS ────────────────────────────────────────────────────
-          <StatsPanel artists={artists} visits={visits} installs={installs} />
+          <div>
+            {loadingStats
+              ? <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando estadísticas...</p>
+              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} />
+            }
+          </div>
 
         ) : tab === 'paginas' ? (
 
