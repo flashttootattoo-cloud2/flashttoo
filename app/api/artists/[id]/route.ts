@@ -25,7 +25,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   for (const k of allowed) { if (k in fields) updates[k] = fields[k] }
   if (photo_url) {
     const { data: current } = await sb().from('artists').select('photo_url').eq('id', id).single()
-    if (current?.photo_url) deleteFile(current.photo_url).catch(() => {})
+    if (current?.photo_url && current.photo_url !== photo_url) {
+      deleteFile(current.photo_url).catch(() => {})
+    }
     updates.photo_url = photo_url
   }
   if (fields.new_edit_key) updates.edit_key = String(fields.new_edit_key).trim().toUpperCase()
