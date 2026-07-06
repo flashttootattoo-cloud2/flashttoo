@@ -862,7 +862,11 @@ export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [auth, setAuth]       = useState(false)
   const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2'>('artistas')
-  const [artists, setArtists] = useState<Artist[]>([])
+  const [artists, setArtists]       = useState<Artist[]>([])
+  const [artistsTotal, setArtistsTotal] = useState(0)
+  const [artistsOffset, setArtistsOffset] = useState(0)
+  const [loadingMoreArtists, setLoadingMoreArtists] = useState(false)
+  const ARTISTS_PAGE = 10
   const [ads, setAds]         = useState<Ad[]>([])
   const [editingAd, setEditingAd] = useState<{ id: string; city: string; country: string; expires_at: string } | null>(null)
   const [savingAdEdit, setSavingAdEdit] = useState(false)
@@ -948,7 +952,7 @@ export default function AdminPage() {
   const loadAll = (p: string) => {
     setLoading(true)
     Promise.allSettled([
-      fetch('/api/admin/artists', { headers: H(p) }).then(r => r.json()),
+      fetch(`/api/admin/artists?limit=10&offset=0`, { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/ads', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/stats/visits', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/pages', { headers: H(p) }).then(r => r.json()),
@@ -957,7 +961,11 @@ export default function AdminPage() {
       fetch('/api/admin/sponsors', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/sponsors-v2', { headers: H(p) }).then(r => r.json()),
     ]).then(([a, b, v, pg, cfg, ins, sp, sp2]) => {
-      if (a.status === 'fulfilled') setArtists(a.value.artists || [])
+      if (a.status === 'fulfilled') {
+        setArtists(a.value.artists || [])
+        setArtistsTotal(a.value.total ?? 0)
+        setArtistsOffset(ARTISTS_PAGE)
+      }
       if (b.status === 'fulfilled') setAds(b.value.ads || [])
       if (v.status === 'fulfilled') setVisits(v.value.days || [])
       if (pg.status === 'fulfilled') setPages(pg.value.pages || [])
@@ -981,6 +989,16 @@ export default function AdminPage() {
       }
       setLoading(false)
     })
+  }
+
+  const loadMoreArtists = async () => {
+    setLoadingMoreArtists(true)
+    const r = await fetch(`/api/admin/artists?limit=${ARTISTS_PAGE}&offset=${artistsOffset}`, { headers: H(pass) })
+    const d = await r.json()
+    setArtists(prev => [...prev, ...(d.artists || [])])
+    setArtistsTotal(d.total ?? 0)
+    setArtistsOffset(prev => prev + (d.artists?.length ?? 0))
+    setLoadingMoreArtists(false)
   }
 
   const toggleModeration = async (val: boolean) => {
@@ -1040,6 +1058,7 @@ export default function AdminPage() {
     setDeleting(id)
     await fetch(`/api/admin/artists/${id}`, { method: 'DELETE', headers: H(pass) })
     setArtists(prev => prev.filter(a => a.id !== id))
+    setArtistsTotal(prev => Math.max(0, prev - 1))
     setDeleting(null)
   }
 
@@ -1237,7 +1256,18 @@ export default function AdminPage() {
         ) : tab === 'artistas' ? (
 
           // ── ARTISTAS ────────────────────────────────────────────────────────
-          <ArtistGrid artists={artists.filter(a => a.status !== 'pending')} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
+          <div className="flex flex-col gap-3">
+            <ArtistGrid artists={artists.filter(a => a.status !== 'pending')} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
+            {artists.length < artistsTotal && (
+              <button
+                onClick={loadMoreArtists}
+                disabled={loadingMoreArtists}
+                className="self-center px-6 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40 transition-all"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
+                {loadingMoreArtists ? 'Cargando...' : `Cargar ${Math.min(ARTISTS_PAGE, artistsTotal - artists.length)} más (${artistsTotal - artists.length} restantes)`}
+              </button>
+            )}
+          </div>
 
         ) : tab === 'stats' ? (
 
@@ -2314,7 +2344,7 @@ export default function AdminPage() {
         ) : tab === 'agregar' ? (
 
           // ── AGREGAR ──────────────────────────────────────────────────────────
-          <AddArtistForm pass={pass} onAdded={a => setArtists(prev => [a, ...prev])} availableStyles={adminStyles} existingArtists={artists} />
+          <AddArtistForm pass={pass} onAdded={a => { setArtists(prev => [a, ...prev]); setArtistsTotal(prev => prev + 1) }} availableStyles={adminStyles} existingArtists={artists} />
 
         ) : (
 

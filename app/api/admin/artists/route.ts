@@ -19,8 +19,15 @@ function genKey() {
 
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { data } = await getAdminClient().from('artists').select('*').order('created_at', { ascending: false })
-  return NextResponse.json({ artists: data || [] })
+  const url    = new URL(req.url)
+  const offset = parseInt(url.searchParams.get('offset') || '0')
+  const limit  = parseInt(url.searchParams.get('limit')  || '10')
+  const { data, count } = await getAdminClient()
+    .from('artists')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+  return NextResponse.json({ artists: data || [], total: count ?? 0 })
 }
 
 export async function POST(req: NextRequest) {
