@@ -39,9 +39,9 @@ export async function uploadFile(file: File, path: string): Promise<string> {
 
 export async function deleteFile(url: string): Promise<void> {
   if (!url) return
-  if (process.env.STORAGE_PROVIDER === 'r2') {
-    const base = process.env.CLOUDFLARE_R2_PUBLIC_URL!
-    const key = url.startsWith(base) ? url.slice(base.length + 1) : null
+  const r2Base = process.env.CLOUDFLARE_R2_PUBLIC_URL
+  if (r2Base && url.startsWith(r2Base)) {
+    const key = url.slice(r2Base.length + 1)
     if (!key) return
     await r2Client().send(new DeleteObjectCommand({
       Bucket: process.env.CLOUDFLARE_R2_BUCKET!,
