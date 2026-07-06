@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { uploadFile } from '@/lib/storage'
+import { uploadFile, deleteFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -22,13 +22,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const form = await req.formData()
     const bgFile         = form.get('bg_image') as File | null
     const detailLogoFile = form.get('detail_logo') as File | null
+    const { data: current } = bgFile?.size || detailLogoFile?.size
+      ? await client.from('sponsors_v2').select('bg_image_url, detail_logo_url').eq('id', id).single()
+      : { data: null }
     if (bgFile?.size) {
       const ext  = bgFile.name.split('.').pop() || 'jpg'
       patch.bg_image_url = await uploadFile(bgFile, `sponsors-v2/bg-${Date.now()}.${ext}`)
+      if (current?.bg_image_url) deleteFile(current.bg_image_url).catch(() => {})
     }
     if (detailLogoFile?.size) {
       const ext  = detailLogoFile.name.split('.').pop() || 'png'
       patch.detail_logo_url = await uploadFile(detailLogoFile, `sponsors-v2/detail-${Date.now()}.${ext}`)
+      if (current?.detail_logo_url) deleteFile(current.detail_logo_url).catch(() => {})
     }
     const textFields = ['name', 'description', 'link', 'level', 'city', 'country', 'starts_at', 'expires_at', 'notes', 'detail_logo_mode']
     for (const k of textFields) {
@@ -56,15 +61,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
   const client = sb()
-  const { data: sp } = await client.from('sponsors_v2').select('logo_url,bg_image_url').eq('id', id).single()
-  const toRemove: string[] = []
-  for (const url of [sp?.logo_url, sp?.bg_image_url]) {
-    if (url) {
-      const path = url.split('/artist-photos/')[1]
-      if (path) toRemove.push(path)
-    }
+  const { data: sp } = await client.from('sponsors_v2').select('logo_url,bg_image_url,detail_logo_url').eq('id', id).single()
+  for (const url of [sp?.logo_url, sp?.bg_image_url, sp?.detail_logo_url]) {
+    if (url) deleteFile(url).catch(() => {})
   }
-  if (toRemove.length) await client.storage.from('artist-photos').remove(toRemove)
   await client.from('sponsors_v2').delete().eq('id', id)
   return NextResponse.json({ ok: true })
 }

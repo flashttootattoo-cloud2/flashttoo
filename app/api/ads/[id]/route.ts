@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { uploadFile } from '@/lib/storage'
+import { uploadFile, deleteFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -34,7 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if (!edit_key) return NextResponse.json({ error: 'Clave requerida' }, { status: 400 })
 
-  const { data: ad } = await sb().from('ads').select('edit_key').eq('id', id).single()
+  const { data: ad } = await sb().from('ads').select('edit_key, image_url').eq('id', id).single()
   if (!ad || ad.edit_key !== edit_key) {
     return NextResponse.json({ error: 'Clave incorrecta' }, { status: 403 })
   }
@@ -52,6 +52,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const path = `ads/${Date.now()}.${ext}`
     try {
       patch.image_url = await uploadFile(photo, path)
+      if (ad.image_url) deleteFile(ad.image_url).catch(() => {})
     } catch (e: unknown) {
       return NextResponse.json({ error: e instanceof Error ? e.message : 'Upload error' }, { status: 500 })
     }

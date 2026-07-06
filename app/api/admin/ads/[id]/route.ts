@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deleteFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -17,10 +18,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params
   const client = sb()
   const { data: ad } = await client.from('ads').select('image_url').eq('id', id).single()
-  if (ad?.image_url) {
-    const path = ad.image_url.split('/artist-photos/')[1]
-    if (path) await client.storage.from('artist-photos').remove([path])
-  }
+  if (ad?.image_url) deleteFile(ad.image_url).catch(() => {})
   await client.from('ads').delete().eq('id', id)
   return NextResponse.json({ ok: true })
 }

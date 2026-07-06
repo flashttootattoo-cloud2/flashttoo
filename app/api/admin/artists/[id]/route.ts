@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deleteFile } from '@/lib/storage'
 
 function getAdminClient() {
   return createClient(
@@ -30,12 +31,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params
   const sb = getAdminClient()
 
-  // Obtener la foto para borrarla del storage
   const { data: artist } = await sb.from('artists').select('photo_url').eq('id', id).single()
-  if (artist?.photo_url) {
-    const path = artist.photo_url.split('/artist-photos/')[1]
-    if (path) await sb.storage.from('artist-photos').remove([path])
-  }
+  if (artist?.photo_url) deleteFile(artist.photo_url).catch(() => {})
 
   await sb.from('artists').delete().eq('id', id)
   return NextResponse.json({ ok: true })

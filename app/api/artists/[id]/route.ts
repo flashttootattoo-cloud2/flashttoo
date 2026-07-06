@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deleteFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -22,7 +23,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const allowed = ['name', 'city', 'country', 'styles', 'bio', 'instagram', 'whatsapp', 'email', 'interview', 'visits', 'gallery_photo_1', 'gallery_photo_2', 'gallery_photo_3']
   const updates: Record<string, unknown> = {}
   for (const k of allowed) { if (k in fields) updates[k] = fields[k] }
-  if (photo_url) updates.photo_url = photo_url
+  if (photo_url) {
+    const { data: current } = await sb().from('artists').select('photo_url').eq('id', id).single()
+    if (current?.photo_url) deleteFile(current.photo_url).catch(() => {})
+    updates.photo_url = photo_url
+  }
   if (fields.new_edit_key) updates.edit_key = String(fields.new_edit_key).trim().toUpperCase()
 
   const { data, error } = await sb().from('artists').update(updates).eq('id', id).select().single()
@@ -40,10 +45,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return NextResponse.json({ error: 'Clave incorrecta' }, { status: 401 })
   }
 
-  if (artist.photo_url) {
-    const path = artist.photo_url.split('/artist-photos/')[1]
-    if (path) await sb().storage.from('artist-photos').remove([path])
-  }
+  if (artist.photo_url) deleteFile(artist.photo_url).catch(() => {})
 
   await sb().from('artists').delete().eq('id', id)
   return NextResponse.json({ ok: true })
