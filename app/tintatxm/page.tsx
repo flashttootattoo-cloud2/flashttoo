@@ -1302,13 +1302,13 @@ export default function AdminPage() {
             ) : (
               <>
                 <ArtistGrid artists={artists.filter(a => a.status !== 'pending')} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
-                {artists.filter(a => a.status !== 'pending').length < artistsTotal && (
+                {artists.length < artistsTotal && (
                   <button
                     onClick={loadMoreArtists}
                     disabled={loadingMoreArtists}
                     className="self-center px-6 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40 transition-all"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
-                    {loadingMoreArtists ? 'Cargando...' : `Cargar ${Math.min(ARTISTS_PAGE, artistsTotal - artists.filter(a => a.status !== 'pending').length)} más (${artistsTotal - artists.filter(a => a.status !== 'pending').length} restantes)`}
+                    {loadingMoreArtists ? 'Cargando...' : `Cargar ${Math.min(ARTISTS_PAGE, artistsTotal - artists.length)} más (${artistsTotal - artists.length} restantes)`}
                   </button>
                 )}
               </>
