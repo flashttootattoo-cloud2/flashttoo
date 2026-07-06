@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { uploadFile } from '@/lib/storage'
 
 function getAdminClient() {
   return createClient(
@@ -38,10 +39,11 @@ export async function POST(req: NextRequest) {
 
   let photo_url = ''
   if (photo) {
-    const path = `${Date.now()}.webp`
-    const { error: upErr } = await sb.storage.from('artist-photos').upload(path, photo, { contentType: 'image/webp' })
-    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
-    photo_url = sb.storage.from('artist-photos').getPublicUrl(path).data.publicUrl
+    try {
+      photo_url = await uploadFile(photo, `${Date.now()}.webp`)
+    } catch (e: unknown) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : 'Upload error' }, { status: 500 })
+    }
   }
 
   const edit_key = genKey()

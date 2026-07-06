@@ -144,18 +144,17 @@ export default function AgregarPage() {
       // Subir foto
       const ext  = photo.name.split('.').pop()
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error: upErr } = await supabase.storage
-        .from('artist-photos')
-        .upload(path, photo, { contentType: photo.type })
-      if (upErr) {
-        setError(`Error al subir foto: ${upErr.message}`)
+      let photoPublicUrl: string
+      try {
+        const fd = new FormData(); fd.append('file', photo); fd.append('path', path)
+        const r = await fetch('/api/upload', { method: 'POST', body: fd })
+        if (!r.ok) throw new Error((await r.json()).error || 'Error al subir foto')
+        photoPublicUrl = (await r.json()).url
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Error al subir foto')
         setLoading(false)
         return
       }
-
-      const { data: urlData } = supabase.storage
-        .from('artist-photos')
-        .getPublicUrl(path)
 
       if (igStatus === 'taken') { setLoading(false); return }
 
@@ -164,12 +163,12 @@ export default function AgregarPage() {
       for (let i = 0; i < 3; i++) {
         const gf = galleryFiles[i]
         if (gf) {
-          const gPath = `gallery-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}.webp`
-          const { error: gErr } = await supabase.storage.from('artist-photos').upload(gPath, gf, { contentType: 'image/webp' })
-          if (!gErr) {
-            const { data: gUrl } = supabase.storage.from('artist-photos').getPublicUrl(gPath)
-            galleryUrls[i] = gUrl.publicUrl
-          }
+          try {
+            const gPath = `gallery-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}.webp`
+            const gfd = new FormData(); gfd.append('file', gf); gfd.append('path', gPath)
+            const gr = await fetch('/api/upload', { method: 'POST', body: gfd })
+            if (gr.ok) galleryUrls[i] = (await gr.json()).url
+          } catch { /* continuar sin galería */ }
         }
       }
 
@@ -179,7 +178,7 @@ export default function AgregarPage() {
         city:      form.city.trim(),
         country:   form.country.trim(),
         styles,
-        photo_url: urlData.publicUrl,
+        photo_url: photoPublicUrl,
         instagram: form.instagram.trim() || null,
         whatsapp:  form.whatsapp.trim()  || null,
         email:     form.email.trim()     || null,

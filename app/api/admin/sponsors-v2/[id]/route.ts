@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { uploadFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -23,17 +24,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const detailLogoFile = form.get('detail_logo') as File | null
     if (bgFile?.size) {
       const ext  = bgFile.name.split('.').pop() || 'jpg'
-      const path = `sponsors-v2/bg-${Date.now()}.${ext}`
-      const { error: upErr } = await client.storage.from('artist-photos').upload(path, bgFile, { contentType: bgFile.type })
-      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
-      patch.bg_image_url = client.storage.from('artist-photos').getPublicUrl(path).data.publicUrl
+      patch.bg_image_url = await uploadFile(bgFile, `sponsors-v2/bg-${Date.now()}.${ext}`)
     }
     if (detailLogoFile?.size) {
       const ext  = detailLogoFile.name.split('.').pop() || 'png'
-      const path = `sponsors-v2/detail-${Date.now()}.${ext}`
-      const { error: upErr } = await client.storage.from('artist-photos').upload(path, detailLogoFile, { contentType: detailLogoFile.type })
-      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
-      patch.detail_logo_url = client.storage.from('artist-photos').getPublicUrl(path).data.publicUrl
+      patch.detail_logo_url = await uploadFile(detailLogoFile, `sponsors-v2/detail-${Date.now()}.${ext}`)
     }
     const textFields = ['name', 'description', 'link', 'level', 'city', 'country', 'starts_at', 'expires_at', 'notes', 'detail_logo_mode']
     for (const k of textFields) {

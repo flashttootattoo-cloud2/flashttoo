@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { uploadFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -8,12 +9,9 @@ function auth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
-async function uploadFile(client: ReturnType<typeof sb>, file: File, prefix: string) {
-  const ext  = file.name.split('.').pop() || 'png'
-  const path = `sponsors-v2/${prefix}-${Date.now()}.${ext}`
-  const { error } = await client.storage.from('artist-photos').upload(path, file, { contentType: file.type })
-  if (error) throw error
-  return client.storage.from('artist-photos').getPublicUrl(path).data.publicUrl
+function r2Path(file: File, prefix: string) {
+  const ext = file.name.split('.').pop() || 'png'
+  return `sponsors-v2/${prefix}-${Date.now()}.${ext}`
 }
 
 export async function GET(req: NextRequest) {
@@ -62,9 +60,9 @@ export async function POST(req: NextRequest) {
 
   const client = sb()
   try {
-    const logo_url        = await uploadFile(client, logo, 'logo')
-    const bg_image_url    = bgFile?.size ? await uploadFile(client, bgFile, 'bg') : null
-    const detail_logo_url = detailLogoFile?.size ? await uploadFile(client, detailLogoFile, 'detail') : null
+    const logo_url        = await uploadFile(logo, r2Path(logo, 'logo'))
+    const bg_image_url    = bgFile?.size ? await uploadFile(bgFile, r2Path(bgFile, 'bg')) : null
+    const detail_logo_url = detailLogoFile?.size ? await uploadFile(detailLogoFile, r2Path(detailLogoFile, 'detail')) : null
 
     const { data, error } = await client.from('sponsors_v2').insert({
       name, description, link, level, city, country, keep_color, starts_at, expires_at,

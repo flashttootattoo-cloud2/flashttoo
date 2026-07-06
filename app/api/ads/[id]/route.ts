@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { uploadFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -49,9 +50,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (photo && photo.size > 0) {
     const ext  = photo.name.split('.').pop() || 'webp'
     const path = `ads/${Date.now()}.${ext}`
-    const { error: upErr } = await sb().storage.from('artist-photos').upload(path, photo, { contentType: photo.type })
-    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
-    patch.image_url = sb().storage.from('artist-photos').getPublicUrl(path).data.publicUrl
+    try {
+      patch.image_url = await uploadFile(photo, path)
+    } catch (e: unknown) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : 'Upload error' }, { status: 500 })
+    }
   }
 
   const allowed = ['title', 'city', 'country', 'instagram', 'whatsapp', 'website']

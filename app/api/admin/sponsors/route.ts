@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { uploadFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -45,12 +46,14 @@ export async function POST(req: NextRequest) {
   const client = sb()
   const ext  = logo.name.split('.').pop() || 'png'
   const path = `sponsors/${Date.now()}.${ext}`
-  const { error: upErr } = await client.storage.from('artist-photos').upload(path, logo, { contentType: logo.type })
-  if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
-
-  const { data: urlData } = client.storage.from('artist-photos').getPublicUrl(path)
+  let logo_url: string
+  try {
+    logo_url = await uploadFile(logo, path)
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Upload error' }, { status: 500 })
+  }
   const { data, error } = await client.from('sponsors').insert({
-    name, link, country, starts_at, expires_at, logo_url: urlData.publicUrl, keep_color,
+    name, link, country, starts_at, expires_at, logo_url, keep_color,
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ sponsor: data })

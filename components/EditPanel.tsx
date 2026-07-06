@@ -172,11 +172,12 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     try {
       let photo_url = artist.photo_url
       if (photo) {
-        const path = `${Date.now()}.webp`
-        const { error: upErr } = await supabase.storage.from('artist-photos').upload(path, photo, { contentType: 'image/webp' })
-        if (upErr) throw upErr
-        const { data } = supabase.storage.from('artist-photos').getPublicUrl(path)
-        photo_url = data.publicUrl
+        const fd = new FormData()
+        fd.append('file', photo)
+        fd.append('path', `${Date.now()}.webp`)
+        const r = await fetch('/api/upload', { method: 'POST', body: fd })
+        if (!r.ok) throw new Error('Error al subir foto')
+        photo_url = (await r.json()).url
       }
 
       // Subir fotos de galería que hayan cambiado
@@ -184,10 +185,11 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
       for (let i = 0; i < 3; i++) {
         const file = galleryFiles[i]
         if (file) {
-          const path = `gallery-${artist.id}-${i}-${Date.now()}.webp`
-          const { error: upErr } = await supabase.storage.from('artist-photos').upload(path, file, { contentType: 'image/webp' })
-          if (upErr) throw upErr
-          galleryUrls[i] = supabase.storage.from('artist-photos').getPublicUrl(path).data.publicUrl
+          const gfd = new FormData()
+          gfd.append('file', file)
+          gfd.append('path', `gallery-${artist.id}-${i}-${Date.now()}.webp`)
+          const gr = await fetch('/api/upload', { method: 'POST', body: gfd })
+          if (gr.ok) galleryUrls[i] = (await gr.json()).url
         }
       }
 
