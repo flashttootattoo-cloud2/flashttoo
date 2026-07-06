@@ -125,6 +125,7 @@ export default function Home() {
   const sentinelRef    = useRef<HTMLDivElement>(null)
   const offsetRef      = useRef(0)
   const loadingMoreRef = useRef(false)
+  const loadGenRef     = useRef(0)
   const filterRef      = useRef({ country, city, styles: activeStyles })
   filterRef.current = { country, city, styles: activeStyles }
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
@@ -146,6 +147,7 @@ export default function Home() {
     if (loadingMoreRef.current && append) return
     loadingMoreRef.current = true
     if (append) setLoadingMore(true)
+    const gen = loadGenRef.current
 
     const { data } = await supabase.rpc('search_artists', {
       p_country: filters.country,
@@ -154,6 +156,7 @@ export default function Home() {
       p_offset:  offset,
       p_limit:   BATCH,
     })
+    if (gen !== loadGenRef.current) return
     const batch = shuffle((data || []) as Artist[])
     if (append) {
       setArtists(prev => [...prev, ...batch])
@@ -242,6 +245,7 @@ export default function Home() {
   const filterKey = `${country}|${city}|${activeStyles.join(',')}`
   useEffect(() => {
     const timer = setTimeout(() => {
+      loadGenRef.current++
       offsetRef.current = 0
       loadingMoreRef.current = false
       scrollRestored.current = false
