@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const { data } = await sb().from('settings').select('key,value')
   const out: Record<string, unknown> = {}
   for (const row of data || []) out[row.key] = row.value
-  return NextResponse.json({ settings: out })
+  return NextResponse.json({ settings: out, r2_available: !!process.env.CLOUDFLARE_R2_PUBLIC_URL })
 }
 
 export async function PATCH(req: NextRequest) {

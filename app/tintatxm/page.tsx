@@ -879,6 +879,9 @@ export default function AdminPage() {
   const [savingShowCount, setSavingShowCount] = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [savingGallery, setSavingGallery]   = useState(false)
+  const [storageR2, setStorageR2]           = useState(false)
+  const [savingStorage, setSavingStorage]   = useState(false)
+  const [r2Available, setR2Available]       = useState(false)
   const [adminStyles, setAdminStyles] = useState<string[]>(DEFAULT_STYLES)
   const [stylesInput, setStylesInput] = useState('')
   const [savingStyles, setSavingStyles] = useState(false)
@@ -976,6 +979,8 @@ export default function AdminPage() {
         setModeration(cfg.value.settings?.moderation === true)
         setShowCount(cfg.value.settings?.show_count === true)
         setGalleryEnabled(cfg.value.settings?.artist_gallery_enabled === true)
+        setStorageR2(cfg.value.settings?.storage_provider === 'r2')
+        setR2Available(cfg.value.r2_available === true)
         if (Array.isArray(cfg.value.settings?.styles) && cfg.value.settings.styles.length > 0)
           setAdminStyles(cfg.value.settings.styles)
         if (Array.isArray(cfg.value.settings?.content_cards))
@@ -1527,6 +1532,46 @@ export default function AdminPage() {
                 {galleryEnabled ? 'Activada — los tatuadores pueden subir fotos de diseños' : 'Desactivada'}
               </p>
             </div>
+
+            {/* Storage R2 */}
+            {r2Available && (
+              <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-white">Almacenamiento — Cloudflare R2</p>
+                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                      Activo: las fotos nuevas se guardan en R2 (egress gratis). Inactivo: se guardan en Supabase Storage.
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setSavingStorage(true)
+                      const next = !storageR2
+                      await fetch('/api/admin/settings', {
+                        method: 'PATCH',
+                        headers: { ...H(pass), 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ key: 'storage_provider', value: next ? 'r2' : 'supabase' }),
+                      })
+                      setStorageR2(next)
+                      setSavingStorage(false)
+                    }}
+                    disabled={savingStorage}
+                    className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                    style={{ width: 48, height: 28, background: storageR2 ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                    <span style={{
+                      position: 'absolute', top: 4,
+                      left: storageR2 ? 24 : 4,
+                      width: 20, height: 20, borderRadius: '50%',
+                      background: storageR2 ? '#000' : 'rgba(255,255,255,0.4)',
+                      transition: 'left 0.2s',
+                    }} />
+                  </button>
+                </div>
+                <p className="text-xs mt-3 font-bold" style={{ color: storageR2 ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                  {storageR2 ? 'R2 activo — fotos nuevas van a Cloudflare R2' : 'Supabase Storage activo'}
+                </p>
+              </div>
+            )}
 
             {/* Estilos */}
             <div className="rounded-xl p-5 flex flex-col gap-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>

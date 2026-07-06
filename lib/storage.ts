@@ -19,8 +19,14 @@ function sbAdmin() {
   )
 }
 
+async function shouldUseR2(): Promise<boolean> {
+  if (!process.env.CLOUDFLARE_R2_PUBLIC_URL) return false
+  const { data } = await sbAdmin().from('settings').select('value').eq('key', 'storage_provider').single()
+  return data?.value === 'r2'
+}
+
 export async function uploadFile(file: File, path: string): Promise<string> {
-  if (process.env.STORAGE_PROVIDER === 'r2') {
+  if (await shouldUseR2()) {
     const buffer = Buffer.from(await file.arrayBuffer())
     await r2Client().send(new PutObjectCommand({
       Bucket:      process.env.CLOUDFLARE_R2_BUCKET!,
