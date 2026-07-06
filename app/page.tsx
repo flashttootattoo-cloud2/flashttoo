@@ -158,7 +158,11 @@ export default function Home() {
       p_limit:   BATCH,
       p_seed:    seedRef.current,
     })
-    if (gen !== loadGenRef.current) return
+    if (gen !== loadGenRef.current) {
+      loadingMoreRef.current = false
+      if (append) setLoadingMore(false)
+      return
+    }
     const batch = (data || []) as Artist[]
     if (append) {
       setArtists(prev => [...prev, ...batch])
