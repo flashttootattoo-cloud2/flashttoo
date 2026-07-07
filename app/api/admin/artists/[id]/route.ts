@@ -31,9 +31,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params
   const sb = getAdminClient()
 
-  const { data: artist } = await sb.from('artists').select('photo_url').eq('id', id).single()
-  if (artist?.photo_url) deleteFile(artist.photo_url).catch(() => {})
+  const { data: artist } = await sb.from('artists')
+    .select('photo_url, gallery_photo_1, gallery_photo_2, gallery_photo_3')
+    .eq('id', id).single()
 
   await sb.from('artists').delete().eq('id', id)
+
+  for (const url of [artist?.photo_url, artist?.gallery_photo_1, artist?.gallery_photo_2, artist?.gallery_photo_3]) {
+    if (url) deleteFile(url).catch(() => {})
+  }
+
   return NextResponse.json({ ok: true })
 }

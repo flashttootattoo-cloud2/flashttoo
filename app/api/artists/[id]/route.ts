@@ -26,13 +26,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const updates: Record<string, unknown> = {}
   for (const k of allowed) { if (k in fields) updates[k] = fields[k] }
 
-  // Foto de perfil: borrar la vieja solo si cambia
-  if (photo_url) {
-    if (artist.photo_url && artist.photo_url !== photo_url) deleteFile(artist.photo_url).catch(() => {})
-    updates.photo_url = photo_url
-  }
+  if (photo_url) updates.photo_url = photo_url
+  if (fields.new_edit_key) updates.edit_key = String(fields.new_edit_key).trim().toUpperCase()
 
-  // Galería: borrar archivos que se eliminan o reemplazan
+  const { data, error } = await sb().from('artists').update(updates).eq('id', id).select().single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Borrar archivos viejos solo después de confirmar el UPDATE
+  if (photo_url && artist.photo_url && artist.photo_url !== photo_url) deleteFile(artist.photo_url).catch(() => {})
   for (const slot of ['gallery_photo_1', 'gallery_photo_2', 'gallery_photo_3'] as const) {
     if (slot in fields) {
       const oldUrl = artist[slot] as string | null
@@ -41,10 +42,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   }
 
-  if (fields.new_edit_key) updates.edit_key = String(fields.new_edit_key).trim().toUpperCase()
-
-  const { data, error } = await sb().from('artists').update(updates).eq('id', id).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ artist: data })
 }
 

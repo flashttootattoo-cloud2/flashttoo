@@ -17,23 +17,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const contentType = req.headers.get('content-type') || ''
   const client = sb()
   const patch: Record<string, unknown> = {}
+  let oldBgUrl: string | null = null
+  let oldDetailLogoUrl: string | null = null
 
   if (contentType.includes('multipart/form-data')) {
     const form = await req.formData()
     const bgFile         = form.get('bg_image') as File | null
     const detailLogoFile = form.get('detail_logo') as File | null
-    const { data: current } = bgFile?.size || detailLogoFile?.size
-      ? await client.from('sponsors_v2').select('bg_image_url, detail_logo_url').eq('id', id).single()
-      : { data: null }
+    if (bgFile?.size || detailLogoFile?.size) {
+      const { data: cur } = await client.from('sponsors_v2').select('bg_image_url, detail_logo_url').eq('id', id).single()
+      oldBgUrl        = cur?.bg_image_url ?? null
+      oldDetailLogoUrl = cur?.detail_logo_url ?? null
+    }
     if (bgFile?.size) {
       const ext  = bgFile.name.split('.').pop() || 'jpg'
       patch.bg_image_url = await uploadFile(bgFile, `sponsors-v2/bg-${Date.now()}.${ext}`)
-      if (current?.bg_image_url) deleteFile(current.bg_image_url).catch(() => {})
     }
     if (detailLogoFile?.size) {
       const ext  = detailLogoFile.name.split('.').pop() || 'png'
       patch.detail_logo_url = await uploadFile(detailLogoFile, `sponsors-v2/detail-${Date.now()}.${ext}`)
-      if (current?.detail_logo_url) deleteFile(current.detail_logo_url).catch(() => {})
     }
     const textFields = ['name', 'description', 'link', 'level', 'city', 'country', 'starts_at', 'expires_at', 'notes', 'detail_logo_mode']
     for (const k of textFields) {
@@ -54,6 +56,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { data, error } = await client.from('sponsors_v2').update(patch).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Borrar archivos viejos solo después de confirmar el UPDATE
+  if (patch.bg_image_url && oldBgUrl) deleteFile(oldBgUrl).catch(() => {})
+  if (patch.detail_logo_url && oldDetailLogoUrl) deleteFile(oldDetailLogoUrl).catch(() => {})
+
   return NextResponse.json({ sponsor: data })
 }
 

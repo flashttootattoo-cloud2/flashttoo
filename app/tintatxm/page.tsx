@@ -994,7 +994,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!auth) return
     clearTimeout(searchTimer.current)
-    if (!artistSearch.trim()) { setSearchResults(null); return }
+    if (!artistSearch.trim()) { setSearchResults(null); setLoadingSearch(false); return }
     setLoadingSearch(true)
     searchTimer.current = setTimeout(async () => {
       const r = await fetch(`/api/admin/artists?search=${encodeURIComponent(artistSearch.trim())}&limit=50&offset=0`, { headers: H(pass) })
@@ -1016,12 +1016,15 @@ export default function AdminPage() {
 
   const loadMoreArtists = async () => {
     setLoadingMoreArtists(true)
-    const r = await fetch(`/api/admin/artists?limit=${ARTISTS_PAGE}&offset=${artistsOffset}`, { headers: H(pass) })
-    const d = await r.json()
-    setArtists(prev => [...prev, ...(d.artists || [])])
-    setArtistsTotal(d.total ?? 0)
-    setArtistsOffset(prev => prev + (d.artists?.length ?? 0))
-    setLoadingMoreArtists(false)
+    try {
+      const r = await fetch(`/api/admin/artists?limit=${ARTISTS_PAGE}&offset=${artistsOffset}`, { headers: H(pass) })
+      const d = await r.json()
+      setArtists(prev => [...prev, ...(d.artists || [])])
+      setArtistsTotal(d.total ?? 0)
+      setArtistsOffset(prev => prev + (d.artists?.length ?? 0))
+    } finally {
+      setLoadingMoreArtists(false)
+    }
   }
 
   const toggleModeration = async (val: boolean) => {
@@ -1047,19 +1050,19 @@ export default function AdminPage() {
   }
 
   const approveArtist = async (id: string) => {
-    await fetch(`/api/admin/artists/${id}`, {
+    const r = await fetch(`/api/admin/artists/${id}`, {
       method: 'PATCH',
       headers: { ...H(pass), 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'active' }),
     })
-    setArtists(prev => prev.map(a => a.id === id ? { ...a, status: 'active' } : a))
+    if (r.ok) patchArtistInLists(id, { status: 'active' })
   }
 
   const rejectArtist = async (id: string) => {
     if (!confirm('¿Rechazar y eliminar este perfil?')) return
     setDeleting(id)
-    await fetch(`/api/admin/artists/${id}`, { method: 'DELETE', headers: H(pass) })
-    setArtists(prev => prev.filter(a => a.id !== id))
+    const r = await fetch(`/api/admin/artists/${id}`, { method: 'DELETE', headers: H(pass) })
+    if (r.ok) removeArtistFromLists(id)
     setDeleting(null)
   }
 
@@ -1089,9 +1092,11 @@ export default function AdminPage() {
   const deleteArtist = async (id: string) => {
     if (!confirm('¿Borrar este tatuador?')) return
     setDeleting(id)
-    await fetch(`/api/admin/artists/${id}`, { method: 'DELETE', headers: H(pass) })
-    removeArtistFromLists(id)
-    setArtistsTotal(prev => Math.max(0, prev - 1))
+    const r = await fetch(`/api/admin/artists/${id}`, { method: 'DELETE', headers: H(pass) })
+    if (r.ok) {
+      removeArtistFromLists(id)
+      setArtistsTotal(prev => Math.max(0, prev - 1))
+    }
     setDeleting(null)
   }
 
