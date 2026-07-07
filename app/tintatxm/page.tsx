@@ -1076,11 +1076,21 @@ export default function AdminPage() {
     setSavingPage(false)
   }
 
+  const patchArtistInLists = (id: string, changes: Partial<Artist>) => {
+    const apply = (arr: Artist[]) => arr.map(a => a.id === id ? { ...a, ...changes } : a)
+    setArtists(apply)
+    setSearchResults(prev => prev ? apply(prev) : prev)
+  }
+  const removeArtistFromLists = (id: string) => {
+    setArtists(prev => prev.filter(a => a.id !== id))
+    setSearchResults(prev => prev ? prev.filter(a => a.id !== id) : prev)
+  }
+
   const deleteArtist = async (id: string) => {
     if (!confirm('¿Borrar este tatuador?')) return
     setDeleting(id)
     await fetch(`/api/admin/artists/${id}`, { method: 'DELETE', headers: H(pass) })
-    setArtists(prev => prev.filter(a => a.id !== id))
+    removeArtistFromLists(id)
     setArtistsTotal(prev => Math.max(0, prev - 1))
     setDeleting(null)
   }
@@ -1093,7 +1103,7 @@ export default function AdminPage() {
       headers: { ...H(pass), 'Content-Type': 'application/json' },
       body: JSON.stringify({ edit_key: trimmed }),
     })
-    setArtists(prev => prev.map(a => a.id === id ? { ...a, edit_key: trimmed } : a))
+    patchArtistInLists(id, { edit_key: trimmed })
   }
 
   const toggleVisible = async (id: string, visible: boolean) => {
@@ -1102,7 +1112,7 @@ export default function AdminPage() {
       headers: { ...H(pass), 'Content-Type': 'application/json' },
       body: JSON.stringify({ visible }),
     })
-    setArtists(prev => prev.map(a => a.id === id ? { ...a, visible } : a))
+    patchArtistInLists(id, { visible })
   }
 
   const deleteAd = async (id: string) => {
