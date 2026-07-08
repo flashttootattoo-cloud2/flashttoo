@@ -151,8 +151,8 @@ export default function Home() {
     const gen = loadGenRef.current
 
     const { data } = await supabase.rpc('search_artists', {
-      p_country: filters.country,
-      p_city:    filters.city,
+      p_country: filters.country.trim(),
+      p_city:    filters.city.trim(),
       p_styles:  filters.styles,
       p_offset:  offset,
       p_limit:   BATCH,
@@ -193,8 +193,8 @@ export default function Home() {
   }, [])
 
   // Persistir filtros en sessionStorage para restaurarlos si el browser recarga la pestaña
-  useEffect(() => { try { sessionStorage.setItem('s_country', country) } catch {} }, [country])
-  useEffect(() => { try { sessionStorage.setItem('s_city', city) } catch {} }, [city])
+  useEffect(() => { try { sessionStorage.setItem('s_country', country.trim()) } catch {} }, [country])
+  useEffect(() => { try { sessionStorage.setItem('s_city', city.trim()) } catch {} }, [city])
   useEffect(() => { try { sessionStorage.setItem('s_styles', JSON.stringify(activeStyles)) } catch {} }, [activeStyles])
 
   // Guardar posición de scroll mientras navega
