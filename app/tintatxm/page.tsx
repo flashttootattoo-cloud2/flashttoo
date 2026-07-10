@@ -46,6 +46,7 @@ type SponsorV2Admin = {
   city: string | null; country: string | null; active: boolean
   keep_color: boolean; starts_at: string; expires_at: string | null
   created_at: string; notes: string | null; clicks: number; logo_scale: number | null
+  whatsapp: string | null
 }
 
 type StatsV2Bucket = { detail_open: number; banner_click: number; detail_click: number }
@@ -898,7 +899,7 @@ export default function AdminPage() {
   const [sponsorsV2, setSponsorsV2]           = useState<SponsorV2Admin[]>([])
   const [bannerV2Active, setBannerV2Active]   = useState(false)
   const [savingBannerV2, setSavingBannerV2]   = useState(false)
-  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white', logo_scale: 100 })
+  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', description: '', link: '', whatsapp: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white', logo_scale: 100 })
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
   const [sponsorV2Bg, setSponsorV2Bg]         = useState<File | null>(null)
@@ -912,7 +913,7 @@ export default function AdminPage() {
   const [statsV2Sp, setStatsV2Sp]             = useState<SponsorV2Admin | null>(null)
   const [statsV2Data, setStatsV2Data]         = useState<StatsV2Data | null>(null)
   const [statsV2Loading, setStatsV2Loading]   = useState(false)
-  const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '', notes: '', detail_logo_mode: 'white', logo_scale: 100 })
+  const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', whatsapp: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '', notes: '', detail_logo_mode: 'white', logo_scale: 100 })
   const [editV2BgFile, setEditV2BgFile]       = useState<File | null>(null)
   const [editV2BgPreview, setEditV2BgPreview] = useState<string | null>(null)
   const [editV2DetailLogoFile, setEditV2DetailLogoFile] = useState<File | null>(null)
@@ -1786,6 +1787,7 @@ export default function AdminPage() {
                   fd.append('name', sponsorV2Form.name.trim())
                   fd.append('description', sponsorV2Form.description.trim())
                   fd.append('link', sponsorV2Form.link.trim())
+                  fd.append('whatsapp', sponsorV2Form.whatsapp.trim())
                   fd.append('level', sponsorV2Form.level)
                   fd.append('city', sponsorV2Form.city.trim())
                   fd.append('country', sponsorV2Form.country.trim())
@@ -1799,7 +1801,7 @@ export default function AdminPage() {
                   const d = await r.json()
                   if (!r.ok) throw new Error(d.error || 'Error')
                   setSponsorsV2(prev => [d.sponsor, ...prev])
-                  setSponsorV2Form({ name: '', description: '', link: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white', logo_scale: 100 })
+                  setSponsorV2Form({ name: '', description: '', link: '', whatsapp: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white', logo_scale: 100 })
                   setSponsorV2Logo(null); setSponsorV2LogoPreview(null)
                   setSponsorV2Bg(null); setSponsorV2BgPreview(null)
                   setSponsorV2DetailLogo(null); setSponsorV2DetailLogoPreview(null)
@@ -1963,6 +1965,10 @@ export default function AdminPage() {
                 <AdField label="Link">
                   <input value={sponsorV2Form.link} onChange={e => setSponsorV2Form(f => ({ ...f, link: e.target.value }))}
                     placeholder="https://..." className={iCls} />
+                </AdField>
+                <AdField label="WhatsApp">
+                  <input value={sponsorV2Form.whatsapp} onChange={e => setSponsorV2Form(f => ({ ...f, whatsapp: e.target.value }))}
+                    placeholder="5491123456789" className={iCls} />
                 </AdField>
                 <AdField label="Inicio (vacío = hoy)">
                   <input type="date" value={sponsorV2Form.starts_at} onChange={e => setSponsorV2Form(f => ({ ...f, starts_at: e.target.value }))}
@@ -2136,6 +2142,7 @@ export default function AdminPage() {
                             name: sp.name,
                             description: sp.description || '',
                             link: sp.link || '',
+                            whatsapp: sp.whatsapp || '',
                             level: sp.level,
                             city: sp.city || '',
                             country: sp.country || '',
@@ -2206,6 +2213,10 @@ export default function AdminPage() {
                         <div>
                           <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Link</p>
                           <input value={editV2Form.link} onChange={e => setEditV2Form(f => ({ ...f, link: e.target.value }))} placeholder="https://..." className={iCls} />
+                        </div>
+                        <div>
+                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>WhatsApp</p>
+                          <input value={editV2Form.whatsapp} onChange={e => setEditV2Form(f => ({ ...f, whatsapp: e.target.value }))} placeholder="5491123456789" className={iCls} />
                         </div>
                         <div>
                           <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Inicio</p>
@@ -2338,6 +2349,7 @@ export default function AdminPage() {
                               fd.append('name', editV2Form.name.trim())
                               fd.append('description', editV2Form.description.trim())
                               fd.append('link', editV2Form.link.trim())
+                              fd.append('whatsapp', editV2Form.whatsapp.trim())
                               fd.append('level', editV2Form.level)
                               fd.append('city', editV2Form.city.trim())
                               fd.append('country', editV2Form.country.trim())
@@ -2356,6 +2368,7 @@ export default function AdminPage() {
                                   name: editV2Form.name.trim(),
                                   description: editV2Form.description.trim() || null,
                                   link: editV2Form.link.trim() || null,
+                                  whatsapp: editV2Form.whatsapp.trim() || null,
                                   level: editV2Form.level,
                                   city: editV2Form.city.trim() || null,
                                   country: editV2Form.country.trim() || null,

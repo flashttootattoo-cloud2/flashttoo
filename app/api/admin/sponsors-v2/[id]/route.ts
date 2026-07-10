@@ -9,7 +9,7 @@ function auth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
-const JSON_ALLOWED = ['active', 'name', 'description', 'link', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url', 'detail_logo_url', 'detail_logo_mode', 'notes', 'logo_scale']
+const JSON_ALLOWED = ['active', 'name', 'description', 'link', 'whatsapp', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url', 'detail_logo_url', 'detail_logo_mode', 'notes', 'logo_scale']
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const ext  = detailLogoFile.name.split('.').pop() || 'png'
       patch.detail_logo_url = await uploadFile(detailLogoFile, `sponsors-v2/detail-${Date.now()}.${ext}`)
     }
-    const textFields = ['name', 'description', 'link', 'level', 'city', 'country', 'starts_at', 'expires_at', 'notes', 'detail_logo_mode']
+    const textFields = ['name', 'description', 'link', 'whatsapp', 'level', 'city', 'country', 'starts_at', 'expires_at', 'notes', 'detail_logo_mode']
     for (const k of textFields) {
       const v = form.get(k) as string | null
       if (v !== null) patch[k] = v.trim() || null

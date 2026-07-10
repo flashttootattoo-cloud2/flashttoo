@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
   const name        = (form.get('name') as string)?.trim() || null
   const description = (form.get('description') as string)?.trim() || null
   const link        = (form.get('link') as string)?.trim() || null
+  const whatsapp    = (form.get('whatsapp') as string)?.trim() || null
   const notes       = (form.get('notes') as string)?.trim() || null
   const level       = (form.get('level') as string)?.trim() || 'global'
   const city        = (form.get('city') as string)?.trim() || null
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     const detail_logo_url = detailLogoFile?.size ? await uploadFile(detailLogoFile, r2Path(detailLogoFile, 'detail')) : null
 
     const { data, error } = await client.from('sponsors_v2').insert({
-      name, description, link, level, city, country, keep_color, starts_at, expires_at,
+      name, description, link, whatsapp, level, city, country, keep_color, starts_at, expires_at,
       logo_url, bg_image_url, detail_logo_url, detail_logo_mode, notes, logo_scale,
       active: true,
     }).select().single()

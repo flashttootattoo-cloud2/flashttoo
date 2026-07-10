@@ -7,7 +7,7 @@ type Sponsor = {
   detail_logo_url: string | null; detail_logo_mode: string | null
   description: string | null; link: string | null; level: string
   city: string | null; country: string | null; keep_color: boolean | null
-  logo_scale: number | null
+  logo_scale: number | null; whatsapp: string | null
 }
 
 function norm(s: string) {
@@ -341,20 +341,30 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                         {sel.description}
                       </p>
                     )}
-                    {sel.link ? (
-                      <a href={sel.link} target="_blank" rel="noopener noreferrer"
-                        onClick={() => {
-                          fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {})
-                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_click' }) }).catch(() => {})
-                        }}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 8,
-                          padding: '13px 26px', background: '#efff42', color: '#000',
-                          borderRadius: 14, fontSize: 14, fontWeight: 800, textDecoration: 'none',
-                        }}>Ver más →</a>
-                    ) : (
-                      <div style={{ height: 12 }} />
-                    )}
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {sel.link && (
+                        <a href={sel.link} target="_blank" rel="noopener noreferrer"
+                          onClick={() => {
+                            fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {})
+                            fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_click' }) }).catch(() => {})
+                          }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 8,
+                            padding: '13px 26px', background: '#efff42', color: '#000',
+                            borderRadius: 14, fontSize: 14, fontWeight: 800, textDecoration: 'none',
+                          }}>Ver más →</a>
+                      )}
+                      {sel.whatsapp && (
+                        <a href={`https://wa.me/${sel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 8,
+                            padding: '13px 26px', background: 'rgba(37,211,102,0.15)', color: '#25d366',
+                            border: '1px solid rgba(37,211,102,0.3)',
+                            borderRadius: 14, fontSize: 14, fontWeight: 800, textDecoration: 'none',
+                          }}>WhatsApp</a>
+                      )}
+                      {!sel.link && !sel.whatsapp && <div style={{ height: 12 }} />}
+                    </div>
                   </div>
                 </div>
               </>
