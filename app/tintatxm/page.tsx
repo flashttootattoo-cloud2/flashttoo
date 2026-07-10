@@ -2139,6 +2139,15 @@ export default function AdminPage() {
                       </button>
                       <button
                         onClick={() => {
+                          const url = `${window.location.origin}/insumos/${sp.id}`
+                          navigator.clipboard.writeText(url).catch(() => {})
+                        }}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{ border: '1px solid rgba(192,132,252,0.25)', color: '#c084fc' }}>
+                        copiar link
+                      </button>
+                      <button
+                        onClick={() => {
                           setEditingV2(sp.id)
                           setEditV2Form({
                             name: sp.name,
