@@ -14,6 +14,24 @@ function norm(s: string) {
   return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
 
+const COUNTRY_FLAGS: Record<string, string> = {
+  argentina: '🇦🇷', brasil: '🇧🇷', brazil: '🇧🇷',
+  chile: '🇨🇱', uruguay: '🇺🇾', paraguay: '🇵🇾', bolivia: '🇧🇴',
+  peru: '🇵🇪', colombia: '🇨🇴', venezuela: '🇻🇪', ecuador: '🇪🇨',
+  mexico: '🇲🇽', españa: '🇪🇸', spain: '🇪🇸', 'estados unidos': '🇺🇸',
+  'united states': '🇺🇸', usa: '🇺🇸', alemania: '🇩🇪', germany: '🇩🇪',
+  francia: '🇫🇷', france: '🇫🇷', italia: '🇮🇹', italy: '🇮🇹',
+  portugal: '🇵🇹', canada: '🇨🇦', australia: '🇦🇺', japon: '🇯🇵',
+  japan: '🇯🇵', china: '🇨🇳', 'reino unido': '🇬🇧', 'united kingdom': '🇬🇧',
+  uk: '🇬🇧', rusia: '🇷🇺', russia: '🇷🇺', india: '🇮🇳',
+}
+
+function countryFlag(country: string | null): string {
+  if (!country) return ''
+  const key = norm(country)
+  return COUNTRY_FLAGS[key] ? COUNTRY_FLAGS[key] + ' ' : ''
+}
+
 function matchesAny(stored: string | null, target: string): boolean {
   if (!stored || !target) return false
   const targets = stored.split(',').map(v => norm(v)).filter(Boolean)
@@ -338,7 +356,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                     </p>
                     {(sel.city || sel.country) && (
                       <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', margin: '0 0 12px' }}>
-                        {[sel.city, sel.country].filter(Boolean).join(', ')}
+                        {countryFlag(sel.country)}{[sel.country, sel.city].filter(Boolean).join(', ')}
                       </p>
                     )}
                     {sel.description && (
