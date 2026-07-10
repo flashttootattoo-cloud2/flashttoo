@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 
-type Bucket = { detail_open: number; banner_click: number; detail_click: number }
+type Bucket = { detail_open: number; banner_click: number; detail_click: number; whatsapp_click: number }
 type Sponsor = {
   id: string; name: string; logo_url: string; keep_color: boolean
   logo_scale: number | null; clicks: number; expires_at: string | null
@@ -112,11 +112,12 @@ export default function InsumosStatsPage() {
         </div>
 
         {/* Stats totales */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 32 }}>
           {[
-            { label: 'Vistas del logo', value: totals?.detail_open ?? 0 },
-            { label: 'Clics en banner', value: totals?.banner_click ?? 0 },
-            { label: 'Clics en detalle', value: totals?.detail_click ?? 0 },
+            { label: 'Vistas', value: totals?.detail_open ?? 0 },
+            { label: 'Clics banner', value: totals?.banner_click ?? 0 },
+            { label: 'Clics detalle', value: totals?.detail_click ?? 0 },
+            { label: 'WhatsApp', value: totals?.whatsapp_click ?? 0 },
           ].map(({ label, value }) => (
             <div key={label} style={{
               padding: '14px 12px', borderRadius: 12, textAlign: 'center',
@@ -135,7 +136,7 @@ export default function InsumosStatsPage() {
           </p>
           <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 80 }}>
             {Object.entries(monthly).map(([key, b]) => {
-              const total = b.detail_open + b.banner_click + b.detail_click
+              const total = b.detail_open + b.banner_click + b.detail_click + b.whatsapp_click
               const h = Math.round((total / maxVal) * 80)
               return (
                 <div key={key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>

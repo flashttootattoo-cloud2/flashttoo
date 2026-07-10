@@ -379,6 +379,9 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                       )}
                       {sel.whatsapp && (
                         <a href={`https://wa.me/${sel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                          onClick={() => {
+                            fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'whatsapp_click' }) }).catch(() => {})
+                          }}
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 8,
                             padding: '13px 26px', background: 'rgba(37,211,102,0.15)', color: '#25d366',
