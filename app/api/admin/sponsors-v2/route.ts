@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await client.from('sponsors_v2').insert({
       name, description, link, level, city, country, keep_color, starts_at, expires_at,
       logo_url, bg_image_url, detail_logo_url, detail_logo_mode, notes, logo_scale,
+      active: true,
     }).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ sponsor: data })

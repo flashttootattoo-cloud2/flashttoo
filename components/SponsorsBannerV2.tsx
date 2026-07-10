@@ -195,7 +195,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
           <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '28px 20px 100px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <p style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.22em', textTransform: 'uppercase', margin: 0 }}>
-                Sponsors
+                Insumos
               </p>
               <button onClick={closeAll} style={{
                 width: 32, height: 32, borderRadius: '50%',
@@ -206,7 +206,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
             </div>
             <input
               type="text"
-              placeholder="Buscar por país..."
+              placeholder="Buscar proveedor por país..."
               value={gridSearch}
               onChange={e => setGridSearch(e.target.value)}
               style={{
@@ -218,7 +218,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
             />
             {gridSponsors.length === 0 && (
               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
-                Sin sponsors en ese país
+                Sin proveedores en ese país
               </p>
             )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
