@@ -40,6 +40,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [gridSearch, setGridSearch] = useState('')
   const allRef        = useRef<Sponsor[]>([])
   const trackRef      = useRef<HTMLDivElement>(null)
   const firstRef      = useRef<HTMLDivElement>(null)
@@ -174,6 +175,10 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
     </>
   )
 
+  const gridSponsors = gridSearch.trim()
+    ? filterSponsors(allRef.current, undefined, gridSearch.trim())
+    : allRef.current
+
   if (!sponsors.length) return null
 
   return (
@@ -188,7 +193,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
       }}>
         <div style={{ height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '28px 20px 100px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <p style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.22em', textTransform: 'uppercase', margin: 0 }}>
                 Sponsors
               </p>
@@ -199,8 +204,25 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                 cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,0.45)',
               }}>✕</button>
             </div>
+            <input
+              type="text"
+              placeholder="Buscar por país..."
+              value={gridSearch}
+              onChange={e => setGridSearch(e.target.value)}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                marginBottom: 24, padding: '10px 16px',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
+                borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none',
+              }}
+            />
+            {gridSponsors.length === 0 && (
+              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
+                Sin sponsors en ese país
+              </p>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
-              {sponsors.map(s => (
+              {gridSponsors.map(s => (
                 <button key={s.id} onClick={() => openSponsor(s.id)} style={{
                   position: 'relative', overflow: 'hidden',
                   border: '1px solid rgba(255,255,255,0.07)',
@@ -240,7 +262,7 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
 
       {/* Modal full-screen de detalle */}
       {(() => {
-        const sel = sponsors.find(s => s.id === selectedId) ?? null
+        const sel = allRef.current.find(s => s.id === selectedId) ?? null
         const visible = expanded && !!selectedId
         return (
           <div style={{
