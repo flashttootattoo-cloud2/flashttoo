@@ -1941,17 +1941,19 @@ export default function AdminPage() {
                 </div>
                 {sponsorV2Form.level !== 'global' && (
                   <div className="grid grid-cols-1 gap-3 mt-3">
-                    {sponsorV2Form.level === 'city' && (
-                      <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Ciudades (separar con coma)</p>
-                        <input value={sponsorV2Form.city} onChange={e => setSponsorV2Form(f => ({ ...f, city: e.target.value }))}
-                          placeholder="Buenos Aires, Santiago, Santiago de Chile" className={iCls} />
-                      </div>
-                    )}
                     <div>
-                      <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Países (separar con coma)</p>
+                      <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        {sponsorV2Form.level === 'city' ? 'Países (separar con coma)' : 'País'}
+                      </p>
                       <input value={sponsorV2Form.country} onChange={e => setSponsorV2Form(f => ({ ...f, country: e.target.value }))}
-                        placeholder="Argentina, Chile, Uruguay" className={iCls} />
+                        placeholder={sponsorV2Form.level === 'city' ? 'Argentina, Chile' : 'Argentina'} className={iCls} />
+                    </div>
+                    <div>
+                      <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        {sponsorV2Form.level === 'city' ? 'Ciudades (separar con coma)' : 'Ciudad (opcional, para mostrar dónde están)'}
+                      </p>
+                      <input value={sponsorV2Form.city} onChange={e => setSponsorV2Form(f => ({ ...f, city: e.target.value }))}
+                        placeholder={sponsorV2Form.level === 'city' ? 'Buenos Aires, Santiago' : 'Buenos Aires'} className={iCls} />
                     </div>
                   </div>
                 )}
@@ -2191,17 +2193,19 @@ export default function AdminPage() {
                       </div>
                       {editV2Form.level !== 'global' && (
                         <div className="flex flex-col gap-2">
-                          {editV2Form.level === 'city' && (
-                            <div>
-                              <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Ciudades (separar con coma)</p>
-                              <input value={editV2Form.city} onChange={e => setEditV2Form(f => ({ ...f, city: e.target.value }))}
-                                placeholder="Buenos Aires, Santiago, Santiago de Chile" className={iCls} />
-                            </div>
-                          )}
                           <div>
-                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Países (separar con coma)</p>
+                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                              {editV2Form.level === 'city' ? 'Países (separar con coma)' : 'País'}
+                            </p>
                             <input value={editV2Form.country} onChange={e => setEditV2Form(f => ({ ...f, country: e.target.value }))}
-                              placeholder="Argentina, Chile, Uruguay" className={iCls} />
+                              placeholder={editV2Form.level === 'city' ? 'Argentina, Chile' : 'Argentina'} className={iCls} />
+                          </div>
+                          <div>
+                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                              {editV2Form.level === 'city' ? 'Ciudades (separar con coma)' : 'Ciudad (opcional, para mostrar dónde están)'}
+                            </p>
+                            <input value={editV2Form.city} onChange={e => setEditV2Form(f => ({ ...f, city: e.target.value }))}
+                              placeholder={editV2Form.level === 'city' ? 'Buenos Aires, Santiago' : 'Buenos Aires'} className={iCls} />
                           </div>
                         </div>
                       )}
