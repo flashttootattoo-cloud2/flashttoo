@@ -333,9 +333,14 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
 
                   {/* Texto y botón */}
                   <div style={{ width: '100%', maxWidth: 480 }}>
-                    <p style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: '0 0 10px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>
+                    <p style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: '0 0 6px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>
                       {sel.name}
                     </p>
+                    {(sel.city || sel.country) && (
+                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', margin: '0 0 12px' }}>
+                        {[sel.city, sel.country].filter(Boolean).join(', ')}
+                      </p>
+                    )}
                     {sel.description && (
                       <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.52)', lineHeight: 1.75, margin: '0 0 28px' }}>
                         {sel.description}
