@@ -51,7 +51,7 @@ type SponsorV2Admin = {
 
 type Convention = {
   id: string; name: string | null; image_url: string; link: string | null
-  expires_at: string | null; active: boolean; created_at: string
+  expires_at: string | null; active: boolean; created_at: string; clicks: number
 }
 
 type StatsV2Bucket = { detail_open: number; banner_click: number; detail_click: number }
@@ -2612,6 +2612,9 @@ export default function AdminPage() {
                     )}
                     <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>
                       {conv.expires_at ? `Vence: ${new Date(conv.expires_at).toLocaleDateString('es-AR')}` : 'sin vencimiento'}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: 'rgba(239,255,66,0.6)' }}>
+                      {conv.clicks ?? 0} clicks
                     </p>
                   </div>
 

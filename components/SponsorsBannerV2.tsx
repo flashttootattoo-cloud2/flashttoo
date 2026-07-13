@@ -304,6 +304,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
                         )}
                         {c.link && (
                           <a href={c.link} target="_blank" rel="noopener noreferrer"
+                            onClick={() => fetch(`/api/conventions/${c.id}/click`, { method: 'POST' }).catch(() => {})}
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: 6,
                               padding: '10px 22px', background: '#efff42', color: '#000',

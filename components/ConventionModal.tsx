@@ -62,7 +62,7 @@ export default function ConventionModal({ conventions }: { conventions: Conventi
           )}
           <div style={{ display: 'flex', gap: 10 }}>
             {c.link && (
-              <a href={c.link} target="_blank" rel="noopener noreferrer" onClick={dismiss}
+              <a href={c.link} target="_blank" rel="noopener noreferrer" onClick={() => { dismiss(); fetch(`/api/conventions/${c.id}/click`, { method: 'POST' }).catch(() => {}) }}
                 style={{
                   flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   padding: '12px 18px', background: '#efff42', color: '#000',
