@@ -10,6 +10,8 @@ type Sponsor = {
   logo_scale: number | null; whatsapp: string | null
 }
 
+type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null }
+
 function norm(s: string) {
   return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
@@ -53,12 +55,13 @@ function filterSponsors(all: Sponsor[], city?: string, country?: string): Sponso
   })
 }
 
-export default function SponsorsBannerV2({ city, country }: { city?: string; country?: string }) {
+export default function SponsorsBannerV2({ city, country, conventions = [] }: { city?: string; country?: string; conventions?: Convention[] }) {
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [gridSearch, setGridSearch] = useState('')
+  const [convView, setConvView] = useState(false)
   const allRef        = useRef<Sponsor[]>([])
   const trackRef      = useRef<HTMLDivElement>(null)
   const firstRef      = useRef<HTMLDivElement>(null)
@@ -118,17 +121,13 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
   useEffect(() => {
     document.body.style.overflow = expanded ? 'hidden' : ''
     if (expanded && sponsors.length) {
-      // grid (1) + detalle del primer sponsor (2)
       history.pushState({ sv2: 'grid' }, '')
-      history.pushState({ sv2: 'detail' }, '')
-      histDepthRef.current = 2
-      setSelectedId(sponsors[0].id)
-      // Trackear vista del detalle del primer sponsor (auto-mostrado)
-      fetch(`/api/sponsors-v2/${sponsors[0].id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_open' }) }).catch(() => {})
+      histDepthRef.current = 1
     }
     if (!expanded) {
       setSelectedId(null)
       histDepthRef.current = 0
+      setConvView(false)
     }
     return () => { document.body.style.overflow = '' }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -211,10 +210,26 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
       }}>
         <div style={{ height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '28px 20px 100px' }}>
+            {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <p style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.22em', textTransform: 'uppercase', margin: 0 }}>
-                Insumos
-              </p>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => setConvView(false)} style={{
+                  padding: '5px 14px', borderRadius: 20,
+                  background: !convView ? '#efff42' : 'rgba(255,255,255,0.06)',
+                  border: !convView ? 'none' : '1px solid rgba(255,255,255,0.15)',
+                  color: !convView ? '#000' : 'rgba(255,255,255,0.5)',
+                  fontSize: 11, fontWeight: 800, cursor: 'pointer', letterSpacing: '0.04em',
+                }}>Insumos</button>
+                {conventions.length > 0 && (
+                  <button onClick={() => setConvView(true)} style={{
+                    padding: '5px 14px', borderRadius: 20,
+                    background: convView ? '#efff42' : 'rgba(255,255,255,0.06)',
+                    border: convView ? 'none' : '1px solid rgba(255,255,255,0.15)',
+                    color: convView ? '#000' : 'rgba(255,255,255,0.5)',
+                    fontSize: 11, fontWeight: 800, cursor: 'pointer', letterSpacing: '0.04em',
+                  }}>Convenciones</button>
+                )}
+              </div>
               <button onClick={closeAll} style={{
                 width: 32, height: 32, borderRadius: '50%',
                 background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.08)',
@@ -222,58 +237,87 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
                 cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,0.45)',
               }}>✕</button>
             </div>
-            <input
-              type="text"
-              placeholder="Buscar proveedor por país..."
-              value={gridSearch}
-              onChange={e => setGridSearch(e.target.value)}
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                marginBottom: 24, padding: '10px 16px',
-                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
-                borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none',
-              }}
-            />
-            {gridSponsors.length === 0 && (
-              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
-                Sin proveedores en ese país
-              </p>
+
+            {/* Vista Insumos */}
+            {!convView && (
+              <div>
+                <input
+                  type="text"
+                  placeholder="Buscar proveedor por país..."
+                  value={gridSearch}
+                  onChange={e => setGridSearch(e.target.value)}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    marginBottom: 24, padding: '10px 16px',
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
+                    borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none',
+                  }}
+                />
+                {gridSponsors.length === 0 && (
+                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
+                    Sin proveedores en ese país
+                  </p>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
+                  {gridSponsors.map(s => (
+                    <button key={s.id} onClick={() => openSponsor(s.id)} style={{
+                      position: 'relative', overflow: 'hidden',
+                      border: '1px solid rgba(255,255,255,0.07)',
+                      borderRadius: 14, padding: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', aspectRatio: '3/2',
+                      background: '#111',
+                    }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={s.bg_image_url || s.logo_url} alt="" aria-hidden style={{
+                        position: 'absolute', inset: 0,
+                        width: '100%', height: '100%',
+                        objectFit: 'cover', objectPosition: 'center',
+                        transform: 'scale(1.04)', opacity: 0.55, pointerEvents: 'none',
+                      }} />
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)' }} />
+                      <div style={{ position: 'relative', zIndex: 1, width: '70%', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={s.logo_url} alt={s.name} style={{
+                          maxHeight: `${s.logo_scale || 100}%`, maxWidth: `${s.logo_scale || 100}%`, objectFit: 'contain',
+                          filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
+                          opacity: s.keep_color ? 1 : 0.88,
+                        }} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
-              {gridSponsors.map(s => (
-                <button key={s.id} onClick={() => openSponsor(s.id)} style={{
-                  position: 'relative', overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 14, padding: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', aspectRatio: '3/2',
-                  background: '#111',
-                }}>
-                  {/* Imagen de fondo desenfocada */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.bg_image_url || s.logo_url} alt="" aria-hidden style={{
-                    position: 'absolute', inset: 0,
-                    width: '100%', height: '100%',
-                    objectFit: 'cover',
-                    objectPosition: 'center',
-                    transform: 'scale(1.04)',
-                    opacity: 0.55,
-                    pointerEvents: 'none',
-                  }} />
-                  {/* Velo oscuro */}
-                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)' }} />
-                  {/* Logo nítido */}
-                  <div style={{ position: 'relative', zIndex: 1, width: '70%', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+            {/* Vista Convenciones */}
+            {convView && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {conventions.map(c => (
+                  <div key={c.id} style={{ borderRadius: 16, overflow: 'hidden', background: '#000' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={s.logo_url} alt={s.name} style={{
-                      maxHeight: `${s.logo_scale || 100}%`, maxWidth: `${s.logo_scale || 100}%`, objectFit: 'contain',
-                      filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
-                      opacity: s.keep_color ? 1 : 0.88,
-                    }} />
+                    <img src={c.image_url} alt={c.name || ''} style={{ display: 'block', width: '100%', objectFit: 'contain' }} />
+                    {(c.name || c.link) && (
+                      <div style={{ padding: '16px 20px 20px' }}>
+                        {c.name && (
+                          <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 12px', lineHeight: 1.2 }}>{c.name}</p>
+                        )}
+                        {c.link && (
+                          <a href={c.link} target="_blank" rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              padding: '10px 22px', background: '#efff42', color: '#000',
+                              borderRadius: 12, fontSize: 13, fontWeight: 800, textDecoration: 'none',
+                            }}>
+                            Ver más →
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </button>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -431,8 +475,6 @@ export default function SponsorsBannerV2({ city, country }: { city?: string; cou
               ))}
             </div>
           </div>
-
-          {/* Botón punto negro */}
           <button
             onMouseDown={e => e.stopPropagation()}
             onTouchStart={e => e.stopPropagation()}

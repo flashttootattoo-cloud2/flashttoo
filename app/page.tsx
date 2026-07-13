@@ -6,6 +6,7 @@ import { supabase, type Artist } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
 import SponsorsBanner from '@/components/SponsorsBanner'
 import SponsorsBannerV2 from '@/components/SponsorsBannerV2'
+import ConventionModal from '@/components/ConventionModal'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 
 function BioText({ text, style }: { text: string; style?: React.CSSProperties }) {
@@ -48,6 +49,8 @@ type Ad = {
 type ContentCard = {
   id: string; title: string; body: string; active: boolean
 }
+
+type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null }
 
 const AD_INTERVAL = 15
 
@@ -108,6 +111,7 @@ export default function Home() {
   const [copied, setCopied]           = useState(false)
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [loading, setLoading]         = useState(true)
+  const [conventions, setConventions]       = useState<Convention[]>([])
   const [contentCards, setContentCards]     = useState<ContentCard[]>([])
   const [brokenPhotoIds, setBrokenPhotoIds] = useState<Set<string>>(new Set())
   const markPhotoBroken = (id: string) =>
@@ -223,6 +227,7 @@ export default function Home() {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
     fetch('/api/content-cards').then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
     fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true) }).catch(() => {})
+    fetch('/api/conventions').then(r => r.json()).then(d => { if (Array.isArray(d.conventions)) setConventions(d.conventions) }).catch(() => {})
     supabase.from('settings').select('value').eq('key', 'show_count').single().then(({ data }) => { if (data?.value === true) setShowCount(true) })
   }, [])
 
@@ -1297,8 +1302,9 @@ export default function Home() {
         />
       )}
 
+      <ConventionModal conventions={conventions} />
       <SponsorsBanner country={country} />
-      <SponsorsBannerV2 city={city} country={country} />
+      <SponsorsBannerV2 city={city} country={country} conventions={conventions} />
 
       {/* Visor fullscreen galería */}
       {fullscreenImg && (

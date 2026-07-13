@@ -49,6 +49,11 @@ type SponsorV2Admin = {
   whatsapp: string | null
 }
 
+type Convention = {
+  id: string; name: string | null; image_url: string; link: string | null
+  expires_at: string | null; active: boolean; created_at: string
+}
+
 type StatsV2Bucket = { detail_open: number; banner_click: number; detail_click: number }
 type StatsV2Data = {
   sponsor: { id: string; name: string; logo_url: string; keep_color: boolean; logo_scale: number | null; clicks: number }
@@ -851,7 +856,7 @@ function StatsPanel({ artists, visits, installs }: { artists: Artist[]; visits: 
 export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones'>('artistas')
   const [artists, setArtists]       = useState<Artist[]>([])
   const [artistsTotal, setArtistsTotal] = useState(0)
   const [artistsOffset, setArtistsOffset] = useState(0)
@@ -919,6 +924,13 @@ export default function AdminPage() {
   const [editV2DetailLogoFile, setEditV2DetailLogoFile] = useState<File | null>(null)
   const [editV2DetailLogoPreview, setEditV2DetailLogoPreview] = useState<string | null>(null)
   const [savingEditV2, setSavingEditV2]       = useState(false)
+  const [conventions, setConventions]         = useState<Convention[]>([])
+  const [convForm, setConvForm]               = useState({ name: '', link: '', expires_at: '' })
+  const [convImage, setConvImage]             = useState<File | null>(null)
+  const [convImagePreview, setConvImagePreview] = useState<string | null>(null)
+  const [savingConv, setSavingConv]           = useState(false)
+  const [convError, setConvError]             = useState('')
+  const [deletingConv, setDeletingConv]       = useState<string | null>(null)
   const [menuOpen, setMenuOpen]     = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -958,7 +970,8 @@ export default function AdminPage() {
       fetch('/api/admin/stats/installs', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/sponsors', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/sponsors-v2', { headers: H(p) }).then(r => r.json()),
-    ]).then(([a, b, v, pg, cfg, ins, sp, sp2]) => {
+      fetch('/api/admin/conventions', { headers: H(p) }).then(r => r.json()),
+    ]).then(([a, b, v, pg, cfg, ins, sp, sp2, conv]) => {
       if (a.status === 'fulfilled') {
         setArtists(a.value.artists || [])
         setArtistsTotal(a.value.total ?? 0)
@@ -976,6 +989,7 @@ export default function AdminPage() {
         setSponsorsV2(sp2.value.sponsors || [])
         setBannerV2Active(sp2.value.banner_active === true)
       }
+      if (conv.status === 'fulfilled') setConventions(conv.value.conventions || [])
       if (cfg.status === 'fulfilled') {
         setModeration(cfg.value.settings?.moderation === true)
         setShowCount(cfg.value.settings?.show_count === true)
@@ -1204,6 +1218,46 @@ export default function AdminPage() {
     } finally { setSavingAd(false) }
   }
 
+  const handleConvImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setConvImage(file)
+    setConvImagePreview(URL.createObjectURL(file))
+  }
+
+  const saveConv = async (e: { preventDefault: () => void }) => {
+    e.preventDefault(); setConvError('')
+    if (!convImage) { setConvError('Agregá una imagen'); return }
+    setSavingConv(true)
+    try {
+      const fd = new FormData()
+      fd.append('image', convImage)
+      if (convForm.name.trim()) fd.append('name', convForm.name.trim())
+      if (convForm.link.trim()) fd.append('link', convForm.link.trim())
+      if (convForm.expires_at) fd.append('expires_at', new Date(convForm.expires_at).toISOString())
+      const r = await fetch('/api/admin/conventions', { method: 'POST', headers: H(pass), body: fd })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Error')
+      setConventions(prev => [d.convention, ...prev])
+      setConvForm({ name: '', link: '', expires_at: '' }); setConvImage(null); setConvImagePreview(null)
+    } catch (err: unknown) {
+      setConvError(err instanceof Error ? err.message : 'Error')
+    } finally { setSavingConv(false) }
+  }
+
+  const toggleConv = async (id: string, active: boolean) => {
+    const r = await fetch(`/api/admin/conventions/${id}`, { method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ active }) })
+    const d = await r.json()
+    if (d.convention) setConventions(prev => prev.map(c => c.id === id ? { ...c, active: d.convention.active } : c))
+  }
+
+  const deleteConv = async (id: string) => {
+    setDeletingConv(id)
+    await fetch(`/api/admin/conventions/${id}`, { method: 'DELETE', headers: H(pass) })
+    setConventions(prev => prev.filter(c => c.id !== id))
+    setDeletingConv(null)
+  }
+
   // ── Login ──────────────────────────────────────────────────────────────────
   if (!auth) return (
     <main className="min-h-screen flex items-center justify-center p-6" style={{ background: '#000' }}>
@@ -1250,8 +1304,9 @@ export default function AdminPage() {
               { key: 'pendientes', label: pendingCount > 0 ? `Pendientes (${pendingCount})` : 'Pendientes', alert: pendingCount > 0 },
               { key: 'config',     label: 'Config' },
               { key: 'contenido',  label: 'Contenido' },
-              { key: 'sponsors2',  label: `Sponsors (${sponsorsV2.length})` },
-              { key: 'agregar',    label: '+ Agregar' },
+              { key: 'sponsors2',    label: `Sponsors (${sponsorsV2.length})` },
+              { key: 'convenciones', label: `Convenciones (${conventions.length})` },
+              { key: 'agregar',      label: '+ Agregar' },
             ] as const
             const current = tabs.find(t => t.key === tab)
             return (
@@ -2482,6 +2537,108 @@ export default function AdminPage() {
 
           // ── AGREGAR ──────────────────────────────────────────────────────────
           <AddArtistForm pass={pass} onAdded={a => { setArtists(prev => [a, ...prev]); setArtistsTotal(prev => prev + 1) }} availableStyles={adminStyles} existingArtists={artists} />
+
+        ) : tab === 'convenciones' ? (
+
+          // ── CONVENCIONES ─────────────────────────────────────────────────────
+          <div className="flex flex-col gap-8">
+
+            {/* Formulario nueva convención */}
+            <form onSubmit={saveConv} className="rounded-xl p-5 flex flex-col gap-4"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>NUEVA CONVENCIÓN</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Flyer */}
+                <label className="cursor-pointer block">
+                  <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Flyer</p>
+                  {convImagePreview ? (
+                    <div className="relative rounded-xl overflow-hidden" style={{ paddingBottom: '60%' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={convImagePreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="rounded-xl flex items-center justify-center text-xs"
+                      style={{ paddingBottom: '60%', position: 'relative', border: '2px dashed rgba(255,255,255,0.08)' }}>
+                      <span className="absolute" style={{ color: 'rgba(255,255,255,0.2)' }}>subir flyer</span>
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" onChange={handleConvImage} className="hidden" />
+                </label>
+
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Nombre (opcional)</p>
+                    <input value={convForm.name} onChange={e => setConvForm(v => ({ ...v, name: e.target.value }))} placeholder="Ej: FestiTattoo 2025"
+                      className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  </div>
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Link (opcional)</p>
+                    <input value={convForm.link} onChange={e => setConvForm(v => ({ ...v, link: e.target.value }))} placeholder="https://..."
+                      className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  </div>
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vencimiento (opcional)</p>
+                    <input type="date" value={convForm.expires_at} onChange={e => setConvForm(v => ({ ...v, expires_at: e.target.value }))}
+                      className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
+                  </div>
+                </div>
+              </div>
+
+              {convError && <p className="text-xs text-red-400">{convError}</p>}
+              <button type="submit" disabled={savingConv} className="self-start font-bold text-sm py-2 px-6 rounded-full disabled:opacity-40"
+                style={{ background: '#efff42', color: '#000' }}>
+                {savingConv ? 'Guardando...' : 'Agregar convención'}
+              </button>
+            </form>
+
+            {/* Lista */}
+            <div className="flex flex-col gap-3">
+              {conventions.map(conv => (
+                <div key={conv.id} className="rounded-xl p-4 flex gap-4 items-start"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div className="rounded-lg overflow-hidden flex-shrink-0" style={{ width: 80, height: 80 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={conv.image_url} alt={conv.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{conv.name || '— sin nombre —'}</p>
+                    {conv.link && (
+                      <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{conv.link}</p>
+                    )}
+                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                      {conv.expires_at ? `Vence: ${new Date(conv.expires_at).toLocaleDateString('es-AR')}` : 'sin vencimiento'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button onClick={() => toggleConv(conv.id, !conv.active)}
+                      className="text-xs px-3 py-1 rounded-full font-bold"
+                      style={{
+                        background: conv.active ? 'rgba(239,255,66,0.1)' : 'rgba(255,255,255,0.05)',
+                        border: conv.active ? '1px solid rgba(239,255,66,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                        color: conv.active ? '#efff42' : 'rgba(255,255,255,0.3)',
+                      }}>
+                      {conv.active ? 'activa' : 'inactiva'}
+                    </button>
+                    <button onClick={() => deleteConv(conv.id)} disabled={deletingConv === conv.id}
+                      className="text-xs px-2 py-1 rounded-full disabled:opacity-40"
+                      style={{ color: 'rgba(255,100,100,0.6)', border: '1px solid rgba(255,100,100,0.2)' }}>
+                      {deletingConv === conv.id ? '...' : 'eliminar'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {conventions.length === 0 && (
+                <p className="text-xs text-center py-8" style={{ color: 'rgba(255,255,255,0.15)' }}>No hay convenciones</p>
+              )}
+            </div>
+
+          </div>
 
         ) : (
 
