@@ -856,7 +856,7 @@ function StatsPanel({ artists, visits, installs }: { artists: Artist[]; visits: 
 export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios'>('artistas')
   const [artists, setArtists]       = useState<Artist[]>([])
   const [artistsTotal, setArtistsTotal] = useState(0)
   const [artistsOffset, setArtistsOffset] = useState(0)
@@ -934,6 +934,18 @@ export default function AdminPage() {
   const [menuOpen, setMenuOpen]     = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
+  // Estudios
+  type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number }
+  const [adminStudios, setAdminStudios]       = useState<AdminStudio[]>([])
+  const [studioSearch, setStudioSearch]       = useState('')
+  const [studioForm, setStudioForm]           = useState({ name: '', slug: '', city: '', country: '', description: '', instagram: '', whatsapp: '', website: '', expires_at: '' })
+  const [studioLogo, setStudioLogo]           = useState<File | null>(null)
+  const [studioLogoPreview, setStudioLogoPreview] = useState<string | null>(null)
+  const [savingStudio, setSavingStudio]       = useState(false)
+  const [studioError, setStudioError]         = useState('')
+  const [studioCreated, setStudioCreated]     = useState<{ name: string; slug: string; edit_key: string } | null>(null)
+  const [keyCopied, setKeyCopied]             = useState(false)
+
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
@@ -971,7 +983,8 @@ export default function AdminPage() {
       fetch('/api/admin/sponsors', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/sponsors-v2', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/conventions', { headers: H(p) }).then(r => r.json()),
-    ]).then(([a, b, v, pg, cfg, ins, sp, sp2, conv]) => {
+      fetch('/api/admin/studios', { headers: H(p) }).then(r => r.json()),
+    ]).then(([a, b, v, pg, cfg, ins, sp, sp2, conv, stu]) => {
       if (a.status === 'fulfilled') {
         setArtists(a.value.artists || [])
         setArtistsTotal(a.value.total ?? 0)
@@ -990,6 +1003,7 @@ export default function AdminPage() {
         setBannerV2Active(sp2.value.banner_active === true)
       }
       if (conv.status === 'fulfilled') setConventions(conv.value.conventions || [])
+      if (stu.status === 'fulfilled') setAdminStudios(stu.value.studios || [])
       if (cfg.status === 'fulfilled') {
         setModeration(cfg.value.settings?.moderation === true)
         setShowCount(cfg.value.settings?.show_count === true)
@@ -1306,6 +1320,7 @@ export default function AdminPage() {
               { key: 'contenido',  label: 'Contenido' },
               { key: 'sponsors2',    label: `Sponsors (${sponsorsV2.length})` },
               { key: 'convenciones', label: `Convenciones (${conventions.length})` },
+              { key: 'estudios',     label: `Estudios (${adminStudios.length})` },
               { key: 'agregar',      label: '+ Agregar' },
             ] as const
             const current = tabs.find(t => t.key === tab)
@@ -2638,6 +2653,198 @@ export default function AdminPage() {
               ))}
               {conventions.length === 0 && (
                 <p className="text-xs text-center py-8" style={{ color: 'rgba(255,255,255,0.15)' }}>No hay convenciones</p>
+              )}
+            </div>
+
+          </div>
+
+        ) : tab === 'estudios' ? (
+
+          // ── ESTUDIOS ─────────────────────────────────────────────────────────
+          <div className="flex flex-col gap-8">
+
+            {/* Formulario nuevo estudio */}
+            <form onSubmit={async e => {
+              e.preventDefault(); setSavingStudio(true); setStudioError(''); setStudioCreated(null)
+              const fd = new FormData()
+              Object.entries(studioForm).forEach(([k, v]) => fd.append(k, v))
+              if (studioLogo) fd.append('logo', studioLogo)
+              const r = await fetch('/api/admin/studios', { method: 'POST', headers: H(pass), body: fd })
+              const d = await r.json()
+              if (!r.ok) { setStudioError(d.error || 'Error'); setSavingStudio(false); return }
+              setAdminStudios(prev => [d.studio, ...prev])
+              setStudioCreated({ name: d.studio.name, slug: d.studio.slug, edit_key: d.edit_key })
+              setStudioForm({ name: '', slug: '', city: '', country: '', description: '', instagram: '', whatsapp: '', website: '', expires_at: '' })
+              setStudioLogo(null); setStudioLogoPreview(null)
+              setSavingStudio(false)
+            }}
+              className="rounded-xl p-5 flex flex-col gap-4"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>NUEVO ESTUDIO</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Logo */}
+                <label className="cursor-pointer block">
+                  <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo</p>
+                  {studioLogoPreview ? (
+                    <div className="relative rounded-xl overflow-hidden" style={{ paddingBottom: '60%' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={studioLogoPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="rounded-xl flex items-center justify-center text-xs"
+                      style={{ paddingBottom: '60%', position: 'relative', border: '2px dashed rgba(255,255,255,0.08)' }}>
+                      <span className="absolute" style={{ color: 'rgba(255,255,255,0.2)' }}>subir logo</span>
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => {
+                    const file = e.target.files?.[0]; if (!file) return
+                    setStudioLogoPreview(URL.createObjectURL(file))
+                    const img = new window.Image()
+                    img.onload = () => {
+                      const MAX = 600; let { width, height } = img
+                      if (width > MAX || height > MAX) {
+                        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+                        else { width = Math.round(width * MAX / height); height = MAX }
+                      }
+                      const canvas = document.createElement('canvas')
+                      canvas.width = width; canvas.height = height
+                      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+                      canvas.toBlob(blob => { if (blob) setStudioLogo(new File([blob], 'logo.webp', { type: 'image/webp' })) }, 'image/webp', 0.85)
+                    }
+                    img.src = URL.createObjectURL(file)
+                  }} />
+                </label>
+
+                <div className="flex flex-col gap-3">
+                  {([
+                    { key: 'name', label: 'Nombre *', placeholder: 'Ej: Black Needle Studio' },
+                    { key: 'slug', label: 'Slug (URL)', placeholder: 'ej: black-needle (auto si vacío)' },
+                    { key: 'city', label: 'Ciudad', placeholder: 'Buenos Aires' },
+                    { key: 'country', label: 'País', placeholder: 'Argentina' },
+                    { key: 'instagram', label: 'Instagram', placeholder: '@estudio' },
+                    { key: 'whatsapp', label: 'WhatsApp', placeholder: '+54911...' },
+                    { key: 'website', label: 'Web', placeholder: 'https://...' },
+                  ] as const).map(({ key, label, placeholder }) => (
+                    <div key={key}>
+                      <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+                      <input value={studioForm[key]} onChange={e => setStudioForm(v => ({ ...v, [key]: e.target.value }))}
+                        placeholder={placeholder}
+                        className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                    </div>
+                  ))}
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Descripción</p>
+                    <textarea value={studioForm.description} onChange={e => setStudioForm(v => ({ ...v, description: e.target.value }))}
+                      placeholder="Breve descripción del estudio..."
+                      rows={2}
+                      className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg resize-none"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  </div>
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vencimiento</p>
+                    <input type="date" value={studioForm.expires_at} onChange={e => setStudioForm(v => ({ ...v, expires_at: e.target.value }))}
+                      className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
+                  </div>
+                </div>
+              </div>
+
+              {studioError && <p className="text-xs text-red-400">{studioError}</p>}
+
+              {studioCreated && (
+                <div className="rounded-xl p-4 flex flex-col gap-2" style={{ background: 'rgba(239,255,66,0.07)', border: '1px solid rgba(239,255,66,0.2)' }}>
+                  <p className="text-xs font-bold" style={{ color: '#efff42' }}>Estudio creado: {studioCreated.name}</p>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>URL: /estudio/{studioCreated.slug}</p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm font-bold text-white" style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '0.15em' }}>{studioCreated.edit_key}</p>
+                    <button type="button"
+                      onClick={() => { navigator.clipboard.writeText(studioCreated.edit_key).catch(() => {}); setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000) }}
+                      className="text-xs px-3 py-1 rounded-lg"
+                      style={{ background: 'rgba(239,255,66,0.15)', color: '#efff42', border: '1px solid rgba(239,255,66,0.3)' }}>
+                      {keyCopied ? 'Copiado ✓' : 'Copiar clave'}
+                    </button>
+                  </div>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Pasale esta clave al dueño del estudio. Visible solo ahora.</p>
+                </div>
+              )}
+
+              <button type="submit" disabled={savingStudio || !studioForm.name.trim()} className="self-start font-bold text-sm py-2 px-6 rounded-full disabled:opacity-40"
+                style={{ background: '#efff42', color: '#000' }}>
+                {savingStudio ? 'Guardando...' : 'Crear estudio'}
+              </button>
+            </form>
+
+            {/* Lista de estudios */}
+            <input
+              value={studioSearch}
+              onChange={e => setStudioSearch(e.target.value)}
+              placeholder="Buscar estudio por nombre..."
+              className="w-full rounded-xl px-4 py-3 text-sm outline-none"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+            />
+            <div className="flex flex-col gap-3">
+              {adminStudios.filter(s => s.name.toLowerCase().includes(studioSearch.toLowerCase())).map(studio => (
+                <div key={studio.id} className="rounded-xl p-4 flex items-center gap-4"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: studio.visible ? '1px solid rgba(239,255,66,0.2)' : '1px solid rgba(255,255,255,0.07)' }}>
+                  {(() => {
+                    const daysLeft = studio.expires_at
+                      ? Math.ceil((new Date(studio.expires_at).getTime() - Date.now()) / 86400000)
+                      : null
+                    const expired = daysLeft !== null && daysLeft <= 0
+                    const urgent  = daysLeft !== null && daysLeft > 0 && daysLeft <= 7
+                    return (
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="text-sm font-bold text-white truncate">{studio.name}</p>
+                          {studio.visible && !expired && <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{ background: 'rgba(239,255,66,0.12)', color: '#efff42' }}>Activo</span>}
+                          {expired && <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{ background: 'rgba(255,80,80,0.15)', color: '#f87171' }}>Vencido</span>}
+                        </div>
+                        <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>/estudio/{studio.slug}{studio.city ? ` · ${studio.city}` : ''}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.15)', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.1em' }}>clave: {studio.edit_key}</p>
+                          {daysLeft !== null && (
+                            <p className="text-xs font-bold" style={{ color: expired ? '#f87171' : urgent ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}>
+                              {expired ? `venció hace ${Math.abs(daysLeft)}d` : `vence en ${daysLeft}d`}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{studio.profile_views ?? 0} vis</span>
+                          <span className="text-xs" style={{ color: '#c084fc' }}>{studio.instagram_clicks ?? 0} IG</span>
+                          <span className="text-xs" style={{ color: '#4ade80' }}>{studio.whatsapp_clicks ?? 0} WA</span>
+                          <span className="text-xs" style={{ color: '#60a5fa' }}>{studio.website_clicks ?? 0} Web</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={async () => {
+                        const next = !studio.visible
+                        await fetch(`/api/admin/studios/${studio.id}`, { method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ visible: next }) })
+                        setAdminStudios(prev => prev.map(s => s.id === studio.id ? { ...s, visible: next } : s))
+                      }}
+                      className="text-xs px-3 py-1.5 rounded-lg font-bold"
+                      style={{ background: studio.visible ? 'rgba(255,80,80,0.12)' : 'rgba(239,255,66,0.1)', color: studio.visible ? '#f87171' : '#efff42', border: `1px solid ${studio.visible ? 'rgba(255,80,80,0.2)' : 'rgba(239,255,66,0.2)'}` }}>
+                      {studio.visible ? 'Desactivar' : 'Activar'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`¿Eliminar "${studio.name}"?`)) return
+                        await fetch(`/api/admin/studios/${studio.id}`, { method: 'DELETE', headers: H(pass) })
+                        setAdminStudios(prev => prev.filter(s => s.id !== studio.id))
+                      }}
+                      className="text-xs px-3 py-1.5 rounded-lg"
+                      style={{ background: 'rgba(255,80,80,0.06)', color: 'rgba(255,100,100,0.5)', border: '1px solid rgba(255,80,80,0.12)' }}>
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {adminStudios.length === 0 && (
+                <p className="text-xs text-center py-8" style={{ color: 'rgba(255,255,255,0.15)' }}>No hay estudios creados aún</p>
               )}
             </div>
 

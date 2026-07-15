@@ -7,6 +7,27 @@ export const supabase = createClient(url, key)
 
 export type Visit = { from: string; to: string; city: string; country: string }
 
+export type Studio = {
+  id: string
+  name: string
+  slug: string
+  city: string | null
+  country: string | null
+  description: string | null
+  logo_url: string | null
+  instagram: string | null
+  whatsapp: string | null
+  website: string | null
+  visible: boolean
+  profile_views: number
+  instagram_clicks: number
+  whatsapp_clicks: number
+  website_clicks: number
+  created_at: string
+  preview_artists?: { artist_id: string; name: string; photo_url: string }[]
+  styles?: string[]
+}
+
 export type Artist = {
   id: string
   name: string

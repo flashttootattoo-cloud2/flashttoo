@@ -2,7 +2,8 @@
 
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
 import Link from 'next/link'
-import { supabase, type Artist } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+import { supabase, type Artist, type Studio } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
 import SponsorsBanner from '@/components/SponsorsBanner'
 import SponsorsBannerV2 from '@/components/SponsorsBannerV2'
@@ -90,6 +91,7 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
 }
 
 export default function Home() {
+  const router = useRouter()
   const [artists, setArtists]     = useState<Artist[]>([])
   const [ads, setAds]             = useState<Ad[]>([])
   const [allStyles, setAllStyles] = useState<string[]>(DEFAULT_STYLES)
@@ -113,6 +115,7 @@ export default function Home() {
   const [loading, setLoading]         = useState(true)
   const [conventions, setConventions]       = useState<Convention[]>([])
   const [contentCards, setContentCards]     = useState<ContentCard[]>([])
+  const [studios, setStudios] = useState<Studio[]>([])
   const [brokenPhotoIds, setBrokenPhotoIds] = useState<Set<string>>(new Set())
   const markPhotoBroken = (id: string) =>
     setBrokenPhotoIds(prev => prev.has(id) ? prev : new Set(prev).add(id))
@@ -228,6 +231,7 @@ export default function Home() {
     fetch('/api/content-cards').then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
     fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true) }).catch(() => {})
     fetch('/api/conventions').then(r => r.json()).then(d => { if (Array.isArray(d.conventions)) setConventions(d.conventions) }).catch(() => {})
+    fetch('/api/studios').then(r => r.json()).then(d => { if (Array.isArray(d.studios)) setStudios(shuffle(d.studios)) }).catch(() => {})
     supabase.from('settings').select('value').eq('key', 'show_count').single().then(({ data }) => { if (data?.value === true) setShowCount(true) })
   }, [])
 
@@ -312,19 +316,41 @@ export default function Home() {
         return cityMatch && countryMatch
       })
 
-  // Mezclar ads en el feed cada AD_INTERVAL tarjetas
-  // Los ads restantes siempre se muestran aunque no haya suficientes artistas
-  const feedItems: Array<{ type: 'artist'; data: Artist } | { type: 'ad'; data: Ad }> = []
+  // Filtrar estudios por país/ciudad y/o estilo activo
+  const visibleStudios = studios.filter(s => {
+    const locationOk = !hasLocationSearch ||
+      ((!qCity    || norm(s.city).includes(qCity)) &&
+       (!qCountry || norm(s.country).includes(qCountry)))
+    const styleOk = activeStyles.length === 0 ||
+      (Array.isArray(s.styles) && activeStyles.some(st => s.styles!.includes(st)))
+    return locationOk && styleOk
+  })
+
+  // Mezclar ads en el feed cada AD_INTERVAL artistas
+  // Estudios: 1 cada 9 artistas, posición aleatoria pero estable durante la sesión
+  const STUDIO_WINDOW = 9
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const studioInsertAt = useMemo(() => studios.map((_, si) =>
+    Math.max(3, si * STUDIO_WINDOW) + Math.floor(Math.random() * STUDIO_WINDOW)
+  ), [studios.length])
+  const feedItems: Array<{ type: 'artist'; data: Artist } | { type: 'ad'; data: Ad } | { type: 'studio'; data: Studio }> = []
   let adIdx = 0
+  let studioIdx = 0
   filtered.forEach((artist, i) => {
     feedItems.push({ type: 'artist', data: artist })
     if ((i + 1) % AD_INTERVAL === 0 && adIdx < visibleAds.length) {
       feedItems.push({ type: 'ad', data: visibleAds[adIdx++] })
     }
+    while (studioIdx < visibleStudios.length && studioInsertAt[studioIdx] <= i) {
+      feedItems.push({ type: 'studio', data: visibleStudios[studioIdx++] })
+    }
   })
-  // Ads que no entraron por falta de artistas → se agregan igual al final
+  // Items que no entraron por pocos artistas → al final
   while (adIdx < visibleAds.length) {
     feedItems.push({ type: 'ad', data: visibleAds[adIdx++] })
+  }
+  while (studioIdx < visibleStudios.length) {
+    feedItems.push({ type: 'studio', data: visibleStudios[studioIdx++] })
   }
 
   // Cada 14 artistas hay uno grande; la posición dentro del grupo varía por grupo
@@ -364,20 +390,41 @@ export default function Home() {
     setLiked(alreadyLiked)
     setLocalLikes((artist.likes ?? 0) + (alreadyLiked ? 1 : 0))
     trackView(artist.id)
-    window.history.pushState({}, '', `/?artista=${artist.id}`)
+    // Si viene de un estudio, reemplaza la entrada del historial (no agrega una nueva)
+    // para que el botón Volver regrese directamente al estudio, no a /?artista=xxx
+    const fromStudio = sessionStorage.getItem('flashttoo_from_studio')
+    if (fromStudio) window.history.replaceState({}, '', `/?artista=${artist.id}`)
+    else window.history.pushState({}, '', `/?artista=${artist.id}`)
   }, [])
 
   // Deep link: abre el modal si la URL tiene ?artista=ID
+  // Si viene desde un estudio, abre instantáneo con datos pre-cargados en sessionStorage
   useEffect(() => {
-    if (loading || artists.length === 0 || deepLinkHandled.current) return
-    deepLinkHandled.current = true
+    if (deepLinkHandled.current) return
     const id = new URLSearchParams(window.location.search).get('artista')
     if (!id) return
+
+    // Intento con prefetch de sessionStorage (navegación desde estudio → modal inmediato)
+    try {
+      const raw = sessionStorage.getItem('flashttoo_prefetch_artist')
+      if (raw) {
+        const prefetched = JSON.parse(raw) as Artist
+        if (prefetched.id === id) {
+          sessionStorage.removeItem('flashttoo_prefetch_artist')
+          deepLinkHandled.current = true
+          openModal(prefetched)
+          return
+        }
+      }
+    } catch { /* ignore */ }
+
+    // Fallback normal: esperar a que carguen los artistas
+    if (loading || artists.length === 0) return
+    deepLinkHandled.current = true
     const artist = artists.find(a => a.id === id)
     if (artist) {
       openModal(artist)
     } else {
-      // No está en el batch actual — buscar directamente por ID
       supabase.from('artists').select('*').eq('id', id).single()
         .then(({ data }) => { if (data) openModal(data as Artist) })
     }
@@ -436,17 +483,21 @@ export default function Home() {
       setEditOpen(false)
       setEditKey('')
       setEditKeyError('')
-      window.history.pushState({}, '', '/')
+      const fromStudio = sessionStorage.getItem('flashttoo_from_studio')
+      if (fromStudio) { sessionStorage.removeItem('flashttoo_from_studio'); router.back() }
+      else window.history.pushState({}, '', '/')
     }
-  }, [])
+  }, [router])
 
   const closeModalFull = useCallback(() => {
     setSelected(null)
     setEditOpen(false)
     setEditKey('')
     setEditKeyError('')
-    window.history.pushState({}, '', '/')
-  }, [])
+    const fromStudio = sessionStorage.getItem('flashttoo_from_studio')
+    if (fromStudio) { sessionStorage.removeItem('flashttoo_from_studio'); router.back() }
+    else window.history.pushState({}, '', '/')
+  }, [router])
 
   const verifyAdKey = async () => {
     if (!selectedAd || adKeyInput.length < 10) { setAdKeyError('La clave debe tener 10 caracteres'); return }
@@ -701,7 +752,32 @@ export default function Home() {
                               </div>
                             </div>
                           </button>
-                        ) : (
+                        ) : item.type === 'studio' ? (
+                          <Link key={`studio-s${si}-${item.data.id}`} href={`/estudio/${item.data.slug}`}
+                            onClick={() => { const k = `vs_${item.data.slug}`; if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); fetch(`/api/studios/${item.data.slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'profile_view' }) }).catch(() => {}) } }}
+                            className="group relative overflow-hidden"
+                            style={{ borderRadius: 12, border: '1.5px solid rgba(239,255,66,0.45)', textDecoration: 'none', display: 'block' }}>
+                            <div style={{ paddingBottom: '133%' }} />
+                            <div className="absolute inset-0" style={{ background: '#111' }}>
+                              {item.data.logo_url && !brokenPhotoIds.has(item.data.id)
+                                // eslint-disable-next-line @next/next/no-img-element
+                                ? <img src={item.data.logo_url} alt={item.data.name} loading="lazy"
+                                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    onError={() => markPhotoBroken(item.data.id)} />
+                                : <div className="absolute inset-0 flex items-center justify-center"
+                                    style={{ color: 'rgba(239,255,66,0.4)', fontSize: 22, fontWeight: 900 }}>{initialsOf(item.data.name)}</div>
+                              }
+                              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
+                              <div className="absolute top-1.5 right-1.5">
+                                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.65)', padding: '2px 5px', borderRadius: 4, border: '1px solid rgba(239,255,66,0.3)' }}>Estudio</span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 p-2">
+                                <p className="text-white font-bold leading-tight" style={{ fontSize: 11, overflowWrap: 'break-word' }}>{item.data.name}</p>
+                                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{item.data.city}</p>
+                              </div>
+                            </div>
+                          </Link>
+                        ) : item.type === 'ad' ? (
                           <button key={`ad-s${si}-${item.data.id}`}
                             onClick={() => { trackClick(item.data.id, 'ad'); setSelectedAd(item.data); setAdEditSection(false); setAdKeyInput(''); setAdKeyError(''); setAdKeyVerified(false); setAdEditForm({ title: item.data.title, city: item.data.city || '', country: item.data.country || '', instagram: item.data.instagram || '', whatsapp: item.data.whatsapp || '', website: item.data.website || '' }) }}
                             className="group relative overflow-hidden"
@@ -719,7 +795,7 @@ export default function Home() {
                               </div>
                             </div>
                           </button>
-                        ))}
+                        ) : null)}
                       </div>
                     </div>
                   )
@@ -752,6 +828,36 @@ export default function Home() {
                             style={{ borderRadius: 11, boxShadow: 'inset 0 0 0 1px rgba(239,255,66,0.3)' }} />
                         </div>
                       </button>
+                    )
+                  } else if (item.type === 'studio') {
+                    const s = item.data
+                    nodes.push(
+                      <Link key={`studio-${s.id}`} href={`/estudio/${s.slug}`}
+                        onClick={() => { const k = `vs_${s.slug}`; if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); fetch(`/api/studios/${s.slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'profile_view' }) }).catch(() => {}) } }}
+                        className="group relative overflow-hidden"
+                        style={{ borderRadius: 12, border: '1.5px solid rgba(239,255,66,0.45)', boxShadow: '0 0 0 1px rgba(239,255,66,0.08)', textDecoration: 'none', display: 'block' }}>
+                        <div style={{ paddingBottom: '133%' }} />
+                        <div className="absolute inset-0" style={{ background: '#111' }}>
+                          {s.logo_url && !brokenPhotoIds.has(s.id)
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={s.logo_url} alt={s.name} loading="lazy"
+                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                onError={() => markPhotoBroken(s.id)} />
+                            : <div className="absolute inset-0 flex items-center justify-center"
+                                style={{ color: 'rgba(239,255,66,0.45)', fontSize: 36, fontWeight: 900 }}>{initialsOf(s.name)}</div>
+                          }
+                          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
+                          <div className="absolute top-2 right-2">
+                            <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.65)', padding: '3px 6px', borderRadius: 5, border: '1px solid rgba(239,255,66,0.3)' }}>Estudio</span>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{s.name}</p>
+                            {(s.city || s.country) && (
+                              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{[s.city, s.country].filter(Boolean).join(', ')}</p>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
                     )
                   } else {
                     nodes.push(
@@ -960,7 +1066,7 @@ export default function Home() {
                   <div className="flex gap-4">
                     <StatItem label="visitas"   value={selected.profile_views ?? 0} />
                     <StatItem label="Instagram" value={selected.instagram_clicks ?? 0} />
-                    <StatItem label="WhatsApp"  value={selected.whatsapp_clicks ?? 0} />
+                    {selected.whatsapp && <StatItem label="WhatsApp" value={selected.whatsapp_clicks ?? 0} />}
                   </div>
                   <button onClick={toggleLike}
                     className="flex items-center gap-2 px-4 py-2 rounded-full transition-all"
