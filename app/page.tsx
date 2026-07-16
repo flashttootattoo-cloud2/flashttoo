@@ -756,7 +756,7 @@ export default function Home() {
                           <Link key={`studio-s${si}-${item.data.id}`} href={`/estudio/${item.data.slug}`}
                             onClick={() => { const k = `vs_${item.data.slug}`; if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); fetch(`/api/studios/${item.data.slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'profile_view' }) }).catch(() => {}) } }}
                             className="group relative overflow-hidden"
-                            style={{ borderRadius: 12, border: '1.5px solid rgba(239,255,66,0.45)', textDecoration: 'none', display: 'block' }}>
+                            style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none', display: 'block' }}>
                             <div style={{ paddingBottom: '133%' }} />
                             <div className="absolute inset-0" style={{ background: '#111' }}>
                               {item.data.logo_url && !brokenPhotoIds.has(item.data.id)
@@ -835,7 +835,7 @@ export default function Home() {
                       <Link key={`studio-${s.id}`} href={`/estudio/${s.slug}`}
                         onClick={() => { const k = `vs_${s.slug}`; if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); fetch(`/api/studios/${s.slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'profile_view' }) }).catch(() => {}) } }}
                         className="group relative overflow-hidden"
-                        style={{ borderRadius: 12, border: '1.5px solid rgba(239,255,66,0.45)', boxShadow: '0 0 0 1px rgba(239,255,66,0.08)', textDecoration: 'none', display: 'block' }}>
+                        style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none', display: 'block' }}>
                         <div style={{ paddingBottom: '133%' }} />
                         <div className="absolute inset-0" style={{ background: '#111' }}>
                           {s.logo_url && !brokenPhotoIds.has(s.id)
