@@ -221,10 +221,14 @@ export default function StudioPage() {
           {/* Gradiente largo que se funde con el negro */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, #111 0%, rgba(0,0,0,0.5) 50%, transparent 100%)' }} />
 
-          {/* Badge */}
-          <span style={{ position: 'absolute', top: 20, right: 20, zIndex: 10, fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.7)', background: 'rgba(0,0,0,0.45)', padding: '5px 10px', borderRadius: 12, backdropFilter: 'blur(8px)' }}>
+          {/* Badge + cerrar */}
+          <span style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.7)', background: 'rgba(0,0,0,0.45)', padding: '5px 10px', borderRadius: 12, backdropFilter: 'blur(8px)' }}>
             Estudio
           </span>
+          <button onClick={() => router.back()}
+            style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', fontSize: 18, cursor: 'pointer' }}>
+            ×
+          </button>
 
           {/* Nombre + ciudad superpuestos en el gradiente */}
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 20px 20px', zIndex: 10 }}>
