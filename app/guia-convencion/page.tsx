@@ -124,11 +124,21 @@ const sections = [
     ),
   },
   {
-    title: 'Estadísticas',
+    title: 'Varias convenciones activas',
     content: (
       <>
-        <P>Podés ver cuántas personas hicieron clic en <B>Ver más →</B> para ir a tu link. Es la métrica directa de cuántos usuarios mostraron interés en tu evento.</P>
-        <Highlight><span>📊</span><span>Te compartimos el número de clics para que puedas evaluar el alcance de tu convención en la plataforma.</span></Highlight>
+        <P>Si hay más de una convención activa al mismo tiempo, cada usuario ve <B>una sola por sesión</B>, elegida al azar. Esto garantiza exposición equilibrada entre todos los eventos activos.</P>
+        <P>Cada vez que alguien abre la app en una nueva sesión, puede ver una convención diferente — lo que hace que la rotación sea natural y no molesta para el usuario.</P>
+        <Highlight><span>🎲</span><span>Cuanto más tiempo esté activa tu convención, más sesiones alcanza — cada apertura de la app es una oportunidad de exposición.</span></Highlight>
+      </>
+    ),
+  },
+  {
+    title: 'Botón Convenciones en la app',
+    content: (
+      <>
+        <P>Además del popup al abrir la app, todas las convenciones activas pueden encontrarse en el <B>botón Convenciones</B> dentro de la app. Los usuarios que quieran explorar eventos pueden acceder desde ahí en cualquier momento.</P>
+        <P>Esto le da a tu convención una segunda vía de descubrimiento — no solo el popup inicial, sino también quienes buscan activamente eventos.</P>
       </>
     ),
   },
