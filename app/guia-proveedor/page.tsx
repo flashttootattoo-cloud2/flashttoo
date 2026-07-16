@@ -120,7 +120,8 @@ const sections = [
     content: (
       <>
         <P>Tu marca aparece como un <B>banner</B> dentro del feed de artistas. Es un espacio diferenciado del resto de las tarjetas, lo que lo hace fácil de identificar como contenido patrocinado.</P>
-        <P>Al hacer clic, se abre una vista con tu logo, descripción y botones de contacto: web y WhatsApp.</P>
+        <P>Al hacer clic en el banner, el usuario va directo a <B>tu sitio web</B>.</P>
+        <P>También existe una sección de <B>listado de proveedores</B> donde los usuarios pueden explorar todas las marcas y buscar por país. Desde ahí pueden acceder a tu perfil completo con descripción y contacto.</P>
         <Highlight><span>📍</span><span>Si elegís segmentación por ciudad, tu banner solo aparece cuando alguien está buscando artistas en esa ubicación — mayor relevancia para el usuario, mejor conversión para vos.</span></Highlight>
       </>
     ),
