@@ -93,8 +93,8 @@ const sections = [
     title: '¿Qué es un perfil de Proveedor?',
     content: (
       <>
-        <P>Un perfil de proveedor en Flashttoo le da visibilidad a tu marca frente a tatuadores, estudios y clientes que ya están dentro de la plataforma. Tu logo y descripción aparecen en el feed entre los artistas.</P>
-        <P>Cuando alguien hace clic en tu banner, se abre una tarjeta con tu logo, descripción, y acceso directo a tu web o WhatsApp.</P>
+        <P>Un perfil de proveedor en Flashttoo le da visibilidad a tu marca frente a tatuadores, estudios y clientes que ya están dentro de la plataforma. Tu logo aparece como banner en el feed entre los artistas.</P>
+        <P>Al hacer clic en el banner, el usuario va directo a tu sitio web. Tu descripción y datos de contacto están disponibles en el listado de proveedores, donde los usuarios pueden buscar y explorar todas las marcas.</P>
         <Highlight><span>🎯</span><span>Tu audiencia es 100% del mundo del tatuaje — tatuadores activos, estudios y personas que buscan hacerse un tatuaje.</span></Highlight>
       </>
     ),
