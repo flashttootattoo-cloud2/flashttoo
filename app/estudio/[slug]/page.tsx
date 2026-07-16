@@ -365,6 +365,7 @@ export default function StudioPage() {
                     <input type="file" accept="image/*" onChange={handleLogo} style={{ display: 'none' }} />
                   </label>
                 </div>
+                <p style={{ fontSize: 10, color: 'rgba(0,0,0,0.35)', marginTop: 6 }}>Usá una imagen cuadrada (1:1) para que se vea sin recorte.</p>
               </div>
 
               {/* Campos */}
