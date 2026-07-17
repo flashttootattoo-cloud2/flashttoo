@@ -96,7 +96,7 @@ const sections = [
     title: '¿Qué es un perfil de Estudio?',
     content: (
       <>
-        <P>Un perfil de Estudio te permite presentar tu local como marca dentro de Flashttoo. Aparece en el feed junto a los tatuadores individuales, con un badge que lo identifica claramente como estudio.</P>
+        <P>Un perfil de Estudio te permite presentar tu local como marca dentro de Flashttoo. Aparece en el feed junto a los tatuadores individuales, con una etiqueta que lo identifica claramente como estudio.</P>
         <P>Desde tu perfil, los usuarios pueden ver todos los artistas que trabajan en el estudio, contactarte por Instagram o WhatsApp y visitar tu web.</P>
         <Highlight><span>💡</span><span>Tu estudio aparece en el feed de forma orgánica, igual que cualquier tatuador.</span></Highlight>
       </>
@@ -154,7 +154,7 @@ const sections = [
     title: 'Cómo aparece en el feed',
     content: (
       <>
-        <P>Tu estudio aparece como una tarjeta dentro del feed de artistas, con el mismo tamaño que un tatuador. Lo que lo diferencia es el badge en la esquina:</P>
+        <P>Tu estudio aparece como una tarjeta dentro del feed de artistas, con el mismo tamaño que un tatuador. Lo que lo diferencia es la etiqueta en la esquina:</P>
         <div style={{ margin: '14px 0 6px' }}>
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.7)', background: 'rgba(0,0,0,0.6)', padding: '4px 9px', borderRadius: 8, border: '1px solid rgba(239,255,66,0.25)' }}>Estudio</span>
         </div>
