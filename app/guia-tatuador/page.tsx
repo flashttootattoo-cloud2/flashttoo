@@ -174,19 +174,4 @@ const sections = [
       </>
     ),
   },
-  {
-    title: 'Cómo sumarte',
-    content: (
-      <>
-        <P>Para estar en Flashttoo, contactanos y te cargamos el perfil. Solo necesitamos:</P>
-        <ol style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
-          <StepLi n={1}>Tu foto de perfil (que represente bien tu trabajo).</StepLi>
-          <StepLi n={2}>Tu nombre, ciudad y país.</StepLi>
-          <StepLi n={3}>Los estilos que trabajás.</StepLi>
-          <StepLi n={4}>Tu Instagram y/o WhatsApp.</StepLi>
-        </ol>
-        <Highlight><span>✉️</span><span>Escribinos por Instagram <B>@flashttoo</B> y en poco tiempo estás en el feed.</span></Highlight>
-      </>
-    ),
-  },
 ]
