@@ -45,6 +45,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
     const verify = fd.get('_verify') === 'true'
     if (verify) return NextResponse.json({ ok: true })
 
+    const igRaw = (fd.get('instagram') as string | null)?.trim().replace(/^@/, '').toLowerCase() || null
+    if (igRaw) {
+      const [{ data: a }, { data: s }] = await Promise.all([
+        sb.from('artists').select('id').or(`instagram.ilike.${igRaw},instagram.ilike.@${igRaw}`).limit(1),
+        sb.from('studios').select('id').or(`instagram.ilike.${igRaw},instagram.ilike.@${igRaw}`).neq('id', studio.id).limit(1),
+      ])
+      if (a?.length || s?.length) return NextResponse.json({ error: 'Este Instagram ya está en uso' }, { status: 400 })
+    }
+
     const logo = fd.get('logo') as File | null
     let logo_url = studio.logo_url
     if (logo) { logo_url = await uploadFile(logo, `studio-logos/${Date.now()}.webp`) }
@@ -64,6 +73,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
   const { edit_key, _verify, ...fields } = body
   if (edit_key !== studio.edit_key) return NextResponse.json({ error: 'Clave incorrecta' }, { status: 401 })
   if (_verify) return NextResponse.json({ ok: true })
+
+  if (fields.instagram) {
+    const igRaw = (fields.instagram as string).trim().replace(/^@/, '').toLowerCase()
+    const [{ data: a }, { data: s }] = await Promise.all([
+      sb.from('artists').select('id').or(`instagram.ilike.${igRaw},instagram.ilike.@${igRaw}`).limit(1),
+      sb.from('studios').select('id').or(`instagram.ilike.${igRaw},instagram.ilike.@${igRaw}`).neq('id', studio.id).limit(1),
+    ])
+    if (a?.length || s?.length) return NextResponse.json({ error: 'Este Instagram ya está en uso' }, { status: 400 })
+  }
 
   const allowed = ['name', 'description', 'city', 'country', 'instagram', 'whatsapp', 'website']
   const updates: Record<string, unknown> = {}

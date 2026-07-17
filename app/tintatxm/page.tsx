@@ -153,9 +153,9 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
     setIgStatus('checking')
     clearTimeout(igTimer.current)
     igTimer.current = setTimeout(async () => {
-      const { data } = await supabase.from('artists').select('id')
-        .or(`instagram.ilike.${handle},instagram.ilike.@${handle}`).limit(1)
-      setIgStatus(data && data.length > 0 ? 'taken' : 'ok')
+      const r = await fetch(`/api/check-ig?handle=${encodeURIComponent(handle)}`)
+      const d = await r.json()
+      setIgStatus(d.available ? 'ok' : 'taken')
     }, 600)
     return () => clearTimeout(igTimer.current)
   }, [form.instagram])
@@ -945,6 +945,8 @@ export default function AdminPage() {
   const [studioError, setStudioError]         = useState('')
   const [studioCreated, setStudioCreated]     = useState<{ name: string; slug: string; edit_key: string } | null>(null)
   const [keyCopied, setKeyCopied]             = useState(false)
+  const [studioIgStatus, setStudioIgStatus]   = useState<'idle'|'checking'|'ok'|'taken'>('idle')
+  const studioIgTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -953,6 +955,19 @@ export default function AdminPage() {
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [])
+
+  useEffect(() => {
+    const handle = studioForm.instagram.trim().replace('@', '')
+    if (!handle) { setStudioIgStatus('idle'); return }
+    setStudioIgStatus('checking')
+    clearTimeout(studioIgTimer.current)
+    studioIgTimer.current = setTimeout(async () => {
+      const r = await fetch(`/api/check-ig?handle=${encodeURIComponent(handle)}`)
+      const d = await r.json()
+      setStudioIgStatus(d.available ? 'ok' : 'taken')
+    }, 600)
+    return () => clearTimeout(studioIgTimer.current)
+  }, [studioForm.instagram])
 
   // Ad form
   const [adForm, setAdForm] = useState({ title: '', link: '', city: '', country: '', instagram: '', whatsapp: '', website: '', expires_at: '' })
@@ -2780,7 +2795,7 @@ export default function AdminPage() {
               setAdminStudios(prev => [d.studio, ...prev])
               setStudioCreated({ name: d.studio.name, slug: d.studio.slug, edit_key: d.edit_key })
               setStudioForm({ name: '', slug: '', city: '', country: '', description: '', instagram: '', whatsapp: '', website: '', expires_at: '' })
-              setStudioLogo(null); setStudioLogoPreview(null)
+              setStudioLogo(null); setStudioLogoPreview(null); setStudioIgStatus('idle')
               setSavingStudio(false)
             }}
               className="rounded-xl p-5 flex flex-col gap-4"
@@ -2827,7 +2842,6 @@ export default function AdminPage() {
                     { key: 'slug', label: 'Slug (URL)', placeholder: 'ej: black-needle (auto si vacío)' },
                     { key: 'city', label: 'Ciudad', placeholder: 'Buenos Aires' },
                     { key: 'country', label: 'País', placeholder: 'Argentina' },
-                    { key: 'instagram', label: 'Instagram', placeholder: '@estudio' },
                     { key: 'whatsapp', label: 'WhatsApp', placeholder: '+54911...' },
                     { key: 'website', label: 'Web', placeholder: 'https://...' },
                   ] as const).map(({ key, label, placeholder }) => (
@@ -2839,6 +2853,25 @@ export default function AdminPage() {
                         style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
                     </div>
                   ))}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Instagram</p>
+                      {studioIgStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>verificando...</span>}
+                      {studioIgStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>✓ disponible</span>}
+                      {studioIgStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>✗ ya registrado</span>}
+                    </div>
+                    <input
+                      value={studioForm.instagram}
+                      onChange={e => { setStudioForm(v => ({ ...v, instagram: e.target.value })); setStudioIgStatus('idle') }}
+                      placeholder="@estudio"
+                      className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${studioIgStatus === 'taken' ? 'rgba(248,113,113,0.5)' : studioIgStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
+                    {studioIgStatus === 'taken' && (
+                      <p className="text-xs leading-relaxed" style={{ color: 'rgba(248,113,113,0.7)', marginTop: 6 }}>
+                        Este Instagram ya tiene un perfil en Flashttoo.
+                      </p>
+                    )}
+                  </div>
                   <div>
                     <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Descripción</p>
                     <textarea value={studioForm.description} onChange={e => setStudioForm(v => ({ ...v, description: e.target.value }))}

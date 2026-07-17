@@ -35,6 +35,15 @@ export async function POST(req: NextRequest) {
     catch (e: unknown) { return NextResponse.json({ error: e instanceof Error ? e.message : 'Upload error' }, { status: 500 }) }
   }
 
+  const ig = (fd.get('instagram') as string)?.trim().replace(/^@/, '').toLowerCase() || null
+  if (ig) {
+    const [{ data: a }, { data: s }] = await Promise.all([
+      client.from('artists').select('id').or(`instagram.ilike.${ig},instagram.ilike.@${ig}`).limit(1),
+      client.from('studios').select('id').or(`instagram.ilike.${ig},instagram.ilike.@${ig}`).limit(1),
+    ])
+    if (a?.length || s?.length) return NextResponse.json({ error: 'Este Instagram ya está en uso' }, { status: 400 })
+  }
+
   const name = (fd.get('name') as string).trim()
   const rawSlug = (fd.get('slug') as string)?.trim() || slugify(name)
 

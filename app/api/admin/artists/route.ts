@@ -48,6 +48,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const ig = (fd.get('instagram') as string)?.trim().replace(/^@/, '').toLowerCase() || null
+  if (ig) {
+    const [{ data: a }, { data: s }] = await Promise.all([
+      sb.from('artists').select('id').or(`instagram.ilike.${ig},instagram.ilike.@${ig}`).limit(1),
+      sb.from('studios').select('id').or(`instagram.ilike.${ig},instagram.ilike.@${ig}`).limit(1),
+    ])
+    if (a?.length || s?.length) return NextResponse.json({ error: 'Este Instagram ya está en uso' }, { status: 400 })
+  }
+
   const edit_key = genKey()
   const { data, error } = await sb.from('artists').insert({
     name:      (fd.get('name') as string).trim(),
