@@ -1765,6 +1765,38 @@ export default function AdminPage() {
               </button>
             </div>
 
+            {/* Toggle galería */}
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Galería de trabajos</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                    Activa para que los tatuadores puedan subir hasta 3 fotos en su perfil.
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setSavingGallery(true)
+                    const next = !galleryEnabled
+                    await fetch('/api/admin/settings', {
+                      method: 'PATCH',
+                      headers: { ...H(pass), 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ key: 'artist_gallery_enabled', value: next }),
+                    })
+                    setGalleryEnabled(next)
+                    setSavingGallery(false)
+                  }}
+                  disabled={savingGallery}
+                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                  style={{ width: 48, height: 28, background: galleryEnabled ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{ position: 'absolute', top: 4, left: galleryEnabled ? 24 : 4, width: 20, height: 20, borderRadius: '50%', background: galleryEnabled ? '#000' : 'rgba(255,255,255,0.4)', transition: 'left 0.2s' }} />
+                </button>
+              </div>
+              <p className="text-xs mt-3 font-bold" style={{ color: galleryEnabled ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                {galleryEnabled ? 'Activada' : 'Desactivada'}
+              </p>
+            </div>
+
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
               Las tarjetas aparecen en el feed cada ~20 posiciones. Al hacer clic se abre un modal con el contenido completo.
             </p>
