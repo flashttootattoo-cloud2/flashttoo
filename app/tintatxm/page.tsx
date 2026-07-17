@@ -1729,6 +1729,24 @@ export default function AdminPage() {
           // ── CONTENIDO ────────────────────────────────────────────────────────
           <div className="flex flex-col gap-5" style={{ maxWidth: 600 }}>
 
+            {/* Guía de tatuadores */}
+            <div className="rounded-xl p-4 flex items-center justify-between gap-4"
+              style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.15)' }}>
+              <div>
+                <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 2 }}>Guía para Tatuadores</p>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>flashttoo.com/guia-tatuador</p>
+              </div>
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/guia-tatuador`
+                  navigator.clipboard.writeText(url).catch(() => {})
+                }}
+                className="text-xs font-bold px-4 py-2 rounded-lg flex-shrink-0"
+                style={{ background: 'rgba(239,255,66,0.12)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', cursor: 'pointer' }}>
+                Copiar link
+              </button>
+            </div>
+
             {/* Guía de estudios */}
             <div className="rounded-xl p-4 flex items-center justify-between gap-4"
               style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.15)' }}>
