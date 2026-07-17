@@ -116,7 +116,7 @@ const sections = [
           <Li><B>Ciudad y país</B> — para que te encuentren por ubicación.</Li>
           <Li><B>Estilos</B> — los estilos que trabajás: Realismo, Old School, Japonés, Geométrico, etc.</Li>
           <Li><B>Bio</B> — una descripción libre sobre vos y tu trabajo.</Li>
-          <Li><B>Instagram y WhatsApp</B> — para que los clientes te contacten directo.</Li>
+          <Li><B>Instagram, WhatsApp y mail</B> — para que los clientes te contacten directo o copien tu email.</Li>
         </ul>
       </>
     ),
