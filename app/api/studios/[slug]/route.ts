@@ -22,9 +22,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
 
   const artists = (links || []).map((l: { artist_id: string; artists: unknown }) => l.artists).filter(Boolean)
 
-  // Track view
-  sbAdmin().from('studios').update({ profile_views: (studio.profile_views ?? 0) + 1 }).eq('id', studio.id).then(() => {})
-
   return NextResponse.json({ studio, artists })
 }
 
