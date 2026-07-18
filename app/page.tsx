@@ -852,8 +852,8 @@ export default function Home() {
                           </div>
                           <div className="absolute bottom-0 left-0 right-0 p-3">
                             <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{s.name}</p>
-                            {(s.city || s.country) && (
-                              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{[s.city, s.country].filter(Boolean).join(', ')}</p>
+                            {s.country && (
+                              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.country}</p>
                             )}
                           </div>
                         </div>
