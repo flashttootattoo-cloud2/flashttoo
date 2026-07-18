@@ -935,7 +935,8 @@ export default function AdminPage() {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Estudios
-  type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number }
+  type AdminStudioArtist = { artist_id: string; artists: { id: string; name: string; instagram: string | null } | null }
+  type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number; studio_artists?: AdminStudioArtist[] }
   const [adminStudios, setAdminStudios]       = useState<AdminStudio[]>([])
   const [studioSearch, setStudioSearch]       = useState('')
   const [studioForm, setStudioForm]           = useState({ name: '', slug: '', city: '', country: '', description: '', instagram: '', whatsapp: '', website: '', expires_at: '' })
@@ -2954,6 +2955,16 @@ export default function AdminPage() {
                           <span className="text-xs" style={{ color: '#4ade80' }}>{studio.whatsapp_clicks ?? 0} WA</span>
                           <span className="text-xs" style={{ color: '#60a5fa' }}>{studio.website_clicks ?? 0} Web</span>
                         </div>
+                        {studio.studio_artists && studio.studio_artists.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {studio.studio_artists.map(sa => sa.artists && (
+                              <span key={sa.artist_id} className="text-xs px-2 py-0.5 rounded-full"
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)' }}>
+                                {sa.artists.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )
                   })()}

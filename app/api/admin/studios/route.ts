@@ -19,7 +19,7 @@ function slugify(name: string) {
 
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { data } = await sb().from('studios').select('*').order('expires_at', { ascending: true, nullsFirst: false })
+  const { data } = await sb().from('studios').select('*, studio_artists(artist_id, artists(id, name, instagram))').order('expires_at', { ascending: true, nullsFirst: false })
   return NextResponse.json({ studios: data || [] })
 }
 
