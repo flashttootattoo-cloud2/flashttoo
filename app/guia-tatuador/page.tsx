@@ -117,6 +117,7 @@ const sections = [
           <Li><B>Estilos</B> — los estilos que trabajás: Realismo, Old School, Japonés, Geométrico, etc.</Li>
           <Li><B>Bio</B> — una descripción libre sobre vos y tu trabajo.</Li>
           <Li><B>Instagram, WhatsApp y mail</B> — para que los clientes te contacten directo o copien tu email.</Li>
+          <Li><B>Galería</B> — hasta 3 fotos extra de tus trabajos para mostrar más de tu estilo.</Li>
         </ul>
       </>
     ),
