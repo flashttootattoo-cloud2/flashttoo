@@ -695,7 +695,7 @@ export default function Home() {
       {/* ── GRID ───────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-5 py-4">
         {loading ? (
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start">
+          <div className="grid grid-cols-3 gap-3 items-start">
             {Array.from({ length: 15 }).map((_, i) => (
               <div key={i} className="rounded-xl animate-pulse"
                 style={{ paddingBottom: '133%', background: 'rgba(255,255,255,0.03)' }} />
@@ -706,7 +706,7 @@ export default function Home() {
             <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: 13 }}>sin resultados</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
+          <div className="grid grid-cols-3 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
             {(() => {
               const CHUNK = 15
               const activeCards = isActiveSearch ? [] : shuffledContentCards
