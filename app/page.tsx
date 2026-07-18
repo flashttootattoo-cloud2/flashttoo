@@ -126,8 +126,9 @@ export default function Home() {
   const [showCount, setShowCount]           = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [fullscreenImg, setFullscreenImg]   = useState<string | null>(null)
-  const openFullscreen = (src: string) => { history.pushState({ fullscreen: true }, ''); setFullscreenImg(src) }
-  const closeFullscreen = () => { setFullscreenImg(null) }
+  const fullscreenRef = useRef<string | null>(null)
+  const openFullscreen = (src: string) => { fullscreenRef.current = src; history.pushState({ fullscreen: true }, ''); setFullscreenImg(src) }
+  const closeFullscreen = () => { fullscreenRef.current = null; setFullscreenImg(null) }
   const BATCH = 50
   const [hasMoreArtists, setHasMoreArtists] = useState(true)
   const [loadingMore, setLoadingMore]       = useState(false)
@@ -202,7 +203,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    const onPop = () => { setFullscreenImg(null) }
+    const onPop = () => { if (fullscreenRef.current) closeFullscreen() }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
@@ -558,6 +559,7 @@ export default function Home() {
   // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
   useEffect(() => {
     const h = () => {
+      if (fullscreenRef.current) return
       if (selectedContent) {
         setSelectedContent(null)
       } else if (selected) {
