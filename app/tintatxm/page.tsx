@@ -586,11 +586,18 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
   )
 }
 
-function StatsPanel({ artists, visits, installs }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats }) {
+type StudioStat = { profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number }
+
+function StatsPanel({ artists, visits, installs, studios }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[] }) {
   const totalViews = artists.reduce((s, a) => s + a.profile_views, 0)
   const totalIG    = artists.reduce((s, a) => s + a.instagram_clicks, 0)
   const totalWA    = artists.reduce((s, a) => s + a.whatsapp_clicks, 0)
   const totalLikes = artists.reduce((s, a) => s + (a.likes ?? 0), 0)
+
+  const studioViews = studios.reduce((s, x) => s + (x.profile_views ?? 0), 0)
+  const studioIG    = studios.reduce((s, x) => s + (x.instagram_clicks ?? 0), 0)
+  const studioWA    = studios.reduce((s, x) => s + (x.whatsapp_clicks ?? 0), 0)
+  const studioWeb   = studios.reduce((s, x) => s + (x.website_clicks ?? 0), 0)
 
   const now = new Date()
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -625,7 +632,7 @@ function StatsPanel({ artists, visits, installs }: { artists: Artist[]; visits: 
     <div className="flex flex-col gap-8">
 
       <div>
-        <p style={sectionLabel}>Totales</p>
+        <p style={sectionLabel}>Tatuadores</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {([
             { label: 'Tatuadores', value: artists.length, color: '#efff42' },
@@ -643,6 +650,29 @@ function StatsPanel({ artists, visits, installs }: { artists: Artist[]; visits: 
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Total likes</p>
           <p className="font-bold" style={{ fontSize: 16, color: '#f472b6' }}>{fmtN(totalLikes)} ♥</p>
         </div>
+      </div>
+
+      <div>
+        <p style={sectionLabel}>Estudios</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {([
+            { label: 'Estudios',  value: studios.length, color: '#efff42' },
+            { label: 'Visitas',   value: studioViews,    color: 'rgba(255,255,255,0.7)' },
+            { label: 'Clicks IG', value: studioIG,       color: '#c084fc' },
+            { label: 'Clicks WA', value: studioWA,       color: '#4ade80' },
+          ] as const).map(item => (
+            <div key={item.label} className="p-4" style={card}>
+              <p className="font-bold" style={{ fontSize: 28, color: item.color, lineHeight: 1 }}>{fmtN(item.value)}</p>
+              <p className="mt-1.5" style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{item.label}</p>
+            </div>
+          ))}
+        </div>
+        {studioWeb > 0 && (
+          <div className="mt-3 px-4 py-3 flex items-center justify-between" style={{ ...card, borderRadius: 10 }}>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Clicks Web</p>
+            <p className="font-bold" style={{ fontSize: 16, color: '#60a5fa' }}>{fmtN(studioWeb)}</p>
+          </div>
+        )}
       </div>
 
       <div>
@@ -1428,7 +1458,7 @@ export default function AdminPage() {
           <div>
             {loadingStats
               ? <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando estadísticas...</p>
-              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} />
+              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} />
             }
           </div>
 
