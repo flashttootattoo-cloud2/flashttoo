@@ -126,6 +126,8 @@ export default function Home() {
   const [showCount, setShowCount]           = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [fullscreenImg, setFullscreenImg]   = useState<string | null>(null)
+  const openFullscreen = (src: string) => { history.pushState({ fullscreen: true }, ''); setFullscreenImg(src) }
+  const closeFullscreen = () => { setFullscreenImg(null) }
   const BATCH = 50
   const [hasMoreArtists, setHasMoreArtists] = useState(true)
   const [loadingMore, setLoadingMore]       = useState(false)
@@ -197,6 +199,12 @@ export default function Home() {
       fetch('/api/track/pageview', { method: 'POST' }).catch(() => {})
       localStorage.setItem('last_visit', today)
     }
+  }, [])
+
+  useEffect(() => {
+    const onPop = () => { setFullscreenImg(null) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
   }, [])
 
   // Persistir filtros en sessionStorage para restaurarlos si el browser recarga la pestaña
@@ -980,7 +988,7 @@ export default function Home() {
                 return (
                   <div className="grid grid-cols-3 gap-1.5 mb-4">
                     {photos.map((src, i) => (
-                      <button key={i} onClick={() => setFullscreenImg(src)}
+                      <button key={i} onClick={() => openFullscreen(src)}
                         className="relative rounded-xl overflow-hidden"
                         style={{ paddingBottom: '100%', background: '#111' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1415,12 +1423,12 @@ export default function Home() {
       {/* Visor fullscreen galería */}
       {fullscreenImg && (
         <div
-          onClick={() => setFullscreenImg(null)}
+          onClick={() => { history.back() }}
           style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={fullscreenImg} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
           <button
-            onClick={() => setFullscreenImg(null)}
+            onClick={() => { history.back() }}
             style={{ position: 'absolute', top: 20, right: 20, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             ×
           </button>
