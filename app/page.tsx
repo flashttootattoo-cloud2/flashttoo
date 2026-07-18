@@ -128,7 +128,6 @@ export default function Home() {
   const [fullscreenImg, setFullscreenImg]   = useState<string | null>(null)
   const fullscreenRef = useRef<string | null>(null)
   const openFullscreen = (src: string) => { fullscreenRef.current = src; history.pushState({ fullscreen: true }, ''); setFullscreenImg(src) }
-  const closeFullscreen = () => { fullscreenRef.current = null; setFullscreenImg(null) }
   const BATCH = 50
   const [hasMoreArtists, setHasMoreArtists] = useState(true)
   const [loadingMore, setLoadingMore]       = useState(false)
@@ -203,7 +202,13 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    const onPop = () => { if (fullscreenRef.current) closeFullscreen() }
+    const onPop = () => {
+      if (fullscreenRef.current) {
+        setFullscreenImg(null)
+        // Clear ref after all popstate handlers in this event have run
+        setTimeout(() => { fullscreenRef.current = null }, 0)
+      }
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
