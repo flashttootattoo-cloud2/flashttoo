@@ -174,7 +174,10 @@ export default function Home() {
     }
     const batch = (data || []) as Artist[]
     if (append) {
-      setArtists(prev => [...prev, ...batch])
+      setArtists(prev => {
+        const seen = new Set(prev.map(a => a.id))
+        return [...prev, ...batch.filter(a => !seen.has(a.id))]
+      })
     } else {
       setArtists(batch)
     }
