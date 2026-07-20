@@ -303,7 +303,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ country, city, styles: activeStyles }),
       }).catch(() => {})
-    }, 2000)
+    }, 4000)
     return () => clearTimeout(timer)
   }, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
