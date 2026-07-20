@@ -1152,8 +1152,8 @@ export default function AdminPage() {
     return () => clearTimeout(searchTimer.current)
   }, [artistSearch, auth, pass])
 
-  const loadStatsArtists = async (p: string) => {
-    if (statsArtists.length > 0 || loadingStats) return
+  const loadStatsArtists = async (p: string, force = false) => {
+    if (!force && (statsArtists.length > 0 || loadingStats)) return
     setLoadingStats(true)
     const [r, sr] = await Promise.all([
       fetch('/api/admin/artists?limit=10000&offset=0', { headers: H(p) }),
@@ -1532,6 +1532,17 @@ export default function AdminPage() {
 
           // ── ESTADÍSTICAS ────────────────────────────────────────────────────
           <div>
+            <div className="flex items-center justify-between mb-4">
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>Estadísticas</p>
+              <button
+                onClick={() => loadStatsArtists(pass, true)}
+                disabled={loadingStats}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                style={{ background: 'rgba(255,255,255,0.05)', color: loadingStats ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ display: 'inline-block', animation: loadingStats ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+                {loadingStats ? 'Actualizando…' : 'Actualizar'}
+              </button>
+            </div>
             {loadingStats
               ? <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando estadísticas...</p>
               : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} />
