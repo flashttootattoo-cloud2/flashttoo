@@ -276,6 +276,7 @@ export default function Home() {
   // Initial load + refetch on filter change
   const filterKey = `${country}|${city}|${activeStyles.join(',')}`
   const isFirstLoad = useRef(true)
+  const trackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => {
     const timer = setTimeout(() => {
       loadGenRef.current++
@@ -287,13 +288,16 @@ export default function Home() {
       setLoading(true)
       loadArtistsPage(0, false, { country, city, styles: activeStyles })
         .then(() => setLoading(false))
-      // Track search only when user explicitly sets a filter (not on initial load)
+      // Track search with a longer delay to avoid partial typed values
       if (!isFirstLoad.current && (country.trim() || city.trim() || activeStyles.length > 0)) {
-        fetch('/api/track/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ country, city, styles: activeStyles }),
-        }).catch(() => {})
+        clearTimeout(trackTimer.current)
+        trackTimer.current = setTimeout(() => {
+          fetch('/api/track/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ country, city, styles: activeStyles }),
+          }).catch(() => {})
+        }, 900)
       }
       isFirstLoad.current = false
     }, 300)
