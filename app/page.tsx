@@ -276,7 +276,6 @@ export default function Home() {
   // Initial load + refetch on filter change
   const filterKey = `${country}|${city}|${activeStyles.join(',')}`
   const isFirstLoad = useRef(true)
-  const trackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => {
     const timer = setTimeout(() => {
       loadGenRef.current++
@@ -288,19 +287,23 @@ export default function Home() {
       setLoading(true)
       loadArtistsPage(0, false, { country, city, styles: activeStyles })
         .then(() => setLoading(false))
-      // Track search with a longer delay to avoid partial typed values
-      if (!isFirstLoad.current && (country.trim() || city.trim() || activeStyles.length > 0)) {
-        clearTimeout(trackTimer.current)
-        trackTimer.current = setTimeout(() => {
-          fetch('/api/track/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ country, city, styles: activeStyles }),
-          }).catch(() => {})
-        }, 900)
-      }
       isFirstLoad.current = false
     }, 300)
+    return () => clearTimeout(timer)
+  }, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track searches separately with a long debounce so partial typed values don't get recorded
+  const isFirstTrack = useRef(true)
+  useEffect(() => {
+    if (isFirstTrack.current) { isFirstTrack.current = false; return }
+    if (!(country.trim() || city.trim() || activeStyles.length > 0)) return
+    const timer = setTimeout(() => {
+      fetch('/api/track/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ country, city, styles: activeStyles }),
+      }).catch(() => {})
+    }, 2000)
     return () => clearTimeout(timer)
   }, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
