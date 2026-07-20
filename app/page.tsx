@@ -275,6 +275,7 @@ export default function Home() {
 
   // Initial load + refetch on filter change
   const filterKey = `${country}|${city}|${activeStyles.join(',')}`
+  const isFirstLoad = useRef(true)
   useEffect(() => {
     const timer = setTimeout(() => {
       loadGenRef.current++
@@ -286,6 +287,15 @@ export default function Home() {
       setLoading(true)
       loadArtistsPage(0, false, { country, city, styles: activeStyles })
         .then(() => setLoading(false))
+      // Track search only when user explicitly sets a filter (not on initial load)
+      if (!isFirstLoad.current && (country.trim() || city.trim() || activeStyles.length > 0)) {
+        fetch('/api/track/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ country, city, styles: activeStyles }),
+        }).catch(() => {})
+      }
+      isFirstLoad.current = false
     }, 300)
     return () => clearTimeout(timer)
   }, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps

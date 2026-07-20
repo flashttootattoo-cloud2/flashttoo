@@ -588,7 +588,8 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
 
 type StudioStat = { profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number }
 
-function StatsPanel({ artists, visits, installs, studios }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[] }) {
+type SearchStat = { type: string; value: string; count: number }
+function StatsPanel({ artists, visits, installs, studios, searchStats }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] } }) {
   const totalViews = artists.reduce((s, a) => s + a.profile_views, 0)
   const totalIG    = artists.reduce((s, a) => s + a.instagram_clicks, 0)
   const totalWA    = artists.reduce((s, a) => s + a.whatsapp_clicks, 0)
@@ -879,6 +880,76 @@ function StatsPanel({ artists, visits, installs, studios }: { artists: Artist[];
         </div>
       </div>
 
+      {/* ── Búsquedas ── */}
+      {(searchStats.countries.length > 0 || searchStats.cities.length > 0 || searchStats.styles.length > 0) && (
+        <div>
+          <p style={sectionLabel}>Búsquedas realizadas</p>
+          <div className="flex flex-col gap-4">
+
+            {searchStats.countries.length > 0 && (() => {
+              const maxC = searchStats.countries[0].count
+              return (
+                <div className="p-5" style={card}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Países buscados</p>
+                  <div className="flex flex-col gap-3">
+                    {searchStats.countries.map(r => (
+                      <div key={r.value} className="flex items-center gap-3">
+                        <div style={{ width: 130, fontSize: 12, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0, fontWeight: 600 }}>{r.value}</div>
+                        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 7, background: 'rgba(255,255,255,0.05)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${(r.count / maxC) * 100}%`, background: '#34d399' }} />
+                        </div>
+                        <div style={{ width: 34, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#34d399', flexShrink: 0 }}>{r.count}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {searchStats.cities.length > 0 && (() => {
+              const maxC = searchStats.cities[0].count
+              return (
+                <div className="p-5" style={card}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Ciudades buscadas</p>
+                  <div className="flex flex-col gap-3">
+                    {searchStats.cities.map(r => (
+                      <div key={r.value} className="flex items-center gap-3">
+                        <div style={{ width: 130, fontSize: 12, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{r.value}</div>
+                        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 5, background: 'rgba(255,255,255,0.05)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${(r.count / maxC) * 100}%`, background: '#34d399' }} />
+                        </div>
+                        <div style={{ width: 34, textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#34d399', flexShrink: 0 }}>{r.count}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {searchStats.styles.length > 0 && (() => {
+              const maxS = searchStats.styles[0].count
+              return (
+                <div className="p-5" style={card}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Estilos buscados</p>
+                  <div className="flex flex-col gap-3">
+                    {searchStats.styles.map(r => (
+                      <div key={r.value} className="flex items-center gap-3">
+                        <div style={{ width: 130, fontSize: 12, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0, fontWeight: 600 }}>{r.value}</div>
+                        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 5, background: 'rgba(255,255,255,0.05)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${(r.count / maxS) * 100}%`, background: '#a78bfa' }} />
+                        </div>
+                        <div style={{ width: 34, textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#a78bfa', flexShrink: 0 }}>{r.count}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
@@ -894,6 +965,7 @@ export default function AdminPage() {
   const ARTISTS_PAGE = 10
   const [statsArtists, setStatsArtists] = useState<Artist[]>([])
   const [loadingStats, setLoadingStats] = useState(false)
+  const [searchStats, setSearchStats] = useState<{ countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }>({ countries: [], cities: [], styles: [] })
   const [artistSearch, setArtistSearch] = useState('')
   const [searchResults, setSearchResults] = useState<Artist[] | null>(null)
   const [loadingSearch, setLoadingSearch] = useState(false)
@@ -1083,9 +1155,13 @@ export default function AdminPage() {
   const loadStatsArtists = async (p: string) => {
     if (statsArtists.length > 0 || loadingStats) return
     setLoadingStats(true)
-    const r = await fetch('/api/admin/artists?limit=10000&offset=0', { headers: H(p) })
-    const d = await r.json()
+    const [r, sr] = await Promise.all([
+      fetch('/api/admin/artists?limit=10000&offset=0', { headers: H(p) }),
+      fetch('/api/admin/search-stats', { headers: H(p) }),
+    ])
+    const [d, sd] = await Promise.all([r.json(), sr.json()])
     setStatsArtists(d.artists || [])
+    setSearchStats({ countries: sd.countries || [], cities: sd.cities || [], styles: sd.styles || [] })
     setLoadingStats(false)
   }
 
@@ -1458,7 +1534,7 @@ export default function AdminPage() {
           <div>
             {loadingStats
               ? <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando estadísticas...</p>
-              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} />
+              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} />
             }
           </div>
 
