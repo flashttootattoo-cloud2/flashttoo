@@ -16,9 +16,9 @@ export async function GET(req: NextRequest) {
     .select('type, value, count')
     .order('count', { ascending: false })
 
-  const countries = (data || []).filter(r => r.type === 'country').slice(0, 15)
-  const cities    = (data || []).filter(r => r.type === 'city').slice(0, 15)
-  const styles    = (data || []).filter(r => r.type === 'style').slice(0, 20)
+  const countries = (data || []).filter(r => r.type === 'country').slice(0, 50)
+  const cities    = (data || []).filter(r => r.type === 'city').slice(0, 50)
+  const styles    = (data || []).filter(r => r.type === 'style').slice(0, 50)
 
   return NextResponse.json({ countries, cities, styles })
 }

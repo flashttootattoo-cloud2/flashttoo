@@ -589,7 +589,12 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
 type StudioStat = { profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number }
 
 type SearchStat = { type: string; value: string; count: number }
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+const TOP = 10
 function StatsPanel({ artists, visits, installs, studios, searchStats }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] } }) {
+  const [showAllCountries, setShowAllCountries] = useState(false)
+  const [showAllCities, setShowAllCities]       = useState(false)
+  const [showAllStyles, setShowAllStyles]       = useState(false)
   const totalViews = artists.reduce((s, a) => s + a.profile_views, 0)
   const totalIG    = artists.reduce((s, a) => s + a.instagram_clicks, 0)
   const totalWA    = artists.reduce((s, a) => s + a.whatsapp_clicks, 0)
@@ -887,14 +892,15 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
           <div className="flex flex-col gap-4">
 
             {searchStats.countries.length > 0 && (() => {
+              const list = showAllCountries ? searchStats.countries : searchStats.countries.slice(0, TOP)
               const maxC = searchStats.countries[0].count
               return (
                 <div className="p-5" style={card}>
                   <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Países buscados</p>
                   <div className="flex flex-col gap-3">
-                    {searchStats.countries.map(r => (
+                    {list.map(r => (
                       <div key={r.value} className="flex items-center gap-3">
-                        <div style={{ width: 130, fontSize: 12, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0, fontWeight: 600 }}>{r.value}</div>
+                        <div style={{ width: 130, fontSize: 12, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0, fontWeight: 600 }}>{cap(r.value)}</div>
                         <div className="flex-1 rounded-full overflow-hidden" style={{ height: 7, background: 'rgba(255,255,255,0.05)' }}>
                           <div className="h-full rounded-full" style={{ width: `${(r.count / maxC) * 100}%`, background: '#34d399' }} />
                         </div>
@@ -902,19 +908,25 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
                       </div>
                     ))}
                   </div>
+                  {searchStats.countries.length > TOP && (
+                    <button onClick={() => setShowAllCountries(v => !v)} className="mt-4 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      {showAllCountries ? '▲ Ver menos' : `▼ Ver más (${searchStats.countries.length - TOP} más)`}
+                    </button>
+                  )}
                 </div>
               )
             })()}
 
             {searchStats.cities.length > 0 && (() => {
+              const list = showAllCities ? searchStats.cities : searchStats.cities.slice(0, TOP)
               const maxC = searchStats.cities[0].count
               return (
                 <div className="p-5" style={card}>
                   <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Ciudades buscadas</p>
                   <div className="flex flex-col gap-3">
-                    {searchStats.cities.map(r => (
+                    {list.map(r => (
                       <div key={r.value} className="flex items-center gap-3">
-                        <div style={{ width: 130, fontSize: 12, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{r.value}</div>
+                        <div style={{ width: 130, fontSize: 12, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{cap(r.value)}</div>
                         <div className="flex-1 rounded-full overflow-hidden" style={{ height: 5, background: 'rgba(255,255,255,0.05)' }}>
                           <div className="h-full rounded-full" style={{ width: `${(r.count / maxC) * 100}%`, background: '#34d399' }} />
                         </div>
@@ -922,19 +934,25 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
                       </div>
                     ))}
                   </div>
+                  {searchStats.cities.length > TOP && (
+                    <button onClick={() => setShowAllCities(v => !v)} className="mt-4 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      {showAllCities ? '▲ Ver menos' : `▼ Ver más (${searchStats.cities.length - TOP} más)`}
+                    </button>
+                  )}
                 </div>
               )
             })()}
 
             {searchStats.styles.length > 0 && (() => {
+              const list = showAllStyles ? searchStats.styles : searchStats.styles.slice(0, TOP)
               const maxS = searchStats.styles[0].count
               return (
                 <div className="p-5" style={card}>
                   <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Estilos buscados</p>
                   <div className="flex flex-col gap-3">
-                    {searchStats.styles.map(r => (
+                    {list.map(r => (
                       <div key={r.value} className="flex items-center gap-3">
-                        <div style={{ width: 130, fontSize: 12, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0, fontWeight: 600 }}>{r.value}</div>
+                        <div style={{ width: 130, fontSize: 12, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0, fontWeight: 600 }}>{cap(r.value)}</div>
                         <div className="flex-1 rounded-full overflow-hidden" style={{ height: 5, background: 'rgba(255,255,255,0.05)' }}>
                           <div className="h-full rounded-full" style={{ width: `${(r.count / maxS) * 100}%`, background: '#a78bfa' }} />
                         </div>
@@ -942,6 +960,11 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
                       </div>
                     ))}
                   </div>
+                  {searchStats.styles.length > TOP && (
+                    <button onClick={() => setShowAllStyles(v => !v)} className="mt-4 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      {showAllStyles ? '▲ Ver menos' : `▼ Ver más (${searchStats.styles.length - TOP} más)`}
+                    </button>
+                  )}
                 </div>
               )
             })()}

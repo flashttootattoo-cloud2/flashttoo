@@ -10,11 +10,12 @@ export async function POST(req: NextRequest) {
   if (!body) return NextResponse.json({ ok: false })
 
   const entries: { type: string; value: string }[] = []
-  if (body.country?.trim()) entries.push({ type: 'country', value: body.country.trim() })
-  if (body.city?.trim())    entries.push({ type: 'city',    value: body.city.trim() })
+  const norm = (s: string) => s.trim().toLowerCase()
+  if (body.country?.trim()) entries.push({ type: 'country', value: norm(body.country) })
+  if (body.city?.trim())    entries.push({ type: 'city',    value: norm(body.city) })
   if (Array.isArray(body.styles)) {
     for (const s of body.styles) {
-      if (s?.trim()) entries.push({ type: 'style', value: s.trim() })
+      if (s?.trim()) entries.push({ type: 'style', value: norm(s) })
     }
   }
 
