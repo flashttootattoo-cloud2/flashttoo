@@ -595,6 +595,7 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
   const [showAllCountries, setShowAllCountries] = useState(false)
   const [showAllCities, setShowAllCities]       = useState(false)
   const [showAllStyles, setShowAllStyles]       = useState(false)
+  const [visitHover, setVisitHover]             = useState<{ x: number; y: number; count: number; date: string } | null>(null)
   const totalViews = artists.reduce((s, a) => s + a.profile_views, 0)
   const totalIG    = artists.reduce((s, a) => s + a.instagram_clicks, 0)
   const totalWA    = artists.reduce((s, a) => s + a.whatsapp_clicks, 0)
@@ -710,7 +711,7 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
 
       {/* ── Visitantes únicos por día ── */}
       <div>
-        <p style={sectionLabel}>Visitantes únicos — últimos 30 días</p>
+        <p style={sectionLabel}>Visitantes únicos — últimos 30 días <span style={{ fontWeight: 400, opacity: 0.5 }}>· 21 hs ARG</span></p>
         <div className="p-5" style={card}>
           {visits.length === 0 ? (
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.15)' }}>Sin datos aún</p>
@@ -745,21 +746,50 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
                     <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>promedio</p>
                   </div>
                 </div>
-                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
-                  className="w-full" style={{ height: 72, display: 'block' }}>
-                  <defs>
-                    <linearGradient id="vg" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#efff42" stopOpacity="0.25" />
-                      <stop offset="100%" stopColor="#efff42" stopOpacity="0.01" />
-                    </linearGradient>
-                  </defs>
-                  <path d={area} fill="url(#vg)" />
-                  <path d={line} fill="none" stroke="#efff42" strokeWidth="1.8"
-                    strokeLinecap="round" strokeLinejoin="round" />
-                  {pts.filter(p => p.count > 0).map((p, i) => (
-                    <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#efff42" />
-                  ))}
-                </svg>
+                <div style={{ position: 'relative' }} onMouseLeave={() => setVisitHover(null)}>
+                  {visitHover && (
+                    <div style={{
+                      position: 'absolute',
+                      left: `clamp(0px, calc(${(visitHover.x / W) * 100}% - 38px), calc(100% - 76px))`,
+                      top: -36,
+                      background: '#1a1a1a',
+                      border: '1px solid rgba(239,255,66,0.3)',
+                      borderRadius: 8,
+                      padding: '4px 10px',
+                      pointerEvents: 'none',
+                      zIndex: 10,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#efff42', lineHeight: 1.3 }}>{visitHover.count}</p>
+                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{visitHover.date.slice(5).replace('-', '/')}</p>
+                    </div>
+                  )}
+                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+                    className="w-full" style={{ height: 72, display: 'block' }}>
+                    <defs>
+                      <linearGradient id="vg" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#efff42" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#efff42" stopOpacity="0.01" />
+                      </linearGradient>
+                    </defs>
+                    <path d={area} fill="url(#vg)" />
+                    <path d={line} fill="none" stroke="#efff42" strokeWidth="1.8"
+                      strokeLinecap="round" strokeLinejoin="round" />
+                    {pts.map((p, i) => (
+                      <circle key={i} cx={p.x} cy={p.y} r="2.5" fill={p.count > 0 ? '#efff42' : 'transparent'} />
+                    ))}
+                    {/* hit areas invisibles para hover */}
+                    {pts.map((p, i) => (
+                      <rect key={`h${i}`}
+                        x={p.x - (W / visits.length / 2)} y={0}
+                        width={W / visits.length} height={H}
+                        fill="transparent"
+                        style={{ cursor: 'crosshair' }}
+                        onMouseEnter={() => setVisitHover(p)}
+                      />
+                    ))}
+                  </svg>
+                </div>
                 <div className="flex justify-between mt-2" style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)' }}>
                   <span>{visits[0]?.date.slice(5).replace('-', '/')}</span>
                   <span>{visits[visits.length - 1]?.date.slice(5).replace('-', '/')}</span>
