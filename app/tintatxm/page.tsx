@@ -592,10 +592,12 @@ type SearchStat = { type: string; value: string; count: number }
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 const TOP = 10
 function StatsPanel({ artists, visits, installs, studios, searchStats }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] } }) {
-  const [showAllCountries, setShowAllCountries] = useState(false)
-  const [showAllCities, setShowAllCities]       = useState(false)
-  const [showAllStyles, setShowAllStyles]       = useState(false)
-  const [visitHover, setVisitHover]             = useState<{ x: number; y: number; count: number; date: string } | null>(null)
+  const [showAllCountries, setShowAllCountries]       = useState(false)
+  const [showAllCities, setShowAllCities]             = useState(false)
+  const [showAllStyles, setShowAllStyles]             = useState(false)
+  const [showAllArtistCountries, setShowAllArtistCountries] = useState(false)
+  const [showAllArtistCities, setShowAllArtistCities]       = useState(false)
+  const [visitHover, setVisitHover]                   = useState<{ x: number; y: number; count: number; date: string } | null>(null)
   const totalViews = artists.reduce((s, a) => s + a.profile_views, 0)
   const totalIG    = artists.reduce((s, a) => s + a.instagram_clicks, 0)
   const totalWA    = artists.reduce((s, a) => s + a.whatsapp_clicks, 0)
@@ -805,7 +807,7 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
         <div className="p-5 flex flex-col gap-3" style={card}>
           {topCountries.length === 0
             ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.15)' }}>Sin datos</p>
-            : topCountries.map(([country, count]) => {
+            : (showAllArtistCountries ? topCountries : topCountries.slice(0, TOP)).map(([country, count]) => {
               const pct = Math.round((count / artists.length) * 100)
               return (
                 <div key={country} className="flex items-center gap-3">
@@ -815,16 +817,17 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
                   <div className="flex-1 rounded-full overflow-hidden" style={{ height: 7, background: 'rgba(255,255,255,0.05)' }}>
                     <div className="h-full rounded-full" style={{ width: `${(count / maxCountry) * 100}%`, background: '#efff42' }} />
                   </div>
-                  <div style={{ width: 38, textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>
-                    {pct}%
-                  </div>
-                  <div style={{ width: 22, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#efff42', flexShrink: 0 }}>
-                    {count}
-                  </div>
+                  <div style={{ width: 38, textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>{pct}%</div>
+                  <div style={{ width: 22, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#efff42', flexShrink: 0 }}>{count}</div>
                 </div>
               )
             })
           }
+          {topCountries.length > TOP && (
+            <button onClick={() => setShowAllArtistCountries(v => !v)} className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              {showAllArtistCountries ? '▲ Ver menos' : `▼ Ver más (${topCountries.length - TOP} más)`}
+            </button>
+          )}
         </div>
       </div>
 
@@ -833,7 +836,7 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
         <div className="p-5 flex flex-col gap-3" style={card}>
           {topCities.length === 0
             ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.15)' }}>Sin datos</p>
-            : topCities.map(([city, count]) => (
+            : (showAllArtistCities ? topCities : topCities.slice(0, TOP)).map(([city, count]) => (
               <div key={city} className="flex items-center gap-3">
                 <div style={{ width: 150, fontSize: 12, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>
                   {city}
@@ -841,12 +844,15 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
                 <div className="flex-1 rounded-full overflow-hidden" style={{ height: 5, background: 'rgba(255,255,255,0.05)' }}>
                   <div className="h-full rounded-full" style={{ width: `${(count / maxCity) * 100}%`, background: '#efff42' }} />
                 </div>
-                <div style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#efff42', flexShrink: 0 }}>
-                  {count}
-                </div>
+                <div style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#efff42', flexShrink: 0 }}>{count}</div>
               </div>
             ))
           }
+          {topCities.length > TOP && (
+            <button onClick={() => setShowAllArtistCities(v => !v)} className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              {showAllArtistCities ? '▲ Ver menos' : `▼ Ver más (${topCities.length - TOP} más)`}
+            </button>
+          )}
         </div>
       </div>
 
