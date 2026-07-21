@@ -621,6 +621,22 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
             </>
           )}
 
+          <div className="flex justify-center gap-4 pt-2 pb-1">
+            <a href="/terminos" target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.04em', textDecoration: 'none' }}
+              onMouseEnter={e => { (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
+              onMouseLeave={e => { (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.2)' }}>
+              Términos y condiciones
+            </a>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.1)' }}>·</span>
+            <a href="/privacidad" target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.04em', textDecoration: 'none' }}
+              onMouseEnter={e => { (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
+              onMouseLeave={e => { (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.2)' }}>
+              Política de privacidad
+            </a>
+          </div>
+
         </div>
       </div>
     </div>
