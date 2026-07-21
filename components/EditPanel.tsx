@@ -119,7 +119,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
       body: JSON.stringify({ editKey: key.trim().toUpperCase(), _verify: true }),
     })
     if (res.ok) { setStep('form') }
-    else { setKeyError('Clave incorrecta') }
+    else { setKeyError('Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo') }
     setVerifying(false)
   }
 
