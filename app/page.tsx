@@ -506,7 +506,7 @@ export default function Home() {
       setEditOpen(false)
       setEditing(true)
     } else {
-      setEditKeyError('Clave incorrecta')
+      setEditKeyError('Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo')
     }
     setEditVerifying(false)
   }, [selected, editKey])
@@ -540,7 +540,7 @@ export default function Home() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ edit_key: adKeyInput, verify_only: true }),
     })
-    if (!r.ok) { setAdKeyError('Clave incorrecta'); return }
+    if (!r.ok) { setAdKeyError('Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo'); return }
     setAdKeyVerified(true)
   }
 

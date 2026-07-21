@@ -121,7 +121,7 @@ export default function StudioPage() {
         name: studio?.name || '', description: studio?.description || '',
         instagram: studio?.instagram || '', whatsapp: studio?.whatsapp || '', website: studio?.website || '',
       })
-    } else { setKeyError('Clave incorrecta') }
+    } else { setKeyError('Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo') }
     setVerifying(false)
   }
 
