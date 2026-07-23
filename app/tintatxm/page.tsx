@@ -134,7 +134,8 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
   const [done, setDone]         = useState<{ name: string; editKey: string; id: string } | null>(null)
-  const [keyCopied, setKeyCopied] = useState(false)
+  const [keyCopied, setKeyCopied]   = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
   const [igStatus, setIgStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [visits, setVisits] = useState<Visit[]>([])
   const [visitOpen, setVisitOpen] = useState(false)
@@ -240,10 +241,10 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
               {`flashttoo.com/?artista=${done.id}`}
             </span>
-            <button onClick={() => navigator.clipboard.writeText(`https://flashttoo.com/?artista=${done.id}`)}
+            <button onClick={() => { navigator.clipboard.writeText(`https://flashttoo.com/?artista=${done.id}`); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) }}
               className="px-4 rounded-lg text-xs font-bold shrink-0"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}>
-              copiar
+              style={{ background: linkCopied ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${linkCopied ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.12)'}`, color: linkCopied ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>
+              {linkCopied ? '✓' : 'copiar'}
             </button>
           </div>
         </div>
