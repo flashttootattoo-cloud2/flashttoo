@@ -133,7 +133,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
   const [preview, setPreview]   = useState<string | null>(null)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
-  const [done, setDone]         = useState<{ name: string; editKey: string } | null>(null)
+  const [done, setDone]         = useState<{ name: string; editKey: string; id: string } | null>(null)
   const [keyCopied, setKeyCopied] = useState(false)
   const [igStatus, setIgStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [visits, setVisits] = useState<Visit[]>([])
@@ -202,7 +202,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Error')
       onAdded(d.artist)
-      setDone({ name: form.name.trim(), editKey: d.edit_key })
+      setDone({ name: form.name.trim(), editKey: d.edit_key, id: d.artist.id })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error')
     } finally { setSaving(false) }
@@ -232,6 +232,20 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
             style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${keyCopied ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: keyCopied ? '#4ade80' : '#efff42' }}>
             {keyCopied ? '✓' : 'copiar'}
           </button>
+        </div>
+        <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Link del perfil</p>
+          <div className="flex gap-2">
+            <span className="flex-1 py-2 px-3 rounded-lg text-xs truncate"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
+              {`flashttoo.com/?artista=${done.id}`}
+            </span>
+            <button onClick={() => navigator.clipboard.writeText(`https://flashttoo.com/?artista=${done.id}`)}
+              className="px-4 rounded-lg text-xs font-bold shrink-0"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}>
+              copiar
+            </button>
+          </div>
         </div>
       </div>
       <button onClick={reset} className="w-full py-2.5 rounded-xl text-sm font-bold"
