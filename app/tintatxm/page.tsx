@@ -1030,6 +1030,7 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
 
 export default function AdminPage() {
   const [pass, setPass]       = useState('')
+  const [pin, setPin]         = useState('')
   const [auth, setAuth]       = useState(false)
   const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios'>('artistas')
   const [artists, setArtists]       = useState<Artist[]>([])
@@ -1155,6 +1156,7 @@ export default function AdminPage() {
 
   const login = (e: { preventDefault: () => void }) => {
     e.preventDefault()
+    if (pin.length !== 3) { setError('Contraseña incorrecta'); return }
     fetch('/api/admin/verify', { method: 'POST', headers: H(pass) })
       .then(r => r.json())
       .then(d => {
@@ -1477,8 +1479,12 @@ export default function AdminPage() {
           onChange={e => setPass(e.target.value)} autoFocus
           className="py-2.5 px-4 text-sm text-white outline-none rounded-lg"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+        <input placeholder="código" value={pin}
+          onChange={e => setPin(e.target.value.slice(0, 3))}
+          className="py-2.5 px-4 text-sm text-white outline-none rounded-lg text-center tracking-widest"
+          style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${pin.length === 3 ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
         {error && <p className="text-xs text-red-400">{error}</p>}
-        <button type="submit" className="py-2.5 font-bold text-sm rounded-lg"
+        <button type="submit" disabled={pin.length !== 3} className="py-2.5 font-bold text-sm rounded-lg disabled:opacity-30"
           style={{ background: '#efff42', color: '#000' }}>Entrar</button>
       </form>
     </main>

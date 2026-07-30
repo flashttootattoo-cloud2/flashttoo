@@ -135,17 +135,27 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded])
 
+  // Push history cuando se abre el modal de info
+  useEffect(() => {
+    if (showInfo) {
+      history.pushState({ sv2: 'info' }, '')
+      histDepthRef.current++
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showInfo])
+
   // Botón físico atrás del celular
   useEffect(() => {
     const onPop = () => {
       if (skipPopsRef.current > 0) { skipPopsRef.current--; return }
       histDepthRef.current = Math.max(0, histDepthRef.current - 1)
       if (selectedId) setSelectedId(null)
+      else if (showInfo) setShowInfo(false)
       else if (expanded) setExpanded(false)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
-  }, [selectedId, expanded])
+  }, [selectedId, showInfo, expanded])
 
   const openSponsor = (id: string) => {
     history.pushState({ sv2: 'detail' }, '')
@@ -161,6 +171,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
     histDepthRef.current = 0
     setExpanded(false)
     setSelectedId(null)
+    setShowInfo(false)
     if (depth > 0) {
       skipPopsRef.current = depth
       history.go(-depth)
@@ -480,10 +491,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
         onMouseLeave={endDrag}
         style={{
           position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
-          background: '#000', borderTop: '1px solid rgba(255,255,255,0.08)',
+          padding: '0 20px',
           userSelect: 'none', touchAction: 'pan-x', cursor: 'grab',
         }}>
-        <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
+        <div style={{ maxWidth: '80rem', margin: '0 auto', background: '#000', borderRadius: '14px 14px 0 0', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}>
           {/* Logos */}
           <div style={{ overflow: 'hidden', padding: '16px 16px 16px' }}>
             <div ref={trackRef} style={{ display: 'flex', willChange: 'transform' }}>
@@ -501,8 +512,8 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
       </div>
 
       {/* Botones flotantes sobre el banner */}
-      <div style={{ position: 'fixed', bottom: 70, left: 0, right: 0, zIndex: 41, pointerEvents: 'none' }}>
-        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 16px', display: 'flex', gap: 8, pointerEvents: 'auto' }}>
+      <div style={{ position: 'fixed', bottom: 70, left: 0, right: 0, zIndex: 41, pointerEvents: 'none', padding: '0 20px' }}>
+        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 8px', display: 'flex', gap: 8, pointerEvents: 'auto' }}>
           <button onClick={() => { setConvView(false); setExpanded(true) }}
             style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
             Insumos
