@@ -1480,7 +1480,7 @@ export default function AdminPage() {
           className="py-2.5 px-4 text-sm text-white outline-none rounded-lg"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
         <input placeholder="código" value={pin}
-          onChange={e => setPin(e.target.value.slice(0, 3))}
+          onChange={e => setPin(e.target.value)}
           className="py-2.5 px-4 text-sm text-white outline-none rounded-lg text-center tracking-widest"
           style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${pin.length === 3 ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
         {error && <p className="text-xs text-red-400">{error}</p>}
