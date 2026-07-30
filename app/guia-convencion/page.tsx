@@ -93,9 +93,10 @@ const sections = [
     title: '¿Cómo aparece tu convención?',
     content: (
       <>
-        <P>Al abrir la app, los usuarios ven un <B>popup con el flyer de tu evento</B> antes de empezar a explorar artistas. Es el primer elemento que ven — máxima visibilidad.</P>
-        <P>El flyer se muestra completo, sin recorte. Si el evento tiene un link, aparece un botón <B>Ver más →</B> que lleva directo a donde vos quieras: sitio web, redes, ticket, lo que prefieras.</P>
-        <Highlight><span>👁️</span><span>El popup aparece <B>una vez por sesión</B> — no es invasivo para el usuario, pero sí garantiza que lo vea cada vez que abre la app.</span></Highlight>
+        <P>Tu evento tiene <B>dos puntos de exposición</B> dentro de la app:</P>
+        <P><B>1. Popup al abrir la app</B> — antes de explorar artistas, el usuario ve el flyer de tu evento a pantalla completa. Es el primer elemento que ve — máxima visibilidad. Aparece una vez por sesión.</P>
+        <P><B>2. Sección Eventos</B> — en la barra inferior de la app hay un botón <B>Eventos</B>. Al tocarlo, se despliega el listado completo de convenciones activas, ordenadas por fecha y agrupadas por mes. Los usuarios que busquen eventos activamente te encuentran acá.</P>
+        <Highlight><span>👁️</span><span>El popup aparece <B>una vez por sesión</B> — no es invasivo, pero garantiza que lo vea cada vez que abre la app.</span></Highlight>
       </>
     ),
   },
@@ -134,11 +135,12 @@ const sections = [
     ),
   },
   {
-    title: 'Botón Convenciones en la app',
+    title: 'Sección Eventos en la app',
     content: (
       <>
-        <P>Además del popup al abrir la app, todas las convenciones activas pueden encontrarse en el <B>botón Convenciones</B> dentro de la app. Los usuarios que quieran explorar eventos pueden acceder desde ahí en cualquier momento.</P>
-        <P>Esto le da a tu convención una segunda vía de descubrimiento — no solo el popup inicial, sino también quienes buscan activamente eventos.</P>
+        <P>En la parte inferior de la app hay una barra con el botón <B>Eventos</B>. Al tocarlo, se abre un panel con todas las convenciones activas ordenadas cronológicamente y agrupadas por mes.</P>
+        <P>Solo aparecen los meses que tienen eventos — sin ruido. El usuario ve de un vistazo qué pasa en cada período.</P>
+        <Highlight><span>📅</span><span>Cuanto más cerca esté la fecha del evento, más arriba aparece en el listado — los próximos siempre primero.</span></Highlight>
       </>
     ),
   },

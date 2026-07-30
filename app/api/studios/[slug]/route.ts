@@ -55,12 +55,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
     let logo_url = studio.logo_url
     if (logo) { logo_url = await uploadFile(logo, `studio-logos/${Date.now()}.webp`) }
 
-    const allowed = ['name', 'description', 'city', 'country', 'instagram', 'whatsapp', 'website']
+    const allowed = ['name', 'description', 'city', 'country', 'instagram', 'whatsapp', 'website', 'hiring_role']
     const updates: Record<string, unknown> = { logo_url }
     for (const k of allowed) {
       const v = fd.get(k) as string | null
       if (v !== null) updates[k] = v.trim() || null
     }
+    const hiringVal = fd.get('hiring')
+    if (hiringVal !== null) updates.hiring = hiringVal === 'true'
     const { data, error } = await sb.from('studios').update(updates).eq('id', studio.id).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ studio: data })
@@ -80,9 +82,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
     if (a?.length || s?.length) return NextResponse.json({ error: 'Este Instagram ya está en uso' }, { status: 400 })
   }
 
-  const allowed = ['name', 'description', 'city', 'country', 'instagram', 'whatsapp', 'website']
+  const allowed = ['name', 'description', 'city', 'country', 'instagram', 'whatsapp', 'website', 'hiring_role']
   const updates: Record<string, unknown> = {}
   for (const k of allowed) { if (k in fields) updates[k] = fields[k] || null }
+  if ('hiring' in fields) updates.hiring = Boolean(fields.hiring)
   const { data, error } = await sb.from('studios').update(updates).eq('id', studio.id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ studio: data })

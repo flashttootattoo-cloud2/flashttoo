@@ -62,6 +62,8 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [gridSearch, setGridSearch] = useState('')
   const [convView, setConvView] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
+  const [mailCopied, setMailCopied] = useState(false)
   const allRef        = useRef<Sponsor[]>([])
   const trackRef      = useRef<HTMLDivElement>(null)
   const firstRef      = useRef<HTMLDivElement>(null)
@@ -182,10 +184,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
       <style>{`
         @keyframes sv2-dot { 0%,80%,100%{opacity:.2;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
       `}</style>
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40, padding: '0 20px', pointerEvents: 'none' }}>
-        <div style={{ maxWidth: '80rem', margin: '0 auto', background: '#efff42', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, gap: 5 }}>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40, pointerEvents: 'none', background: '#000', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ maxWidth: '80rem', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, gap: 5 }}>
           {[0, 1, 2].map(i => (
-            <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: '#000', display: 'inline-block', animation: `sv2-dot 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+            <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,0.3)', display: 'inline-block', animation: `sv2-dot 1.2s ease-in-out ${i * 0.2}s infinite` }} />
           ))}
         </div>
       </div>
@@ -211,31 +213,29 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
         <div style={{ height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '28px 20px 100px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <p style={{ textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', marginBottom: 20 }}>
+              {convView ? 'Eventos' : 'Insumos'}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, position: 'relative' }}>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => setConvView(false)} style={{
-                  padding: '5px 14px', borderRadius: 20,
-                  background: !convView ? '#efff42' : 'rgba(255,255,255,0.06)',
-                  border: !convView ? 'none' : '1px solid rgba(255,255,255,0.15)',
-                  color: !convView ? '#000' : 'rgba(255,255,255,0.5)',
-                  fontSize: 11, fontWeight: 800, cursor: 'pointer', letterSpacing: '0.04em',
-                }}>Insumos</button>
-                {conventions.length > 0 && (
-                  <button onClick={() => setConvView(true)} style={{
-                    padding: '5px 14px', borderRadius: 20,
-                    background: convView ? '#efff42' : 'rgba(255,255,255,0.06)',
-                    border: convView ? 'none' : '1px solid rgba(255,255,255,0.15)',
-                    color: convView ? '#000' : 'rgba(255,255,255,0.5)',
-                    fontSize: 11, fontWeight: 800, cursor: 'pointer', letterSpacing: '0.04em',
-                  }}>Convenciones</button>
-                )}
+                <div />
               </div>
-              <button onClick={closeAll} style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.08)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,0.45)',
-              }}>✕</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setShowInfo(v => !v)} style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: showInfo ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.07)',
+                  border: `1px solid ${showInfo ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', fontSize: 14, color: showInfo ? '#efff42' : 'rgba(255,255,255,0.45)',
+                }}>i</button>
+                <button onClick={closeAll} style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,0.45)',
+                }}>✕</button>
+              </div>
+
             </div>
 
             {/* Vista Insumos */}
@@ -290,35 +290,60 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
               </div>
             )}
 
-            {/* Vista Convenciones */}
-            {convView && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {conventions.map(c => (
-                  <div key={c.id} style={{ borderRadius: 16, overflow: 'hidden', background: '#000' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={c.image_url} alt={c.name || ''} style={{ display: 'block', width: '100%', objectFit: 'contain' }} />
-                    {(c.name || c.link) && (
-                      <div style={{ padding: '16px 20px 20px' }}>
-                        {c.name && (
-                          <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 12px', lineHeight: 1.2 }}>{c.name}</p>
-                        )}
-                        {c.link && (
-                          <a href={c.link} target="_blank" rel="noopener noreferrer"
-                            onClick={() => fetch(`/api/conventions/${c.id}/click`, { method: 'POST' }).catch(() => {})}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 6,
-                              padding: '10px 22px', background: '#efff42', color: '#000',
-                              borderRadius: 12, fontSize: 13, fontWeight: 800, textDecoration: 'none',
-                            }}>
-                            Ver más →
-                          </a>
-                        )}
+            {/* Vista Eventos */}
+            {convView && (() => {
+              const withDate = [...conventions].filter(c => c.expires_at).sort((a, b) => new Date(a.expires_at!).getTime() - new Date(b.expires_at!).getTime())
+              const noDate   = conventions.filter(c => !c.expires_at)
+              const groups: { label: string; items: Convention[] }[] = []
+              for (const c of withDate) {
+                const d = new Date(c.expires_at!)
+                const label = d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/^\w/, l => l.toUpperCase())
+                const last = groups[groups.length - 1]
+                if (last && last.label === label) last.items.push(c)
+                else groups.push({ label, items: [c] })
+              }
+              if (noDate.length > 0) groups.push({ label: 'Sin fecha', items: noDate })
+
+              const ConvCard = ({ c }: { c: Convention }) => (
+                <div style={{ borderRadius: 16, overflow: 'hidden', background: '#111', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={c.image_url} alt={c.name || ''} style={{ display: 'block', width: '100%', objectFit: 'contain' }} />
+                  {(c.name || c.link) && (
+                    <div style={{ padding: '16px 20px 20px' }}>
+                      {c.name && <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 12px', lineHeight: 1.2 }}>{c.name}</p>}
+                      {c.link && (
+                        <a href={c.link} target="_blank" rel="noopener noreferrer"
+                          onClick={() => fetch(`/api/conventions/${c.id}/click`, { method: 'POST' }).catch(() => {})}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>
+                          Ver más →
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+
+              if (groups.length === 0) return (
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>No hay eventos próximos</p>
+              )
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+                  {groups.map(g => (
+                    <div key={g.label}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+                        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.6)' }}>{g.label}</span>
+                        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        {g.items.map(c => <ConvCard key={c.id} c={c} />)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
           </div>
         </div>
       </div>
@@ -455,16 +480,12 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
         onMouseLeave={endDrag}
         style={{
           position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
-          padding: '0 20px',
+          background: '#000', borderTop: '1px solid rgba(255,255,255,0.08)',
           userSelect: 'none', touchAction: 'pan-x', cursor: 'grab',
         }}>
-        <div style={{
-          maxWidth: '80rem', margin: '0 auto',
-          background: '#efff42', borderRadius: 0,
-          display: 'flex', alignItems: 'center',
-          gap: 8, paddingRight: 8,
-        }}>
-          <div style={{ flex: 1, overflow: 'hidden', padding: '8px 0' }}>
+        <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
+          {/* Logos */}
+          <div style={{ overflow: 'hidden', padding: '16px 16px 16px' }}>
             <div ref={trackRef} style={{ display: 'flex', willChange: 'transform' }}>
               <div ref={firstRef} style={{ display: 'flex', gap: 40, paddingRight: 40, flexShrink: 0 }}>
                 {sponsors.map(s => <Logo key={s.id} s={s} dragRef={dragRef} />)}
@@ -476,28 +497,90 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
               ))}
             </div>
           </div>
-          <button
-            onMouseDown={e => e.stopPropagation()}
-            onTouchStart={e => e.stopPropagation()}
-            onClick={e => { e.stopPropagation(); setExpanded(true) }}
-            style={{
-              flexShrink: 0, width: 20, height: 20,
-              borderRadius: '50%', background: '#000',
-              border: 'none', cursor: 'pointer',
-            }}></button>
         </div>
       </div>
+
+      {/* Botones flotantes sobre el banner */}
+      <div style={{ position: 'fixed', bottom: 70, left: 0, right: 0, zIndex: 41, pointerEvents: 'none' }}>
+        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 16px', display: 'flex', gap: 8, pointerEvents: 'auto' }}>
+          <button onClick={() => { setConvView(false); setExpanded(true) }}
+            style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
+            Insumos
+          </button>
+          <button onClick={() => { setConvView(true); setExpanded(true) }}
+            style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
+            Eventos
+          </button>
+        </div>
+      </div>
+
+      {/* Modal de soporte */}
+      {showInfo && (
+        <div onClick={() => setShowInfo(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 0 40px' }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 420, background: '#111', borderRadius: 24, border: '1px solid rgba(255,255,255,0.08)', padding: '32px 28px 28px', margin: '0 16px' }}>
+
+            {/* Logo */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 36, opacity: 0.9 }} />
+            </div>
+
+            <p style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.3, marginBottom: 10, letterSpacing: '-0.02em' }}>
+              {convView ? '¿Tenés una convención o evento?' : '¿Querés sumar tu marca?'}
+            </p>
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 28 }}>
+              {convView
+                ? 'Contactanos y sumamos tu convención o evento al listado. Llegás directo a tatuadores, estudios y clientes de toda la comunidad.'
+                : 'Contactanos y te contamos cómo aparecer en Flashttoo. Tu marca frente a tatuadores, estudios y clientes del mundo del tatuaje.'}
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <a href="https://instagram.com/flashttoo" target="_blank" rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none' }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: 0 }}>Instagram</p>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', margin: '2px 0 0' }}>@flashttoo</p>
+                </div>
+                <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.2)' }}>↗</span>
+              </a>
+
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText('soporte.flashttoo@gmail.com').catch(() => {})
+                  setMailCopied(true)
+                  setTimeout(() => setMailCopied(false), 2000)
+                }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: 14, background: mailCopied ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.05)', border: `1px solid ${mailCopied ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.08)'}`, cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'all 0.2s' }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: mailCopied ? '#4ade80' : '#fff', margin: 0 }}>Email</p>
+                  <p style={{ fontSize: 12, color: mailCopied ? 'rgba(74,222,128,0.6)' : 'rgba(255,255,255,0.35)', margin: '2px 0 0' }}>soporte.flashttoo@gmail.com</p>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: mailCopied ? '#4ade80' : 'rgba(255,255,255,0.3)' }}>
+                  {mailCopied ? '✓ copiado' : 'copiar'}
+                </span>
+              </button>
+            </div>
+
+            <button onClick={() => setShowInfo(false)}
+              style={{ width: '100%', marginTop: 20, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </>
   )
 }
 
 function Logo({ s, dragRef }: { s: Sponsor; dragRef: React.RefObject<{ moved: boolean }> }) {
   const img = (
-    <div style={{ width: 84, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ width: 100, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={s.logo_url} alt={s.name ?? ''} draggable={false}
-        style={{ maxHeight: `${s.logo_scale || 100}%`, maxWidth: `${s.logo_scale || 100}%`, objectFit: 'contain', filter: s.keep_color ? 'none' : 'brightness(0)', display: 'block' }}
+        style={{ maxHeight: `${s.logo_scale || 100}%`, maxWidth: `${s.logo_scale || 100}%`, objectFit: 'contain', filter: s.keep_color ? 'none' : 'brightness(0) invert(1)', display: 'block', opacity: s.keep_color ? 1 : 0.7 }}
       />
     </div>
   )

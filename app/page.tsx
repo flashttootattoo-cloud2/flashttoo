@@ -806,9 +806,16 @@ export default function Home() {
                               <div className="absolute top-1.5 right-1.5">
                                 <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.65)', padding: '2px 5px', borderRadius: 4, border: '1px solid rgba(239,255,66,0.3)' }}>Estudio</span>
                               </div>
-                              <div className="absolute bottom-0 left-0 right-0 p-2">
-                                <p className="text-white font-bold leading-tight" style={{ fontSize: 11, overflowWrap: 'break-word' }}>{item.data.name}</p>
-                                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{item.data.city}</p>
+                              <div className="absolute bottom-0 left-0 right-0">
+                                <div style={{ padding: '4px 8px 6px' }}>
+                                  <p className="text-white font-bold leading-tight" style={{ fontSize: 11, overflowWrap: 'break-word' }}>{item.data.name}</p>
+                                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{item.data.city}</p>
+                                </div>
+                                {item.data.hiring && (
+                                  <div style={{ background: '#efff42', padding: '1px 8px', textAlign: 'center' }}>
+                                    <span style={{ fontSize: 8, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Se busca {item.data.hiring_role || 'tatuador'}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </Link>
@@ -885,10 +892,17 @@ export default function Home() {
                           <div className="absolute top-2 right-2">
                             <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.65)', padding: '3px 6px', borderRadius: 5, border: '1px solid rgba(239,255,66,0.3)' }}>Estudio</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 p-3">
-                            <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{s.name}</p>
-                            {s.country && (
-                              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.country}</p>
+                          <div className="absolute bottom-0 left-0 right-0">
+                            <div style={{ padding: '8px 12px 10px' }}>
+                              <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{s.name}</p>
+                              {s.country && (
+                                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.country}</p>
+                              )}
+                            </div>
+                            {s.hiring && (
+                              <div style={{ background: '#efff42', padding: '2px 12px', textAlign: 'center' }}>
+                                <span style={{ fontSize: 9, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Se busca {s.hiring_role || 'tatuador'}</span>
+                              </div>
                             )}
                           </div>
                         </div>

@@ -93,8 +93,8 @@ const sections = [
     title: '¿Qué es un perfil de Proveedor?',
     content: (
       <>
-        <P>Un perfil de proveedor en Flashttoo le da visibilidad a tu marca frente a tatuadores, estudios y clientes que ya están dentro de la plataforma. Tu logo aparece como banner en el feed entre los artistas.</P>
-        <P>Al hacer clic en el banner, el usuario va directo a tu sitio web. Tu descripción y datos de contacto están disponibles en el listado de proveedores, donde los usuarios pueden buscar y explorar todas las marcas.</P>
+        <P>Un perfil de proveedor en Flashttoo le da visibilidad a tu marca frente a tatuadores, estudios y clientes que ya están dentro de la plataforma.</P>
+        <P>Tu logo aparece en la <B>barra de Insumos</B> en la parte inferior de la app, scrolleando de forma continua. Al tocar el botón <B>Insumos</B>, los usuarios acceden al listado completo de marcas donde pueden ver tu perfil, descripción y contacto.</P>
         <Highlight><span>🎯</span><span>Tu audiencia es 100% del mundo del tatuaje — tatuadores activos, estudios y personas que buscan hacerse un tatuaje.</span></Highlight>
       </>
     ),
@@ -116,13 +116,13 @@ const sections = [
     ),
   },
   {
-    title: 'Cómo aparece en el feed',
+    title: 'Cómo aparece en la app',
     content: (
       <>
-        <P>Tu marca aparece como un <B>banner</B> dentro del feed de artistas. Es un espacio diferenciado del resto de las tarjetas, lo que lo hace fácil de identificar como contenido patrocinado.</P>
-        <P>Al hacer clic en el banner, el usuario va directo a <B>tu sitio web</B>.</P>
-        <P>También existe una sección de <B>listado de proveedores</B> donde los usuarios pueden explorar todas las marcas y buscar por país. Desde ahí pueden acceder a tu perfil completo con descripción y contacto.</P>
-        <Highlight><span>📍</span><span>Si elegís segmentación por ciudad, tu banner solo aparece cuando alguien está buscando artistas en esa ubicación — mayor relevancia para el usuario, mejor conversión para vos.</span></Highlight>
+        <P>Tu logo aparece en la <B>barra fija en la parte inferior</B> de la app, scrolleando junto a otras marcas.</P>
+        <P>Al tocar el botón <B>Insumos</B> en esa barra, se abre el listado completo de marcas. Los usuarios pueden buscar por país y acceder a tu perfil con descripción, web y WhatsApp.</P>
+        <P>Si tenés link, los usuarios pueden ir directo a <B>tu sitio web</B> desde tu perfil. Si tenés WhatsApp, pueden escribirte desde ahí.</P>
+        <Highlight><span>📍</span><span>Si elegís segmentación por ciudad, tu logo solo aparece cuando alguien busca artistas en esa ubicación — más relevancia, mejor conversión.</span></Highlight>
       </>
     ),
   },

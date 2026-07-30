@@ -9,6 +9,7 @@ type Studio = {
   description: string | null; logo_url: string | null; instagram: string | null
   whatsapp: string | null; website: string | null; profile_views: number
   instagram_clicks: number; whatsapp_clicks: number; website_clicks: number
+  hiring: boolean; hiring_role: string | null
 }
 
 function initialsOf(name: string) {
@@ -50,6 +51,8 @@ export default function StudioPage() {
 
   // Edit form (post key verification)
   const [editForm, setEditForm] = useState({ name: '', description: '', instagram: '', whatsapp: '', website: '' })
+  const [hiring, setHiring]         = useState(false)
+  const [hiringRole, setHiringRole] = useState<'tatuador' | 'residente'>('tatuador')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -121,6 +124,8 @@ export default function StudioPage() {
         name: studio?.name || '', description: studio?.description || '',
         instagram: studio?.instagram || '', whatsapp: studio?.whatsapp || '', website: studio?.website || '',
       })
+      setHiring(studio?.hiring || false)
+      setHiringRole((studio?.hiring_role as 'tatuador' | 'residente') || 'tatuador')
     } else { setKeyError('Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo') }
     setVerifying(false)
   }
@@ -149,6 +154,8 @@ export default function StudioPage() {
     fd.append('edit_key', keyVerified)
     Object.entries(editForm).forEach(([k, v]) => fd.append(k, v))
     if (logoFile) fd.append('logo', logoFile)
+    fd.append('hiring', String(hiring))
+    fd.append('hiring_role', hiringRole)
     const r = await fetch(`/api/studios/${slug}`, { method: 'PATCH', body: fd })
     const d = await r.json()
     if (!r.ok) { setSaveError(d.error || 'Error al guardar'); setSaving(false); return }
@@ -391,6 +398,31 @@ export default function StudioPage() {
                   )}
                 </div>
               ))}
+
+              {/* Convocatoria */}
+              <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Convocatoria</p>
+                <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', lineHeight: 1.5, marginBottom: 10 }}>Mostrá un cartel en el feed avisando que tu estudio busca tatuador o residente.</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: hiring ? 10 : 0 }}>
+                  <button onClick={() => setHiring(v => !v)}
+                    style={{ width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', background: hiring ? '#000' : 'rgba(0,0,0,0.15)', flexShrink: 0 }}>
+                    <span style={{ position: 'absolute', top: 3, left: hiring ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: hiring ? '#efff42' : 'rgba(0,0,0,0.3)', transition: 'left 0.15s' }} />
+                  </button>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#000' }}>
+                    {hiring ? 'Convocatoria activa' : 'Activar convocatoria'}
+                  </span>
+                </div>
+                {hiring && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {(['tatuador', 'residente'] as const).map(role => (
+                      <button key={role} onClick={() => setHiringRole(role)}
+                        style={{ flex: 1, padding: '8px', borderRadius: 10, border: `2px solid ${hiringRole === role ? '#000' : 'rgba(0,0,0,0.15)'}`, background: hiringRole === role ? '#000' : 'transparent', color: hiringRole === role ? '#efff42' : 'rgba(0,0,0,0.5)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                        {role === 'tatuador' ? 'Tatuador' : 'Residente'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {saveError && <p style={{ color: 'rgba(160,0,0,0.8)', fontSize: 12 }}>{saveError}</p>}
               <button onClick={saveEdit} disabled={saving}

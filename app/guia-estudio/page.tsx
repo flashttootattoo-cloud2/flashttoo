@@ -151,6 +151,24 @@ const sections = [
     ),
   },
   {
+    title: 'Activar una convocatoria',
+    content: (
+      <>
+        <P>Si tu estudio está buscando tatuador o residente, podés activar un cartel que aparece directamente en el feed sobre tu tarjeta.</P>
+        <ol style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+          <StepLi n={1}>Abrí el panel de edición con tu clave.</StepLi>
+          <StepLi n={2}>Bajá hasta la sección <B>Convocatoria</B>.</StepLi>
+          <StepLi n={3}>Activá el toggle y elegí si buscás <B>Tatuador</B> o <B>Residente</B>.</StepLi>
+          <StepLi n={4}>Tocá <B>Guardar cambios</B>. El cartel aparece de inmediato en el feed.</StepLi>
+        </ol>
+        <div style={{ margin: '16px 0 4px' }}>
+          <span style={{ fontSize: 8, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase', background: '#efff42', padding: '2px 10px', borderRadius: 4 }}>Se busca tatuador</span>
+        </div>
+        <Highlight><span>💼</span><span>Cuando cubrís el puesto, desactivá el toggle y guardá para que el cartel desaparezca.</span></Highlight>
+      </>
+    ),
+  },
+  {
     title: 'Cómo aparece en el feed',
     content: (
       <>

@@ -19,6 +19,8 @@ export type Studio = {
   whatsapp: string | null
   website: string | null
   visible: boolean
+  hiring: boolean
+  hiring_role: string | null
   profile_views: number
   instagram_clicks: number
   whatsapp_clicks: number
