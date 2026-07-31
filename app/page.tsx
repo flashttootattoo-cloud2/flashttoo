@@ -428,8 +428,9 @@ export default function Home() {
     // Si viene de un estudio, reemplaza la entrada del historial (no agrega una nueva)
     // para que el botón Volver regrese directamente al estudio, no a /?artista=xxx
     const fromStudio = sessionStorage.getItem('flashttoo_from_studio')
-    if (fromStudio) window.history.replaceState({}, '', `/?artista=${artist.id}`)
-    else window.history.pushState({}, '', `/?artista=${artist.id}`)
+    const slug = artist.instagram ? artist.instagram.replace('@', '') : artist.id
+    if (fromStudio) window.history.replaceState({}, '', `/?artista=${slug}`)
+    else window.history.pushState({}, '', `/?artista=${slug}`)
   }, [])
 
   // Deep link: abre el modal si la URL tiene ?artista=ID
@@ -439,12 +440,15 @@ export default function Home() {
     const id = new URLSearchParams(window.location.search).get('artista')
     if (!id) return
 
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
     // Intento con prefetch de sessionStorage (navegación desde estudio → modal inmediato)
     try {
       const raw = sessionStorage.getItem('flashttoo_prefetch_artist')
       if (raw) {
         const prefetched = JSON.parse(raw) as Artist
-        if (prefetched.id === id) {
+        const match = isUuid ? prefetched.id === id : prefetched.instagram?.replace('@', '') === id
+        if (match) {
           sessionStorage.removeItem('flashttoo_prefetch_artist')
           deepLinkHandled.current = true
           openModal(prefetched)
@@ -456,12 +460,16 @@ export default function Home() {
     // Fallback normal: esperar a que carguen los artistas
     if (loading || artists.length === 0) return
     deepLinkHandled.current = true
-    const artist = artists.find(a => a.id === id)
+    const artist = isUuid
+      ? artists.find(a => a.id === id)
+      : artists.find(a => a.instagram?.replace('@', '') === id)
     if (artist) {
       openModal(artist)
     } else {
-      supabase.from('artists').select('*').eq('id', id).single()
-        .then(({ data }) => { if (data) openModal(data as Artist) })
+      const query = isUuid
+        ? supabase.from('artists').select('*').eq('id', id).single()
+        : supabase.from('artists').select('*').ilike('instagram', id).single()
+      query.then(({ data }) => { if (data) openModal(data as Artist) })
     }
   }, [artists, loading, openModal])
 
@@ -482,7 +490,8 @@ export default function Home() {
 
   const shareArtist = useCallback(async () => {
     if (!selected) return
-    const url = `${window.location.origin}/?artista=${selected.id}`
+    const slug = selected.instagram ? selected.instagram.replace('@', '') : selected.id
+    const url = `${window.location.origin}/?artista=${slug}`
     try {
       if (navigator.share) {
         await navigator.share({ title: `${selected.name} — Flashttoo`, text: `Mirá el perfil de ${selected.name} en Flashttoo`, url })
