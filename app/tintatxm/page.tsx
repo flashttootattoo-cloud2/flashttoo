@@ -1978,6 +1978,30 @@ export default function AdminPage() {
               </button>
             </div>
 
+            {/* Texto "¿Cómo funciona?" */}
+            <div className="rounded-xl p-4"
+              style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.15)' }}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold mb-2" style={{ color: 'rgba(255,255,255,0.8)' }}>Texto — ¿Cómo funciona?</p>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.7 }}>
+                    Flashttoo es una app donde los tatuadores tienen su perfil con portfolio, ciudad y contacto, y los usuarios la usan para buscar artistas cerca suyo o explorar estilos.<br /><br />
+                    Vos subís tus trabajos, tu info y listo — aparecés en el feed. Sin algoritmos raros, sin seguir a nadie. El que busca tatuadores en tu ciudad, te encuentra.<br /><br />
+                    Se puede instalar como app en el celular y es gratis para los artistas.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const txt = `Flashttoo es una app donde los tatuadores tienen su perfil con portfolio, ciudad y contacto, y los usuarios la usan para buscar artistas cerca suyo o explorar estilos.\n\nVos subís tus trabajos, tu info y listo — aparecés en el feed. Sin algoritmos raros, sin seguir a nadie. El que busca tatuadores en tu ciudad, te encuentra.\n\nSe puede instalar como app en el celular y es gratis para los artistas.`
+                    navigator.clipboard.writeText(txt).catch(() => {})
+                  }}
+                  className="text-xs font-bold px-4 py-2 rounded-lg flex-shrink-0"
+                  style={{ background: 'rgba(239,255,66,0.12)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', cursor: 'pointer' }}>
+                  Copiar
+                </button>
+              </div>
+            </div>
+
             {/* Toggle galería */}
             <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <div className="flex items-center justify-between">
