@@ -539,12 +539,12 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
             </div>
 
             <p style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.3, marginBottom: 10, letterSpacing: '-0.02em' }}>
-              {convView ? '¿Tenés una convención o evento?' : '¿Querés sumar tu marca?'}
+              {convView ? 'Sumá tu evento al calendario' : 'Sumate como marca de insumos'}
             </p>
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 28 }}>
               {convView
-                ? 'Contactanos y sumamos tu convención o evento al listado. Llegás directo a tatuadores, estudios y clientes de toda la comunidad.'
-                : 'Contactanos y te contamos cómo aparecer en Flashttoo. Tu marca frente a tatuadores, estudios y clientes del mundo del tatuaje.'}
+                ? 'Si organizás una convención o evento de tatuaje, podemos incluirlo acá para que toda la comunidad lo vea. Escribinos y lo coordinamos.'
+                : 'Si tenés una marca o proveedor de insumos para tatuadores, este es tu espacio. Escribinos y lo vemos juntos.'}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
