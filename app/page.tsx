@@ -1037,12 +1037,12 @@ export default function Home() {
                 const photos = [selected.gallery_photo_1, selected.gallery_photo_2, selected.gallery_photo_3].filter(Boolean) as string[]
                 if (!photos.length) return null
                 return (
-                  <div className="grid grid-cols-3 gap-1.5 mb-4">
+                  <div className="mb-4" style={{ overflowX: 'auto', scrollSnapType: 'x mandatory', display: 'flex', gap: 8, paddingBottom: 4, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
                     {photos.map((src, i) => (
                       <button key={i} onClick={() => openFullscreen(src)}
-                        className="relative rounded-xl overflow-hidden"
-                        style={{ paddingBottom: '100%', background: '#111' }}>
-                        <Image src={src} alt="" fill sizes="33vw" className="object-cover" />
+                        className="relative rounded-xl overflow-hidden flex-shrink-0"
+                        style={{ width: '72vw', maxWidth: 280, aspectRatio: '1', background: '#111', scrollSnapAlign: 'start' }}>
+                        <Image src={src} alt="" fill sizes="72vw" className="object-cover" />
                       </button>
                     ))}
                   </div>
