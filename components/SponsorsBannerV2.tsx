@@ -514,11 +514,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
       {/* Botones flotantes sobre el banner */}
       <div style={{ position: 'fixed', bottom: 70, left: 0, right: 0, zIndex: 41, pointerEvents: 'none', padding: '0 20px' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 8px', display: 'flex', gap: 8, pointerEvents: 'auto' }}>
-          <button onClick={() => { setConvView(false); setExpanded(true) }}
+          <button onClick={() => { setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}
             style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
             Insumos
           </button>
-          <button onClick={() => { setConvView(true); setExpanded(true) }}
+          <button onClick={() => { setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}
             style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
             Eventos
           </button>
