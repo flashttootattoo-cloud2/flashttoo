@@ -127,8 +127,19 @@ export default function Home() {
   const [showCount, setShowCount]           = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [fullscreenImg, setFullscreenImg]   = useState<string | null>(null)
+  const [fullscreenPhotos, setFullscreenPhotos] = useState<string[]>([])
+  const [fullscreenIdx, setFullscreenIdx]   = useState(0)
   const fullscreenRef = useRef<string | null>(null)
-  const openFullscreen = (src: string) => { fullscreenRef.current = src; history.pushState({ fullscreen: true }, ''); setFullscreenImg(src) }
+  const fsSwipeRef    = useRef<{ startX: number } | null>(null)
+  const openFullscreen = (src: string, photos?: string[]) => {
+    const list = photos ?? [src]
+    const idx  = list.indexOf(src)
+    fullscreenRef.current = src
+    setFullscreenPhotos(list)
+    setFullscreenIdx(idx >= 0 ? idx : 0)
+    history.pushState({ fullscreen: true }, '')
+    setFullscreenImg(src)
+  }
   const BATCH = 50
   const [hasMoreArtists, setHasMoreArtists] = useState(true)
   const [loadingMore, setLoadingMore]       = useState(false)
@@ -1037,12 +1048,12 @@ export default function Home() {
                 const photos = [selected.gallery_photo_1, selected.gallery_photo_2, selected.gallery_photo_3].filter(Boolean) as string[]
                 if (!photos.length) return null
                 return (
-                  <div className="mb-4" style={{ overflowX: 'auto', scrollSnapType: 'x mandatory', display: 'flex', gap: 8, paddingBottom: 4, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+                  <div className="grid grid-cols-3 gap-1.5 mb-4">
                     {photos.map((src, i) => (
-                      <button key={i} onClick={() => openFullscreen(src)}
-                        className="relative rounded-xl overflow-hidden flex-shrink-0"
-                        style={{ width: '72vw', maxWidth: 280, aspectRatio: '1', background: '#111', scrollSnapAlign: 'start' }}>
-                        <Image src={src} alt="" fill sizes="72vw" className="object-cover" />
+                      <button key={i} onClick={() => openFullscreen(src, photos)}
+                        className="relative rounded-xl overflow-hidden"
+                        style={{ paddingBottom: '100%', background: '#111' }}>
+                        <Image src={src} alt="" fill sizes="33vw" className="object-cover" />
                       </button>
                     ))}
                   </div>
@@ -1474,9 +1485,28 @@ export default function Home() {
       {fullscreenImg && (
         <div
           onClick={() => { history.back() }}
+          onTouchStart={e => { fsSwipeRef.current = { startX: e.touches[0].clientX } }}
+          onTouchEnd={e => {
+            if (!fsSwipeRef.current) return
+            const dx = e.changedTouches[0].clientX - fsSwipeRef.current.startX
+            fsSwipeRef.current = null
+            if (Math.abs(dx) < 40) return
+            const next = dx < 0
+              ? Math.min(fullscreenIdx + 1, fullscreenPhotos.length - 1)
+              : Math.max(fullscreenIdx - 1, 0)
+            setFullscreenIdx(next)
+            setFullscreenImg(fullscreenPhotos[next])
+          }}
           style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={fullscreenImg} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+          <img src={fullscreenPhotos[fullscreenIdx] ?? fullscreenImg} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+          {fullscreenPhotos.length > 1 && (
+            <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6 }}>
+              {fullscreenPhotos.map((_, i) => (
+                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i === fullscreenIdx ? '#fff' : 'rgba(255,255,255,0.3)' }} />
+              ))}
+            </div>
+          )}
           <button
             onClick={() => { history.back() }}
             style={{ position: 'absolute', top: 20, right: 20, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
