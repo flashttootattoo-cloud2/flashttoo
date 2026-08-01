@@ -606,7 +606,7 @@ type StudioStat = { profile_views: number; instagram_clicks: number; whatsapp_cl
 type SearchStat = { type: string; value: string; count: number }
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 const TOP = 10
-function StatsPanel({ artists, visits, installs, studios, searchStats }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] } }) {
+function StatsPanel({ artists, visits, installs, studios, searchStats, appEventCounts }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }; appEventCounts: Record<string, number> }) {
   const [showAllCountries, setShowAllCountries]       = useState(false)
   const [showAllCities, setShowAllCities]             = useState(false)
   const [showAllStyles, setShowAllStyles]             = useState(false)
@@ -1024,6 +1024,25 @@ function StatsPanel({ artists, visits, installs, studios, searchStats }: { artis
         </div>
       )}
 
+      {/* Botones de la app */}
+      {(appEventCounts['insumos_open'] || appEventCounts['eventos_open']) ? (
+        <div>
+          <p style={sectionLabel}>Botones de la app</p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: 'Insumos', key: 'insumos_open', color: '#efff42' },
+              { label: 'Eventos', key: 'eventos_open', color: '#efff42' },
+            ].map(({ label, key, color }) => (
+              <div key={key} className="p-5 flex flex-col gap-1" style={card}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</p>
+                <p style={{ fontSize: 32, fontWeight: 900, color, lineHeight: 1 }}>{appEventCounts[key] ?? 0}</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>aperturas totales</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
     </div>
   )
 }
@@ -1041,6 +1060,7 @@ export default function AdminPage() {
   const [statsArtists, setStatsArtists] = useState<Artist[]>([])
   const [loadingStats, setLoadingStats] = useState(false)
   const [searchStats, setSearchStats] = useState<{ countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }>({ countries: [], cities: [], styles: [] })
+  const [appEventCounts, setAppEventCounts] = useState<Record<string, number>>({})
   const [artistSearch, setArtistSearch] = useState('')
   const [searchResults, setSearchResults] = useState<Artist[] | null>(null)
   const [loadingSearch, setLoadingSearch] = useState(false)
@@ -1231,13 +1251,15 @@ export default function AdminPage() {
   const loadStatsArtists = async (p: string, force = false) => {
     if (!force && (statsArtists.length > 0 || loadingStats)) return
     setLoadingStats(true)
-    const [r, sr] = await Promise.all([
+    const [r, sr, er] = await Promise.all([
       fetch('/api/admin/artists?limit=10000&offset=0', { headers: H(p) }),
       fetch('/api/admin/search-stats', { headers: H(p) }),
+      fetch('/api/admin/app-events', { headers: H(p) }),
     ])
-    const [d, sd] = await Promise.all([r.json(), sr.json()])
+    const [d, sd, ed] = await Promise.all([r.json(), sr.json(), er.json()])
     setStatsArtists(d.artists || [])
     setSearchStats({ countries: sd.countries || [], cities: sd.cities || [], styles: sd.styles || [] })
+    setAppEventCounts(ed.counts || {})
     setLoadingStats(false)
   }
 
@@ -1625,7 +1647,7 @@ export default function AdminPage() {
             </div>
             {loadingStats
               ? <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando estadísticas...</p>
-              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} />
+              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} appEventCounts={appEventCounts} />
             }
           </div>
 
