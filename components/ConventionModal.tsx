@@ -11,8 +11,12 @@ export default function ConventionModal({ conventions }: { conventions: Conventi
   useEffect(() => {
     if (!conventions.length) return
     try { if (sessionStorage.getItem('conv_closed')) return } catch {}
-    conv.current = conventions[Math.floor(Math.random() * conventions.length)]
-    setVisible(true)
+    const picked = conventions[Math.floor(Math.random() * conventions.length)]
+    conv.current = picked
+    const img = new window.Image()
+    img.onload = () => setVisible(true)
+    img.onerror = () => setVisible(true)
+    img.src = picked.image_url
   }, [conventions])
 
   const dismiss = () => {
