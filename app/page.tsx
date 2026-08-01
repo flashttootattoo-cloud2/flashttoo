@@ -3,12 +3,12 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { supabase, type Artist, type Studio } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
 import SponsorsBanner from '@/components/SponsorsBanner'
 import SponsorsBannerV2 from '@/components/SponsorsBannerV2'
 import ConventionModal from '@/components/ConventionModal'
+import StudioPanel from '@/components/StudioPanel'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 
 function BioText({ text, style }: { text: string; style?: React.CSSProperties }) {
@@ -92,7 +92,6 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
 }
 
 export default function Home() {
-  const router = useRouter()
   const [artists, setArtists]     = useState<Artist[]>([])
   const [ads, setAds]             = useState<Ad[]>([])
   const [allStyles, setAllStyles] = useState<string[]>(DEFAULT_STYLES)
@@ -117,6 +116,10 @@ export default function Home() {
   const [conventions, setConventions]       = useState<Convention[]>([])
   const [contentCards, setContentCards]     = useState<ContentCard[]>([])
   const [studios, setStudios] = useState<Studio[]>([])
+  const [selectedStudioSlug, setSelectedStudioSlug] = useState<string | null>(null)
+  const selectedStudioSlugRef = useRef<string | null>(null)
+  selectedStudioSlugRef.current = selectedStudioSlug
+  const studioDeepLinkHandled = useRef(false)
   const [brokenPhotoIds, setBrokenPhotoIds] = useState<Set<string>>(new Set())
   const markPhotoBroken = (id: string) =>
     setBrokenPhotoIds(prev => prev.has(id) ? prev : new Set(prev).add(id))
@@ -245,8 +248,8 @@ export default function Home() {
   useEffect(() => {
     if (loading || artists.length === 0 || scrollRestored.current) return
     scrollRestored.current = true
-    const hasDeepLink = new URLSearchParams(window.location.search).has('artista')
-    if (hasDeepLink) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.has('artista') || params.has('estudio')) return
     try {
       const saved = sessionStorage.getItem('s_scroll')
       if (saved && parseInt(saved) > 100) {
@@ -436,16 +439,21 @@ export default function Home() {
     setLiked(alreadyLiked)
     setLocalLikes((artist.likes ?? 0) + (alreadyLiked ? 1 : 0))
     trackView(artist.id)
-    // Si viene de un estudio, reemplaza la entrada del historial (no agrega una nueva)
-    // para que el botón Volver regrese directamente al estudio, no a /?artista=xxx
-    const fromStudio = sessionStorage.getItem('flashttoo_from_studio')
     const slug = artist.instagram ? artist.instagram.replace('@', '') : artist.id
-    if (fromStudio) window.history.replaceState({}, '', `/?artista=${slug}`)
-    else window.history.pushState({}, '', `/?artista=${slug}`)
+    window.history.pushState({}, '', `/?artista=${slug}`)
   }, [])
 
+  // Deep link: abre el panel de estudio si la URL tiene ?estudio=slug
+  useEffect(() => {
+    if (studioDeepLinkHandled.current) return
+    const slug = new URLSearchParams(window.location.search).get('estudio')
+    if (slug) {
+      studioDeepLinkHandled.current = true
+      setSelectedStudioSlug(slug)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Deep link: abre el modal si la URL tiene ?artista=ID
-  // Si viene desde un estudio, abre instantáneo con datos pre-cargados en sessionStorage
   useEffect(() => {
     if (deepLinkHandled.current) return
     const id = new URLSearchParams(window.location.search).get('artista')
@@ -453,22 +461,7 @@ export default function Home() {
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
 
-    // Intento con prefetch de sessionStorage (navegación desde estudio → modal inmediato)
-    try {
-      const raw = sessionStorage.getItem('flashttoo_prefetch_artist')
-      if (raw) {
-        const prefetched = JSON.parse(raw) as Artist
-        const match = isUuid ? prefetched.id === id : prefetched.instagram?.replace('@', '') === id
-        if (match) {
-          sessionStorage.removeItem('flashttoo_prefetch_artist')
-          deepLinkHandled.current = true
-          openModal(prefetched)
-          return
-        }
-      }
-    } catch { /* ignore */ }
-
-    // Fallback normal: esperar a que carguen los artistas
+    // Esperar a que carguen los artistas
     if (loading || artists.length === 0) return
     deepLinkHandled.current = true
     const artist = isUuid
@@ -538,21 +531,36 @@ export default function Home() {
       setEditOpen(false)
       setEditKey('')
       setEditKeyError('')
-      const fromStudio = sessionStorage.getItem('flashttoo_from_studio')
-      if (fromStudio) { sessionStorage.removeItem('flashttoo_from_studio'); router.back() }
+      const studioSlug = selectedStudioSlugRef.current
+      if (studioSlug) window.history.pushState({}, '', `/?estudio=${studioSlug}`)
       else window.history.pushState({}, '', '/')
     }
-  }, [router])
+  }, [])
 
   const closeModalFull = useCallback(() => {
     setSelected(null)
     setEditOpen(false)
     setEditKey('')
     setEditKeyError('')
-    const fromStudio = sessionStorage.getItem('flashttoo_from_studio')
-    if (fromStudio) { sessionStorage.removeItem('flashttoo_from_studio'); router.back() }
+    const studioSlug = selectedStudioSlugRef.current
+    if (studioSlug) window.history.pushState({}, '', `/?estudio=${studioSlug}`)
     else window.history.pushState({}, '', '/')
-  }, [router])
+  }, [])
+
+  const openStudio = useCallback((slug: string) => {
+    setSelectedStudioSlug(slug)
+    history.pushState({ estudio: slug }, '', `/?estudio=${slug}`)
+    const k = `vs_${slug}`
+    if (!sessionStorage.getItem(k)) {
+      sessionStorage.setItem(k, '1')
+      fetch(`/api/studios/${slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'profile_view' }) }).catch(() => {})
+    }
+  }, [])
+
+  const closeStudio = useCallback(() => {
+    setSelectedStudioSlug(null)
+    history.pushState({}, '', '/')
+  }, [])
 
   const verifyAdKey = async () => {
     if (!selectedAd || adKeyInput.length < 10) { setAdKeyError('La clave debe tener 10 caracteres'); return }
@@ -594,13 +602,14 @@ export default function Home() {
     const h = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (selectedAd) { setSelectedAd(null); return }
-        if (selectedContent) setSelectedContent(null)
-        else closeModalFull()
+        if (selectedContent) { setSelectedContent(null); return }
+        if (selected) { closeModalFull(); return }
+        if (selectedStudioSlug) { closeStudio() }
       }
     }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
-  }, [closeModalFull, selectedContent, selectedAd])
+  }, [closeModalFull, closeStudio, selected, selectedContent, selectedAd, selectedStudioSlug])
 
   // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
   useEffect(() => {
@@ -613,11 +622,13 @@ export default function Home() {
         setEditOpen(false)
         setEditKey('')
         setEditKeyError('')
+      } else if (selectedStudioSlug) {
+        setSelectedStudioSlug(null)
       }
     }
     window.addEventListener('popstate', h)
     return () => window.removeEventListener('popstate', h)
-  }, [selected, selectedContent])
+  }, [selected, selectedContent, selectedStudioSlug])
 
   const hasFilters = country.trim() || city.trim() || activeStyles.length > 0
 
@@ -809,10 +820,10 @@ export default function Home() {
                             </div>
                           </button>
                         ) : item.type === 'studio' ? (
-                          <Link key={`studio-s${si}-${item.data.id}`} href={`/estudio/${item.data.slug}`}
-                            onClick={() => { const k = `vs_${item.data.slug}`; if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); fetch(`/api/studios/${item.data.slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'profile_view' }) }).catch(() => {}) } }}
-                            className="group relative overflow-hidden"
-                            style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none', display: 'block' }}>
+                          <button key={`studio-s${si}-${item.data.id}`}
+                            onClick={() => openStudio(item.data.slug)}
+                            className="group relative overflow-hidden text-left"
+                            style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', display: 'block', width: '100%', padding: 0, cursor: 'pointer' }}>
                             <div style={{ paddingBottom: '133%' }} />
                             <div className="absolute inset-0" style={{ background: '#111' }}>
                               {item.data.logo_url && !brokenPhotoIds.has(item.data.id)
@@ -839,7 +850,7 @@ export default function Home() {
                                 )}
                               </div>
                             </div>
-                          </Link>
+                          </button>
                         ) : item.type === 'ad' ? (
                           <button key={`ad-s${si}-${item.data.id}`}
                             onClick={() => { trackClick(item.data.id, 'ad'); setSelectedAd(item.data); setAdEditSection(false); setAdKeyInput(''); setAdKeyError(''); setAdKeyVerified(false); setAdEditForm({ title: item.data.title, city: item.data.city || '', country: item.data.country || '', instagram: item.data.instagram || '', whatsapp: item.data.whatsapp || '', website: item.data.website || '' }) }}
@@ -895,10 +906,10 @@ export default function Home() {
                   } else if (item.type === 'studio') {
                     const s = item.data
                     nodes.push(
-                      <Link key={`studio-${s.id}`} href={`/estudio/${s.slug}`}
-                        onClick={() => { const k = `vs_${s.slug}`; if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, '1'); fetch(`/api/studios/${s.slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'profile_view' }) }).catch(() => {}) } }}
-                        className="group relative overflow-hidden"
-                        style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none', display: 'block' }}>
+                      <button key={`studio-${s.id}`}
+                        onClick={() => openStudio(s.slug)}
+                        className="group relative overflow-hidden text-left"
+                        style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', display: 'block', width: '100%', padding: 0, cursor: 'pointer' }}>
                         <div style={{ paddingBottom: '133%' }} />
                         <div className="absolute inset-0" style={{ background: '#111' }}>
                           {s.logo_url && !brokenPhotoIds.has(s.id)
@@ -927,7 +938,7 @@ export default function Home() {
                             )}
                           </div>
                         </div>
-                      </Link>
+                      </button>
                     )
                   } else {
                     nodes.push(
@@ -999,8 +1010,8 @@ export default function Home() {
 
       {/* ── MODAL ──────────────────────────────────────────────── */}
       {selected && (
-        <div className="fixed inset-0 z-50 overflow-y-auto"
-          style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(20px)', animation: 'fadeInYellow 0.22s ease' }}
+        <div className="fixed inset-0 overflow-y-auto"
+          style={{ zIndex: 65, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(20px)', animation: 'fadeInYellow 0.22s ease' }}
           onClick={closeModal}>
 
           <div className="flex justify-center items-start min-h-full pb-64 sm:px-4 sm:pt-6">
@@ -1474,6 +1485,14 @@ export default function Home() {
             setSelected(null)
             setArtists(prev => prev.filter(a => a.id !== selected.id))
           }}
+        />
+      )}
+
+      {selectedStudioSlug && (
+        <StudioPanel
+          slug={selectedStudioSlug}
+          onClose={closeStudio}
+          onOpenArtist={(artist) => openModal(artist)}
         />
       )}
 
