@@ -443,6 +443,9 @@ export default function Home() {
     trackView(artist.id)
     const slug = artist.instagram ? artist.instagram.replace('@', '') : artist.id
     window.history.pushState({}, '', `/?artista=${slug}`)
+    ;[artist.gallery_photo_1, artist.gallery_photo_2, artist.gallery_photo_3].forEach(src => {
+      if (src) { const img = new window.Image(); img.src = src }
+    })
   }, [])
 
   // Deep link: abre el panel de estudio si la URL tiene ?estudio=slug
