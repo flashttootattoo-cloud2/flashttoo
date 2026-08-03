@@ -232,7 +232,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
   const iCls = 'w-full py-2.5 px-4 text-sm text-white outline-none rounded-lg transition-colors'
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: '#000' }}>
+    <div className="fixed inset-0 z-[80] flex flex-col" style={{ background: '#000' }}>
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
