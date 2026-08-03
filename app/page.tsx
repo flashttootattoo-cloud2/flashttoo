@@ -1505,7 +1505,7 @@ export default function Home() {
       {/* Visor fullscreen galería — tira deslizante */}
       {fullscreenImg && (
         <div
-          onClick={() => { history.back() }}
+          onClick={() => { if (!fsDragging) history.back() }}
           onTouchStart={e => {
             fsSwipeRef.current = { startX: e.touches[0].clientX }
             setFsDragging(true)
@@ -1527,7 +1527,35 @@ export default function Home() {
             setFullscreenIdx(next)
             setFullscreenImg(fullscreenPhotos[next])
           }}
-          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.96)', overflow: 'hidden' }}>
+          onMouseDown={e => {
+            if (fullscreenPhotos.length < 2) return
+            fsSwipeRef.current = { startX: e.clientX }
+            setFsDragging(true)
+          }}
+          onMouseMove={e => {
+            if (!fsSwipeRef.current) return
+            setFsDragX(e.clientX - fsSwipeRef.current.startX)
+          }}
+          onMouseUp={e => {
+            if (!fsSwipeRef.current) return
+            const dx = e.clientX - fsSwipeRef.current.startX
+            fsSwipeRef.current = null
+            setFsDragging(false)
+            setFsDragX(0)
+            if (Math.abs(dx) < 10) return
+            const next = dx < 0
+              ? Math.min(fullscreenIdx + 1, fullscreenPhotos.length - 1)
+              : Math.max(fullscreenIdx - 1, 0)
+            setFullscreenIdx(next)
+            setFullscreenImg(fullscreenPhotos[next])
+          }}
+          onMouseLeave={() => {
+            if (!fsSwipeRef.current) return
+            fsSwipeRef.current = null
+            setFsDragging(false)
+            setFsDragX(0)
+          }}
+          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.96)', overflow: 'hidden', cursor: fullscreenPhotos.length > 1 ? 'grab' : 'default' }}>
 
           {/* Tira horizontal con todas las fotos */}
           <div style={{
@@ -1541,7 +1569,7 @@ export default function Home() {
             {fullscreenPhotos.map((src, i) => (
               <div key={i} style={{ width: '100vw', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+                <img src={src} alt="" draggable={false} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', userSelect: 'none' }} onClick={e => e.stopPropagation()} />
               </div>
             ))}
           </div>
