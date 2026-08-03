@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { type Artist, type Visit } from '@/lib/supabase'
-import { supabase } from '@/lib/supabase'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 
 const DEFAULT_STYLES = [
@@ -113,14 +112,22 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
   const verifyKey = async () => {
     if (!key.trim()) return
     setVerifying(true); setKeyError('')
-    const res = await fetch(`/api/artists/${artist.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ editKey: key.trim().toUpperCase(), _verify: true }),
-    })
-    if (res.ok) { setStep('form') }
-    else { setKeyError('Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo') }
-    setVerifying(false)
+    try {
+      const res = await fetch(`/api/artists/${artist.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ editKey: key.trim().toUpperCase(), _verify: true }),
+      })
+      if (res.ok) { setStep('form') }
+      else {
+        const d = await res.json().catch(() => ({}))
+        setKeyError(d.error === 'Clave incorrecta' ? 'Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo' : `Error ${res.status}: ${d.error || 'intenta de nuevo'}`)
+      }
+    } catch {
+      setKeyError('Error de conexión, intenta de nuevo')
+    } finally {
+      setVerifying(false)
+    }
   }
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
