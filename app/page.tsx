@@ -134,6 +134,8 @@ export default function Home() {
   const [fullscreenIdx, setFullscreenIdx]   = useState(0)
   const fullscreenRef = useRef<string | null>(null)
   const fsSwipeRef    = useRef<{ startX: number } | null>(null)
+  const [fsDragX, setFsDragX]       = useState(0)
+  const [fsDragging, setFsDragging] = useState(false)
   const openFullscreen = (src: string, photos?: string[]) => {
     const list = photos ?? [src]
     const idx  = list.indexOf(src)
@@ -1500,15 +1502,24 @@ export default function Home() {
       <SponsorsBanner country={country} />
       <SponsorsBannerV2 city={city} country={country} conventions={conventions} />
 
-      {/* Visor fullscreen galería */}
+      {/* Visor fullscreen galería — tira deslizante */}
       {fullscreenImg && (
         <div
           onClick={() => { history.back() }}
-          onTouchStart={e => { fsSwipeRef.current = { startX: e.touches[0].clientX } }}
+          onTouchStart={e => {
+            fsSwipeRef.current = { startX: e.touches[0].clientX }
+            setFsDragging(true)
+          }}
+          onTouchMove={e => {
+            if (!fsSwipeRef.current) return
+            setFsDragX(e.touches[0].clientX - fsSwipeRef.current.startX)
+          }}
           onTouchEnd={e => {
             if (!fsSwipeRef.current) return
             const dx = e.changedTouches[0].clientX - fsSwipeRef.current.startX
             fsSwipeRef.current = null
+            setFsDragging(false)
+            setFsDragX(0)
             if (Math.abs(dx) < 40) return
             const next = dx < 0
               ? Math.min(fullscreenIdx + 1, fullscreenPhotos.length - 1)
@@ -1516,18 +1527,34 @@ export default function Home() {
             setFullscreenIdx(next)
             setFullscreenImg(fullscreenPhotos[next])
           }}
-          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={fullscreenPhotos[fullscreenIdx] ?? fullscreenImg} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.96)', overflow: 'hidden' }}>
+
+          {/* Tira horizontal con todas las fotos */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0,
+            display: 'flex', alignItems: 'center',
+            height: '100%',
+            transform: `translateX(calc(-${fullscreenIdx} * 100vw + ${fsDragX}px))`,
+            transition: fsDragging ? 'none' : 'transform 0.28s ease',
+            willChange: 'transform',
+          }}>
+            {fullscreenPhotos.map((src, i) => (
+              <div key={i} style={{ width: '100vw', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+              </div>
+            ))}
+          </div>
+
           {fullscreenPhotos.length > 1 && (
-            <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6 }}>
+            <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6, pointerEvents: 'none' }}>
               {fullscreenPhotos.map((_, i) => (
-                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i === fullscreenIdx ? '#fff' : 'rgba(255,255,255,0.3)' }} />
+                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', transition: 'background 0.2s', background: i === fullscreenIdx ? '#fff' : 'rgba(255,255,255,0.3)' }} />
               ))}
             </div>
           )}
           <button
-            onClick={() => { history.back() }}
+            onClick={e => { e.stopPropagation(); history.back() }}
             style={{ position: 'absolute', top: 20, right: 20, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             ×
           </button>
