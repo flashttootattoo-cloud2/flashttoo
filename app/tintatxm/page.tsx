@@ -1176,7 +1176,7 @@ export default function AdminPage() {
 
   const login = (e: { preventDefault: () => void }) => {
     e.preventDefault()
-    if (pin.length !== 3) { setError('Contraseña incorrecta'); return }
+    if (pin.length < 3) { setError('Contraseña incorrecta'); return }
     fetch('/api/admin/verify', { method: 'POST', headers: H(pass) })
       .then(r => r.json())
       .then(d => {
@@ -1352,11 +1352,16 @@ export default function AdminPage() {
   const updateArtistKey = async (id: string, key: string) => {
     const trimmed = key.trim().toUpperCase()
     if (!trimmed) return
-    await fetch(`/api/admin/artists/${id}`, {
+    const r = await fetch(`/api/admin/artists/${id}`, {
       method: 'PATCH',
       headers: { ...H(pass), 'Content-Type': 'application/json' },
       body: JSON.stringify({ edit_key: trimmed }),
     })
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}))
+      alert(`Error al guardar clave: ${d.error || r.status}`)
+      return
+    }
     patchArtistInLists(id, { edit_key: trimmed })
   }
 
