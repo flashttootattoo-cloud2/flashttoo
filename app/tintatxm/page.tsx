@@ -1501,7 +1501,7 @@ export default function AdminPage() {
           onChange={e => setPass(e.target.value)} autoFocus
           className="py-2.5 px-4 text-sm text-white outline-none rounded-lg"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
-        <input placeholder="código" value={pin}
+        <input placeholder="contraseña" value={pin}
           onChange={e => setPin(e.target.value)}
           className="py-2.5 px-4 text-sm text-white outline-none rounded-lg text-center tracking-widest"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
