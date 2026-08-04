@@ -1,34 +1,22 @@
-import { createClient } from '@supabase/supabase-js'
+'use client'
+
 import BackButton from '@/components/BackButton'
+import { useTranslation } from '@/contexts/TranslationContext'
 
-export const revalidate = 3600
-
-async function getPage() {
-  const sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-  const { data } = await sb.from('legal_pages').select('title, content, updated_at').eq('slug', 'privacidad').single()
-  return data
-}
-
-export default async function PrivacidadPage() {
-  const page = await getPage()
+export default function PrivacidadPage() {
+  const { t } = useTranslation()
+  const title   = t('privacidad', 'title',   'Política de Privacidad')
+  const content = t('privacidad', 'content', '')
 
   return (
     <main style={{ background: '#000', minHeight: '100vh', color: '#fff' }}>
       <div className="max-w-2xl mx-auto px-6 py-12">
         <BackButton />
-        <h1 className="font-bold mb-2" style={{ fontSize: 22, color: '#efff42' }}>
-          {page?.title ?? 'Política de Privacidad'}
+        <h1 className="font-bold mb-8" style={{ fontSize: 22, color: '#efff42' }}>
+          {title}
         </h1>
-        {page?.updated_at && (
-          <p className="mb-8 text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
-            Última actualización: {new Date(page.updated_at).toLocaleDateString('es-AR')}
-          </p>
-        )}
         <div style={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1.8, fontSize: 14, whiteSpace: 'pre-wrap' }}>
-          {page?.content}
+          {content}
         </div>
       </div>
     </main>

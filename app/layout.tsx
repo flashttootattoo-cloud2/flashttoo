@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import InstallBanner from '@/components/InstallBanner'
+import { Providers } from './providers'
 
 const BASE = 'https://flashttoo.com'
 
@@ -44,8 +45,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body>
-        {children}
-        <InstallBanner />
+        <Providers>
+          {children}
+          <InstallBanner />
+        </Providers>
       </body>
     </html>
   )

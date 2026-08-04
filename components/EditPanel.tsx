@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { type Artist, type Visit } from '@/lib/supabase'
+import { useState, useEffect, useRef } from 'react'
+import { supabase, type Artist, type Visit } from '@/lib/supabase'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
+import { useTranslation } from '@/contexts/TranslationContext'
 
 const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefilledKey }: Props) {
+  const { t } = useTranslation()
   const [step, setStep]       = useState<'key' | 'form'>(prefilledKey ? 'form' : 'key')
   const [key, setKey]         = useState(prefilledKey || '')
   const [keyError, setKeyError] = useState('')
@@ -74,6 +76,26 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     fetch('/api/features').then(r => r.json()).then(d => setGalleryEnabled(!!d.artist_gallery)).catch(() => {})
   }, [])
 
+  const [igStatus, setIgStatus] = useState<'idle' | 'checking' | 'ok' | 'taken'>('idle')
+  const igTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => {
+    const handle = form.instagram.trim().replace('@', '')
+    const original = (artist.instagram || '').replace('@', '')
+    if (!handle || handle === original) { setIgStatus('idle'); return }
+    setIgStatus('checking')
+    clearTimeout(igTimer.current)
+    igTimer.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('artists')
+        .select('id')
+        .or(`instagram.ilike.${handle},instagram.ilike.@${handle}`)
+        .neq('id', artist.id)
+        .limit(1)
+      setIgStatus(data && data.length > 0 ? 'taken' : 'ok')
+    }, 600)
+    return () => clearTimeout(igTimer.current)
+  }, [form.instagram, artist.instagram, artist.id])
+
   const genKey = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
     return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
@@ -121,10 +143,12 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
       if (res.ok) { setStep('form') }
       else {
         const d = await res.json().catch(() => ({}))
-        setKeyError(d.error === 'Clave incorrecta' ? 'Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo' : `Error ${res.status}: ${d.error || 'intenta de nuevo'}`)
+        setKeyError(d.error === 'Clave incorrecta'
+          ? t('artista', 'wrong_key', 'Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo')
+          : t('editar', 'connection_error', 'Error de conexión, intenta de nuevo'))
       }
     } catch {
-      setKeyError('Error de conexión, intenta de nuevo')
+      setKeyError(t('editar', 'connection_error', 'Error de conexión, intenta de nuevo'))
     } finally {
       setVerifying(false)
     }
@@ -187,7 +211,6 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
         photo_url = (await r.json()).url
       }
 
-      // Subir fotos de galería que hayan cambiado
       const galleryUrls: (string | null)[] = [...galleryPreviews]
       for (let i = 0; i < 3; i++) {
         const file = galleryFiles[i]
@@ -237,7 +260,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
         <p className="text-sm font-bold text-white">
-          {step === 'key' ? 'Editar perfil' : artist.name}
+          {step === 'key' ? t('editar', 'title', 'Editar perfil') : artist.name}
         </p>
         <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-colors text-xl">×</button>
       </div>
@@ -249,7 +272,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
           {step === 'key' && (
             <>
               <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.7 }}>
-                Ingresá la clave de edición que recibiste cuando creaste tu perfil.
+                {t('editar', 'key_hint', 'Ingresá la clave de edición que recibiste cuando creaste tu perfil.')}
               </p>
               <div>
                 <input
@@ -266,7 +289,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
               <button onClick={verifyKey} disabled={!key.trim() || verifying}
                 className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
                 style={{ background: '#efff42', color: '#000' }}>
-                {verifying ? 'Verificando...' : 'Continuar →'}
+                {verifying ? t('artista', 'verifying', 'Verificando...') : t('editar', 'continue_btn', 'Continuar →')}
               </button>
             </>
           )}
@@ -276,28 +299,28 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
             <>
               {/* Foto */}
               <label className="cursor-pointer block">
-                <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Foto</p>
+                <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'photo_label', 'Foto')}</p>
                 <div className="relative rounded-xl overflow-hidden" style={{ paddingBottom: '80%' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={preview || artist.photo_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
-                    <span className="text-xs text-white/60 bg-black/50 px-3 py-1.5 rounded-full">cambiar foto</span>
+                    <span className="text-xs text-white/60 bg-black/50 px-3 py-1.5 rounded-full">{t('agregar', 'photo_change', 'cambiar foto')}</span>
                   </div>
                 </div>
                 <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
               </label>
 
-              <Field label="Nombre *">
+              <Field label={`${t('editar', 'name_label', 'Nombre')} *`}>
                 <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Ciudad *">
+                <Field label={`${t('agregar', 'city_label', 'Ciudad')} *`}>
                   <input required value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
                     className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
                 </Field>
-                <Field label="País *">
+                <Field label={`${t('agregar', 'country_label', 'País')} *`}>
                   <input required value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
                     className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
                 </Field>
@@ -305,11 +328,11 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
 
               {/* Estilos */}
               <div className="relative">
-                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Estilos</p>
+                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'styles_label', 'Estilos')}</p>
                 <button type="button" onClick={() => setStylesOpen(v => !v)}
                   className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: styles.length ? '#fff' : 'rgba(255,255,255,0.2)' }}>
-                  <span>{styles.length === 0 ? 'Seleccioná estilos...' : `${styles.length} seleccionado${styles.length > 1 ? 's' : ''}`}</span>
+                  <span>{styles.length === 0 ? t('agregar', 'styles_placeholder', 'Seleccioná estilos...') : `${styles.length} ${styles.length > 1 ? t('editar', 'styles_selected_many', 'seleccionados') : t('editar', 'styles_selected_one', 'seleccionado')}`}</span>
                   <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{stylesOpen ? '▲' : '▼'}</span>
                 </button>
                 {stylesOpen && (
@@ -330,38 +353,52 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                 )}
               </div>
 
-              <Field label="Instagram">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'instagram_label', 'Instagram')}</p>
+                  {igStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'ig_checking', 'verificando...')}</span>}
+                  {igStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('agregar', 'ig_available', '✓ disponible')}</span>}
+                  {igStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('agregar', 'ig_taken', '✗ ya registrado')}</span>}
+                </div>
                 <input value={form.instagram} onChange={e => setForm(f => ({ ...f, instagram: e.target.value }))}
-                  placeholder="@usuario" className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
-              </Field>
+                  placeholder={t('agregar', 'instagram_placeholder', '@usuario')} className={iCls}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${igStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
+                {igStatus === 'taken' && (
+                  <p className="text-xs mt-1.5 leading-relaxed" style={{ color: 'rgba(248,113,113,0.7)' }}>
+                    {t('agregar', 'ig_taken_msg', 'Este Instagram ya tiene un perfil en Flashttoo. Si es tuyo y perdiste la clave, escribinos.')}
+                  </p>
+                )}
+              </div>
 
-              <Field label="WhatsApp">
+              <Field label={t('agregar', 'whatsapp_label', 'WhatsApp')}>
                 <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
                   placeholder="+54 9 11 1234 5678" className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
               </Field>
-              <Field label="Email">
+
+              <Field label={t('agregar', 'email_label', 'Email')}>
                 <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="hola@ejemplo.com" className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  placeholder={t('agregar', 'email_placeholder', 'hola@ejemplo.com')} className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
               </Field>
 
               <div>
                 <div className="flex justify-between mb-1.5">
-                  <span className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Biografía</span>
+                  <span className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'bio_label', 'Biografía')}</span>
                   <span className="text-xs tabular-nums" style={{ color: form.bio.length >= BIO_MAX ? '#f87171' : 'rgba(255,255,255,0.2)' }}>
                     {form.bio.length}/{BIO_MAX}
                   </span>
                 </div>
                 <textarea value={form.bio} rows={3}
                   onChange={e => { if (e.target.value.length <= BIO_MAX) setForm(f => ({ ...f, bio: e.target.value })) }}
+                  placeholder={t('agregar', 'bio_placeholder', 'Contá algo sobre vos, tu estilo, tu trabajo...')}
                   className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'none', lineHeight: 1.6 }} />
               </div>
 
               {/* Galería de diseños */}
               {galleryEnabled && (
                 <div>
-                  <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">Galería de diseños — opcional</label>
+                  <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">{t('agregar', 'gallery_label', 'Galería de diseños — opcional')}</label>
                   <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
-                    Hasta 3 fotos de tus mejores trabajos.
+                    {t('agregar', 'gallery_desc', 'Hasta 3 fotos de tus mejores trabajos.')}
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     {[0, 1, 2].map(i => (
@@ -381,14 +418,14 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                               </button>
                               <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 flex items-end justify-center pb-2"
                                 style={{ background: 'rgba(0,0,0,0.4)' }}>
-                                <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">cambiar</span>
+                                <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">{t('editar', 'change', 'cambiar')}</span>
                                 <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
                               </label>
                             </>
                           ) : (
                             <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-1">
                               <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.15)' }}>+</span>
-                              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>foto {i + 1}</span>
+                              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>{t('editar', 'photo_n', 'foto')} {i + 1}</span>
                               <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
                             </label>
                           )}
@@ -414,7 +451,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium" style={{ color: visitOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>
-                      Próximas fechas — ¿dónde estarás?
+                      {t('agregar', 'dates_title', 'Próximas fechas — ¿dónde estarás?')}
                     </span>
                     {visits.length > 0 && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-bold"
@@ -429,7 +466,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                 {visitOpen && (
                   <div className="mt-3 flex flex-col gap-2">
                     <p className="text-xs px-3 py-2 rounded-lg" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                      Las fechas se eliminan automáticamente cuando expiran.
+                      {t('agregar', 'date_expires_note', 'Las fechas se eliminan automáticamente cuando expiran.')}
                     </p>
                     {visits.map((v, i) => (
                       <div key={i} className="flex items-start justify-between px-3 py-2.5 rounded-xl"
@@ -449,24 +486,24 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                       <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Desde</p>
+                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'date_from', 'Desde')}</p>
                             <input type="date" value={newVisit.from} onChange={e => setNewVisit(v => ({ ...v, from: e.target.value }))}
                               className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
                           </div>
                           <div>
-                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Hasta</p>
+                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'date_to', 'Hasta')}</p>
                             <input type="date" value={newVisit.to} onChange={e => setNewVisit(v => ({ ...v, to: e.target.value }))}
                               className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Ciudad</p>
+                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'date_city', 'Ciudad')}</p>
                             <input value={newVisit.city} onChange={e => setNewVisit(v => ({ ...v, city: e.target.value }))}
                               placeholder="Santiago" className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
                           </div>
                           <div>
-                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>País</p>
+                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'date_country', 'País')}</p>
                             <input value={newVisit.country} onChange={e => setNewVisit(v => ({ ...v, country: e.target.value }))}
                               placeholder="Chile" className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
                           </div>
@@ -475,7 +512,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                           <button type="button" onClick={() => { setAddingVisit(false); setNewVisit({ from: '', to: '', city: '', country: '' }) }}
                             className="flex-1 py-2 rounded-lg text-xs"
                             style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
-                            Cancelar
+                            {t('agregar', 'date_cancel', 'Cancelar')}
                           </button>
                           <button type="button"
                             disabled={!newVisit.from || !newVisit.to || !newVisit.city.trim() || !newVisit.country.trim()}
@@ -486,7 +523,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                             }}
                             className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
                             style={{ background: '#efff42', color: '#000' }}>
-                            Agregar
+                            {t('agregar', 'date_add', 'Agregar')}
                           </button>
                         </div>
                       </div>
@@ -494,7 +531,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                       <button type="button" onClick={() => setAddingVisit(true)}
                         className="w-full py-2.5 rounded-xl text-xs transition-all"
                         style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}>
-                        + Agregar fecha
+                        {t('agregar', 'date_add_btn', '+ Agregar fecha')}
                       </button>
                     )}
                   </div>
@@ -514,19 +551,19 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                     border: `1px solid rgba(239,255,66,${interviewOpen ? 0.25 : 0.14})`,
                   }}
                 >
-                  <span className="text-sm font-medium" style={{ color: interviewOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>Tu historia — opcional</span>
+                  <span className="text-sm font-medium" style={{ color: interviewOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>{t('agregar', 'story_title', 'Tu historia — opcional')}</span>
                   <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{interviewOpen ? '▲' : '▼'}</span>
                 </button>
 
                 {interviewOpen && (
                   <div className="mt-4">
                     <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
-                      Respondé las que quieras. Aparecen en tu perfil para que la gente te conozca.
+                      {t('historia', 'intro', 'Respondé las que quieras. Aparecen en tu perfil para que los clientes te conozcan mejor.')}
                     </p>
                     <div className="flex flex-col gap-4">
                       {INTERVIEW_QUESTIONS.map(q => (
                         <div key={q.key}>
-                          <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{q.label}</p>
+                          <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{t('historia', q.key, q.label)}</p>
                           <textarea
                             value={interview[q.key] || ''}
                             onChange={e => {
@@ -534,7 +571,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                                 setInterview(prev => ({ ...prev, [q.key]: e.target.value }))
                             }}
                             rows={2}
-                            placeholder="Respuesta opcional..."
+                            placeholder={t('historia', 'placeholder', 'Respuesta opcional...')}
                             className={iCls}
                             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'none', lineHeight: 1.6 }} />
                         </div>
@@ -546,28 +583,28 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
 
               {saveError && <p className="text-xs" style={{ color: '#f87171' }}>{saveError}</p>}
 
-              <button onClick={save} disabled={saving}
+              <button onClick={save} disabled={saving || igStatus === 'taken'}
                 className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
                 style={{ background: '#efff42', color: '#000' }}>
-                {saving ? 'Guardando...' : 'Guardar cambios'}
+                {saving ? t('editar', 'saving', 'Guardando...') : t('editar', 'save_btn', 'Guardar cambios')}
               </button>
 
               {/* Cambiar clave */}
               <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p className="text-xs uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.25)' }}>Clave de edición</p>
+                <p className="text-xs uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('editar', 'key_section_title', 'Clave de edición')}</p>
                 {newKey === null ? (
                   <button onClick={() => setNewKey(genKey())}
                     className="text-xs px-4 py-2 rounded-lg transition-all"
                     style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}>
-                    Cambiar clave
+                    {t('editar', 'change_key', 'Cambiar clave')}
                   </button>
                 ) : (
                   <div className="flex flex-col gap-3">
                     <div className="rounded-lg p-3" style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.2)' }}>
-                      <p className="text-xs font-bold mb-1" style={{ color: '#efff42' }}>⚠ Guardá esta clave antes de confirmar</p>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>Sin ella no vas a poder editar ni eliminar tu perfil.</p>
+                      <p className="text-xs font-bold mb-1" style={{ color: '#efff42' }}>{t('editar', 'new_key_warning', '⚠ Guardá esta clave antes de confirmar')}</p>
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>{t('editar', 'new_key_desc', 'Sin ella no vas a poder editar ni eliminar tu perfil.')}</p>
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 py-2.5 px-4 rounded-lg text-center font-bold font-mono tracking-widest"
@@ -578,19 +615,19 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                         onClick={() => { navigator.clipboard.writeText(newKey); setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000) }}
                         className="px-4 rounded-lg text-xs font-bold shrink-0 transition-all"
                         style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${keyCopied ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: keyCopied ? '#4ade80' : '#efff42' }}>
-                        {keyCopied ? '✓' : 'copiar'}
+                        {keyCopied ? '✓' : t('agregar', 'copy', 'copiar')}
                       </button>
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => { setNewKey(null); setKeyCopied(false) }}
                         className="flex-1 py-2 rounded-lg text-xs"
                         style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
-                        Cancelar
+                        {t('agregar', 'date_cancel', 'Cancelar')}
                       </button>
                       <button onClick={saveNewKey} disabled={savingNewKey}
                         className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
                         style={{ background: '#efff42', color: '#000' }}>
-                        {savingNewKey ? '...' : 'Confirmar cambio'}
+                        {savingNewKey ? '...' : t('editar', 'confirm_change', 'Confirmar cambio')}
                       </button>
                     </div>
                   </div>
@@ -604,23 +641,23 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                   style={{ border: '1px solid rgba(255,80,80,0.18)', color: 'rgba(255,100,100,0.45)' }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.4)'; e.currentTarget.style.color = 'rgba(255,100,100,0.8)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.18)'; e.currentTarget.style.color = 'rgba(255,100,100,0.45)' }}>
-                  Eliminar perfil
+                  {t('editar', 'delete_profile', 'Eliminar perfil')}
                 </button>
               ) : (
                 <div className="rounded-xl p-4 mt-1" style={{ background: 'rgba(255,60,60,0.06)', border: '1px solid rgba(255,80,80,0.25)' }}>
-                  <p className="text-sm font-bold mb-1" style={{ color: '#f87171' }}>¿Eliminar tu perfil?</p>
-                  <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>Esta acción no se puede deshacer.</p>
+                  <p className="text-sm font-bold mb-1" style={{ color: '#f87171' }}>{t('editar', 'delete_confirm_title', '¿Eliminar tu perfil?')}</p>
+                  <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>{t('editar', 'delete_confirm_desc', 'Esta acción no se puede deshacer.')}</p>
                   {deleteError && <p className="text-xs mb-2" style={{ color: '#f87171' }}>{deleteError}</p>}
                   <div className="flex gap-2">
                     <button onClick={() => { setDeleteConfirm(false); setDeleteError('') }}
                       className="flex-1 py-2 rounded-lg text-xs font-bold"
                       style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
-                      Cancelar
+                      {t('agregar', 'date_cancel', 'Cancelar')}
                     </button>
                     <button onClick={deleteProfile} disabled={deleting}
                       className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
                       style={{ background: 'rgba(255,60,60,0.8)', color: '#fff' }}>
-                      {deleting ? 'Eliminando...' : 'Sí, eliminar'}
+                      {deleting ? t('editar', 'deleting', 'Eliminando...') : t('editar', 'confirm_delete', 'Sí, eliminar')}
                     </button>
                   </div>
                 </div>
@@ -633,14 +670,14 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
               style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.04em', textDecoration: 'none' }}
               onMouseEnter={e => { (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
               onMouseLeave={e => { (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.2)' }}>
-              Términos y condiciones
+              {t('agregar', 'legal_terms', 'Términos y condiciones')}
             </a>
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.1)' }}>·</span>
             <a href="/privacidad" target="_blank" rel="noopener noreferrer"
               style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.04em', textDecoration: 'none' }}
               onMouseEnter={e => { (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.45)' }}
               onMouseLeave={e => { (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.2)' }}>
-              Política de privacidad
+              {t('agregar', 'legal_privacy', 'Política de privacidad')}
             </a>
           </div>
 

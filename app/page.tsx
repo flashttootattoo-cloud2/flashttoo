@@ -10,6 +10,7 @@ import SponsorsBannerV2 from '@/components/SponsorsBannerV2'
 import ConventionModal from '@/components/ConventionModal'
 import StudioPanel from '@/components/StudioPanel'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
+import { useTranslation } from '@/contexts/TranslationContext'
 
 function BioText({ text, style }: { text: string; style?: React.CSSProperties }) {
   const parts = text.split(/(@[a-zA-Z0-9_.]{1,30})/g)
@@ -92,6 +93,9 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
 }
 
 export default function Home() {
+  const { t, language, setLanguage, languages } = useTranslation()
+  const [langOpen, setLangOpen] = useState(false)
+  const langRef = useRef<HTMLDivElement>(null)
   const [artists, setArtists]     = useState<Artist[]>([])
   const [ads, setAds]             = useState<Ad[]>([])
   const [allStyles, setAllStyles] = useState<string[]>(DEFAULT_STYLES)
@@ -208,6 +212,7 @@ export default function Home() {
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (stylesRef.current && !stylesRef.current.contains(e.target as Node)) setStylesOpen(false)
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false)
     }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
@@ -263,13 +268,16 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
-    fetch('/api/content-cards').then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
     fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true) }).catch(() => {})
     fetch('/api/conventions').then(r => r.json()).then(d => { if (Array.isArray(d.conventions)) setConventions(d.conventions) }).catch(() => {})
     fetch('/api/flash-days').then(r => r.json()).then(d => { if (Array.isArray(d.flashDays)) setFlashDays(d.flashDays) }).catch(() => {})
     fetch('/api/studios').then(r => r.json()).then(d => { if (Array.isArray(d.studios)) setStudios(shuffle(d.studios)) }).catch(() => {})
     supabase.from('settings').select('value').eq('key', 'show_count').single().then(({ data }) => { if (data?.value === true) setShowCount(true) })
   }, [])
+
+  useEffect(() => {
+    fetch(`/api/content-cards?lang=${language}`).then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
+  }, [language])
 
   useEffect(() => {
     const loadAds = async (): Promise<Ad[]> => {
@@ -527,7 +535,7 @@ export default function Home() {
       setEditOpen(false)
       setEditing(true)
     } else {
-      setEditKeyError('Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo')
+      setEditKeyError(t('artista', 'wrong_key', 'Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo'))
     }
     setEditVerifying(false)
   }, [selected, editKey])
@@ -646,20 +654,51 @@ export default function Home() {
       <header className="sticky top-0 z-30"
         style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
 
-        {/* Logo + agregar */}
+        {/* Logo + agregar + idioma */}
         <div className="max-w-7xl mx-auto px-5 pt-4 pb-3 flex items-center justify-between">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/Logoprincipal.svg" alt="Flashttoo" className="h-7 shrink-0" />
-          <Link href="/agregar" className="shrink-0 text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
-            style={{ background: '#efff42', color: '#000' }}>
-            + tatuador/a
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href="/agregar" className="text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
+              style={{ background: '#efff42', color: '#000' }}>
+              {t('inicio', 'add_artist', '+ tatuador/a')}
+            </Link>
+            {/* Selector de idioma */}
+            {languages.length > 1 && (
+              <div ref={langRef} className="relative">
+                <button
+                  onClick={() => setLangOpen(v => !v)}
+                  className="flex items-center justify-center rounded-lg text-base transition-opacity hover:opacity-80"
+                  style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  {languages.find(l => l.code === language)?.flag || '🌐'}
+                </button>
+                {langOpen && (
+                  <div className="absolute right-0 mt-1 rounded-xl overflow-hidden z-50 min-w-max"
+                    style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.8)' }}>
+                    {languages.map(l => (
+                      <button key={l.code}
+                        onClick={() => { setLanguage(l.code); setLangOpen(false) }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors text-left"
+                        style={{
+                          background: l.code === language ? 'rgba(239,255,66,0.08)' : 'transparent',
+                          color: l.code === language ? '#efff42' : 'rgba(255,255,255,0.7)',
+                          fontWeight: l.code === language ? 700 : 400,
+                        }}>
+                        <span>{l.flag}</span>
+                        <span>{l.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Búsqueda + estilos apilados */}
         <div className="max-w-7xl mx-auto px-5 pb-3 flex flex-col gap-2">
 
-          <input type="text" placeholder="país" value={country}
+          <input type="text" placeholder={t('inicio', 'country_placeholder', 'país')} value={country}
             onChange={e => { setCountry(e.target.value); setCity('') }}
             className="w-full py-2 px-4 text-sm text-white outline-none transition-all rounded-lg"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -667,7 +706,7 @@ export default function Home() {
             onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')} />
 
           <input type="text"
-            placeholder={country.trim() ? `ciudad en ${country.trim()}` : 'ciudad (primero elegí un país)'}
+            placeholder={country.trim() ? `${t('inicio', 'city_with_country', 'ciudad en')} ${country.trim()}` : t('inicio', 'city_placeholder', 'ciudad (primero elegí un país)')}
             value={city}
             disabled={!country.trim()}
             onChange={e => setCity(e.target.value)}
@@ -690,7 +729,7 @@ export default function Home() {
                 border: `1px solid ${stylesOpen || activeStyles.length > 0 ? 'rgba(239,255,66,0.5)' : 'rgba(255,255,255,0.08)'}`,
                 color: activeStyles.length > 0 ? '#efff42' : 'rgba(255,255,255,0.35)',
               }}>
-              <span>{activeStyles.length > 0 ? activeStyles[0] : 'Estilos de tatuaje'}</span>
+              <span>{activeStyles.length > 0 ? activeStyles[0] : t('inicio', 'styles_placeholder', 'Estilos de tatuaje')}</span>
               <span style={{ fontSize: 9, opacity: 0.5 }}>{stylesOpen ? '▲' : '▼'}</span>
             </button>
 
@@ -737,7 +776,7 @@ export default function Home() {
             }}
               className="self-start text-xs px-3 py-1 rounded-full transition-all"
               style={{ border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.5)' }}>
-              limpiar todo
+              {t('inicio', 'clear_filters', 'limpiar todo')}
             </button>
           )}
         </div>
@@ -746,7 +785,7 @@ export default function Home() {
       {!loading && showCount && (
         <div className="max-w-7xl mx-auto px-5 pt-4 pb-1">
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.15)', letterSpacing: '0.05em' }}>
-            {filtered.length} tatuador{filtered.length !== 1 ? 'es' : ''}
+            {filtered.length} {filtered.length !== 1 ? t('inicio', 'count_plural', 'tatuadores') : t('inicio', 'count_singular', 'tatuador')}
           </p>
         </div>
       )}
@@ -762,7 +801,7 @@ export default function Home() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-32 text-center">
-            <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: 13 }}>sin resultados</p>
+            <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: 13 }}>{t('inicio', 'no_results', 'sin resultados')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>
@@ -843,7 +882,7 @@ export default function Home() {
                               }
                               <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
                               <div className="absolute top-1.5 right-1.5">
-                                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.65)', padding: '2px 5px', borderRadius: 4, border: '1px solid rgba(239,255,66,0.3)' }}>Estudio</span>
+                                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.65)', padding: '2px 5px', borderRadius: 4, border: '1px solid rgba(239,255,66,0.3)' }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
                               </div>
                               <div className="absolute bottom-0 left-0 right-0">
                                 <div style={{ padding: '4px 8px 6px' }}>
@@ -852,7 +891,7 @@ export default function Home() {
                                 </div>
                                 {item.data.hiring && (
                                   <div style={{ background: '#efff42', padding: '1px 8px', textAlign: 'center' }}>
-                                    <span style={{ fontSize: 8, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Se busca {item.data.hiring_role === 'residente' ? 'residente' : 'guest artist'}</span>
+                                    <span style={{ fontSize: 8, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{item.data.hiring_role === 'residente' ? t('inicio', 'hiring_resident_badge', 'Se busca Residente') : t('inicio', 'hiring_guest_badge', 'Se busca Guest Artist')}</span>
                                   </div>
                                 )}
                               </div>
@@ -929,7 +968,7 @@ export default function Home() {
                           }
                           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
                           <div className="absolute top-2 right-2">
-                            <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.65)', padding: '3px 6px', borderRadius: 5, border: '1px solid rgba(239,255,66,0.3)' }}>Estudio</span>
+                            <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.65)', padding: '3px 6px', borderRadius: 5, border: '1px solid rgba(239,255,66,0.3)' }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
                           </div>
                           <div className="absolute bottom-0 left-0 right-0">
                             <div style={{ padding: '8px 12px 10px' }}>
@@ -940,7 +979,7 @@ export default function Home() {
                             </div>
                             {s.hiring && (
                               <div style={{ background: '#efff42', padding: '2px 12px', textAlign: 'center' }}>
-                                <span style={{ fontSize: 9, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Se busca {s.hiring_role === 'residente' ? 'residente' : 'guest artist'}</span>
+                                <span style={{ fontSize: 9, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.hiring_role === 'residente' ? t('inicio', 'hiring_resident_badge', 'Se busca Residente') : t('inicio', 'hiring_guest_badge', 'Se busca Guest Artist')}</span>
                               </div>
                             )}
                           </div>
@@ -1009,7 +1048,7 @@ export default function Home() {
           </div>
         )}
         {loadingMore && (
-          <p className="text-center py-6" style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>cargando más...</p>
+          <p className="text-center py-6" style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>{t('inicio', 'loading_more', 'cargando más...')}</p>
         )}
         <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
@@ -1084,7 +1123,7 @@ export default function Home() {
                 if (!upcoming.length) return null
                 return (
                   <div style={{ marginBottom: 16 }}>
-                    <p style={{ fontSize: 10, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 8 }}>Próximas fechas</p>
+                    <p style={{ fontSize: 10, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 8 }}>{t('artista', 'upcoming_dates', 'Próximas fechas')}</p>
                     <div className="flex flex-col gap-2">
                       {upcoming.map((v, i) => (
                         <div key={i} style={{ background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.12)', borderRadius: 10, padding: '10px 14px' }}>
@@ -1138,7 +1177,7 @@ export default function Home() {
                     onMouseEnter={e => { if (!copiedEmail) e.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
                     onMouseLeave={e => { if (!copiedEmail) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}>
                     <p style={{ fontSize: 13, color: copiedEmail ? '#efff42' : 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>
-                      {copiedEmail ? 'Mail copiado' : 'Email'}
+                      {copiedEmail ? t('artista', 'email_copied', 'Mail copiado') : t('artista', 'email_btn', 'Email')}
                     </p>
                     <span style={{ color: copiedEmail ? '#efff42' : 'rgba(255,255,255,0.2)', fontSize: 14 }}>
                       {copiedEmail ? '✓' : '⎘'}
@@ -1151,7 +1190,7 @@ export default function Home() {
               <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
                 <div className="flex items-center justify-between">
                   <div className="flex gap-4">
-                    <StatItem label="visitas"   value={selected.profile_views ?? 0} />
+                    <StatItem label={t('artista', 'stat_views', 'visitas')}   value={selected.profile_views ?? 0} />
                     <StatItem label="Instagram" value={selected.instagram_clicks ?? 0} />
                     {selected.whatsapp && <StatItem label="WhatsApp" value={selected.whatsapp_clicks ?? 0} />}
                   </div>
@@ -1190,14 +1229,14 @@ export default function Home() {
           {editOpen && (
             <div style={{ background: '#efff42', borderRadius: '0 0 20px 20px', padding: '20px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
               <p style={{ color: '#000', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
-                Editar perfil
+                {t('artista', 'edit_profile', 'Editar perfil')}
               </p>
               <input
                 autoFocus
                 value={editKey}
                 onChange={e => { setEditKey(e.target.value.toUpperCase()); setEditKeyError('') }}
                 onKeyDown={e => { if (e.key === 'Enter') verifyEditKey() }}
-                placeholder="CLAVE DE EDICIÓN"
+                placeholder={t('artista', 'edit_key_placeholder', 'CLAVE DE EDICIÓN')}
                 className="w-full py-2.5 px-3 outline-none rounded-xl"
                 style={{
                   background: 'rgba(0,0,0,0.1)',
@@ -1217,7 +1256,7 @@ export default function Home() {
                 disabled={!editKey.trim() || editVerifying}
                 className="w-full mt-3 py-2.5 rounded-xl text-xs font-bold disabled:opacity-30 transition-all"
                 style={{ background: '#000', color: '#efff42' }}>
-                {editVerifying ? 'Verificando...' : 'Entrar →'}
+                {editVerifying ? t('artista', 'verifying', 'Verificando...') : t('artista', 'enter_btn', 'Entrar →')}
               </button>
             </div>
           )}
@@ -1229,13 +1268,13 @@ export default function Home() {
             return (
               <div style={{ background: '#efff42', borderRadius: 20, marginTop: 8, padding: '22px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
                 <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', marginBottom: 20 }}>
-                  Conocé a {selected.name}
+                  {t('artista', 'meet_artist', 'Conocé a')} {selected.name}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                   {answered.map(q => (
                     <div key={q.key}>
                       <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 5, lineHeight: 1.4 }}>
-                        {q.label}
+                        {t('historia', q.key, q.label)}
                       </p>
                       <p style={{ fontSize: 14, color: '#000', lineHeight: 1.65 }}>
                         {iv[q.key]}

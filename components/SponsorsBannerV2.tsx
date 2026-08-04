@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from '@/contexts/TranslationContext'
 
 type Sponsor = {
   id: string; name: string; logo_url: string; bg_image_url: string | null
@@ -57,6 +58,7 @@ function filterSponsors(all: Sponsor[], city?: string, country?: string): Sponso
 }
 
 export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void }) {
+  const { t, language } = useTranslation()
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
@@ -226,7 +228,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '28px 20px 100px' }}>
             {/* Header */}
             <p style={{ textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', marginBottom: 20 }}>
-              {convView ? 'Eventos' : 'Insumos'}
+              {convView ? t('inicio', 'events_title', 'Eventos') : t('inicio', 'insumos_title', 'Insumos')}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, position: 'relative' }}>
               <div style={{ display: 'flex', gap: 6 }}>
@@ -255,7 +257,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               <div>
                 <input
                   type="text"
-                  placeholder="Buscar proveedor por país..."
+                  placeholder={t('insumos', 'search_placeholder', 'Buscar proveedor por país...')}
                   value={gridSearch}
                   onChange={e => setGridSearch(e.target.value)}
                   style={{
@@ -267,7 +269,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 />
                 {gridSponsors.length === 0 && (
                   <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
-                    Sin proveedores en ese país
+                    {t('insumos', 'no_results', 'Sin proveedores en ese país')}
                   </p>
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
@@ -318,12 +320,12 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
 
               const groups: { label: string; items: EventItem[] }[] = []
               for (const item of withDate) {
-                const label = item.date!.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/^\w/, l => l.toUpperCase())
+                const label = item.date!.toLocaleDateString(language, { month: 'long', year: 'numeric' }).replace(/^\w/, l => l.toUpperCase())
                 const last = groups[groups.length - 1]
                 if (last && last.label === label) last.items.push(item)
                 else groups.push({ label, items: [item] })
               }
-              if (noDate.length > 0) groups.push({ label: 'Sin fecha', items: noDate })
+              if (noDate.length > 0) groups.push({ label: t('eventos', 'no_date', 'Sin fecha'), items: noDate })
 
               const ConvCard = ({ c }: { c: Convention }) => (
                 <div style={{ borderRadius: 16, overflow: 'hidden', background: '#111', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -336,7 +338,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         <a href={c.link} target="_blank" rel="noopener noreferrer"
                           onClick={() => fetch(`/api/conventions/${c.id}/click`, { method: 'POST' }).catch(() => {})}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>
-                          Ver más →
+                          {t('eventos', 'see_more', 'Ver más →')}
                         </a>
                       )}
                     </div>
@@ -354,7 +356,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     </div>
                     <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 4px', lineHeight: 1.2 }}>{f.studio_name}</p>
                     <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, margin: '0 0 14px' }}>
-                      {new Date(f.date + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      {new Date(f.date + 'T12:00:00').toLocaleDateString(language, { weekday: 'long', day: 'numeric', month: 'long' })}
                     </p>
                     <button
                       onClick={() => {
@@ -363,14 +365,14 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         onOpenStudio?.(f.studio_slug)
                       }}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 13, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                      Ver estudio →
+                      {t('eventos', 'see_studio', 'Ver estudio →')}
                     </button>
                   </div>
                 </div>
               )
 
               if (groups.length === 0) return (
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>No hay eventos próximos</p>
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>{t('eventos', 'no_events', 'No hay eventos próximos')}</p>
               )
 
               return (
@@ -494,7 +496,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                             display: 'inline-flex', alignItems: 'center', gap: 8,
                             padding: '13px 26px', background: '#efff42', color: '#000',
                             borderRadius: 14, fontSize: 14, fontWeight: 800, textDecoration: 'none',
-                          }}>Ver más →</a>
+                          }}>{t('insumos', 'see_more', 'Ver más →')}</a>
                       )}
                       {sel.whatsapp && (
                         <a href={`https://wa.me/${sel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
@@ -554,11 +556,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 8px', display: 'flex', gap: 8, pointerEvents: 'auto' }}>
           <button onClick={() => { setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}
             style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
-            Insumos
+            {t('inicio', 'insumos_btn', 'Insumos')}
           </button>
           <button onClick={() => { setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}
             style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
-            Eventos
+            {t('inicio', 'events_btn', 'Eventos')}
           </button>
         </div>
       </div>
@@ -577,12 +579,12 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             </div>
 
             <p style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.3, marginBottom: 10, letterSpacing: '-0.02em' }}>
-              {convView ? 'Eventos de tatuaje' : 'Insumos para tatuadores'}
+              {convView ? t('inicio', 'events_subtitle', 'Eventos de tatuaje') : t('inicio', 'insumos_subtitle', 'Insumos para tatuadores')}
             </p>
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 28 }}>
               {convView
-                ? 'Convenciones y eventos de la comunidad. Si organizás uno y querés sumarlo, escribinos.'
-                : 'Acá encontrás marcas y proveedores del mundo del tatuaje. Si tenés una marca y querés aparecer, escribinos.'}
+                ? t('eventos', 'info_desc', 'Convenciones y eventos de la comunidad. Si organizás uno y querés sumarlo, escribinos.')
+                : t('insumos', 'info_desc', 'Acá encontrás marcas y proveedores del mundo del tatuaje. Si tenés una marca y querés aparecer, escribinos.')}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -607,14 +609,14 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                   <p style={{ fontSize: 12, color: mailCopied ? 'rgba(74,222,128,0.6)' : 'rgba(255,255,255,0.35)', margin: '2px 0 0' }}>soporte.flashttoo@gmail.com</p>
                 </div>
                 <span style={{ fontSize: 12, fontWeight: 700, color: mailCopied ? '#4ade80' : 'rgba(255,255,255,0.3)' }}>
-                  {mailCopied ? '✓ copiado' : 'copiar'}
+                  {mailCopied ? t('eventos', 'copied', '✓ copiado') : t('eventos', 'copy', 'copiar')}
                 </span>
               </button>
             </div>
 
             <button onClick={() => setShowInfo(false)}
               style={{ width: '100%', marginTop: 20, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-              Cerrar
+              {t('eventos', 'close', 'Cerrar')}
             </button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
+import { useTranslation } from '@/contexts/TranslationContext'
 
 const DEFAULT_STYLES = [
   'Tradicional','Realismo','Blackwork','Acuarela','Geométrico',
@@ -17,6 +18,7 @@ function genKey() {
 }
 
 export default function AgregarPage() {
+  const { t } = useTranslation()
   const [form, setForm] = useState({
     name: '', city: '', country: '', instagram: '', whatsapp: '', email: '', bio: '',
   })
@@ -136,8 +138,8 @@ export default function AgregarPage() {
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
     setError('')
-    if (!photo) { setError('Agregá una foto'); return }
-    if (styles.length === 0) { setError('Elegí al menos un estilo'); return }
+    if (!photo) { setError(t('agregar', 'error_photo', 'Agregá una foto')); return }
+    if (styles.length === 0) { setError(t('agregar', 'error_styles', 'Elegí al menos un estilo')); return }
 
     setLoading(true)
     try {
@@ -209,10 +211,10 @@ export default function AgregarPage() {
   if (done === 'pending') return (
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="text-center max-w-sm">
-        <h2 className="text-xl font-bold mb-2">Perfil en revisión</h2>
-        <p className="text-white/50 text-sm mb-2">Tu perfil fue enviado y está esperando aprobación.</p>
-        <p className="text-white/30 text-sm mb-6">Vas a aparecer en el buscador una vez que sea aprobado.</p>
-        <Link href="/" className="text-sm text-[#efff42] underline underline-offset-4">Volver al inicio</Link>
+        <h2 className="text-xl font-bold mb-2">{t('agregar', 'done_pending_title', 'Perfil en revisión')}</h2>
+        <p className="text-white/50 text-sm mb-2">{t('agregar', 'done_pending_msg1', 'Tu perfil fue enviado y está esperando aprobación.')}</p>
+        <p className="text-white/30 text-sm mb-6">{t('agregar', 'done_pending_msg2', 'Vas a aparecer en el buscador una vez que sea aprobado.')}</p>
+        <Link href="/" className="text-sm text-[#efff42] underline underline-offset-4">{t('agregar', 'done_pending_link', 'Volver al inicio')}</Link>
       </div>
     </main>
   )
@@ -220,9 +222,9 @@ export default function AgregarPage() {
   if (done === 'active') return (
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="text-center max-w-sm">
-        <h2 className="text-xl font-bold mb-2">Listo.</h2>
-        <p className="text-white/50 text-sm mb-6">Tu perfil ya está en el buscador.</p>
-        <Link href="/" className="text-sm text-[#efff42] underline underline-offset-4">Ver buscador</Link>
+        <h2 className="text-xl font-bold mb-2">{t('agregar', 'done_active_title', 'Listo.')}</h2>
+        <p className="text-white/50 text-sm mb-6">{t('agregar', 'done_active_msg', 'Tu perfil ya está en el buscador.')}</p>
+        <Link href="/" className="text-sm text-[#efff42] underline underline-offset-4">{t('agregar', 'done_active_link', 'Ver buscador')}</Link>
       </div>
     </main>
   )
@@ -231,28 +233,28 @@ export default function AgregarPage() {
     <main className="min-h-screen p-6">
       <div className="max-w-md mx-auto">
         <div className="mb-8">
-          <Link href="/" className="text-xs text-white/30 hover:text-white/60 transition-colors">← volver</Link>
-          <h1 className="text-xl font-bold mt-3">Agregáte como tatuador/a</h1>
-          <p className="text-sm text-white/40 mt-1">Completá tu perfil para aparecer en el buscador.</p>
+          <Link href="/" className="text-xs text-white/30 hover:text-white/60 transition-colors">{t('agregar', 'back', '← volver')}</Link>
+          <h1 className="text-xl font-bold mt-3">{t('agregar', 'add_title', 'Agregáte como tatuador/a')}</h1>
+          <p className="text-sm text-white/40 mt-1">{t('agregar', 'add_subtitle', 'Completá tu perfil para aparecer en el buscador.')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
           {/* Foto */}
           <div>
-            <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">Foto *</label>
+            <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">{t('agregar', 'photo_label', 'Foto')} *</label>
             <label className="relative cursor-pointer block">
               {preview ? (
                 <div className="relative w-full aspect-square rounded-xl overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={preview} alt="preview" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    <span className="text-xs text-white">cambiar foto</span>
+                    <span className="text-xs text-white">{t('agregar', 'photo_change', 'cambiar foto')}</span>
                   </div>
                 </div>
               ) : (
                 <div className="w-full aspect-square rounded-xl border-2 border-dashed border-white/10 hover:border-white/20 flex flex-col items-center justify-center gap-2 transition-colors">
-                  <span className="text-xs text-white/30">subir foto</span>
+                  <span className="text-xs text-white/30">{t('agregar', 'photo_upload', 'subir foto')}</span>
                 </div>
               )}
               <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
@@ -260,18 +262,18 @@ export default function AgregarPage() {
           </div>
 
           {/* Nombre */}
-          <Field label="Nombre / Apodo *">
+          <Field label={`${t('agregar', 'name_label', 'Nombre / Apodo')} *`}>
             <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="Tu nombre o nombre del estudio" className={inputCls} />
+              placeholder={t('agregar', 'name_placeholder', 'Tu nombre o nombre del estudio')} className={inputCls} />
           </Field>
 
           {/* Ciudad / País */}
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Ciudad *">
+            <Field label={`${t('agregar', 'city_label', 'Ciudad')} *`}>
               <input required value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
                 placeholder="Buenos Aires" className={inputCls} />
             </Field>
-            <Field label="País *">
+            <Field label={`${t('agregar', 'country_label', 'País')} *`}>
               <input required value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
                 placeholder="Argentina" className={inputCls} />
             </Field>
@@ -279,14 +281,14 @@ export default function AgregarPage() {
 
           {/* Estilos — dropdown */}
           <div ref={stylesRef} className="relative">
-            <label className="text-xs text-white/40 uppercase tracking-widest block mb-1.5">Estilos *</label>
+            <label className="text-xs text-white/40 uppercase tracking-widest block mb-1.5">{t('agregar', 'styles_label', 'Estilos')} *</label>
 
             {/* Trigger */}
             <button type="button" onClick={() => setStylesOpen(v => !v)}
               className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all"
               style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${stylesOpen ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.08)'}` }}>
               <span style={{ color: styles.length ? '#fff' : 'rgba(255,255,255,0.2)' }}>
-                {styles.length === 0 ? 'Seleccioná estilos...' : styles.join(', ')}
+                {styles.length === 0 ? t('agregar', 'styles_placeholder', 'Seleccioná estilos...') : styles.join(', ')}
               </span>
               <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>{stylesOpen ? '▲' : '▼'}</span>
             </button>
@@ -340,37 +342,37 @@ export default function AgregarPage() {
           {/* Contacto */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs text-white/40 uppercase tracking-widest">Instagram</label>
-              {igStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>verificando...</span>}
-              {igStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>✓ disponible</span>}
-              {igStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>✗ ya registrado</span>}
+              <label className="text-xs text-white/40 uppercase tracking-widest">{t('agregar', 'instagram_label', 'Instagram')}</label>
+              {igStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'ig_checking', 'verificando...')}</span>}
+              {igStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('agregar', 'ig_available', '✓ disponible')}</span>}
+              {igStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('agregar', 'ig_taken', '✗ ya registrado')}</span>}
             </div>
             <input
               value={form.instagram}
               onChange={e => setForm(f => ({ ...f, instagram: e.target.value }))}
-              placeholder="@usuario"
+              placeholder={t('agregar', 'instagram_placeholder', '@usuario')}
               className={inputCls}
               style={{ borderColor: igStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igStatus === 'ok' ? 'rgba(74,222,128,0.4)' : undefined }}
             />
             {igStatus === 'taken' && (
               <p className="text-xs leading-relaxed" style={{ color: 'rgba(248,113,113,0.7)', marginTop: 6 }}>
-                Este Instagram ya tiene un perfil en Flashttoo. Si es tuyo y perdiste la clave, escribinos.
+                {t('agregar', 'ig_taken_msg', 'Este Instagram ya tiene un perfil en Flashttoo. Si es tuyo y perdiste la clave, escribinos.')}
               </p>
             )}
           </div>
-          <Field label="WhatsApp">
+          <Field label={t('agregar', 'whatsapp_label', 'WhatsApp')}>
             <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
               placeholder="+54 9 11 1234 5678" className={inputCls} />
           </Field>
-          <Field label="Email">
+          <Field label={t('agregar', 'email_label', 'Email')}>
             <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              placeholder="hola@ejemplo.com" className={inputCls} />
+              placeholder={t('agregar', 'email_placeholder', 'hola@ejemplo.com')} className={inputCls} />
           </Field>
 
           {/* Bio con contador */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs text-white/40 uppercase tracking-widest">Biografía</label>
+              <label className="text-xs text-white/40 uppercase tracking-widest">{t('agregar', 'bio_label', 'Biografía')}</label>
               <span className="text-xs tabular-nums"
                 style={{ color: form.bio.length >= BIO_MAX ? '#f87171' : form.bio.length >= BIO_MAX * 0.85 ? '#fbbf24' : 'rgba(255,255,255,0.2)' }}>
                 {form.bio.length}/{BIO_MAX}
@@ -379,7 +381,7 @@ export default function AgregarPage() {
             <textarea
               value={form.bio}
               onChange={e => { if (e.target.value.length <= BIO_MAX) setForm(f => ({ ...f, bio: e.target.value })) }}
-              placeholder="Contá algo sobre vos, tu estilo, tu trabajo..."
+              placeholder={t('agregar', 'bio_placeholder', 'Contá algo sobre vos, tu estilo, tu trabajo...')}
               rows={3}
               className={inputCls}
               style={{ resize: 'none', lineHeight: 1.6 }}
@@ -389,9 +391,9 @@ export default function AgregarPage() {
           {/* Galería de diseños */}
           {galleryEnabled && (
             <div>
-              <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">Galería de diseños — opcional</label>
+              <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">{t('agregar', 'gallery_label', 'Galería de diseños — opcional')}</label>
               <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
-                Hasta 3 fotos de tus mejores trabajos.
+                {t('agregar', 'gallery_desc', 'Hasta 3 fotos de tus mejores trabajos.')}
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {[0, 1, 2].map(i => (
@@ -437,7 +439,7 @@ export default function AgregarPage() {
             >
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium" style={{ color: visitOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>
-                  Próximas fechas — ¿dónde estarás?
+                  {t('agregar', 'dates_title', 'Próximas fechas — ¿dónde estarás?')}
                 </span>
                 {visits.length > 0 && (
                   <span className="text-xs px-2 py-0.5 rounded-full font-bold"
@@ -452,7 +454,7 @@ export default function AgregarPage() {
             {visitOpen && (
               <div className="mt-3 flex flex-col gap-2">
                 <p className="text-xs px-3 py-2 rounded-lg" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  Las fechas se eliminan automáticamente cuando expiran.
+                  {t('agregar', 'date_expires_note', 'Las fechas se eliminan automáticamente cuando expiran.')}
                 </p>
 
                 {visits.map((v, i) => (
@@ -473,21 +475,21 @@ export default function AgregarPage() {
                   <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Desde</p>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'date_from', 'Desde')}</p>
                         <input type="date" value={newVisit.from} onChange={e => setNewVisit(v => ({ ...v, from: e.target.value }))} className={inputCls} />
                       </div>
                       <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Hasta</p>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'date_to', 'Hasta')}</p>
                         <input type="date" value={newVisit.to} onChange={e => setNewVisit(v => ({ ...v, to: e.target.value }))} className={inputCls} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Ciudad</p>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'date_city', 'Ciudad')}</p>
                         <input value={newVisit.city} onChange={e => setNewVisit(v => ({ ...v, city: e.target.value }))} placeholder="Santiago" className={inputCls} />
                       </div>
                       <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>País</p>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'date_country', 'País')}</p>
                         <input value={newVisit.country} onChange={e => setNewVisit(v => ({ ...v, country: e.target.value }))} placeholder="Chile" className={inputCls} />
                       </div>
                     </div>
@@ -495,14 +497,14 @@ export default function AgregarPage() {
                       <button type="button" onClick={() => { setAddingVisit(false); setNewVisit({ from: '', to: '', city: '', country: '' }) }}
                         className="flex-1 py-2 rounded-lg text-xs"
                         style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
-                        Cancelar
+                        {t('agregar', 'date_cancel', 'Cancelar')}
                       </button>
                       <button type="button"
                         disabled={!newVisit.from || !newVisit.to || !newVisit.city.trim() || !newVisit.country.trim()}
                         onClick={() => { setVisits(prev => [...prev, newVisit]); setNewVisit({ from: '', to: '', city: '', country: '' }); setAddingVisit(false) }}
                         className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
                         style={{ background: '#efff42', color: '#000' }}>
-                        Agregar
+                        {t('agregar', 'date_add', 'Agregar')}
                       </button>
                     </div>
                   </div>
@@ -510,7 +512,7 @@ export default function AgregarPage() {
                   <button type="button" onClick={() => setAddingVisit(true)}
                     className="w-full py-2.5 rounded-xl text-xs transition-all"
                     style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}>
-                    + Agregar fecha
+                    {t('agregar', 'date_add_btn', '+ Agregar fecha')}
                   </button>
                 )}
               </div>
@@ -530,19 +532,19 @@ export default function AgregarPage() {
                 border: `1px solid rgba(239,255,66,${interviewOpen ? 0.25 : 0.14})`,
               }}
             >
-              <span className="text-sm font-medium" style={{ color: interviewOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>Tu historia — opcional</span>
+              <span className="text-sm font-medium" style={{ color: interviewOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>{t('agregar', 'story_title', 'Tu historia — opcional')}</span>
               <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{interviewOpen ? '▲' : '▼'}</span>
             </button>
 
             {interviewOpen && (
               <div className="mt-4">
                 <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
-                  Respondé las que quieras. Aparecen en tu perfil para que los clientes te conozcan mejor.
+                  {t('historia', 'intro', 'Respondé las que quieras. Aparecen en tu perfil para que los clientes te conozcan mejor.')}
                 </p>
                 <div className="flex flex-col gap-4">
                   {INTERVIEW_QUESTIONS.map(q => (
                     <div key={q.key}>
-                      <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{q.label}</p>
+                      <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{t('historia', q.key, q.label)}</p>
                       <textarea
                         value={interview[q.key] || ''}
                         onChange={e => {
@@ -550,7 +552,7 @@ export default function AgregarPage() {
                             setInterview(prev => ({ ...prev, [q.key]: e.target.value }))
                         }}
                         rows={2}
-                        placeholder="Respuesta opcional..."
+                        placeholder={t('historia', 'placeholder', 'Respuesta opcional...')}
                         className={inputCls}
                         style={{ resize: 'none', lineHeight: 1.6 }}
                       />
@@ -567,17 +569,17 @@ export default function AgregarPage() {
           <div style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.2)', borderRadius: 12, padding: '16px' }}>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-bold uppercase tracking-widest" style={{ color: '#efff42' }}>
-                Clave de edición
+                {t('agregar', 'edit_key_label', 'Clave de edición')}
               </label>
               <button type="button"
                 onClick={() => setEditKey(genKey())}
                 className="text-xs transition-opacity hover:opacity-70"
                 style={{ color: 'rgba(239,255,66,0.5)' }}>
-                generar nueva
+                {t('agregar', 'generate_key', 'generar nueva')}
               </button>
             </div>
             <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
-              Con esta clave podés editar tu perfil después. Guardala — no se puede recuperar.
+              {t('agregar', 'edit_key_desc', 'Con esta clave podés editar tu perfil después. Guardala — no se puede recuperar.')}
             </p>
             <div className="flex gap-2">
               <input
@@ -590,7 +592,7 @@ export default function AgregarPage() {
                 onClick={() => { navigator.clipboard.writeText(editKey); setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000) }}
                 className="px-4 rounded-lg text-xs font-bold transition-all"
                 style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${keyCopied ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: keyCopied ? '#4ade80' : '#efff42' }}>
-                {keyCopied ? '✓' : 'copiar'}
+                {keyCopied ? '✓' : t('agregar', 'copy', 'copiar')}
               </button>
             </div>
           </div>
@@ -601,17 +603,17 @@ export default function AgregarPage() {
             className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
             style={{ background: '#efff42', color: '#000' }}
           >
-            {loading ? 'Subiendo...' : 'Agregar al buscador'}
+            {loading ? t('agregar', 'uploading', 'Subiendo...') : t('agregar', 'submit', 'Agregar al buscador')}
           </button>
 
           <p className="text-center" style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
-            Al registrarte aceptás nuestros{' '}
+            {t('agregar', 'legal_prefix', 'Al registrarte aceptás nuestros')}{' '}
             <Link href="/terminos" className="underline hover:opacity-80" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Términos y condiciones
+              {t('agregar', 'legal_terms', 'Términos y condiciones')}
             </Link>{' '}
-            y{' '}
+            {t('agregar', 'legal_and', 'y')}{' '}
             <Link href="/privacidad" className="underline hover:opacity-80" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Política de privacidad
+              {t('agregar', 'legal_privacy', 'Política de privacidad')}
             </Link>
           </p>
         </form>

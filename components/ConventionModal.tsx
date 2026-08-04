@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from '@/contexts/TranslationContext'
 
 type Convention = { id: string; name: string | null; image_url: string; link: string | null }
 type FlashDay   = { id: string; studio_slug: string; studio_name: string; flyer_url: string; date: string }
@@ -13,6 +14,7 @@ export default function ConventionModal({ conventions, flashDays = [], onOpenStu
   flashDays?: FlashDay[]
   onOpenStudio?: (slug: string) => void
 }) {
+  const { t, language } = useTranslation()
   const [visible, setVisible] = useState(false)
   const item = useRef<Item | null>(null)
 
@@ -41,7 +43,7 @@ export default function ConventionModal({ conventions, flashDays = [], onOpenStu
   const it = item.current
 
   const imageSrc  = it.kind === 'conv' ? it.data.image_url : it.data.flyer_url
-  const imageAlt  = it.kind === 'conv' ? (it.data.name || 'Convención') : `Flash Day ${it.data.studio_name}`
+  const imageAlt  = it.kind === 'conv' ? (it.data.name || t('eventos', 'convention', 'Convención')) : `Flash Day ${it.data.studio_name}`
 
   return (
     <div
@@ -80,7 +82,7 @@ export default function ConventionModal({ conventions, flashDays = [], onOpenStu
             <>
               <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, margin: '0 0 4px', lineHeight: 1.25 }}>{it.data.studio_name}</p>
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: '0 0 14px' }}>
-                {new Date(it.data.date + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {new Date(it.data.date + 'T12:00:00').toLocaleDateString(language, { weekday: 'long', day: 'numeric', month: 'long' })}
               </p>
             </>
           )}
@@ -89,13 +91,13 @@ export default function ConventionModal({ conventions, flashDays = [], onOpenStu
               <a href={it.data.link} target="_blank" rel="noopener noreferrer"
                 onClick={() => { dismiss(); fetch(`/api/conventions/${it.data.id}/click`, { method: 'POST' }).catch(() => {}) }}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 18px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
-                Ver más →
+                {t('eventos', 'see_more', 'Ver más →')}
               </a>
             )}
             {it.kind === 'flash' && (
               <button onClick={() => { dismiss(); onOpenStudio?.(it.data.studio_slug) }}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 18px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 14, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                Ver estudio →
+                {t('eventos', 'see_studio', 'Ver estudio →')}
               </button>
             )}
             <button onClick={dismiss} style={{
@@ -104,7 +106,7 @@ export default function ConventionModal({ conventions, flashDays = [], onOpenStu
               background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
               color: 'rgba(255,255,255,0.5)', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer',
             }}>
-              Cerrar
+              {t('eventos', 'close', 'Cerrar')}
             </button>
           </div>
         </div>

@@ -1051,7 +1051,7 @@ export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [pin, setPin]         = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'paginas' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios' | 'idiomas'>('artistas')
   const [artists, setArtists]       = useState<Artist[]>([])
   const [artistsTotal, setArtistsTotal] = useState(0)
   const [artistsOffset, setArtistsOffset] = useState(0)
@@ -1072,10 +1072,6 @@ export default function AdminPage() {
   const [deleting, setDeleting]   = useState<string | null>(null)
   const [visits, setVisits]       = useState<DayVisit[]>([])
   const [installs, setInstalls]   = useState<InstallStats>({ days: [], byPlatform: { ios: 0, android: 0, other: 0 }, total: 0 })
-  const [pages, setPages]         = useState<{ slug: string; title: string; content: string }[]>([])
-  const [editingPage, setEditingPage] = useState<string | null>(null)
-  const [pageForm, setPageForm]   = useState({ title: '', content: '' })
-  const [savingPage, setSavingPage] = useState(false)
   const [moderation, setModeration] = useState(false)
   const [savingMod, setSavingMod]   = useState(false)
   const [showCount, setShowCount]   = useState(false)
@@ -1090,6 +1086,9 @@ export default function AdminPage() {
   const [savingStyles, setSavingStyles] = useState(false)
   const [contentCards, setContentCards] = useState<ContentCard[]>([])
   const [savingContent, setSavingContent] = useState(false)
+  const [contentLangsAll, setContentLangsAll] = useState<{ code: string; name: string; flag: string }[]>([])
+  const [cardsByLang, setCardsByLang] = useState<Record<string, ContentCard[]>>({ es: [] })
+  const [selectedCardsLang, setSelectedCardsLang] = useState('es')
   const [sponsors, setSponsors]           = useState<SponsorAdmin[]>([])
   const [bannerActive, setBannerActive]   = useState(false)
   const [savingBanner, setSavingBanner]   = useState(false)
@@ -1111,6 +1110,67 @@ export default function AdminPage() {
   const [savingSponsorsV2, setSavingSponsorsV2] = useState(false)
   const [sponsorV2Error, setSponsorV2Error]   = useState('')
   const [editingV2, setEditingV2]             = useState<string | null>(null)
+
+  // ── IDIOMAS ──────────────────────────────────────────────────────────────
+  type LangRow = { code: string; name: string; flag: string; active: boolean }
+  const [langs, setLangs]                   = useState<LangRow[]>([])
+  const [idiomaLang, setIdiomaLang]         = useState<string | null>(null)
+  const [idiomaEsKeys, setIdiomaEsKeys]     = useState<{ section: string; key: string; value: string }[]>([])
+  const [idiomaEdits, setIdiomaEdits]       = useState<Record<string, Record<string, string>>>({})
+  const [idiomaOpen, setIdiomaOpen]         = useState<Set<string>>(new Set(['inicio']))
+  const [idiomaSaving, setIdiomaSaving]     = useState<string | null>(null)
+  const [addLangOpen, setAddLangOpen]       = useState(false)
+  const [newLang, setNewLang]               = useState({ code: '', name: '', flag: '' })
+  const [addingLang, setAddingLang]         = useState(false)
+
+  const TRANS_SECTIONS = [
+    { key: 'inicio',     label: 'Inicio — Feed principal' },
+    { key: 'agregar',    label: '+tatuador/a — Formulario de registro' },
+    { key: 'global',     label: 'Global — Textos comunes' },
+    { key: 'terminos',   label: 'Términos y condiciones' },
+    { key: 'privacidad', label: 'Política de privacidad' },
+    { key: 'artista',    label: 'Artista — Perfil y modal' },
+    { key: 'historia',   label: 'Historia — Preguntas del perfil' },
+    { key: 'editar',     label: 'Editar — Panel de edición tatuador' },
+    { key: 'estudio',    label: 'Estudio — Panel del estudio' },
+    { key: 'eventos',    label: 'Eventos — Flash days y convenciones' },
+    { key: 'insumos',    label: 'Insumos — Proveedores' },
+  ]
+
+  const openLang = async (code: string) => {
+    setIdiomaLang(code)
+    const [r1, r2] = await Promise.all([
+      fetch('/api/admin/translations?lang=es').then(r => r.json()),
+      code !== 'es' ? fetch(`/api/admin/translations?lang=${code}`).then(r => r.json()) : Promise.resolve({ translations: [] }),
+    ])
+    const esKeys: { section: string; key: string; value: string }[] = r1.translations ?? []
+    setIdiomaEsKeys(esKeys)
+    const base = code === 'es' ? esKeys : (r2.translations ?? [])
+    const map: Record<string, Record<string, string>> = {}
+    for (const row of base) {
+      if (!map[row.section]) map[row.section] = {}
+      map[row.section][row.key] = row.value
+    }
+    setIdiomaEdits(map)
+  }
+
+  const saveIdiomaSection = async (section: string) => {
+    if (!idiomaLang) return
+    setIdiomaSaving(section)
+    const esSection = idiomaEsKeys.filter(k => k.section === section)
+    const rows = esSection.map(k => ({
+      language_code: idiomaLang,
+      section: k.section,
+      key: k.key,
+      value: idiomaEdits[section]?.[k.key] ?? '',
+    }))
+    await fetch('/api/admin/translations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(rows),
+    })
+    setIdiomaSaving(null)
+  }
   const [previewV2, setPreviewV2]             = useState<SponsorV2Admin | null>(null)
   const [statsV2Sp, setStatsV2Sp]             = useState<SponsorV2Admin | null>(null)
   const [statsV2Data, setStatsV2Data]         = useState<StatsV2Data | null>(null)
@@ -1191,14 +1251,13 @@ export default function AdminPage() {
       fetch(`/api/admin/artists?limit=10&offset=0`, { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/ads', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/stats/visits', { headers: H(p) }).then(r => r.json()),
-      fetch('/api/admin/pages', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/settings', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/stats/installs', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/sponsors', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/sponsors-v2', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/conventions', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/studios', { headers: H(p) }).then(r => r.json()),
-    ]).then(([a, b, v, pg, cfg, ins, sp, sp2, conv, stu]) => {
+    ]).then(([a, b, v, cfg, ins, sp, sp2, conv, stu]) => {
       if (a.status === 'fulfilled') {
         setArtists(a.value.artists || [])
         setArtistsTotal(a.value.total ?? 0)
@@ -1206,7 +1265,6 @@ export default function AdminPage() {
       }
       if (b.status === 'fulfilled') setAds(b.value.ads || [])
       if (v.status === 'fulfilled') setVisits(v.value.days || [])
-      if (pg.status === 'fulfilled') setPages(pg.value.pages || [])
       if (ins.status === 'fulfilled' && ins.value.days) setInstalls(ins.value)
       if (sp.status === 'fulfilled') {
         setSponsors(sp.value.sponsors || [])
@@ -1226,12 +1284,35 @@ export default function AdminPage() {
         setR2Available(cfg.value.r2_available === true)
         if (Array.isArray(cfg.value.settings?.styles) && cfg.value.settings.styles.length > 0)
           setAdminStyles(cfg.value.settings.styles)
-        if (Array.isArray(cfg.value.settings?.content_cards))
-          setContentCards(cfg.value.settings.content_cards)
+        if (cfg.value.settings) {
+          const byLang: Record<string, ContentCard[]> = {}
+          Object.keys(cfg.value.settings).forEach(k => {
+            if (k === 'content_cards' && Array.isArray(cfg.value.settings[k]))
+              byLang['es'] = cfg.value.settings[k]
+            else if (k.startsWith('content_cards_') && Array.isArray(cfg.value.settings[k]))
+              byLang[k.replace('content_cards_', '')] = cfg.value.settings[k]
+          })
+          setCardsByLang(byLang)
+        }
       }
       setLoading(false)
     })
   }
+
+  useEffect(() => {
+    if (tab !== 'idiomas' || !auth) return
+    fetch('/api/admin/languages').then(r => r.json()).then(d => setLangs(d.languages ?? [])).catch(() => {})
+  }, [tab, auth])
+
+  useEffect(() => {
+    if (tab !== 'contenido' || !auth) return
+    fetch('/api/admin/languages').then(r => r.json()).then(d => setContentLangsAll(d.languages ?? [])).catch(() => {})
+  }, [tab, auth])
+
+  useEffect(() => {
+    setContentCards(cardsByLang[selectedCardsLang] ?? [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCardsLang, cardsByLang])
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => {
@@ -1315,18 +1396,6 @@ export default function AdminPage() {
     setDeleting(null)
   }
 
-  const savePage = async () => {
-    if (!editingPage) return
-    setSavingPage(true)
-    await fetch('/api/admin/pages', {
-      method: 'PATCH',
-      headers: { ...H(pass), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug: editingPage, ...pageForm }),
-    })
-    setPages(prev => prev.map(p => p.slug === editingPage ? { ...p, ...pageForm } : p))
-    setEditingPage(null)
-    setSavingPage(false)
-  }
 
   const patchArtistInLists = (id: string, changes: Partial<Artist>) => {
     const apply = (arr: Artist[]) => arr.map(a => a.id === id ? { ...a, ...changes } : a)
@@ -1543,7 +1612,6 @@ export default function AdminPage() {
               { key: 'artistas',   label: `Tatuadores (${artists.filter(a => a.status !== 'pending').length})` },
               { key: 'ads',        label: `Publicidades (${ads.length})` },
               { key: 'stats',      label: 'Estadísticas' },
-              { key: 'paginas',    label: 'Páginas' },
               { key: 'pendientes', label: pendingCount > 0 ? `Pendientes (${pendingCount})` : 'Pendientes', alert: pendingCount > 0 },
               { key: 'config',     label: 'Config' },
               { key: 'contenido',  label: 'Contenido' },
@@ -1551,6 +1619,7 @@ export default function AdminPage() {
               { key: 'convenciones', label: `Convenciones (${conventions.length})` },
               { key: 'estudios',     label: `Estudios (${adminStudios.length})` },
               { key: 'agregar',      label: '+ Agregar' },
+              { key: 'idiomas',      label: 'Idiomas' },
             ] as const
             const current = tabs.find(t => t.key === tab)
             return (
@@ -1654,65 +1723,6 @@ export default function AdminPage() {
               ? <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando estadísticas...</p>
               : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} appEventCounts={appEventCounts} />
             }
-          </div>
-
-        ) : tab === 'paginas' ? (
-
-          // ── PÁGINAS LEGALES ─────────────────────────────────────────────────
-          <div className="flex flex-col gap-4">
-            {editingPage === null ? (
-              pages.map(p => (
-                <div key={p.slug} className="rounded-xl p-4 flex items-center justify-between"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <div>
-                    <p className="text-sm font-bold text-white">{p.title}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                      flashttoo.com/{p.slug}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => { setEditingPage(p.slug); setPageForm({ title: p.title, content: p.content }) }}
-                    className="text-xs px-4 py-2 rounded-lg transition-all"
-                    style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.4)')}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}>
-                    editar
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold" style={{ color: '#efff42' }}>
-                    Editando: {pages.find(p => p.slug === editingPage)?.title}
-                  </p>
-                  <button onClick={() => setEditingPage(null)}
-                    className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                    cancelar
-                  </button>
-                </div>
-                <div>
-                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Título</p>
-                  <input value={pageForm.title}
-                    onChange={e => setPageForm(f => ({ ...f, title: e.target.value }))}
-                    className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                </div>
-                <div>
-                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contenido</p>
-                  <textarea value={pageForm.content}
-                    onChange={e => setPageForm(f => ({ ...f, content: e.target.value }))}
-                    rows={20}
-                    className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', resize: 'vertical', lineHeight: 1.7, fontFamily: 'monospace', fontSize: 13 }} />
-                </div>
-                <button onClick={savePage} disabled={savingPage}
-                  className="self-end px-6 py-2 rounded-lg font-bold text-sm disabled:opacity-50"
-                  style={{ background: '#efff42', color: '#000' }}>
-                  {savingPage ? 'Guardando...' : 'Guardar'}
-                </button>
-              </div>
-            )}
           </div>
 
         ) : tab === 'pendientes' ? (
@@ -2034,6 +2044,31 @@ export default function AdminPage() {
               Las tarjetas aparecen en el feed cada ~20 posiciones. Al hacer clic se abre un modal con el contenido completo.
             </p>
 
+            {/* Selector de idioma para las tarjetas */}
+            {contentLangsAll.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {contentLangsAll.map(l => {
+                  const hasCards = (cardsByLang[l.code]?.length ?? 0) > 0
+                  const isSelected = selectedCardsLang === l.code
+                  return (
+                    <button key={l.code}
+                      onClick={() => setSelectedCardsLang(l.code)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                      style={{
+                        background: isSelected ? '#efff42' : 'rgba(255,255,255,0.05)',
+                        color: isSelected ? '#000' : hasCards ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)',
+                        border: `1px solid ${isSelected ? 'transparent' : hasCards ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'}`,
+                      }}>
+                      {l.flag} {l.name}
+                      {hasCards && !isSelected && (
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
             {/* Lista de tarjetas existentes */}
             <div className="flex flex-col gap-4">
               {contentCards.map((card, idx) => (
@@ -2091,8 +2126,9 @@ export default function AdminPage() {
                 await fetch('/api/admin/settings', {
                   method: 'PATCH',
                   headers: { ...H(pass), 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ key: 'content_cards', value: contentCards }),
+                  body: JSON.stringify({ key: selectedCardsLang === 'es' ? 'content_cards' : `content_cards_${selectedCardsLang}`, value: contentCards }),
                 })
+                setCardsByLang(prev => ({ ...prev, [selectedCardsLang]: contentCards }))
                 setSavingContent(false)
               }}
               disabled={savingContent}
@@ -3213,6 +3249,243 @@ export default function AdminPage() {
                 <p className="text-xs text-center py-8" style={{ color: 'rgba(255,255,255,0.15)' }}>No hay estudios creados aún</p>
               )}
             </div>
+
+          </div>
+
+        ) : tab === 'idiomas' ? (
+
+          // ── IDIOMAS ──────────────────────────────────────────────────────────
+          <div className="flex flex-col gap-5" style={{ maxWidth: 700 }}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3">
+              {idiomaLang ? (
+                <button onClick={() => { setIdiomaLang(null); setIdiomaEsKeys([]); setIdiomaEdits({}) }}
+                  className="text-sm font-bold flex items-center gap-2"
+                  style={{ color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  ← Idiomas
+                </button>
+              ) : (
+                <p className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  {langs.length} idioma{langs.length !== 1 ? 's' : ''}
+                </p>
+              )}
+              {!idiomaLang && (
+                <button onClick={() => setAddLangOpen(true)}
+                  className="text-xs font-bold px-4 py-2 rounded-lg"
+                  style={{ background: 'rgba(239,255,66,0.12)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', cursor: 'pointer' }}>
+                  + Idioma
+                </button>
+              )}
+            </div>
+
+            {/* Modal agregar idioma */}
+            {addLangOpen && (
+              <div className="rounded-xl p-4 flex flex-col gap-3"
+                style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.2)' }}>
+                <p className="text-sm font-bold" style={{ color: '#efff42' }}>Nuevo idioma</p>
+                <div className="flex gap-2">
+                  <input placeholder="Código (ej: en)" value={newLang.code}
+                    onChange={e => setNewLang(p => ({ ...p, code: e.target.value.toLowerCase().slice(0, 5) }))}
+                    className="flex-1 py-2 px-3 text-sm text-white outline-none rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  <input placeholder="Nombre (ej: English)" value={newLang.name}
+                    onChange={e => setNewLang(p => ({ ...p, name: e.target.value }))}
+                    className="flex-1 py-2 px-3 text-sm text-white outline-none rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  <input placeholder="Bandera 🇺🇸" value={newLang.flag}
+                    onChange={e => setNewLang(p => ({ ...p, flag: e.target.value }))}
+                    className="w-28 py-2 px-3 text-sm text-white outline-none rounded-lg text-center"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    if (!newLang.code || !newLang.name) return
+                    setAddingLang(true)
+                    const r = await fetch('/api/admin/languages', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(newLang),
+                    })
+                    const d = await r.json()
+                    if (d.language) setLangs(prev => [...prev, d.language])
+                    setNewLang({ code: '', name: '', flag: '' })
+                    setAddLangOpen(false)
+                    setAddingLang(false)
+                  }} disabled={addingLang || !newLang.code || !newLang.name}
+                    className="flex-1 py-2 rounded-lg text-sm font-bold"
+                    style={{ background: '#efff42', color: '#000', border: 'none', cursor: 'pointer', opacity: addingLang ? 0.5 : 1 }}>
+                    {addingLang ? 'Creando...' : 'Crear'}
+                  </button>
+                  <button onClick={() => { setAddLangOpen(false); setNewLang({ code: '', name: '', flag: '' }) }}
+                    className="px-4 py-2 rounded-lg text-sm"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!idiomaLang ? (
+              /* ── Lista de idiomas ── */
+              <div className="flex flex-col gap-3">
+                {langs.map(lang => (
+                  <div key={lang.code} className="rounded-xl p-4 flex items-center gap-4"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <span style={{ fontSize: 26 }}>{lang.flag || '🌐'}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-white">{lang.name}</p>
+                        {lang.code === 'es' && (
+                          <span className="text-xs px-2 py-0.5 rounded-full"
+                            style={{ background: 'rgba(239,255,66,0.12)', color: '#efff42' }}>Madre</span>
+                        )}
+                        {!lang.active && (
+                          <span className="text-xs px-2 py-0.5 rounded-full"
+                            style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)' }}>Inactivo</span>
+                        )}
+                      </div>
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{lang.code}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {lang.code !== 'es' && (
+                        <button onClick={async () => {
+                          await fetch(`/api/admin/languages/${lang.code}`, {
+                            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ active: !lang.active }),
+                          })
+                          setLangs(prev => prev.map(l => l.code === lang.code ? { ...l, active: !l.active } : l))
+                        }}
+                          className="text-xs px-3 py-1.5 rounded-lg"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
+                          {lang.active ? 'Desactivar' : 'Activar'}
+                        </button>
+                      )}
+                      <button onClick={() => openLang(lang.code)}
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg"
+                        style={{ background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', color: '#efff42', cursor: 'pointer' }}>
+                        Editar traducciones
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {langs.length === 0 && (
+                  <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                    Sin idiomas. El español se agrega automáticamente al correr el SQL.
+                  </p>
+                )}
+              </div>
+            ) : (
+              /* ── Editor de traducciones ── */
+              <div className="flex flex-col gap-3">
+                <div className="rounded-xl p-3 flex items-center gap-3"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <span style={{ fontSize: 22 }}>{langs.find(l => l.code === idiomaLang)?.flag || '🌐'}</span>
+                  <div>
+                    <p className="text-sm font-bold text-white">{langs.find(l => l.code === idiomaLang)?.name}</p>
+                    {idiomaLang === 'es' && (
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Idioma madre — editás los valores base</p>
+                    )}
+                    {idiomaLang !== 'es' && (
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Los campos vacíos muestran el texto en español</p>
+                    )}
+                  </div>
+                </div>
+
+                {TRANS_SECTIONS.map(sec => {
+                  const secKeys = idiomaEsKeys.filter(k => k.section === sec.key)
+                  const isOpen = idiomaOpen.has(sec.key)
+                  const filledCount = secKeys.filter(k => idiomaEdits[sec.key]?.[k.key]?.trim()).length
+                  const allFilled = secKeys.length > 0 && filledCount === secKeys.length
+                  return (
+                    <div key={sec.key} className="rounded-xl overflow-hidden"
+                      style={{ border: `1px solid ${allFilled ? 'rgba(74,222,128,0.25)' : 'rgba(255,255,255,0.07)'}` }}>
+                      {/* Sección header */}
+                      <button
+                        onClick={() => setIdiomaOpen(prev => {
+                          const next = new Set(prev)
+                          if (next.has(sec.key)) next.delete(sec.key)
+                          else next.add(sec.key)
+                          return next
+                        })}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors"
+                        style={{ background: isOpen ? 'rgba(239,255,66,0.05)' : 'rgba(255,255,255,0.02)', cursor: 'pointer', border: 'none' }}>
+                        <span className="text-sm font-bold" style={{ color: isOpen ? '#efff42' : 'rgba(255,255,255,0.7)' }}>{sec.label}</span>
+                        <div className="flex items-center gap-2">
+                          {secKeys.length > 0 && (
+                            <span className="text-xs font-bold tabular-nums" style={{ color: allFilled ? '#4ade80' : filledCount > 0 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.15)' }}>
+                              {filledCount}/{secKeys.length}
+                            </span>
+                          )}
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{isOpen ? '▲' : '▼'}</span>
+                        </div>
+                      </button>
+
+                      {isOpen && (
+                        <div className="flex flex-col gap-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                          {secKeys.map(k => {
+                            const filled = !!(idiomaEdits[sec.key]?.[k.key]?.trim())
+                            return (
+                              <div key={k.key} className="px-4 py-3 flex flex-col gap-1.5"
+                              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                              <div className="flex items-center gap-2">
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: filled ? '#4ade80' : 'rgba(255,255,255,0.12)' }} />
+                                <code className="text-xs px-1.5 py-0.5 rounded"
+                                  style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
+                                  {k.key}
+                                </code>
+                                {idiomaLang !== 'es' && (
+                                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                                    ES: {k.value}
+                                  </span>
+                                )}
+                              </div>
+                              {k.value.length > 100 ? (
+                                <textarea
+                                  value={idiomaEdits[sec.key]?.[k.key] ?? ''}
+                                  onChange={e => setIdiomaEdits(prev => ({
+                                    ...prev,
+                                    [sec.key]: { ...prev[sec.key], [k.key]: e.target.value },
+                                  }))}
+                                  placeholder={idiomaLang !== 'es' ? k.value : ''}
+                                  rows={10}
+                                  className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', transition: 'border-color 0.15s', resize: 'vertical', lineHeight: 1.7, fontFamily: 'monospace', fontSize: 12 }}
+                                  onFocus={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.4)')}
+                                  onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+                                />
+                              ) : (
+                                <input
+                                  value={idiomaEdits[sec.key]?.[k.key] ?? ''}
+                                  onChange={e => setIdiomaEdits(prev => ({
+                                    ...prev,
+                                    [sec.key]: { ...prev[sec.key], [k.key]: e.target.value },
+                                  }))}
+                                  placeholder={idiomaLang !== 'es' ? k.value : ''}
+                                  className="w-full py-1.5 px-3 text-sm text-white outline-none rounded-lg"
+                                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', transition: 'border-color 0.15s' }}
+                                  onFocus={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.4)')}
+                                  onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+                                />
+                              )}
+                            </div>
+                            )
+                          })}
+                          <div className="px-4 py-3 flex justify-end">
+                            <button
+                              onClick={() => saveIdiomaSection(sec.key)}
+                              disabled={idiomaSaving === sec.key}
+                              className="text-xs font-bold px-4 py-2 rounded-lg"
+                              style={{ background: '#efff42', color: '#000', border: 'none', cursor: 'pointer', opacity: idiomaSaving === sec.key ? 0.5 : 1 }}>
+                              {idiomaSaving === sec.key ? 'Guardando...' : 'Guardar sección'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
 
           </div>
 
