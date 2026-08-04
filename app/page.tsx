@@ -685,7 +685,7 @@ export default function Home() {
                           fontWeight: l.code === language ? 700 : 400,
                         }}>
                         <span>{l.flag}</span>
-                        <span>{l.name}</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: 12, letterSpacing: '0.05em' }}>{l.code}</span>
                       </button>
                     ))}
                   </div>

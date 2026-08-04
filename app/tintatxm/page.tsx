@@ -1122,6 +1122,9 @@ export default function AdminPage() {
   const [addLangOpen, setAddLangOpen]       = useState(false)
   const [newLang, setNewLang]               = useState({ code: '', name: '', flag: '' })
   const [addingLang, setAddingLang]         = useState(false)
+  const [editingLangCode, setEditingLangCode] = useState<string | null>(null)
+  const [editingLangVals, setEditingLangVals] = useState({ code: '', name: '', flag: '' })
+  const [savingLangMeta, setSavingLangMeta]   = useState(false)
 
   const TRANS_SECTIONS = [
     { key: 'inicio',     label: 'Inicio — Feed principal' },
@@ -3329,43 +3332,98 @@ export default function AdminPage() {
               /* ── Lista de idiomas ── */
               <div className="flex flex-col gap-3">
                 {langs.map(lang => (
-                  <div key={lang.code} className="rounded-xl p-4 flex items-center gap-4"
+                  <div key={lang.code} className="rounded-xl p-4 flex flex-col gap-3"
                     style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    <span style={{ fontSize: 26 }}>{lang.flag || '🌐'}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-white">{lang.name}</p>
-                        {lang.code === 'es' && (
-                          <span className="text-xs px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(239,255,66,0.12)', color: '#efff42' }}>Madre</span>
-                        )}
-                        {!lang.active && (
-                          <span className="text-xs px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)' }}>Inactivo</span>
-                        )}
+
+                    {/* Fila principal */}
+                    <div className="flex items-center gap-4">
+                      <span style={{ fontSize: 26 }}>{lang.flag || '🌐'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-white">{lang.name}</p>
+                          {lang.code === 'es' && (
+                            <span className="text-xs px-2 py-0.5 rounded-full"
+                              style={{ background: 'rgba(239,255,66,0.12)', color: '#efff42' }}>Madre</span>
+                          )}
+                          {!lang.active && (
+                            <span className="text-xs px-2 py-0.5 rounded-full"
+                              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)' }}>Inactivo</span>
+                          )}
+                        </div>
+                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{lang.code}</p>
                       </div>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{lang.code}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {lang.code !== 'es' && (
-                        <button onClick={async () => {
-                          await fetch(`/api/admin/languages/${lang.code}`, {
-                            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ active: !lang.active }),
-                          })
-                          setLangs(prev => prev.map(l => l.code === lang.code ? { ...l, active: !l.active } : l))
+                      <div className="flex items-center gap-2">
+                        {lang.code !== 'es' && (
+                          <button onClick={async () => {
+                            await fetch(`/api/admin/languages/${lang.code}`, {
+                              method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ active: !lang.active }),
+                            })
+                            setLangs(prev => prev.map(l => l.code === lang.code ? { ...l, active: !l.active } : l))
+                          }}
+                            className="text-xs px-3 py-1.5 rounded-lg"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
+                            {lang.active ? 'Desactivar' : 'Activar'}
+                          </button>
+                        )}
+                        <button onClick={() => {
+                          if (editingLangCode === lang.code) { setEditingLangCode(null); return }
+                          setEditingLangCode(lang.code)
+                          setEditingLangVals({ code: lang.code, name: lang.name, flag: lang.flag })
                         }}
                           className="text-xs px-3 py-1.5 rounded-lg"
-                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
-                          {lang.active ? 'Desactivar' : 'Activar'}
+                          style={{ background: editingLangCode === lang.code ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
+                          {editingLangCode === lang.code ? 'Cancelar' : 'Editar'}
                         </button>
-                      )}
-                      <button onClick={() => openLang(lang.code)}
-                        className="text-xs font-bold px-3 py-1.5 rounded-lg"
-                        style={{ background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', color: '#efff42', cursor: 'pointer' }}>
-                        Editar traducciones
-                      </button>
+                        <button onClick={() => openLang(lang.code)}
+                          className="text-xs font-bold px-3 py-1.5 rounded-lg"
+                          style={{ background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', color: '#efff42', cursor: 'pointer' }}>
+                          Traducciones
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Formulario inline de edición */}
+                    {editingLangCode === lang.code && (
+                      <div className="flex gap-2 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <input
+                          placeholder="Código (ej: en)"
+                          value={editingLangVals.code}
+                          onChange={e => setEditingLangVals(p => ({ ...p, code: e.target.value.toLowerCase().slice(0, 5) }))}
+                          className="flex-1 py-2 px-3 text-sm text-white outline-none rounded-lg"
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                        <input
+                          placeholder="Nombre"
+                          value={editingLangVals.name}
+                          onChange={e => setEditingLangVals(p => ({ ...p, name: e.target.value }))}
+                          className="flex-1 py-2 px-3 text-sm text-white outline-none rounded-lg"
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                        <input
+                          placeholder="🏳️"
+                          value={editingLangVals.flag}
+                          onChange={e => setEditingLangVals(p => ({ ...p, flag: e.target.value }))}
+                          className="w-20 py-2 px-3 text-sm text-white outline-none rounded-lg text-center"
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                        <button
+                          disabled={savingLangMeta}
+                          onClick={async () => {
+                            setSavingLangMeta(true)
+                            await fetch(`/api/admin/languages/${lang.code}`, {
+                              method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ code: editingLangVals.code, name: editingLangVals.name, flag: editingLangVals.flag }),
+                            })
+                            setLangs(prev => prev.map(l => l.code === lang.code
+                              ? { ...l, code: editingLangVals.code, name: editingLangVals.name, flag: editingLangVals.flag }
+                              : l))
+                            setSavingLangMeta(false)
+                            setEditingLangCode(null)
+                          }}
+                          className="px-4 py-2 rounded-lg text-sm font-bold"
+                          style={{ background: '#efff42', color: '#000', border: 'none', cursor: 'pointer', opacity: savingLangMeta ? 0.5 : 1 }}>
+                          {savingLangMeta ? '...' : 'Guardar'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {langs.length === 0 && (
