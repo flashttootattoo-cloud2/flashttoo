@@ -160,7 +160,7 @@ const sections = [
           <StepLi n={3}>El link a tu web y/o número de WhatsApp.</StepLi>
           <StepLi n={4}>Si querés segmentación por ciudad, indicarnos cuál.</StepLi>
         </ol>
-        <Highlight><span>✉️</span><span>Escribinos por Instagram <B>@flashttoo</B> y te respondemos con toda la info.</span></Highlight>
+        <Highlight><span>✉️</span><span>Mandanos todo al mail <B>soporte.flashttoo@gmail.com</B> para recibir los archivos con la mejor calidad.</span></Highlight>
       </>
     ),
   },
