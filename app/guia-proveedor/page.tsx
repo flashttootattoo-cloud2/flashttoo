@@ -24,7 +24,7 @@ export default function GuiaProveedor() {
           Tu marca en Flashttoo
         </h1>
         <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, marginBottom: 48 }}>
-          Flashttoo es la plataforma donde tatuadores y estudios muestran su trabajo y conectan con clientes. Como proveedor, tu marca aparece frente a una audiencia 100% del mundo del tatuaje.
+          Flashttoo es la plataforma donde tatuadores y estudios muestran su trabajo y conectan con clientes. Como proveedor, tu marca llega directo a esa comunidad.
         </p>
 
         {sections.map((s, i) => (
@@ -93,7 +93,7 @@ const sections = [
     title: '¿Qué es un perfil de Proveedor?',
     content: (
       <>
-        <P>Un perfil de proveedor en Flashttoo le da visibilidad a tu marca frente a tatuadores, estudios y clientes que ya están dentro de la plataforma.</P>
+        <P>Un perfil de proveedor en Flashttoo le da presencia activa dentro de la app: tu logo, descripción y datos de contacto visibles para todos los que ya están usando la plataforma.</P>
         <P>Tu logo aparece en la <B>barra de Insumos</B> en la parte inferior de la app, scrolleando de forma continua. Al tocar el botón <B>Insumos</B>, los usuarios acceden al listado completo de marcas donde pueden ver tu perfil, descripción y contacto.</P>
         <Highlight><span>🎯</span><span>Tu audiencia es 100% del mundo del tatuaje — tatuadores activos, estudios y personas que buscan hacerse un tatuaje.</span></Highlight>
       </>
