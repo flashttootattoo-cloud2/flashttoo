@@ -852,7 +852,7 @@ export default function Home() {
                                 </div>
                                 {item.data.hiring && (
                                   <div style={{ background: '#efff42', padding: '1px 8px', textAlign: 'center' }}>
-                                    <span style={{ fontSize: 8, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Se busca {item.data.hiring_role || 'tatuador'}</span>
+                                    <span style={{ fontSize: 8, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Se busca {item.data.hiring_role === 'residente' ? 'residente' : 'guest artist'}</span>
                                   </div>
                                 )}
                               </div>
@@ -940,7 +940,7 @@ export default function Home() {
                             </div>
                             {s.hiring && (
                               <div style={{ background: '#efff42', padding: '2px 12px', textAlign: 'center' }}>
-                                <span style={{ fontSize: 9, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Se busca {s.hiring_role || 'tatuador'}</span>
+                                <span style={{ fontSize: 9, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Se busca {s.hiring_role === 'residente' ? 'residente' : 'guest artist'}</span>
                               </div>
                             )}
                           </div>

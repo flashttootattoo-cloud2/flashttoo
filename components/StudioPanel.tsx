@@ -50,7 +50,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
 
   const [editForm, setEditForm] = useState({ name: '', description: '', instagram: '', whatsapp: '', website: '' })
   const [hiring, setHiring] = useState(false)
-  const [hiringRole, setHiringRole] = useState<'tatuador' | 'residente'>('tatuador')
+  const [hiringRole, setHiringRole] = useState<'guest artist' | 'residente'>('guest artist')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -123,7 +123,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
       setKeyVerified(keyInput.trim())
       setEditForm({ name: studio?.name || '', description: studio?.description || '', instagram: studio?.instagram || '', whatsapp: studio?.whatsapp || '', website: studio?.website || '' })
       setHiring(studio?.hiring || false)
-      setHiringRole((studio?.hiring_role as 'tatuador' | 'residente') || 'tatuador')
+      setHiringRole(studio?.hiring_role === 'residente' ? 'residente' : 'guest artist')
       fetch(`/api/studios/${slug}/flash-days`)
         .then(r => r.json()).then(d => setFlashDays(d.flashDays ?? [])).catch(() => {})
     } else { setKeyError('Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo') }
@@ -401,7 +401,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
                   ))}
                   <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
                     <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Convocatoria</p>
-                    <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', lineHeight: 1.5, marginBottom: 10 }}>Mostrá un cartel en el feed avisando que tu estudio busca tatuador o residente.</p>
+                    <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', lineHeight: 1.5, marginBottom: 10 }}>Mostrá un cartel en el feed avisando que tu estudio busca guest artist o residente.</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: hiring ? 10 : 0 }}>
                       <button onClick={() => setHiring(v => !v)} style={{ width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', background: hiring ? '#000' : 'rgba(0,0,0,0.15)', flexShrink: 0 }}>
                         <span style={{ position: 'absolute', top: 3, left: hiring ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: hiring ? '#efff42' : 'rgba(0,0,0,0.3)', transition: 'left 0.15s' }} />
@@ -410,10 +410,10 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
                     </div>
                     {hiring && (
                       <div style={{ display: 'flex', gap: 8 }}>
-                        {(['tatuador', 'residente'] as const).map(role => (
+                        {(['guest artist', 'residente'] as const).map(role => (
                           <button key={role} onClick={() => setHiringRole(role)}
                             style={{ flex: 1, padding: '8px', borderRadius: 10, border: `2px solid ${hiringRole === role ? '#000' : 'rgba(0,0,0,0.15)'}`, background: hiringRole === role ? '#000' : 'transparent', color: hiringRole === role ? '#efff42' : 'rgba(0,0,0,0.5)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-                            {role === 'tatuador' ? 'Tatuador' : 'Residente'}
+                            {role === 'guest artist' ? 'Guest Artist' : 'Residente'}
                           </button>
                         ))}
                       </div>
