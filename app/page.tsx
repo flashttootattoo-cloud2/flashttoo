@@ -670,7 +670,7 @@ export default function Home() {
                   onClick={() => setLangOpen(v => !v)}
                   className="flex items-center justify-center rounded-lg text-base transition-opacity hover:opacity-80"
                   style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  {languages.find(l => l.code === language)?.flag || '🌐'}
+                  <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>{language}</span>
                 </button>
                 {langOpen && (
                   <div className="absolute right-0 mt-1 rounded-xl overflow-hidden z-50 min-w-max"
