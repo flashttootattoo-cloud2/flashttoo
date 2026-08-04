@@ -3,29 +3,45 @@
 import { useEffect, useRef, useState } from 'react'
 
 type Convention = { id: string; name: string | null; image_url: string; link: string | null }
+type FlashDay   = { id: string; studio_slug: string; studio_name: string; flyer_url: string; date: string }
+type Item =
+  | { kind: 'conv';  data: Convention }
+  | { kind: 'flash'; data: FlashDay }
 
-export default function ConventionModal({ conventions }: { conventions: Convention[] }) {
+export default function ConventionModal({ conventions, flashDays = [], onOpenStudio }: {
+  conventions: Convention[]
+  flashDays?: FlashDay[]
+  onOpenStudio?: (slug: string) => void
+}) {
   const [visible, setVisible] = useState(false)
-  const conv = useRef<Convention | null>(null)
+  const item = useRef<Item | null>(null)
 
   useEffect(() => {
-    if (!conventions.length) return
+    const pool: Item[] = [
+      ...conventions.map(c => ({ kind: 'conv'  as const, data: c })),
+      ...flashDays.map(f =>   ({ kind: 'flash' as const, data: f })),
+    ]
+    if (!pool.length) return
     try { if (sessionStorage.getItem('conv_closed')) return } catch {}
-    const picked = conventions[Math.floor(Math.random() * conventions.length)]
-    conv.current = picked
+    const picked = pool[Math.floor(Math.random() * pool.length)]
+    item.current = picked
+    const src = picked.kind === 'conv' ? picked.data.image_url : picked.data.flyer_url
     const img = new window.Image()
     img.onload = () => setVisible(true)
     img.onerror = () => setVisible(true)
-    img.src = picked.image_url
-  }, [conventions])
+    img.src = src
+  }, [conventions, flashDays])
 
   const dismiss = () => {
     setVisible(false)
     try { sessionStorage.setItem('conv_closed', '1') } catch {}
   }
 
-  if (!visible || !conv.current) return null
-  const c = conv.current
+  if (!visible || !item.current) return null
+  const it = item.current
+
+  const imageSrc  = it.kind === 'conv' ? it.data.image_url : it.data.flyer_url
+  const imageAlt  = it.kind === 'conv' ? (it.data.name || 'Convención') : `Flash Day ${it.data.studio_name}`
 
   return (
     <div
@@ -47,36 +63,43 @@ export default function ConventionModal({ conventions }: { conventions: Conventi
           animation: 'convIn 0.25s ease',
           boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
         }}>
-        {/* Flyer — completo, sin corte */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={c.image_url} alt={c.name || 'Convención'}
-          style={{
-            display: 'block', width: '100%',
-            maxHeight: '65vh',
-            objectFit: 'contain',
-            background: '#000',
-          }} />
+        <img src={imageSrc} alt={imageAlt}
+          style={{ display: 'block', width: '100%', maxHeight: '65vh', objectFit: 'contain', background: '#000' }} />
 
-        {/* Acciones */}
         <div style={{ padding: '16px 18px 20px' }}>
-          {c.name && (
-            <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, margin: '0 0 14px', lineHeight: 1.25 }}>
-              {c.name}
-            </p>
+          {it.kind === 'flash' && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, marginBottom: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#efff42' }}>Flash Day</span>
+            </div>
+          )}
+          {it.kind === 'conv' && it.data.name && (
+            <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, margin: '0 0 14px', lineHeight: 1.25 }}>{it.data.name}</p>
+          )}
+          {it.kind === 'flash' && (
+            <>
+              <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, margin: '0 0 4px', lineHeight: 1.25 }}>{it.data.studio_name}</p>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: '0 0 14px' }}>
+                {new Date(it.data.date + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </p>
+            </>
           )}
           <div style={{ display: 'flex', gap: 10 }}>
-            {c.link && (
-              <a href={c.link} target="_blank" rel="noopener noreferrer" onClick={() => { dismiss(); fetch(`/api/conventions/${c.id}/click`, { method: 'POST' }).catch(() => {}) }}
-                style={{
-                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  padding: '12px 18px', background: '#efff42', color: '#000',
-                  borderRadius: 12, fontSize: 14, fontWeight: 800, textDecoration: 'none',
-                }}>
+            {it.kind === 'conv' && it.data.link && (
+              <a href={it.data.link} target="_blank" rel="noopener noreferrer"
+                onClick={() => { dismiss(); fetch(`/api/conventions/${it.data.id}/click`, { method: 'POST' }).catch(() => {}) }}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 18px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
                 Ver más →
               </a>
             )}
+            {it.kind === 'flash' && (
+              <button onClick={() => { dismiss(); onOpenStudio?.(it.data.studio_slug) }}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 18px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 14, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
+                Ver estudio →
+              </button>
+            )}
             <button onClick={dismiss} style={{
-              flex: c.link ? '0 0 auto' : 1,
+              flex: (it.kind === 'conv' && it.data.link) || it.kind === 'flash' ? '0 0 auto' : 1,
               padding: '12px 20px',
               background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
               color: 'rgba(255,255,255,0.5)', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer',
@@ -86,7 +109,6 @@ export default function ConventionModal({ conventions }: { conventions: Conventi
           </div>
         </div>
 
-        {/* X arriba derecha */}
         <button onClick={dismiss} style={{
           position: 'absolute', top: 10, right: 10,
           width: 30, height: 30, borderRadius: '50%',

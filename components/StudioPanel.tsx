@@ -64,6 +64,13 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
   const [addingArtist, setAddingArtist] = useState(false)
   const [addError, setAddError] = useState('')
 
+  const [flashDays, setFlashDays] = useState<{ id: string; flyer_url: string; date: string }[]>([])
+  const [fdDate, setFdDate] = useState('')
+  const [fdFile, setFdFile] = useState<File | null>(null)
+  const [fdPreview, setFdPreview] = useState<string | null>(null)
+  const [addingFd, setAddingFd] = useState(false)
+  const [fdError, setFdError] = useState('')
+
   useEffect(() => {
     setLoading(true); setNotFound(false); setStudio(null); setArtists([])
     fetch(`/api/studios/${slug}`)
@@ -117,8 +124,61 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
       setEditForm({ name: studio?.name || '', description: studio?.description || '', instagram: studio?.instagram || '', whatsapp: studio?.whatsapp || '', website: studio?.website || '' })
       setHiring(studio?.hiring || false)
       setHiringRole((studio?.hiring_role as 'tatuador' | 'residente') || 'tatuador')
+      fetch(`/api/studios/${slug}/flash-days`)
+        .then(r => r.json()).then(d => setFlashDays(d.flashDays ?? [])).catch(() => {})
     } else { setKeyError('Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo') }
     setVerifying(false)
+  }
+
+  const handleFdFlyer = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return
+    setFdPreview(URL.createObjectURL(file))
+    const img = new window.Image()
+    img.onload = () => {
+      const MAX = 1200; let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => { if (blob) setFdFile(new File([blob], 'flyer.webp', { type: 'image/webp' })) }, 'image/webp', 0.88)
+    }
+    img.src = URL.createObjectURL(file)
+  }
+
+  const addFlashDay = async () => {
+    if (!fdFile || !fdDate) return
+    setAddingFd(true); setFdError('')
+    try {
+      const fd = new FormData()
+      fd.append('file', fdFile)
+      fd.append('path', `flash-day-${slug}-${Date.now()}.webp`)
+      const up = await fetch('/api/upload', { method: 'POST', body: fd })
+      if (!up.ok) throw new Error('Error al subir flyer')
+      const { url } = await up.json()
+      const r = await fetch(`/api/studios/${slug}/flash-days`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ edit_key: keyVerified, flyer_url: url, date: fdDate }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Error')
+      setFlashDays(prev => [...prev, d.flashDay].sort((a, b) => a.date.localeCompare(b.date)))
+      setFdDate(''); setFdFile(null); setFdPreview(null)
+    } catch (e: unknown) {
+      setFdError(e instanceof Error ? e.message : 'Error')
+    } finally { setAddingFd(false) }
+  }
+
+  const removeFlashDay = async (id: string) => {
+    const r = await fetch(`/api/studios/${slug}/flash-days`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ edit_key: keyVerified, id }),
+    })
+    if (r.ok) setFlashDays(prev => prev.filter(f => f.id !== id))
   }
 
   const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -395,6 +455,45 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
                       </div>
                     </div>
                   )}
+
+                  {/* Flash Days */}
+                  <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Flash Days</p>
+                    <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', lineHeight: 1.5, marginBottom: 10 }}>Subí el flyer y la fecha. Aparece en la sección de Eventos de Flashttoo.</p>
+
+                    {flashDays.map(f => (
+                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(0,0,0,0.07)', borderRadius: 10, marginBottom: 6 }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={f.flyer_url} alt="" style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover' }} />
+                        <p style={{ flex: 1, fontSize: 13, fontWeight: 700, color: '#000' }}>
+                          {new Date(f.date + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                        <button onClick={() => removeFlashDay(f.id)}
+                          style={{ background: 'none', border: 'none', color: 'rgba(0,0,0,0.35)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>×</button>
+                      </div>
+                    ))}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: flashDays.length ? 8 : 0 }}>
+                      <input type="date" value={fdDate} onChange={e => setFdDate(e.target.value)} required
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.12)', color: fdDate ? '#000' : 'rgba(0,0,0,0.35)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                      <label style={{ display: 'block', cursor: 'pointer' }}>
+                        {fdPreview ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={fdPreview} alt="" style={{ width: '100%', borderRadius: 10, objectFit: 'contain', maxHeight: 160, background: 'rgba(0,0,0,0.08)' }} />
+                        ) : (
+                          <div style={{ width: '100%', padding: '18px', borderRadius: 12, border: '1.5px dashed rgba(0,0,0,0.2)', background: 'rgba(0,0,0,0.05)', textAlign: 'center' }}>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)' }}>+ Subir flyer</p>
+                          </div>
+                        )}
+                        <input type="file" accept="image/*" onChange={handleFdFlyer} style={{ display: 'none' }} />
+                      </label>
+                      {fdError && <p style={{ fontSize: 12, color: 'rgba(160,0,0,0.8)' }}>{fdError}</p>}
+                      <button onClick={addFlashDay} disabled={addingFd || !fdFile || !fdDate}
+                        style={{ width: '100%', padding: '10px', borderRadius: 12, background: '#000', color: '#efff42', fontWeight: 800, fontSize: 13, border: 'none', cursor: 'pointer', opacity: (addingFd || !fdFile || !fdDate) ? 0.3 : 1 }}>
+                        {addingFd ? 'Publicando...' : 'Publicar Flash Day'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

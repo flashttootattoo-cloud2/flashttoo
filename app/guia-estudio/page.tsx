@@ -169,6 +169,21 @@ const sections = [
     ),
   },
   {
+    title: 'Publicar un Flash Day',
+    content: (
+      <>
+        <P>Un Flash Day es un evento de un día en el que el estudio trabaja solo o con artistas invitados. Podés publicarlo con flyer y fecha — aparece en la sección de <B>Eventos</B> de Flashttoo y también puede salir en el popup inicial que ven los usuarios al abrir la app.</P>
+        <ol style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+          <StepLi n={1}>Abrí el panel de edición con tu clave.</StepLi>
+          <StepLi n={2}>Bajá hasta la sección <B>Flash Days</B>.</StepLi>
+          <StepLi n={3}>Elegí la fecha del evento y subí el flyer.</StepLi>
+          <StepLi n={4}>Tocá <B>Publicar</B>. El Flash Day aparece de inmediato en Eventos.</StepLi>
+        </ol>
+        <Highlight><span>📅</span><span>La fecha y el flyer son <B>obligatorios</B>. Una vez pasada la fecha, el evento deja de aparecer automáticamente. También podés eliminarlo antes desde el mismo panel.</span></Highlight>
+      </>
+    ),
+  },
+  {
     title: 'Cómo aparece en el feed',
     content: (
       <>

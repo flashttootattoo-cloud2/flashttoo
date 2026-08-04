@@ -127,15 +127,6 @@ const sections = [
     ),
   },
   {
-    title: 'Duración y fechas',
-    content: (
-      <>
-        <P>Cada perfil de proveedor tiene una <B>fecha de inicio</B> y una <B>fecha de vencimiento</B>. Tu banner aparece activo durante ese período y se desactiva automáticamente al vencer.</P>
-        <P>Cuando el período esté por terminar, te avisamos para que puedas renovarlo y mantener tu presencia en la plataforma.</P>
-      </>
-    ),
-  },
-  {
     title: 'Tus estadísticas',
     content: (
       <>

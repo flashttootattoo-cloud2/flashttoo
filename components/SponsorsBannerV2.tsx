@@ -11,6 +11,7 @@ type Sponsor = {
 }
 
 type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null }
+type FlashDay = { id: string; studio_slug: string; studio_name: string; flyer_url: string; date: string }
 
 function norm(s: string) {
   return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -55,7 +56,7 @@ function filterSponsors(all: Sponsor[], city?: string, country?: string): Sponso
   })
 }
 
-export default function SponsorsBannerV2({ city, country, conventions = [] }: { city?: string; country?: string; conventions?: Convention[] }) {
+export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void }) {
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
@@ -303,15 +304,24 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
 
             {/* Vista Eventos */}
             {convView && (() => {
-              const withDate = [...conventions].filter(c => c.expires_at).sort((a, b) => new Date(a.expires_at!).getTime() - new Date(b.expires_at!).getTime())
-              const noDate   = conventions.filter(c => !c.expires_at)
-              const groups: { label: string; items: Convention[] }[] = []
-              for (const c of withDate) {
-                const d = new Date(c.expires_at!)
-                const label = d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/^\w/, l => l.toUpperCase())
+              type EventItem =
+                | { kind: 'conv'; date: Date | null; data: Convention }
+                | { kind: 'flash'; date: Date; data: FlashDay }
+
+              const items: EventItem[] = [
+                ...conventions.map(c => ({ kind: 'conv' as const, date: c.expires_at ? new Date(c.expires_at) : null, data: c })),
+                ...flashDays.map(f => ({ kind: 'flash' as const, date: new Date(f.date + 'T12:00:00'), data: f })),
+              ]
+
+              const withDate = items.filter(i => i.date).sort((a, b) => a.date!.getTime() - b.date!.getTime())
+              const noDate   = items.filter(i => !i.date)
+
+              const groups: { label: string; items: EventItem[] }[] = []
+              for (const item of withDate) {
+                const label = item.date!.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/^\w/, l => l.toUpperCase())
                 const last = groups[groups.length - 1]
-                if (last && last.label === label) last.items.push(c)
-                else groups.push({ label, items: [c] })
+                if (last && last.label === label) last.items.push(item)
+                else groups.push({ label, items: [item] })
               }
               if (noDate.length > 0) groups.push({ label: 'Sin fecha', items: noDate })
 
@@ -334,6 +344,31 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
                 </div>
               )
 
+              const FlashCard = ({ f }: { f: FlashDay }) => (
+                <div style={{ borderRadius: 16, overflow: 'hidden', background: '#111', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.flyer_url} alt={`Flash Day ${f.studio_name}`} style={{ display: 'block', width: '100%', objectFit: 'contain' }} />
+                  <div style={{ padding: '16px 20px 20px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, marginBottom: 10 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#efff42' }}>Flash Day</span>
+                    </div>
+                    <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 4px', lineHeight: 1.2 }}>{f.studio_name}</p>
+                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, margin: '0 0 14px' }}>
+                      {new Date(f.date + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </p>
+                    <button
+                      onClick={() => {
+                        histDepthRef.current = 0
+                        setExpanded(false)
+                        onOpenStudio?.(f.studio_slug)
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 13, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
+                      Ver estudio →
+                    </button>
+                  </div>
+                </div>
+              )
+
               if (groups.length === 0) return (
                 <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>No hay eventos próximos</p>
               )
@@ -348,7 +383,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [] }: { 
                         <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        {g.items.map(c => <ConvCard key={c.id} c={c} />)}
+                        {g.items.map(item => item.kind === 'conv'
+                          ? <ConvCard key={item.data.id} c={item.data} />
+                          : <FlashCard key={item.data.id} f={item.data} />
+                        )}
                       </div>
                     </div>
                   ))}

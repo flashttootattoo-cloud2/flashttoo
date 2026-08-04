@@ -114,6 +114,7 @@ export default function Home() {
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [loading, setLoading]         = useState(true)
   const [conventions, setConventions]       = useState<Convention[]>([])
+  const [flashDays, setFlashDays]           = useState<{ id: string; studio_slug: string; studio_name: string; flyer_url: string; date: string }[]>([])
   const [contentCards, setContentCards]     = useState<ContentCard[]>([])
   const [studios, setStudios] = useState<Studio[]>([])
   const [selectedStudioSlug, setSelectedStudioSlug] = useState<string | null>(null)
@@ -265,6 +266,7 @@ export default function Home() {
     fetch('/api/content-cards').then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
     fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true) }).catch(() => {})
     fetch('/api/conventions').then(r => r.json()).then(d => { if (Array.isArray(d.conventions)) setConventions(d.conventions) }).catch(() => {})
+    fetch('/api/flash-days').then(r => r.json()).then(d => { if (Array.isArray(d.flashDays)) setFlashDays(d.flashDays) }).catch(() => {})
     fetch('/api/studios').then(r => r.json()).then(d => { if (Array.isArray(d.studios)) setStudios(shuffle(d.studios)) }).catch(() => {})
     supabase.from('settings').select('value').eq('key', 'show_count').single().then(({ data }) => { if (data?.value === true) setShowCount(true) })
   }, [])
@@ -1501,9 +1503,9 @@ export default function Home() {
         />
       )}
 
-      <ConventionModal conventions={conventions} />
+      <ConventionModal conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} />
       <SponsorsBanner country={country} />
-      <SponsorsBannerV2 city={city} country={country} conventions={conventions} />
+      <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} />
 
       {/* Visor fullscreen galería — tira deslizante */}
       {fullscreenImg && (
