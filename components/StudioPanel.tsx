@@ -225,7 +225,12 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
       body: JSON.stringify({ edit_key: keyVerified, instagram: igInput.trim() }),
     })
     const d = await r.json()
-    if (!r.ok) { setAddError(d.error || 'Error'); setAddingArtist(false); return }
+    if (!r.ok) {
+      const msg = d.error === 'artist_not_found'
+        ? t('estudio', 'add_artist_not_found', `No se encontró ningún artista con @${d.handle || igInput.trim().replace(/^@/, '')} en Flashttoo`)
+        : (d.error || 'Error')
+      setAddError(msg); setAddingArtist(false); return
+    }
     setArtists(prev => [...prev, d.artist]); setIgInput(''); setAddingArtist(false)
   }
 

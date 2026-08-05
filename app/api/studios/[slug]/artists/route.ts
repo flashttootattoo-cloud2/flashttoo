@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     .limit(1)
     .single()
 
-  if (!artist) return NextResponse.json({ error: `No se encontró ningún artista con @${handle} en Flashttoo` }, { status: 404 })
+  if (!artist) return NextResponse.json({ error: 'artist_not_found', handle }, { status: 404 })
 
   const { error } = await sb().from('studio_artists').insert({ studio_id: studio.id, artist_id: artist.id })
   if (error) {
