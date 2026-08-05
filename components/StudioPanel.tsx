@@ -508,6 +508,21 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
                       </button>
                     </div>
                   </div>
+
+                  {/* Términos */}
+                  <p style={{ fontSize: 10, color: 'rgba(0,0,0,0.3)', textAlign: 'center', lineHeight: 1.6, paddingTop: 8 }}>
+                    {t('estudio', 'legal_notice', 'Al usar Flashttoo aceptás nuestros')}{' '}
+                    <a href="/terminos" target="_blank" rel="noopener noreferrer"
+                      style={{ color: 'rgba(0,0,0,0.45)', textDecoration: 'underline' }}>
+                      {t('estudio', 'legal_terms', 'Términos y condiciones')}
+                    </a>
+                    {' '}{t('estudio', 'legal_and', 'y')}{' '}
+                    <a href="/privacidad" target="_blank" rel="noopener noreferrer"
+                      style={{ color: 'rgba(0,0,0,0.45)', textDecoration: 'underline' }}>
+                      {t('estudio', 'legal_privacy', 'Política de privacidad')}
+                    </a>.
+                  </p>
+
                 </div>
               )}
             </div>
