@@ -437,7 +437,8 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
 
                   {/* Agregar artista */}
                   <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{t('estudio', 'add_artist_title', 'Agregar artista por IG')}</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('estudio', 'add_artist_title', 'Agregar artista por IG')}</p>
+                    <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', lineHeight: 1.5, marginBottom: 10 }}>{t('estudio', 'add_artist_desc', 'El artista ya tiene que tener perfil en Flashttoo.')}</p>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <input value={igInput} onChange={e => setIgInput(e.target.value)} placeholder={t('agregar', 'instagram_placeholder', '@usuario')} onKeyDown={e => e.key === 'Enter' && addArtist()}
                         style={{ flex: 1, padding: '10px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.12)', color: '#000', fontSize: 14, outline: 'none' }} />
