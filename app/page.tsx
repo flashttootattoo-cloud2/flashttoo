@@ -135,6 +135,7 @@ export default function Home() {
   const [showCount, setShowCount]           = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [eventsCountryFilter, setEventsCountryFilter] = useState(false)
+  const [totalActiveArtists, setTotalActiveArtists] = useState<number | null>(null)
   const [fullscreenImg, setFullscreenImg]   = useState<string | null>(null)
   const [fullscreenPhotos, setFullscreenPhotos] = useState<string[]>([])
   const [fullscreenIdx, setFullscreenIdx]   = useState(0)
@@ -270,6 +271,7 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
     fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true) }).catch(() => {})
+    supabase.from('artists').select('id', { count: 'exact', head: true }).eq('visible', true).then(({ count }) => { if (typeof count === 'number') setTotalActiveArtists(count) })
     fetch('/api/conventions').then(r => r.json()).then(d => { if (Array.isArray(d.conventions)) setConventions(d.conventions) }).catch(() => {})
     fetch('/api/flash-days').then(r => r.json()).then(d => { if (Array.isArray(d.flashDays)) setFlashDays(d.flashDays) }).catch(() => {})
     fetch('/api/studios').then(r => r.json()).then(d => { if (Array.isArray(d.studios)) setStudios(shuffle(d.studios)) }).catch(() => {})
@@ -783,10 +785,10 @@ export default function Home() {
         </div>
       </header>
 
-      {!loading && showCount && (
+      {!loading && showCount && totalActiveArtists !== null && (
         <div className="max-w-7xl mx-auto px-5 pt-4 pb-1">
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.15)', letterSpacing: '0.05em' }}>
-            {filtered.length} {filtered.length !== 1 ? t('inicio', 'count_plural', 'tatuadores') : t('inicio', 'count_singular', 'tatuador')}
+            {totalActiveArtists} {totalActiveArtists !== 1 ? t('inicio', 'count_plural', 'tatuadores') : t('inicio', 'count_singular', 'tatuador')}
           </p>
         </div>
       )}
