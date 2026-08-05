@@ -11,7 +11,7 @@ type Sponsor = {
   logo_scale: number | null; whatsapp: string | null
 }
 
-type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null }
+type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null; country: string | null }
 type FlashDay = { id: string; studio_slug: string; studio_name: string; flyer_url: string; date: string }
 
 function norm(s: string) {
@@ -57,7 +57,7 @@ function filterSponsors(all: Sponsor[], city?: string, country?: string): Sponso
   })
 }
 
-export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void }) {
+export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean }) {
   const { t, language } = useTranslation()
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,6 +65,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [gridSearch, setGridSearch] = useState('')
   const [convView, setConvView] = useState(false)
+  const [convCountrySearch, setConvCountrySearch] = useState('')
   const [showInfo, setShowInfo] = useState(false)
   const [mailCopied, setMailCopied] = useState(false)
   const allRef        = useRef<Sponsor[]>([])
@@ -310,10 +311,18 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 | { kind: 'conv'; date: Date | null; data: Convention }
                 | { kind: 'flash'; date: Date; data: FlashDay }
 
-              const items: EventItem[] = [
+              const allItems: EventItem[] = [
                 ...conventions.map(c => ({ kind: 'conv' as const, date: c.expires_at ? new Date(c.expires_at) : null, data: c })),
                 ...flashDays.map(f => ({ kind: 'flash' as const, date: new Date(f.date + 'T12:00:00'), data: f })),
               ]
+
+              const items = convCountrySearch.trim()
+                ? allItems.filter(i => {
+                    const q = norm(convCountrySearch)
+                    if (i.kind === 'conv') return norm(i.data.country || '').includes(q)
+                    return false
+                  })
+                : allItems
 
               const withDate = items.filter(i => i.date).sort((a, b) => a.date!.getTime() - b.date!.getTime())
               const noDate   = items.filter(i => !i.date)
@@ -371,12 +380,27 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 </div>
               )
 
-              if (groups.length === 0) return (
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>{t('eventos', 'no_events', 'No hay eventos próximos')}</p>
-              )
-
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+                  {showEventsCountryFilter && (
+                    <input
+                      type="text"
+                      placeholder={t('eventos', 'search_country', 'Buscar evento por país...')}
+                      value={convCountrySearch}
+                      onChange={e => setConvCountrySearch(e.target.value)}
+                      style={{
+                        width: '100%', boxSizing: 'border-box',
+                        padding: '10px 16px',
+                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
+                        borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none',
+                      }}
+                    />
+                  )}
+                  {groups.length === 0 && (
+                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
+                      {convCountrySearch.trim() ? t('eventos', 'no_results_country', 'Sin eventos en ese país') : t('eventos', 'no_events', 'No hay eventos próximos')}
+                    </p>
+                  )}
                   {groups.map(g => (
                     <div key={g.label}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>

@@ -53,7 +53,7 @@ type ContentCard = {
   id: string; title: string; body: string; active: boolean
 }
 
-type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null }
+type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null; country: string | null }
 
 const AD_INTERVAL = 15
 
@@ -134,6 +134,7 @@ export default function Home() {
   )
   const [showCount, setShowCount]           = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
+  const [eventsCountryFilter, setEventsCountryFilter] = useState(false)
   const [fullscreenImg, setFullscreenImg]   = useState<string | null>(null)
   const [fullscreenPhotos, setFullscreenPhotos] = useState<string[]>([])
   const [fullscreenIdx, setFullscreenIdx]   = useState(0)
@@ -268,7 +269,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
-    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true) }).catch(() => {})
     fetch('/api/conventions').then(r => r.json()).then(d => { if (Array.isArray(d.conventions)) setConventions(d.conventions) }).catch(() => {})
     fetch('/api/flash-days').then(r => r.json()).then(d => { if (Array.isArray(d.flashDays)) setFlashDays(d.flashDays) }).catch(() => {})
     fetch('/api/studios').then(r => r.json()).then(d => { if (Array.isArray(d.studios)) setStudios(shuffle(d.studios)) }).catch(() => {})
@@ -1544,7 +1545,7 @@ export default function Home() {
 
       <ConventionModal conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} />
       <SponsorsBanner country={country} />
-      <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} />
+      <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} />
 
       {/* Visor fullscreen galería — tira deslizante */}
       {fullscreenImg && (

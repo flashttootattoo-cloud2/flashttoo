@@ -52,6 +52,7 @@ type SponsorV2Admin = {
 type Convention = {
   id: string; name: string | null; image_url: string; link: string | null
   expires_at: string | null; active: boolean; created_at: string; clicks: number
+  country: string | null
 }
 
 type StatsV2Bucket = { detail_open: number; banner_click: number; detail_click: number }
@@ -1076,8 +1077,10 @@ export default function AdminPage() {
   const [savingMod, setSavingMod]   = useState(false)
   const [showCount, setShowCount]   = useState(false)
   const [savingShowCount, setSavingShowCount] = useState(false)
-  const [galleryEnabled, setGalleryEnabled] = useState(false)
-  const [savingGallery, setSavingGallery]   = useState(false)
+  const [galleryEnabled, setGalleryEnabled]             = useState(false)
+  const [savingGallery, setSavingGallery]               = useState(false)
+  const [eventsCountryFilter, setEventsCountryFilter]   = useState(false)
+  const [savingEventsCountry, setSavingEventsCountry]   = useState(false)
   const [storageR2, setStorageR2]           = useState(false)
   const [savingStorage, setSavingStorage]   = useState(false)
   const [r2Available, setR2Available]       = useState(false)
@@ -1185,7 +1188,7 @@ export default function AdminPage() {
   const [editV2DetailLogoPreview, setEditV2DetailLogoPreview] = useState<string | null>(null)
   const [savingEditV2, setSavingEditV2]       = useState(false)
   const [conventions, setConventions]         = useState<Convention[]>([])
-  const [convForm, setConvForm]               = useState({ name: '', link: '', expires_at: '' })
+  const [convForm, setConvForm]               = useState({ name: '', link: '', expires_at: '', country: '' })
   const [convImage, setConvImage]             = useState<File | null>(null)
   const [convImagePreview, setConvImagePreview] = useState<string | null>(null)
   const [savingConv, setSavingConv]           = useState(false)
@@ -1283,6 +1286,7 @@ export default function AdminPage() {
         setModeration(cfg.value.settings?.moderation === true)
         setShowCount(cfg.value.settings?.show_count === true)
         setGalleryEnabled(cfg.value.settings?.artist_gallery_enabled === true)
+        setEventsCountryFilter(cfg.value.settings?.events_country_filter === true)
         setStorageR2(cfg.value.settings?.storage_provider === 'r2')
         setR2Available(cfg.value.r2_available === true)
         if (Array.isArray(cfg.value.settings?.styles) && cfg.value.settings.styles.length > 0)
@@ -1545,12 +1549,13 @@ export default function AdminPage() {
       fd.append('image', convImage)
       if (convForm.name.trim()) fd.append('name', convForm.name.trim())
       if (convForm.link.trim()) fd.append('link', convForm.link.trim())
+      if (convForm.country.trim()) fd.append('country', convForm.country.trim())
       if (convForm.expires_at) fd.append('expires_at', new Date(convForm.expires_at).toISOString())
       const r = await fetch('/api/admin/conventions', { method: 'POST', headers: H(pass), body: fd })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Error')
       setConventions(prev => [d.convention, ...prev])
-      setConvForm({ name: '', link: '', expires_at: '' }); setConvImage(null); setConvImagePreview(null)
+      setConvForm({ name: '', link: '', expires_at: '', country: '' }); setConvImage(null); setConvImagePreview(null)
     } catch (err: unknown) {
       setConvError(err instanceof Error ? err.message : 'Error')
     } finally { setSavingConv(false) }
@@ -1831,6 +1836,44 @@ export default function AdminPage() {
               </div>
               <p className="text-xs mt-3 font-bold" style={{ color: showCount ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
                 {showCount ? 'Activado — se ve el contador en la home' : 'Desactivado — contador oculto'}
+              </p>
+            </div>
+
+            {/* Buscador de eventos por país */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Buscador de eventos por país</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                    Muestra un buscador por país en la sección de Eventos del feed.
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setSavingEventsCountry(true)
+                    const next = !eventsCountryFilter
+                    await fetch('/api/admin/settings', {
+                      method: 'PATCH',
+                      headers: { ...H(pass), 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ key: 'events_country_filter', value: next }),
+                    })
+                    setEventsCountryFilter(next)
+                    setSavingEventsCountry(false)
+                  }}
+                  disabled={savingEventsCountry}
+                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                  style={{ width: 48, height: 28, background: eventsCountryFilter ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', top: 4,
+                    left: eventsCountryFilter ? 24 : 4,
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: eventsCountryFilter ? '#000' : 'rgba(255,255,255,0.4)',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              <p className="text-xs mt-3 font-bold" style={{ color: eventsCountryFilter ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                {eventsCountryFilter ? 'Activado — se ve el buscador en Eventos' : 'Desactivado'}
               </p>
             </div>
 
@@ -2960,6 +3003,12 @@ export default function AdminPage() {
 
                 <div className="flex flex-col gap-3">
                   <div>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>País (opcional)</p>
+                    <input value={convForm.country} onChange={e => setConvForm(v => ({ ...v, country: e.target.value }))} placeholder="Ej: Argentina"
+                      className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  </div>
+                  <div>
                     <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Nombre (opcional)</p>
                     <input value={convForm.name} onChange={e => setConvForm(v => ({ ...v, name: e.target.value }))} placeholder="Ej: FestiTattoo 2025"
                       className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
@@ -2999,6 +3048,9 @@ export default function AdminPage() {
 
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate">{conv.name || '— sin nombre —'}</p>
+                    {conv.country && (
+                      <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>🌍 {conv.country}</p>
+                    )}
                     {conv.link && (
                       <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{conv.link}</p>
                     )}

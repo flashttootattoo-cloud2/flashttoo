@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     name: (fd.get('name') as string | null)?.trim() || null,
     image_url,
     link: (fd.get('link') as string | null)?.trim() || null,
+    country: (fd.get('country') as string | null)?.trim() || null,
     expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
     active: true,
   }).select().single()
