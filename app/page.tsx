@@ -1365,7 +1365,7 @@ export default function Home() {
             </div>
 
             {/* CARTA */}
-            <div style={{ perspective: 1200, width: '100%' }}>
+            <div style={{ perspective: 1200, width: '100%', background: '#000' }}>
               <div className="secret-card-inner" style={{ position: 'relative', width: '100%', aspectRatio: '3/4' }}>
                 {/* DORSO */}
                 <div className="secret-face secret-back">
