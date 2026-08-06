@@ -1338,14 +1338,14 @@ export default function Home() {
             .secret-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; position: absolute; inset: 0; overflow: hidden; }
             .secret-back  { transform: rotateY(0deg); border-radius: 0; }
             .secret-front { transform: rotateY(180deg); border-radius: 0; }
-            .secret-info-top { opacity: 0; animation: infoTop 0.5s ease forwards; animation-delay: 1.3s; }
-            .secret-info-bot { opacity: 0; animation: infoBot 0.5s ease forwards; animation-delay: 1.3s; }
+            .secret-info-top { opacity: 0; animation: infoTop 0.7s ease forwards; animation-delay: 2.5s; }
+            .secret-info-bot { opacity: 0; animation: infoBot 0.7s ease forwards; animation-delay: 2.5s; }
             @keyframes glowPulse {
               0%   { box-shadow: 0 0 18px 3px rgba(239,255,66,0.10), 0 0 6px 1px rgba(239,255,66,0.07); }
               50%  { box-shadow: 0 0 38px 10px rgba(239,255,66,0.28), 0 0 14px 4px rgba(239,255,66,0.16); }
               100% { box-shadow: 0 0 18px 3px rgba(239,255,66,0.10), 0 0 6px 1px rgba(239,255,66,0.07); }
             }
-            .secret-glow { box-shadow: none; animation: glowPulse 2.4s ease-in-out infinite; animation-delay: 1.8s; }
+            .secret-glow { box-shadow: none; animation: glowPulse 2.4s ease-in-out infinite; animation-delay: 3.2s; }
           `}</style>
 
           <div className="secret-glow" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, width: '72vw', maxWidth: 300, borderRadius: 10 }}>
