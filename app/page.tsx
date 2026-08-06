@@ -1342,8 +1342,7 @@ export default function Home() {
             .secret-info-bot { opacity: 0; animation: infoBot 0.5s ease forwards; animation-delay: 1.3s; }
           `}</style>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, width: '72vw', maxWidth: 300 }}
-            onClick={e => e.stopPropagation()}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, width: '72vw', maxWidth: 300 }}>
 
             {/* INFO SUPERIOR */}
             <div className="secret-info-top" style={{ width: '100%', background: '#000', borderRadius: '10px 10px 0 0', padding: '8px 12px' }}>
