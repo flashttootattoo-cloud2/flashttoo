@@ -1376,7 +1376,8 @@ export default function Home() {
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>{secretCard.city}</p>
             )}
             {secretCard.link && (
-              <a href={secretCard.link} target="_blank" rel="noopener noreferrer"
+              <a href={secretCard.link.startsWith('@') ? `https://instagram.com/${secretCard.link.slice(1)}` : secretCard.link}
+                target="_blank" rel="noopener noreferrer"
                 onClick={e => e.stopPropagation()}
                 style={{ display: 'inline-block', marginTop: 14, fontSize: 12, fontWeight: 700, color: '#efff42', textDecoration: 'none' }}>
                 Ver perfil →
