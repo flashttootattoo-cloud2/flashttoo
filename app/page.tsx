@@ -244,6 +244,12 @@ export default function Home() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
+  useEffect(() => {
+    const onPop = () => { setShowSecretCard(false) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
   // Persistir filtros en sessionStorage para restaurarlos si el browser recarga la pestaña
   useEffect(() => { try { sessionStorage.setItem('s_country', country.trim()) } catch {} }, [country])
   useEffect(() => { try { sessionStorage.setItem('s_city', city.trim()) } catch {} }, [city])
@@ -553,6 +559,7 @@ export default function Home() {
     taps.push(now)
     if (taps.length > 3) taps.shift()
     if (taps.length === 3 && taps[2] - taps[0] < 1500 && secretCard?.image_url) {
+      history.pushState({ secretCard: true }, '')
       setShowSecretCard(true)
       logoTapsRef.current = []
     }
@@ -1311,7 +1318,7 @@ export default function Home() {
       {/* ── CARTA SECRETA ─────────────────────────────────────── */}
       {showSecretCard && secretCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.18)', animation: 'fadeInYellow 0.2s ease' }}
+          style={{ background: 'rgba(0,0,0,0.55)', animation: 'fadeInYellow 0.2s ease' }}
           onClick={() => setShowSecretCard(false)}>
           <style>{`
             @keyframes cardFlip {
@@ -1328,18 +1335,18 @@ export default function Home() {
               to   { opacity: 1; transform: translateY(0); }
             }
             .secret-card-inner { animation: cardFlip 1.5s cubic-bezier(.6,0,.4,1) forwards; transform-style: preserve-3d; }
-            .secret-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; position: absolute; inset: 0; border-radius: 16px; overflow: hidden; }
-            .secret-back  { transform: rotateY(0deg); }
-            .secret-front { transform: rotateY(180deg); }
+            .secret-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; position: absolute; inset: 0; overflow: hidden; }
+            .secret-back  { transform: rotateY(0deg); border-radius: 0; }
+            .secret-front { transform: rotateY(180deg); border-radius: 0; }
             .secret-info-top { opacity: 0; animation: infoTop 0.5s ease forwards; animation-delay: 1.3s; }
             .secret-info-bot { opacity: 0; animation: infoBot 0.5s ease forwards; animation-delay: 1.3s; }
           `}</style>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '72vw', maxWidth: 300 }}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, width: '72vw', maxWidth: 300 }}
             onClick={e => e.stopPropagation()}>
 
             {/* INFO SUPERIOR */}
-            <div className="secret-info-top" style={{ width: '100%', background: 'rgba(0,0,0,0.75)', borderRadius: 10, padding: '8px 12px' }}>
+            <div className="secret-info-top" style={{ width: '100%', background: '#000', borderRadius: '10px 10px 0 0', padding: '8px 12px' }}>
               <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.6)' }}>
                 {secretCard.number ? `#${secretCard.number} · ` : ''}✦ {t('global', 'secret_card', 'carta secreta')}
               </span>
@@ -1372,7 +1379,7 @@ export default function Home() {
             </div>
 
             {/* INFO INFERIOR */}
-            <div className="secret-info-bot" style={{ width: '100%', background: 'rgba(0,0,0,0.75)', borderRadius: 10, padding: '10px 12px 12px' }}>
+            <div className="secret-info-bot" style={{ width: '100%', background: '#000', borderRadius: '0 0 10px 10px', padding: '10px 12px 12px' }}>
               <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{secretCard.artist_name}</p>
               {secretCard.city && (
                 <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>{secretCard.city}</p>
