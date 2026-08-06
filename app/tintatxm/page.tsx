@@ -2181,7 +2181,7 @@ export default function AdminPage() {
                 <div>
                   <p className="text-sm font-bold text-white">✦ Carta secreta</p>
                   <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
-                    Se activa tocando el logo 3 veces. Mostrá una ilustración de un artista con link a su perfil.
+                    Se activa tocando el logo 3 veces. Mostrá una ilustración de un artista con link a su perfil. Imágenes: proporción 3:4 — recomendado 900 × 1200 px.
                   </p>
                 </div>
                 <button
