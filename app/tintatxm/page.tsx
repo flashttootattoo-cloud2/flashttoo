@@ -2195,7 +2195,7 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, position: 'relative' }}>
                 <div>
                   <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Frente (ilustración)</p>
                   <label style={{ display: 'block', cursor: 'pointer' }}>
@@ -2232,6 +2232,36 @@ export default function AdminPage() {
                     }} />
                   </label>
                 </div>
+                {/* Botón guardar flotante sobre las cartas */}
+                <button
+                  onClick={async () => {
+                    setSavingSecretCard(true)
+                    const fd = new FormData()
+                    if (secretCardFile) fd.append('image', secretCardFile)
+                    if (secretCardBackFile) fd.append('back_image', secretCardBackFile)
+                    fd.append('current_image_url', secretCardAdmin.image_url || '')
+                    fd.append('current_back_image_url', secretCardAdmin.back_image_url || '')
+                    fd.append('active', String(secretCardAdmin.active))
+                    fd.append('artist_name', secretCardAdmin.artist_name)
+                    fd.append('city', secretCardAdmin.city)
+                    fd.append('link', secretCardAdmin.link)
+                    fd.append('caption', secretCardAdmin.caption)
+                    fd.append('number', secretCardAdmin.number)
+                    const r = await fetch('/api/admin/secret-card', { method: 'POST', headers: { 'x-admin-pass': pass }, body: fd })
+                    const d = await r.json()
+                    if (d.card) { setSecretCardAdmin(d.card); setSecretCardFile(null); setSecretCardPreview(null); setSecretCardBackFile(null); setSecretCardBackPreview(null) }
+                    setSavingSecretCard(false)
+                  }}
+                  disabled={savingSecretCard}
+                  style={{
+                    position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
+                    background: '#efff42', color: '#000', border: 'none', borderRadius: 20,
+                    padding: '8px 22px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                    whiteSpace: 'nowrap', opacity: savingSecretCard ? 0.5 : 1,
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                  }}>
+                  {savingSecretCard ? 'Guardando...' : 'Guardar carta'}
+                </button>
               </div>
 
               {[
@@ -2257,30 +2287,6 @@ export default function AdminPage() {
                 </div>
               ))}
 
-              <button
-                onClick={async () => {
-                  setSavingSecretCard(true)
-                  const fd = new FormData()
-                  if (secretCardFile) fd.append('image', secretCardFile)
-                  if (secretCardBackFile) fd.append('back_image', secretCardBackFile)
-                  fd.append('current_image_url', secretCardAdmin.image_url || '')
-                  fd.append('current_back_image_url', secretCardAdmin.back_image_url || '')
-                  fd.append('active', String(secretCardAdmin.active))
-                  fd.append('artist_name', secretCardAdmin.artist_name)
-                  fd.append('city', secretCardAdmin.city)
-                  fd.append('link', secretCardAdmin.link)
-                  fd.append('caption', secretCardAdmin.caption)
-                  fd.append('number', secretCardAdmin.number)
-                  const r = await fetch('/api/admin/secret-card', { method: 'POST', headers: { 'x-admin-pass': pass }, body: fd })
-                  const d = await r.json()
-                  if (d.card) { setSecretCardAdmin(d.card); setSecretCardFile(null); setSecretCardPreview(null); setSecretCardBackFile(null); setSecretCardBackPreview(null) }
-                  setSavingSecretCard(false)
-                }}
-                disabled={savingSecretCard}
-                className="self-end px-5 py-2 rounded-xl font-bold text-sm disabled:opacity-50"
-                style={{ background: '#efff42', color: '#000' }}>
-                {savingSecretCard ? 'Guardando...' : 'Guardar carta'}
-              </button>
             </div>
 
             <button

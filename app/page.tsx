@@ -1347,6 +1347,7 @@ export default function Home() {
             .secret-front { transform: rotateY(180deg); border-radius: 10px; }
             .secret-info-top { opacity: 0; animation: infoTop 0.7s ease forwards; animation-delay: 2.5s; }
             .secret-info-bot { opacity: 0; animation: infoBot 0.7s ease forwards; animation-delay: 2.5s; }
+            @keyframes secretBgFade { from { opacity: 0; } to { opacity: 1; } }
             @keyframes glowPulse {
               0%   { box-shadow: 0 0 18px 3px rgba(239,255,66,0.10), 0 0 6px 1px rgba(239,255,66,0.07); }
               50%  { box-shadow: 0 0 38px 10px rgba(239,255,66,0.28), 0 0 14px 4px rgba(239,255,66,0.16); }
@@ -1365,7 +1366,7 @@ export default function Home() {
             </div>
 
             {/* CARTA */}
-            <div style={{ perspective: 1200, width: '100%', background: '#000' }}>
+            <div style={{ perspective: 1200, width: '100%', background: '#000', opacity: 0, animation: 'secretBgFade 0.7s ease forwards', animationDelay: '2.5s' }}>
               <div className="secret-card-inner" style={{ position: 'relative', width: '100%', aspectRatio: '3/4' }}>
                 {/* DORSO */}
                 <div className="secret-face secret-back">
