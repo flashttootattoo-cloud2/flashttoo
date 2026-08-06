@@ -1339,15 +1339,10 @@ export default function Home() {
             onClick={e => e.stopPropagation()}>
 
             {/* INFO SUPERIOR */}
-            <div className="secret-info-top" style={{ width: '100%' }}>
+            <div className="secret-info-top" style={{ width: '100%', background: 'rgba(0,0,0,0.75)', borderRadius: 10, padding: '8px 12px' }}>
               <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.6)' }}>
-                {secretCard.number ? `#${secretCard.number} · ` : ''}✦ carta secreta
+                {secretCard.number ? `#${secretCard.number} · ` : ''}✦ {t('global', 'secret_card', 'carta secreta')}
               </span>
-              {secretCard.caption && (
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginTop: 4, whiteSpace: 'pre-wrap' }}>
-                  {secretCard.caption}
-                </p>
-              )}
             </div>
 
             {/* CARTA */}
@@ -1363,7 +1358,7 @@ export default function Home() {
                     <div style={{ width: '100%', height: '100%', background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 24, opacity: 0.35 }} />
-                      <span style={{ fontSize: 8, letterSpacing: '0.2em', color: 'rgba(239,255,66,0.2)', textTransform: 'uppercase' }}>carta secreta</span>
+                      <span style={{ fontSize: 8, letterSpacing: '0.2em', color: 'rgba(239,255,66,0.2)', textTransform: 'uppercase' }}>{t('global', 'secret_card', 'carta secreta')}</span>
                     </div>
                   )}
                 </div>
@@ -1377,10 +1372,15 @@ export default function Home() {
             </div>
 
             {/* INFO INFERIOR */}
-            <div className="secret-info-bot" style={{ width: '100%' }}>
+            <div className="secret-info-bot" style={{ width: '100%', background: 'rgba(0,0,0,0.75)', borderRadius: 10, padding: '10px 12px 12px' }}>
               <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{secretCard.artist_name}</p>
               {secretCard.city && (
                 <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>{secretCard.city}</p>
+              )}
+              {secretCard.caption && (
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6, marginTop: 6, whiteSpace: 'pre-wrap' }}>
+                  {secretCard.caption}
+                </p>
               )}
               {secretCard.link && (
                 <a href={secretCard.link.startsWith('@') ? `/?artista=${secretCard.link.slice(1)}` : secretCard.link}
