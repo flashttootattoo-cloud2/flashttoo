@@ -1343,8 +1343,8 @@ export default function Home() {
             }
             .secret-card-inner { animation: cardFlip 1.5s cubic-bezier(.6,0,.4,1) forwards; transform-style: preserve-3d; }
             .secret-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; position: absolute; inset: 0; overflow: hidden; }
-            .secret-back  { transform: rotateY(0deg); border-radius: 0; }
-            .secret-front { transform: rotateY(180deg); border-radius: 0; }
+            .secret-back  { transform: rotateY(0deg); border-radius: 10px; }
+            .secret-front { transform: rotateY(180deg); border-radius: 10px; }
             .secret-info-top { opacity: 0; animation: infoTop 0.7s ease forwards; animation-delay: 2.5s; }
             .secret-info-bot { opacity: 0; animation: infoBot 0.7s ease forwards; animation-delay: 2.5s; }
             @keyframes glowPulse {
