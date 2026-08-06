@@ -1304,7 +1304,7 @@ export default function Home() {
               <button onClick={() => setSelectedContent(null)}
                 className="mb-8 text-xs transition-opacity hover:opacity-50"
                 style={{ color: 'rgba(0,0,0,0.4)' }}>
-                ← cerrar
+                {t('global', 'card_close', '← cerrar')}
               </button>
               <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(0,0,0,0.3)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
                 Flashttoo
@@ -1394,7 +1394,7 @@ export default function Home() {
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Ver más</p>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{t('global', 'see_more', 'Ver más')}</p>
                     <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
                   </a>
                 )}
