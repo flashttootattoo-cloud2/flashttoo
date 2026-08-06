@@ -1089,6 +1089,10 @@ export default function AdminPage() {
   const [savingStyles, setSavingStyles] = useState(false)
   const [contentCards, setContentCards] = useState<ContentCard[]>([])
   const [savingContent, setSavingContent] = useState(false)
+  const [secretCardAdmin, setSecretCardAdmin] = useState({ active: false, image_url: '', artist_name: '', city: '', link: '', caption: '' })
+  const [secretCardFile, setSecretCardFile] = useState<File | null>(null)
+  const [secretCardPreview, setSecretCardPreview] = useState<string | null>(null)
+  const [savingSecretCard, setSavingSecretCard] = useState(false)
   const [contentLangsAll, setContentLangsAll] = useState<{ code: string; name: string; flag: string }[]>([])
   const [cardsByLang, setCardsByLang] = useState<Record<string, ContentCard[]>>({ es: [] })
   const [selectedCardsLang, setSelectedCardsLang] = useState('es')
@@ -1300,6 +1304,9 @@ export default function AdminPage() {
               byLang[k.replace('content_cards_', '')] = cfg.value.settings[k]
           })
           setCardsByLang(byLang)
+          if (cfg.value.settings.secret_card) {
+            setSecretCardAdmin(cfg.value.settings.secret_card)
+          }
         }
       }
       setLoading(false)
@@ -2166,6 +2173,92 @@ export default function AdminPage() {
             </button>
 
             {/* Guardar */}
+            {/* ── CARTA SECRETA ─────────────────────────────────── */}
+            <div className="rounded-xl p-5 flex flex-col gap-4" style={{ background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.15)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">✦ Carta secreta</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
+                    Se activa tocando el logo 3 veces. Mostrá una ilustración de un artista con link a su perfil.
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const next = !secretCardAdmin.active
+                    setSecretCardAdmin(prev => ({ ...prev, active: next }))
+                  }}
+                  className="ml-4 shrink-0 rounded-full transition-all"
+                  style={{ width: 48, height: 28, background: secretCardAdmin.active ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{ position: 'absolute', top: 4, left: secretCardAdmin.active ? 24 : 4, width: 20, height: 20, borderRadius: '50%', background: secretCardAdmin.active ? '#000' : 'rgba(255,255,255,0.4)', transition: 'left 0.2s' }} />
+                </button>
+              </div>
+
+              <div>
+                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Ilustración</p>
+                <label style={{ display: 'block', cursor: 'pointer' }}>
+                  {secretCardPreview || secretCardAdmin.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={secretCardPreview || secretCardAdmin.image_url} alt=""
+                      style={{ width: '100%', maxHeight: 280, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)' }} />
+                  ) : (
+                    <div style={{ height: 120, borderRadius: 10, border: '2px dashed rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>+ Subir ilustración</span>
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => {
+                    const f = e.target.files?.[0]
+                    if (!f) return
+                    setSecretCardFile(f)
+                    setSecretCardPreview(URL.createObjectURL(f))
+                  }} />
+                </label>
+              </div>
+
+              {[
+                { key: 'artist_name', label: 'Nombre del artista', placeholder: 'Ej: María Ink' },
+                { key: 'city',        label: 'Ciudad',             placeholder: 'Ej: Buenos Aires' },
+                { key: 'link',        label: 'Link al perfil',     placeholder: 'https://... o @usuario' },
+                { key: 'caption',     label: 'Descripción (opcional)', placeholder: 'Texto que acompaña la ilustración...' },
+              ].map(f => (
+                <div key={f.key}>
+                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{f.label}</p>
+                  {f.key === 'caption' ? (
+                    <textarea rows={3} value={(secretCardAdmin as Record<string, string>)[f.key]} placeholder={f.placeholder}
+                      onChange={e => setSecretCardAdmin(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      className="w-full text-sm text-white outline-none rounded-lg px-3 py-2 resize-none"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  ) : (
+                    <input type="text" value={(secretCardAdmin as Record<string, string>)[f.key]} placeholder={f.placeholder}
+                      onChange={e => setSecretCardAdmin(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      className="w-full text-sm text-white outline-none rounded-lg px-3 py-2"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  )}
+                </div>
+              ))}
+
+              <button
+                onClick={async () => {
+                  setSavingSecretCard(true)
+                  const fd = new FormData()
+                  if (secretCardFile) fd.append('image', secretCardFile)
+                  fd.append('current_image_url', secretCardAdmin.image_url || '')
+                  fd.append('active', String(secretCardAdmin.active))
+                  fd.append('artist_name', secretCardAdmin.artist_name)
+                  fd.append('city', secretCardAdmin.city)
+                  fd.append('link', secretCardAdmin.link)
+                  fd.append('caption', secretCardAdmin.caption)
+                  const r = await fetch('/api/admin/secret-card', { method: 'POST', headers: { 'x-admin-pass': pass }, body: fd })
+                  const d = await r.json()
+                  if (d.card) { setSecretCardAdmin(d.card); setSecretCardFile(null); setSecretCardPreview(null) }
+                  setSavingSecretCard(false)
+                }}
+                disabled={savingSecretCard}
+                className="self-end px-5 py-2 rounded-xl font-bold text-sm disabled:opacity-50"
+                style={{ background: '#efff42', color: '#000' }}>
+                {savingSecretCard ? 'Guardando...' : 'Guardar carta'}
+              </button>
+            </div>
+
             <button
               onClick={async () => {
                 setSavingContent(true)

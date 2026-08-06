@@ -143,6 +143,9 @@ export default function Home() {
   const fsSwipeRef    = useRef<{ startX: number } | null>(null)
   const [fsDragX, setFsDragX]       = useState(0)
   const [fsDragging, setFsDragging] = useState(false)
+  const [secretCard, setSecretCard] = useState<{ image_url: string; artist_name: string; city: string; link: string; caption: string } | null>(null)
+  const [showSecretCard, setShowSecretCard] = useState(false)
+  const logoTapsRef = useRef<number[]>([])
   const openFullscreen = (src: string, photos?: string[]) => {
     const list = photos ?? [src]
     const idx  = list.indexOf(src)
@@ -271,6 +274,7 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
     fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true) }).catch(() => {})
+    fetch('/api/secret-card').then(r => r.json()).then(d => { if (d.card) setSecretCard(d.card) }).catch(() => {})
     supabase.from('artists').select('id', { count: 'exact', head: true }).eq('visible', true).then(({ count }) => { if (typeof count === 'number') setTotalActiveArtists(count) })
     fetch('/api/conventions').then(r => r.json()).then(d => { if (Array.isArray(d.conventions)) setConventions(d.conventions) }).catch(() => {})
     fetch('/api/flash-days').then(r => r.json()).then(d => { if (Array.isArray(d.flashDays)) setFlashDays(d.flashDays) }).catch(() => {})
@@ -543,6 +547,17 @@ export default function Home() {
     setEditVerifying(false)
   }, [selected, editKey])
 
+  const handleLogoTap = useCallback(() => {
+    const now = Date.now()
+    const taps = logoTapsRef.current
+    taps.push(now)
+    if (taps.length > 3) taps.shift()
+    if (taps.length === 3 && taps[2] - taps[0] < 1500 && secretCard?.image_url) {
+      setShowSecretCard(true)
+      logoTapsRef.current = []
+    }
+  }, [secretCard])
+
   const closeModal = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       setSelected(null)
@@ -660,7 +675,7 @@ export default function Home() {
         {/* Logo + agregar + idioma */}
         <div className="max-w-7xl mx-auto px-5 pt-4 pb-3 flex items-center justify-between">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/Logoprincipal.svg" alt="Flashttoo" className="h-7 shrink-0" />
+          <img src="/Logoprincipal.svg" alt="Flashttoo" className="h-7 shrink-0" onClick={handleLogoTap} style={{ cursor: 'default' }} />
           <div className="flex items-center gap-2 shrink-0">
             <Link href="/agregar" className="text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
               style={{ background: '#efff42', color: '#000' }}>
@@ -1289,6 +1304,48 @@ export default function Home() {
             )
           })()}
           </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CARTA SECRETA ─────────────────────────────────────── */}
+      {showSecretCard && secretCard && (
+        <div className="fixed inset-0 z-50 overflow-y-auto"
+          style={{ background: '#000', animation: 'fadeInYellow 0.3s ease' }}
+          onClick={() => setShowSecretCard(false)}>
+          <div className="flex flex-col items-center min-h-full" onClick={e => e.stopPropagation()}>
+            <div className="w-full sm:max-w-sm relative">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
+                <button onClick={() => setShowSecretCard(false)}
+                  style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.06em' }}>
+                  ← cerrar
+                </button>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.5)' }}>
+                  ✦ carta secreta
+                </span>
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={secretCard.image_url} alt={secretCard.artist_name}
+                style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
+              <div style={{ padding: '20px 20px 40px' }}>
+                {secretCard.caption && (
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.7, marginBottom: 16, whiteSpace: 'pre-wrap' }}>
+                    {secretCard.caption}
+                  </p>
+                )}
+                <p style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{secretCard.artist_name}</p>
+                {secretCard.city && (
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>{secretCard.city}</p>
+                )}
+                {secretCard.link && (
+                  <a href={secretCard.link} target="_blank" rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: 'inline-block', marginTop: 16, fontSize: 12, fontWeight: 700, color: '#efff42', letterSpacing: '0.04em', textDecoration: 'none' }}>
+                    Ver perfil →
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
