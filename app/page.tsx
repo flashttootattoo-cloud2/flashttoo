@@ -1342,7 +1342,7 @@ export default function Home() {
             .secret-info-bot { opacity: 0; animation: infoBot 0.5s ease forwards; animation-delay: 1.3s; }
           `}</style>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, width: '72vw', maxWidth: 300 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, width: '72vw', maxWidth: 300, borderRadius: 10, boxShadow: '0 0 32px 6px rgba(239,255,66,0.18), 0 0 8px 2px rgba(239,255,66,0.10)' }}>
 
             {/* INFO SUPERIOR */}
             <div className="secret-info-top" style={{ width: '100%', background: '#000', borderRadius: '10px 10px 0 0', padding: '8px 12px' }}>
@@ -1389,11 +1389,26 @@ export default function Home() {
                 </p>
               )}
               {secretCard.link && (
-                <a href={secretCard.link.startsWith('@') ? `/?artista=${secretCard.link.slice(1)}` : secretCard.link}
-                  onClick={e => { e.stopPropagation(); setShowSecretCard(false) }}
-                  style={{ display: 'inline-block', marginTop: 10, fontSize: 12, fontWeight: 700, color: '#efff42', textDecoration: 'none' }}>
+                <button
+                  onClick={e => {
+                    e.stopPropagation()
+                    setShowSecretCard(false)
+                    if (secretCard.link.startsWith('@')) {
+                      const handle = secretCard.link.slice(1)
+                      const found = artists.find(a => a.instagram?.replace('@', '') === handle)
+                      if (found) {
+                        openModal(found)
+                      } else {
+                        supabase.from('artists').select('*').ilike('instagram', handle).single()
+                          .then(({ data }) => { if (data) openModal(data as Artist) })
+                      }
+                    } else {
+                      window.open(secretCard.link, '_blank', 'noopener')
+                    }
+                  }}
+                  style={{ display: 'inline-block', marginTop: 10, fontSize: 12, fontWeight: 700, color: '#efff42', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
                   {t('global', 'see_profile', 'Ver perfil →')}
-                </a>
+                </button>
               )}
             </div>
 
