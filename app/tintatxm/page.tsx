@@ -1089,9 +1089,11 @@ export default function AdminPage() {
   const [savingStyles, setSavingStyles] = useState(false)
   const [contentCards, setContentCards] = useState<ContentCard[]>([])
   const [savingContent, setSavingContent] = useState(false)
-  const [secretCardAdmin, setSecretCardAdmin] = useState({ active: false, image_url: '', artist_name: '', city: '', link: '', caption: '' })
+  const [secretCardAdmin, setSecretCardAdmin] = useState({ active: false, image_url: '', back_image_url: '', artist_name: '', city: '', link: '', caption: '', number: '' })
   const [secretCardFile, setSecretCardFile] = useState<File | null>(null)
   const [secretCardPreview, setSecretCardPreview] = useState<string | null>(null)
+  const [secretCardBackFile, setSecretCardBackFile] = useState<File | null>(null)
+  const [secretCardBackPreview, setSecretCardBackPreview] = useState<string | null>(null)
   const [savingSecretCard, setSavingSecretCard] = useState(false)
   const [contentLangsAll, setContentLangsAll] = useState<{ code: string; name: string; flag: string }[]>([])
   const [cardsByLang, setCardsByLang] = useState<Record<string, ContentCard[]>>({ es: [] })
@@ -2193,28 +2195,47 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              <div>
-                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Ilustración</p>
-                <label style={{ display: 'block', cursor: 'pointer' }}>
-                  {secretCardPreview || secretCardAdmin.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={secretCardPreview || secretCardAdmin.image_url} alt=""
-                      style={{ width: '100%', maxHeight: 280, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)' }} />
-                  ) : (
-                    <div style={{ height: 120, borderRadius: 10, border: '2px dashed rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>+ Subir ilustración</span>
-                    </div>
-                  )}
-                  <input type="file" accept="image/*" className="hidden" onChange={e => {
-                    const f = e.target.files?.[0]
-                    if (!f) return
-                    setSecretCardFile(f)
-                    setSecretCardPreview(URL.createObjectURL(f))
-                  }} />
-                </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Frente (ilustración)</p>
+                  <label style={{ display: 'block', cursor: 'pointer' }}>
+                    {secretCardPreview || secretCardAdmin.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={secretCardPreview || secretCardAdmin.image_url} alt=""
+                        style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)' }} />
+                    ) : (
+                      <div style={{ aspectRatio: '3/4', borderRadius: 10, border: '2px dashed rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>+ Frente</span>
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={e => {
+                      const f = e.target.files?.[0]; if (!f) return
+                      setSecretCardFile(f); setSecretCardPreview(URL.createObjectURL(f))
+                    }} />
+                  </label>
+                </div>
+                <div>
+                  <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Dorso</p>
+                  <label style={{ display: 'block', cursor: 'pointer' }}>
+                    {secretCardBackPreview || secretCardAdmin.back_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={secretCardBackPreview || secretCardAdmin.back_image_url} alt=""
+                        style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)' }} />
+                    ) : (
+                      <div style={{ aspectRatio: '3/4', borderRadius: 10, border: '2px dashed rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>+ Dorso</span>
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={e => {
+                      const f = e.target.files?.[0]; if (!f) return
+                      setSecretCardBackFile(f); setSecretCardBackPreview(URL.createObjectURL(f))
+                    }} />
+                  </label>
+                </div>
               </div>
 
               {[
+                { key: 'number',      label: 'Número de carta',    placeholder: 'Ej: 1' },
                 { key: 'artist_name', label: 'Nombre del artista', placeholder: 'Ej: María Ink' },
                 { key: 'city',        label: 'Ciudad',             placeholder: 'Ej: Buenos Aires' },
                 { key: 'link',        label: 'Link al perfil',     placeholder: 'https://... o @usuario' },
@@ -2223,12 +2244,12 @@ export default function AdminPage() {
                 <div key={f.key}>
                   <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{f.label}</p>
                   {f.key === 'caption' ? (
-                    <textarea rows={3} value={(secretCardAdmin as Record<string, string>)[f.key]} placeholder={f.placeholder}
+                    <textarea rows={3} value={String(secretCardAdmin[f.key as keyof typeof secretCardAdmin] ?? '')} placeholder={f.placeholder}
                       onChange={e => setSecretCardAdmin(prev => ({ ...prev, [f.key]: e.target.value }))}
                       className="w-full text-sm text-white outline-none rounded-lg px-3 py-2 resize-none"
                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
                   ) : (
-                    <input type="text" value={(secretCardAdmin as Record<string, string>)[f.key]} placeholder={f.placeholder}
+                    <input type="text" value={String(secretCardAdmin[f.key as keyof typeof secretCardAdmin] ?? '')} placeholder={f.placeholder}
                       onChange={e => setSecretCardAdmin(prev => ({ ...prev, [f.key]: e.target.value }))}
                       className="w-full text-sm text-white outline-none rounded-lg px-3 py-2"
                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
@@ -2241,15 +2262,18 @@ export default function AdminPage() {
                   setSavingSecretCard(true)
                   const fd = new FormData()
                   if (secretCardFile) fd.append('image', secretCardFile)
+                  if (secretCardBackFile) fd.append('back_image', secretCardBackFile)
                   fd.append('current_image_url', secretCardAdmin.image_url || '')
+                  fd.append('current_back_image_url', secretCardAdmin.back_image_url || '')
                   fd.append('active', String(secretCardAdmin.active))
                   fd.append('artist_name', secretCardAdmin.artist_name)
                   fd.append('city', secretCardAdmin.city)
                   fd.append('link', secretCardAdmin.link)
                   fd.append('caption', secretCardAdmin.caption)
+                  fd.append('number', secretCardAdmin.number)
                   const r = await fetch('/api/admin/secret-card', { method: 'POST', headers: { 'x-admin-pass': pass }, body: fd })
                   const d = await r.json()
-                  if (d.card) { setSecretCardAdmin(d.card); setSecretCardFile(null); setSecretCardPreview(null) }
+                  if (d.card) { setSecretCardAdmin(d.card); setSecretCardFile(null); setSecretCardPreview(null); setSecretCardBackFile(null); setSecretCardBackPreview(null) }
                   setSavingSecretCard(false)
                 }}
                 disabled={savingSecretCard}
