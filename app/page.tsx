@@ -1311,7 +1311,7 @@ export default function Home() {
       {/* ── CARTA SECRETA ─────────────────────────────────────── */}
       {showSecretCard && secretCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.25)', animation: 'fadeInYellow 0.2s ease' }}
+          style={{ background: 'rgba(0,0,0,0.18)', animation: 'fadeInYellow 0.2s ease' }}
           onClick={() => setShowSecretCard(false)}>
           <style>{`
             @keyframes cardFlip {
@@ -1319,67 +1319,78 @@ export default function Home() {
               35%  { transform: rotateY(0deg); }
               100% { transform: rotateY(180deg); }
             }
+            @keyframes infoTop {
+              from { opacity: 0; transform: translateY(14px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes infoBot {
+              from { opacity: 0; transform: translateY(-14px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
             .secret-card-inner { animation: cardFlip 1.5s cubic-bezier(.6,0,.4,1) forwards; transform-style: preserve-3d; }
             .secret-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; position: absolute; inset: 0; border-radius: 16px; overflow: hidden; }
             .secret-back  { transform: rotateY(0deg); }
             .secret-front { transform: rotateY(180deg); }
+            .secret-info-top { opacity: 0; animation: infoTop 0.5s ease forwards; animation-delay: 1.3s; }
+            .secret-info-bot { opacity: 0; animation: infoBot 0.5s ease forwards; animation-delay: 1.3s; }
           `}</style>
 
-          <div style={{ perspective: 1200, width: '72vw', maxWidth: 300 }}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '72vw', maxWidth: 300 }}
             onClick={e => e.stopPropagation()}>
-            <div className="secret-card-inner" style={{ position: 'relative', width: '100%', aspectRatio: '3/4' }}>
 
-              {/* DORSO */}
-              <div className="secret-face secret-back">
-                {secretCard.back_image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={secretCard.back_image_url} alt="dorso"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 24, opacity: 0.35 }} />
-                    <span style={{ fontSize: 8, letterSpacing: '0.2em', color: 'rgba(239,255,66,0.2)', textTransform: 'uppercase' }}>carta secreta</span>
-                  </div>
-                )}
-              </div>
+            {/* INFO SUPERIOR */}
+            <div className="secret-info-top" style={{ width: '100%' }}>
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.6)' }}>
+                {secretCard.number ? `#${secretCard.number} · ` : ''}✦ carta secreta
+              </span>
+              {secretCard.caption && (
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginTop: 4, whiteSpace: 'pre-wrap' }}>
+                  {secretCard.caption}
+                </p>
+              )}
+            </div>
 
-              {/* FRENTE */}
-              <div className="secret-face secret-front" style={{ background: '#000', display: 'flex', flexDirection: 'column' }}>
-                {/* Margen superior */}
-                <div style={{ padding: '10px 14px 0', flexShrink: 0 }}>
-                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.4)' }}>
-                    {secretCard.number ? `#${secretCard.number} · ` : ''}✦ carta secreta
-                  </span>
+            {/* CARTA */}
+            <div style={{ perspective: 1200, width: '100%' }}>
+              <div className="secret-card-inner" style={{ position: 'relative', width: '100%', aspectRatio: '3/4' }}>
+                {/* DORSO */}
+                <div className="secret-face secret-back">
+                  {secretCard.back_image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={secretCard.back_image_url} alt="dorso"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 24, opacity: 0.35 }} />
+                      <span style={{ fontSize: 8, letterSpacing: '0.2em', color: 'rgba(239,255,66,0.2)', textTransform: 'uppercase' }}>carta secreta</span>
+                    </div>
+                  )}
                 </div>
-                {/* Ilustración */}
-                <div style={{ flex: 1, overflow: 'hidden', margin: '8px 0 0' }}>
+                {/* FRENTE — imagen pura */}
+                <div className="secret-face secret-front">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={secretCard.image_url} alt={secretCard.artist_name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-                {/* Info inferior */}
-                <div style={{ padding: '10px 14px 14px', background: '#000', flexShrink: 0 }}>
-                  {secretCard.caption && (
-                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6, marginBottom: 6, whiteSpace: 'pre-wrap' }}>
-                      {secretCard.caption}
-                    </p>
-                  )}
-                  <p style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{secretCard.artist_name}</p>
-                  {secretCard.city && (
-                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{secretCard.city}</p>
-                  )}
-                  {secretCard.link && (
-                    <a href={secretCard.link.startsWith('@') ? `/?artista=${secretCard.link.slice(1)}` : secretCard.link}
-                      onClick={e => { e.stopPropagation(); setShowSecretCard(false) }}
-                      style={{ display: 'inline-block', marginTop: 8, fontSize: 11, fontWeight: 700, color: '#efff42', textDecoration: 'none' }}>
-                      Ver perfil →
-                    </a>
-                  )}
-                </div>
               </div>
-
             </div>
+
+            {/* INFO INFERIOR */}
+            <div className="secret-info-bot" style={{ width: '100%' }}>
+              <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{secretCard.artist_name}</p>
+              {secretCard.city && (
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>{secretCard.city}</p>
+              )}
+              {secretCard.link && (
+                <a href={secretCard.link.startsWith('@') ? `/?artista=${secretCard.link.slice(1)}` : secretCard.link}
+                  onClick={e => { e.stopPropagation(); setShowSecretCard(false) }}
+                  style={{ display: 'inline-block', marginTop: 10, fontSize: 12, fontWeight: 700, color: '#efff42', textDecoration: 'none' }}>
+                  {t('global', 'see_profile', 'Ver perfil →')}
+                </a>
+              )}
+            </div>
+
           </div>
         </div>
       )}
