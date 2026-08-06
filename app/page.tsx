@@ -280,7 +280,14 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
     fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true) }).catch(() => {})
-    fetch('/api/secret-card').then(r => r.json()).then(d => { if (d.card) setSecretCard(d.card) }).catch(() => {})
+    fetch('/api/secret-card').then(r => r.json()).then(d => {
+      if (d.card) {
+        setSecretCard(d.card)
+        ;[d.card.image_url, d.card.back_image_url].forEach((src: string | undefined) => {
+          if (src) { const img = new window.Image(); img.src = src }
+        })
+      }
+    }).catch(() => {})
     supabase.from('artists').select('id', { count: 'exact', head: true }).eq('visible', true).then(({ count }) => { if (typeof count === 'number') setTotalActiveArtists(count) })
     fetch('/api/conventions').then(r => r.json()).then(d => { if (Array.isArray(d.conventions)) setConventions(d.conventions) }).catch(() => {})
     fetch('/api/flash-days').then(r => r.json()).then(d => { if (Array.isArray(d.flashDays)) setFlashDays(d.flashDays) }).catch(() => {})

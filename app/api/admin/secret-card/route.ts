@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { uploadFile } from '@/lib/storage'
+import { uploadFile, deleteFile } from '@/lib/storage'
 
 function auth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
@@ -11,9 +11,14 @@ export async function POST(req: NextRequest) {
   const fd = await req.formData()
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
+  // Leer valores actuales para eliminar imágenes viejas si se reemplazan
+  const { data: existing } = await sb.from('settings').select('value').eq('key', 'secret_card').single()
+  const prev = existing?.value ?? {}
+
   const image = fd.get('image') as File | null
   let image_url: string | null = (fd.get('current_image_url') as string | null) || null
   if (image && image.size > 0) {
+    if (prev.image_url && prev.image_url !== image_url) deleteFile(prev.image_url).catch(() => {})
     const ext = image.name.split('.').pop() || 'jpg'
     image_url = await uploadFile(image, `secret-card/${crypto.randomUUID()}.${ext}`)
   }
@@ -21,6 +26,7 @@ export async function POST(req: NextRequest) {
   const backImage = fd.get('back_image') as File | null
   let back_image_url: string | null = (fd.get('current_back_image_url') as string | null) || null
   if (backImage && backImage.size > 0) {
+    if (prev.back_image_url && prev.back_image_url !== back_image_url) deleteFile(prev.back_image_url).catch(() => {})
     const ext = backImage.name.split('.').pop() || 'jpg'
     back_image_url = await uploadFile(backImage, `secret-card/${crypto.randomUUID()}.${ext}`)
   }
