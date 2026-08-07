@@ -1334,12 +1334,12 @@ export default function Home() {
             style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}
             onClick={e => e.stopPropagation()}>
             <p style={{ fontSize: 28, marginBottom: 12 }}>✦</p>
-            <p className="font-bold text-white text-base mb-2">En este momento no estamos aceptando nuevos registros</p>
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>Intentá de nuevo más tarde o escribinos por Instagram.</p>
+            <p className="font-bold text-white text-base mb-2">{t('inicio', 'reg_closed_title', 'En este momento no estamos aceptando nuevos registros')}</p>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{t('inicio', 'reg_closed_msg', 'Intentá de nuevo más tarde o escribinos por Instagram.')}</p>
             <button onClick={() => setShowRegistrationClosed(false)}
               className="mt-5 text-xs font-bold px-5 py-2 rounded-lg"
               style={{ background: '#efff42', color: '#000' }}>
-              Cerrar
+              {t('global', 'close', 'Cerrar')}
             </button>
           </div>
         </div>
