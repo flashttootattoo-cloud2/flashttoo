@@ -2,7 +2,6 @@
 
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { supabase, type Artist, type Studio } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
 import SponsorsBanner from '@/components/SponsorsBanner'
@@ -135,6 +134,8 @@ export default function Home() {
   const [showCount, setShowCount]           = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [eventsCountryFilter, setEventsCountryFilter] = useState(false)
+  const [registrationOpen, setRegistrationOpen] = useState(true)
+  const [showRegistrationClosed, setShowRegistrationClosed] = useState(false)
   const [totalActiveArtists, setTotalActiveArtists] = useState<number | null>(null)
   const [fullscreenImg, setFullscreenImg]   = useState<string | null>(null)
   const [fullscreenPhotos, setFullscreenPhotos] = useState<string[]>([])
@@ -279,7 +280,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
-    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false) }).catch(() => {})
     fetch('/api/secret-card').then(r => r.json()).then(d => {
       if (d.card) {
         setSecretCard(d.card)
@@ -691,10 +692,12 @@ export default function Home() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/Logoprincipal.svg" alt="Flashttoo" className="h-7 shrink-0" onClick={handleLogoTap} style={{ cursor: 'default' }} />
           <div className="flex items-center gap-2 shrink-0">
-            <Link href="/agregar" className="text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
+            <button
+              onClick={() => { if (registrationOpen) { window.location.href = '/agregar' } else { setShowRegistrationClosed(true) } }}
+              className="text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
               style={{ background: '#efff42', color: '#000' }}>
               {t('inicio', 'add_artist', '+ tatuador/a')}
-            </Link>
+            </button>
             {/* Selector de idioma */}
             {languages.length > 1 && (
               <div ref={langRef} className="relative">
@@ -1318,6 +1321,26 @@ export default function Home() {
             )
           })()}
           </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── REGISTRO CERRADO ──────────────────────────────────── */}
+      {showRegistrationClosed && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setShowRegistrationClosed(false)}>
+          <div className="max-w-xs w-full rounded-2xl p-6 text-center"
+            style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}
+            onClick={e => e.stopPropagation()}>
+            <p style={{ fontSize: 28, marginBottom: 12 }}>✦</p>
+            <p className="font-bold text-white text-base mb-2">En este momento no estamos aceptando nuevos registros</p>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>Intentá de nuevo más tarde o escribinos por Instagram.</p>
+            <button onClick={() => setShowRegistrationClosed(false)}
+              className="mt-5 text-xs font-bold px-5 py-2 rounded-lg"
+              style={{ background: '#efff42', color: '#000' }}>
+              Cerrar
+            </button>
           </div>
         </div>
       )}

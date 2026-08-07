@@ -1081,6 +1081,8 @@ export default function AdminPage() {
   const [savingGallery, setSavingGallery]               = useState(false)
   const [eventsCountryFilter, setEventsCountryFilter]   = useState(false)
   const [savingEventsCountry, setSavingEventsCountry]   = useState(false)
+  const [registrationOpen, setRegistrationOpen]         = useState(true)
+  const [savingRegistration, setSavingRegistration]     = useState(false)
   const [storageR2, setStorageR2]           = useState(false)
   const [savingStorage, setSavingStorage]   = useState(false)
   const [r2Available, setR2Available]       = useState(false)
@@ -1293,6 +1295,7 @@ export default function AdminPage() {
         setShowCount(cfg.value.settings?.show_count === true)
         setGalleryEnabled(cfg.value.settings?.artist_gallery_enabled === true)
         setEventsCountryFilter(cfg.value.settings?.events_country_filter === true)
+        setRegistrationOpen(cfg.value.settings?.registration_open !== false)
         setStorageR2(cfg.value.settings?.storage_provider === 'r2')
         setR2Available(cfg.value.r2_available === true)
         if (Array.isArray(cfg.value.settings?.styles) && cfg.value.settings.styles.length > 0)
@@ -1924,6 +1927,44 @@ export default function AdminPage() {
               </p>
             </div>
 
+            {/* Registro de nuevos tatuadores */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Registro de tatuadores</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                    Controla si el botón "+ tatuador/a" permite registrarse. Si está desactivado, al tocarlo aparece un aviso de que no hay lugar por el momento.
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setSavingRegistration(true)
+                    const next = !registrationOpen
+                    await fetch('/api/admin/settings', {
+                      method: 'PATCH',
+                      headers: { ...H(pass), 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ key: 'registration_open', value: next }),
+                    })
+                    setRegistrationOpen(next)
+                    setSavingRegistration(false)
+                  }}
+                  disabled={savingRegistration}
+                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                  style={{ width: 48, height: 28, background: registrationOpen ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', top: 4,
+                    left: registrationOpen ? 24 : 4,
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: registrationOpen ? '#000' : 'rgba(255,255,255,0.4)',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              <p className="text-xs mt-3 font-bold" style={{ color: registrationOpen ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                {registrationOpen ? 'Abierto — cualquiera puede registrarse' : 'Cerrado — se muestra aviso al tocar el botón'}
+              </p>
+            </div>
+
             {/* Storage R2 */}
             {r2Available && (
               <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -2181,7 +2222,7 @@ export default function AdminPage() {
                 <div>
                   <p className="text-sm font-bold text-white">✦ Carta secreta</p>
                   <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
-                    Se activa tocando el logo 3 veces. Mostrá una ilustración de un artista con link a su perfil. Imágenes: proporción 3:4 — recomendado 900 × 1200 px.
+                    Se activa tocando el logo 3 veces. Mostrá una ilustración de un artista con link a su perfil. Imágenes: proporción 3:4 — recomendado 1800 × 2400 px.
                   </p>
                 </div>
                 <button
