@@ -30,6 +30,7 @@ export default function AgregarPage() {
   const [stylesOpen, setStylesOpen] = useState(false)
   const stylesRef = useRef<HTMLDivElement>(null)
   const [igStatus, setIgStatus]     = useState<'idle'|'checking'|'ok'|'taken'>('idle')
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const igTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
@@ -597,25 +598,34 @@ export default function AgregarPage() {
             </div>
           </div>
 
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={e => setTermsAccepted(e.target.checked)}
+              className="mt-0.5 shrink-0 accent-[#efff42]"
+              style={{ width: 16, height: 16 }}
+            />
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+              {t('agregar', 'legal_prefix', 'Al registrarte aceptás nuestros')}{' '}
+              <Link href="/terminos" onClick={e => e.stopPropagation()} className="underline hover:opacity-80" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                {t('agregar', 'legal_terms', 'Términos y condiciones')}
+              </Link>{' '}
+              {t('agregar', 'legal_and', 'y')}{' '}
+              <Link href="/privacidad" onClick={e => e.stopPropagation()} className="underline hover:opacity-80" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                {t('agregar', 'legal_privacy', 'Política de privacidad')}
+              </Link>
+            </span>
+          </label>
+
           <button
             type="submit"
-            disabled={loading || igStatus === 'taken'}
+            disabled={loading || igStatus === 'taken' || !termsAccepted}
             className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
             style={{ background: '#efff42', color: '#000' }}
           >
             {loading ? t('agregar', 'uploading', 'Subiendo...') : t('agregar', 'submit', 'Agregar al buscador')}
           </button>
-
-          <p className="text-center" style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
-            {t('agregar', 'legal_prefix', 'Al registrarte aceptás nuestros')}{' '}
-            <Link href="/terminos" className="underline hover:opacity-80" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {t('agregar', 'legal_terms', 'Términos y condiciones')}
-            </Link>{' '}
-            {t('agregar', 'legal_and', 'y')}{' '}
-            <Link href="/privacidad" className="underline hover:opacity-80" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {t('agregar', 'legal_privacy', 'Política de privacidad')}
-            </Link>
-          </p>
         </form>
       </div>
     </main>
