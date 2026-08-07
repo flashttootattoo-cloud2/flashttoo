@@ -41,7 +41,7 @@ export default function InstallBanner() {
   // Auto-cierre después de 10 segundos
   useEffect(() => {
     if (!show) return
-    const t = setTimeout(() => setShow(false), 20000)
+    const t = setTimeout(() => setShow(false), 40000)
     return () => clearTimeout(t)
   }, [show])
 
