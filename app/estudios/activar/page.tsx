@@ -11,6 +11,8 @@ export default function ActivarEstudio() {
   const [key, setKey] = useState('')
   const [keyError, setKeyError] = useState('')
   const [checking, setChecking] = useState(false)
+  const [isEdit, setIsEdit] = useState(false)
+  const [instagram, setInstagram] = useState('')
 
   const [form, setForm] = useState({ name: '', city: '', country: '', description: '', whatsapp: '', website: '' })
   const [logo, setLogo] = useState<File | null>(null)
@@ -18,7 +20,8 @@ export default function ActivarEstudio() {
   const [terms, setTerms] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [studioId, setStudioId] = useState('')
+  const [saved, setSaved] = useState(false)
+
 
   const verifyKey = async () => {
     if (!key.trim()) return
@@ -27,7 +30,8 @@ export default function ActivarEstudio() {
     const d = await r.json()
     setChecking(false)
     if (!r.ok) { setKeyError('Clave incorrecta. Verificá que la copiaste bien.'); return }
-    setStudioId(d.studio.id)
+    setInstagram(d.studio.instagram || '')
+    setIsEdit(!!d.studio.visible)
     setForm({
       name: d.studio.name && d.studio.name !== d.studio.instagram ? d.studio.name : '',
       city: d.studio.city || '',
@@ -37,7 +41,6 @@ export default function ActivarEstudio() {
       website: d.studio.website || '',
     })
     if (d.studio.logo_url) setLogoPreview(d.studio.logo_url)
-    if (d.studio.visible) { setStep('done'); return }
     setStep('form')
   }
 
@@ -60,9 +63,9 @@ export default function ActivarEstudio() {
   }
 
   const save = async () => {
-    if (!terms) { setSaveError('Debés aceptar los términos y la política de privacidad.'); return }
+    if (!isEdit && !terms) { setSaveError('Debés aceptar los términos y la política de privacidad.'); return }
     if (!form.name.trim()) { setSaveError('El nombre del estudio es obligatorio.'); return }
-    setSaving(true); setSaveError('')
+    setSaving(true); setSaveError(''); setSaved(false)
     try {
       let logo_url: string | null = null
       if (logo) {
@@ -76,11 +79,12 @@ export default function ActivarEstudio() {
       const res = await fetch('/api/estudios/activar', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: key.trim().toUpperCase(), ...form, logo_url, terms }),
+        body: JSON.stringify({ key: key.trim().toUpperCase(), ...form, logo_url, terms: isEdit ? true : terms }),
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error)
-      setStep('done')
+      if (isEdit) { setSaved(true); setTimeout(() => setSaved(false), 3000) }
+      else { setStep('done') }
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : 'Error al guardar')
     } finally { setSaving(false) }
@@ -100,9 +104,9 @@ export default function ActivarEstudio() {
           {step === 'key' && (
             <>
               <div>
-                <p className="text-xl font-bold text-white mb-1">Activar perfil de estudio</p>
+                <p className="text-xl font-bold text-white mb-1">Perfil de estudio</p>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-                  Ingresá la clave de 10 caracteres que te enviamos para activar y completar tu perfil.
+                  Ingresá tu clave de 10 caracteres para activar o editar tu perfil.
                 </p>
               </div>
               <div>
@@ -128,10 +132,18 @@ export default function ActivarEstudio() {
           {step === 'form' && (
             <>
               <div>
-                <p className="text-xl font-bold text-white mb-1">Completá tu perfil</p>
+                <p className="text-xl font-bold text-white mb-1">{isEdit ? 'Editar perfil' : 'Completá tu perfil'}</p>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-                  Al guardar tu estudio quedará visible en flashttoo.
+                  {isEdit ? 'Editá los datos de tu estudio y guardá los cambios.' : 'Al guardar tu estudio quedará visible en flashttoo.'}
                 </p>
+              </div>
+
+              {/* Instagram — fijo, no editable */}
+              <div>
+                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Instagram</p>
+                <input readOnly value={instagram ? `@${instagram}` : ''}
+                  className={iCls}
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', cursor: 'default' }} />
               </div>
 
               {/* Logo */}
@@ -140,6 +152,7 @@ export default function ActivarEstudio() {
                 <div className="rounded-xl overflow-hidden flex items-center justify-center"
                   style={{ height: 120, background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(255,255,255,0.1)' }}>
                   {logoPreview
+                    // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={logoPreview} alt="" style={{ maxHeight: 110, maxWidth: '100%', objectFit: 'contain' }} />
                     : <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>Subir logo</span>
                   }
@@ -191,25 +204,28 @@ export default function ActivarEstudio() {
                   placeholder="https://..." className={iCls} style={iStyle} />
               </div>
 
-              {/* T&C */}
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={terms} onChange={e => setTerms(e.target.checked)}
-                  className="mt-0.5 shrink-0" style={{ accentColor: '#efff42', width: 16, height: 16 }} />
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.7 }}>
-                  Acepto los{' '}
-                  <Link href="/terminos" target="_blank" style={{ color: '#efff42', textDecoration: 'underline' }}>términos y condiciones</Link>
-                  {' '}y la{' '}
-                  <Link href="/privacidad" target="_blank" style={{ color: '#efff42', textDecoration: 'underline' }}>política de privacidad</Link>
-                  {' '}de flashttoo.
-                </p>
-              </label>
+              {/* T&C solo en primer acceso */}
+              {!isEdit && (
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" checked={terms} onChange={e => setTerms(e.target.checked)}
+                    className="mt-0.5 shrink-0" style={{ accentColor: '#efff42', width: 16, height: 16 }} />
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.7 }}>
+                    Acepto los{' '}
+                    <Link href="/terminos" target="_blank" style={{ color: '#efff42', textDecoration: 'underline' }}>términos y condiciones</Link>
+                    {' '}y la{' '}
+                    <Link href="/privacidad" target="_blank" style={{ color: '#efff42', textDecoration: 'underline' }}>política de privacidad</Link>
+                    {' '}de flashttoo.
+                  </p>
+                </label>
+              )}
 
               {saveError && <p className="text-xs" style={{ color: '#f87171' }}>{saveError}</p>}
+              {saved && <p className="text-xs font-bold" style={{ color: '#4ade80' }}>✓ Cambios guardados</p>}
 
-              <button onClick={save} disabled={saving || !terms || !form.name.trim()}
+              <button onClick={save} disabled={saving || (!isEdit && !terms) || !form.name.trim()}
                 className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
                 style={{ background: '#efff42', color: '#000' }}>
-                {saving ? 'Guardando...' : 'Activar perfil →'}
+                {saving ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Activar perfil →'}
               </button>
             </>
           )}
@@ -220,7 +236,7 @@ export default function ActivarEstudio() {
               <div>
                 <p className="text-xl font-bold text-white mb-2">¡Tu estudio está activo!</p>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-                  Ya aparecés en flashttoo. Podés volver a editar tu perfil en cualquier momento usando la misma clave.
+                  Ya aparecés en flashttoo. Podés editar tu perfil en cualquier momento volviendo aquí con tu clave.
                 </p>
               </div>
               <Link href="/"
