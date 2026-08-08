@@ -88,8 +88,10 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     fetch('/api/features').then(r => r.json()).then(d => { setVerifyIG(d.verification_instagram || ''); setVerifyWA(d.verification_whatsapp || '') }).catch(() => {})
   }, [])
   useEffect(() => {
-    const handle = igNew.trim().replace('@', '')
+    const handle = igNew.trim().replace(/^@/, '')
     if (!handle) { setIgNewStatus('idle'); return }
+    const currentIG = (form.instagram || '').trim().replace(/^@/, '').toLowerCase()
+    if (handle.toLowerCase() === currentIG) { setIgNewStatus('taken'); return }
     setIgNewStatus('checking')
     clearTimeout(igNewTimer.current)
     igNewTimer.current = setTimeout(async () => {
@@ -99,7 +101,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
       setIgNewStatus(data && data.length > 0 ? 'taken' : 'ok')
     }, 600)
     return () => clearTimeout(igNewTimer.current)
-  }, [igNew, artist.id])
+  }, [igNew, artist.id, form.instagram])
 
   const changeInstagram = async () => {
     if (igNewStatus !== 'ok' || !igNew.trim()) return
@@ -425,7 +427,8 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('editar', 'ig_new_label', 'Nuevo Instagram')}</p>
                           {igNewStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'ig_checking', 'verificando...')}</span>}
                           {igNewStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('agregar', 'ig_available', '✓ disponible')}</span>}
-                          {igNewStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('agregar', 'ig_taken', '✗ ya registrado')}</span>}
+                          {igNewStatus === 'taken' && igNew.trim().replace(/^@/, '').toLowerCase() === (form.instagram || '').trim().replace(/^@/, '').toLowerCase() && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('editar', 'ig_same_as_current', '✗ es el mismo')}</span>}
+                          {igNewStatus === 'taken' && igNew.trim().replace(/^@/, '').toLowerCase() !== (form.instagram || '').trim().replace(/^@/, '').toLowerCase() && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('agregar', 'ig_taken', '✗ ya registrado')}</span>}
                         </div>
                         <input value={igNew} onChange={e => setIgNew(e.target.value)}
                           placeholder="@nuevousuario" className={iCls}

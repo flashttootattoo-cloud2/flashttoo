@@ -27,6 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const newIG = String(body.instagram || '').trim().replace(/^@/, '').toLowerCase()
     const oldIG = String(artist.instagram || '').trim().replace(/^@/, '').toLowerCase()
     if (!newIG) return NextResponse.json({ error: 'Instagram requerido' }, { status: 400 })
+    if (newIG === oldIG) return NextResponse.json({ error: 'El Instagram nuevo es igual al actual' }, { status: 400 })
     // Verificar que no esté en uso por otro artista
     const { data: existing } = await sb().from('artists').select('id')
       .or(`instagram.ilike.${newIG},instagram.ilike.@${newIG}`).neq('id', id).limit(1)
