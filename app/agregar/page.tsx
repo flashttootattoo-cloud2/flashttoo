@@ -43,7 +43,7 @@ export default function AgregarPage() {
   const stylesRef = useRef<HTMLDivElement>(null)
   const [igStatus, setIgStatus]     = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [verifyWord] = useState(() => genVerifyWord())
+  const [verifyWord, setVerifyWord] = useState(() => genVerifyWord())
   const [verifyIG, setVerifyIG] = useState('')
   const [verifyWA, setVerifyWA] = useState('')
   const igTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -198,6 +198,20 @@ export default function AgregarPage() {
         }
       }
 
+      // Elegir palabra de verificación que no esté en uso por otro pendiente
+      let finalWord = verifyWord
+      if (moderation) {
+        const { data: usedRows } = await supabase
+          .from('artists')
+          .select('verification_word')
+          .eq('status', 'pending')
+          .not('verification_word', 'is', null)
+        const usedSet = new Set((usedRows || []).map((r: { verification_word: string }) => r.verification_word))
+        const available = VERIFY_WORDS.filter(w => !usedSet.has(w))
+        finalWord = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : verifyWord
+        setVerifyWord(finalWord)
+      }
+
       // Insertar artista
       const { error: insErr } = await supabase.from('artists').insert({
         name:      form.name.trim(),
@@ -211,7 +225,7 @@ export default function AgregarPage() {
         bio:       form.bio.trim()       || null,
         edit_key:  editKey.trim().toUpperCase(),
         status:    moderation ? 'pending' : 'active',
-        verification_word: moderation ? verifyWord : null,
+        verification_word: moderation ? finalWord : null,
         interview: Object.fromEntries(Object.entries(interview).filter(([, v]) => v.trim())),
         visits,
         gallery_photo_1: galleryUrls[0],
