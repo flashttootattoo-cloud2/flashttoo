@@ -4,7 +4,6 @@ import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMe
 import Image from 'next/image'
 import { supabase, type Artist, type Studio } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
-import SponsorsBanner from '@/components/SponsorsBanner'
 import SponsorsBannerV2 from '@/components/SponsorsBannerV2'
 import ConventionModal from '@/components/ConventionModal'
 import StudioPanel from '@/components/StudioPanel'
@@ -1771,8 +1770,7 @@ export default function Home() {
       )}
 
       <ConventionModal conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} />
-      <SponsorsBanner country={country} />
-      <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} />
+      <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={false} />
 
       {/* Visor fullscreen galería — tira deslizante */}
       {fullscreenImg && (
