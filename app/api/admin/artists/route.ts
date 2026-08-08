@@ -24,11 +24,13 @@ export async function GET(req: NextRequest) {
   const offset = parseInt(url.searchParams.get('offset') || '0')
   const limit  = parseInt(url.searchParams.get('limit')  || '10')
   const search = url.searchParams.get('search') || ''
+  const status = url.searchParams.get('status') || ''
   let query = getAdminClient()
     .from('artists')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
   if (search) query = query.ilike('name', `%${search}%`)
+  if (status) query = query.eq('status', status)
   const { data, count } = await query.range(offset, offset + limit - 1)
   return NextResponse.json({ artists: data || [], total: count ?? 0 })
 }

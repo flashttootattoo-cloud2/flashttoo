@@ -1061,6 +1061,7 @@ export default function AdminPage() {
   const ARTISTS_PAGE = 10
   const [statsArtists, setStatsArtists] = useState<Artist[]>([])
   const [loadingStats, setLoadingStats] = useState(false)
+  const [loadingPending, setLoadingPending] = useState(false)
   const [searchStats, setSearchStats] = useState<{ countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }>({ countries: [], cities: [], styles: [] })
   const [appEventCounts, setAppEventCounts] = useState<Record<string, number>>({})
   const [artistSearch, setArtistSearch] = useState('')
@@ -1354,6 +1355,15 @@ export default function AdminPage() {
     }, 400)
     return () => clearTimeout(searchTimer.current)
   }, [artistSearch, auth, pass])
+
+  const refreshPending = async (p: string) => {
+    setLoadingPending(true)
+    const r = await fetch('/api/admin/artists?status=pending&limit=1000&offset=0', { headers: H(p) }).then(res => res.json()).catch(() => null)
+    if (r?.artists) {
+      setArtists(prev => [...prev.filter(a => a.status !== 'pending'), ...r.artists])
+    }
+    setLoadingPending(false)
+  }
 
   const loadStatsArtists = async (p: string, force = false) => {
     if (!force && (statsArtists.length > 0 || loadingStats)) return
@@ -1762,6 +1772,17 @@ export default function AdminPage() {
               : pending
             return (
               <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>Pendientes ({pending.length})</p>
+                  <button
+                    onClick={() => refreshPending(pass)}
+                    disabled={loadingPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                    style={{ background: 'rgba(255,255,255,0.05)', color: loadingPending ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <span style={{ display: 'inline-block', animation: loadingPending ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+                    {loadingPending ? 'Actualizando…' : 'Actualizar'}
+                  </button>
+                </div>
                 {/* Buscador por palabra */}
                 <input
                   value={wordSearch}
