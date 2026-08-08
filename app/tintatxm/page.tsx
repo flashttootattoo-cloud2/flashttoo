@@ -1332,7 +1332,7 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (tab !== 'idiomas' || !auth) return
+    if ((!['idiomas', 'estudios'].includes(tab)) || !auth) return
     fetch('/api/admin/languages').then(r => r.json()).then(d => setLangs(d.languages ?? [])).catch(() => {})
   }, [tab, auth])
 
