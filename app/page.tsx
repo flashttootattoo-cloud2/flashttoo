@@ -95,6 +95,8 @@ export default function Home() {
   const { t, language, setLanguage, languages } = useTranslation()
   const [langOpen, setLangOpen] = useState(false)
   const langRef = useRef<HTMLDivElement>(null)
+  const [menuLangOpen, setMenuLangOpen] = useState(false)
+  const [showReport, setShowReport] = useState(false)
   const [artists, setArtists]     = useState<Artist[]>([])
   const [ads, setAds]             = useState<Ad[]>([])
   const [allStyles, setAllStyles] = useState<string[]>(DEFAULT_STYLES)
@@ -218,7 +220,7 @@ export default function Home() {
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (stylesRef.current && !stylesRef.current.contains(e.target as Node)) setStylesOpen(false)
-      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false)
+      if (langRef.current && !langRef.current.contains(e.target as Node)) { setLangOpen(false); setMenuLangOpen(false) }
     }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
@@ -698,35 +700,57 @@ export default function Home() {
               style={{ background: '#efff42', color: '#000' }}>
               {t('inicio', 'add_artist', '+ tatuador/a')}
             </button>
-            {/* Selector de idioma */}
-            {languages.length > 1 && (
-              <div ref={langRef} className="relative">
-                <button
-                  onClick={() => setLangOpen(v => !v)}
-                  className="flex items-center justify-center rounded-lg text-base transition-opacity hover:opacity-80"
-                  style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>{language}</span>
-                </button>
-                {langOpen && (
-                  <div className="absolute right-0 mt-1 rounded-xl overflow-hidden z-50 min-w-max"
-                    style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.8)' }}>
-                    {languages.map(l => (
-                      <button key={l.code}
-                        onClick={() => { setLanguage(l.code); setLangOpen(false) }}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors text-left"
-                        style={{
-                          background: l.code === language ? 'rgba(239,255,66,0.08)' : 'transparent',
-                          color: l.code === language ? '#efff42' : 'rgba(255,255,255,0.7)',
-                          fontWeight: l.code === language ? 700 : 400,
-                        }}>
-                        <span>{l.flag}</span>
-                        <span>{l.name}</span>
+            {/* Menú tres puntos */}
+            <div ref={langRef} className="relative">
+              <button
+                onClick={() => { setLangOpen(v => !v); setMenuLangOpen(false) }}
+                className="flex items-center justify-center rounded-lg transition-opacity hover:opacity-80"
+                style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontSize: 18 }}>
+                ⋮
+              </button>
+              {langOpen && (
+                <div className="absolute right-0 mt-1 rounded-xl z-50"
+                  style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.8)', minWidth: 180, overflow: 'hidden' }}>
+                  {/* Idioma */}
+                  {languages.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setMenuLangOpen(v => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-sm text-left hover:opacity-80"
+                        style={{ color: 'rgba(255,255,255,0.8)' }}>
+                        <span>{t('inicio', 'menu_language', 'Idioma')}</span>
+                        <span style={{ fontSize: 9, opacity: 0.45 }}>{menuLangOpen ? '▲' : '▼'}</span>
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                      {menuLangOpen && (
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                          {languages.map(l => (
+                            <button key={l.code}
+                              onClick={() => { setLanguage(l.code); setLangOpen(false); setMenuLangOpen(false) }}
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left"
+                              style={{
+                                background: l.code === language ? 'rgba(239,255,66,0.08)' : 'transparent',
+                                color: l.code === language ? '#efff42' : 'rgba(255,255,255,0.7)',
+                                fontWeight: l.code === language ? 700 : 400,
+                              }}>
+                              <span>{l.flag}</span>
+                              <span>{l.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                    </>
+                  )}
+                  {/* Reportar */}
+                  <button
+                    onClick={() => { setShowReport(true); setLangOpen(false) }}
+                    className="w-full flex items-center px-4 py-3 text-sm text-left hover:opacity-80"
+                    style={{ color: 'rgba(255,255,255,0.8)' }}>
+                    {t('inicio', 'menu_report', 'Reportar')}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1341,6 +1365,47 @@ export default function Home() {
               style={{ background: '#efff42', color: '#000' }}>
               {t('global', 'close', 'Cerrar')}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── PANEL DE REPORTE ─────────────────────────────────── */}
+      {showReport && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setShowReport(false)}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#111', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 540, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-4"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <span className="font-bold text-white text-base">{t('inicio', 'report_title', 'Reportar')}</span>
+              <button onClick={() => setShowReport(false)}
+                className="flex items-center justify-center"
+                style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', fontSize: 18 }}>
+                ×
+              </button>
+            </div>
+            <div className="px-5 py-5 flex flex-col gap-5">
+              <div>
+                <p className="text-sm font-semibold text-white mb-1">{t('inicio', 'report_stolen_title', 'Foto robada')}</p>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>{t('inicio', 'report_stolen_desc', 'La imagen del perfil no pertenece a este tatuador o tiene derechos de autor.')}</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white mb-1">{t('inicio', 'report_fake_title', 'Perfil falso')}</p>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>{t('inicio', 'report_fake_desc', 'Este perfil suplanta la identidad de otro tatuador.')}</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white mb-1">{t('inicio', 'report_wrong_title', 'Información incorrecta')}</p>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>{t('inicio', 'report_wrong_desc', 'Los datos del perfil son falsos o erróneos.')}</p>
+              </div>
+            </div>
+            <div className="px-5 pb-7 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.38)', lineHeight: 1.75 }}>
+                {t('inicio', 'report_footer', 'Para reportar cualquiera de estos casos u otro que consideres necesario, escribinos a')}{' '}
+                <a href="mailto:soporte.flashttoo@gmail.com" style={{ color: '#efff42', textDecoration: 'none' }}>soporte.flashttoo@gmail.com</a>.{' '}
+                {t('inicio', 'report_footer2', 'Respondemos lo antes posible y tomamos acción inmediata.')}
+              </p>
+            </div>
           </div>
         </div>
       )}
