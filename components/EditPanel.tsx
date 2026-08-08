@@ -344,7 +344,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                   </a>
                 )}
               </div>
-              <button onClick={onClose} className="w-full mt-4 py-2.5 rounded-xl text-xs font-bold"
+              <button onClick={onDeleted} className="w-full mt-4 py-2.5 rounded-xl text-xs font-bold"
                 style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
                 {t('editar', 'close_btn', 'Cerrar')}
               </button>
