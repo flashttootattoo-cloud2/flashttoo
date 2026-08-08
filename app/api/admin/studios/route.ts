@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (a?.length || s?.length) return NextResponse.json({ error: 'Este Instagram ya está en uso' }, { status: 400 })
   }
 
-  const name = (fd.get('name') as string).trim()
+  const name = ((fd.get('name') as string)?.trim() || ig || 'estudio').trim()
   const rawSlug = (fd.get('slug') as string)?.trim() || slugify(name)
 
   // Make slug unique

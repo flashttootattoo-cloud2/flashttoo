@@ -3417,91 +3417,35 @@ export default function AdminPage() {
               className="rounded-xl p-5 flex flex-col gap-4"
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>NUEVO ESTUDIO</p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+                Ingresá el Instagram del estudio. El estudio completa el resto con su clave en <span style={{ color: 'rgba(255,255,255,0.5)' }}>flashttoo.com/estudios/activar</span>
+              </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Logo */}
-                <label className="cursor-pointer block">
-                  <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo</p>
-                  {studioLogoPreview ? (
-                    <div className="relative rounded-xl overflow-hidden" style={{ paddingBottom: '60%' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={studioLogoPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="rounded-xl flex items-center justify-center text-xs"
-                      style={{ paddingBottom: '60%', position: 'relative', border: '2px dashed rgba(255,255,255,0.08)' }}>
-                      <span className="absolute" style={{ color: 'rgba(255,255,255,0.2)' }}>subir logo</span>
-                    </div>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Instagram *</p>
+                    {studioIgStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>verificando...</span>}
+                    {studioIgStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>✓ disponible</span>}
+                    {studioIgStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>✗ ya registrado</span>}
+                  </div>
+                  <input
+                    value={studioForm.instagram}
+                    onChange={e => { setStudioForm(v => ({ ...v, instagram: e.target.value })); setStudioIgStatus('idle') }}
+                    placeholder="@estudio"
+                    className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${studioIgStatus === 'taken' ? 'rgba(248,113,113,0.5)' : studioIgStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
+                  {studioIgStatus === 'taken' && (
+                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(248,113,113,0.7)', marginTop: 6 }}>
+                      Este Instagram ya tiene un perfil en Flashttoo.
+                    </p>
                   )}
-                  <input type="file" accept="image/*" className="hidden" onChange={e => {
-                    const file = e.target.files?.[0]; if (!file) return
-                    setStudioLogoPreview(URL.createObjectURL(file))
-                    const img = new window.Image()
-                    img.onload = () => {
-                      const MAX = 600; let { width, height } = img
-                      if (width > MAX || height > MAX) {
-                        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
-                        else { width = Math.round(width * MAX / height); height = MAX }
-                      }
-                      const canvas = document.createElement('canvas')
-                      canvas.width = width; canvas.height = height
-                      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-                      canvas.toBlob(blob => { if (blob) setStudioLogo(new File([blob], 'logo.webp', { type: 'image/webp' })) }, 'image/webp', 0.85)
-                    }
-                    img.src = URL.createObjectURL(file)
-                  }} />
-                </label>
-
-                <div className="flex flex-col gap-3">
-                  {([
-                    { key: 'name', label: 'Nombre *', placeholder: 'Ej: Black Needle Studio' },
-                    { key: 'slug', label: 'Slug (URL)', placeholder: 'ej: black-needle (auto si vacío)' },
-                    { key: 'city', label: 'Ciudad', placeholder: 'Buenos Aires' },
-                    { key: 'country', label: 'País', placeholder: 'Argentina' },
-                    { key: 'whatsapp', label: 'WhatsApp', placeholder: '+54911...' },
-                    { key: 'website', label: 'Web', placeholder: 'https://...' },
-                  ] as const).map(({ key, label, placeholder }) => (
-                    <div key={key}>
-                      <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-                      <input value={studioForm[key]} onChange={e => setStudioForm(v => ({ ...v, [key]: e.target.value }))}
-                        placeholder={placeholder}
-                        className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                    </div>
-                  ))}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Instagram</p>
-                      {studioIgStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>verificando...</span>}
-                      {studioIgStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>✓ disponible</span>}
-                      {studioIgStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>✗ ya registrado</span>}
-                    </div>
-                    <input
-                      value={studioForm.instagram}
-                      onChange={e => { setStudioForm(v => ({ ...v, instagram: e.target.value })); setStudioIgStatus('idle') }}
-                      placeholder="@estudio"
-                      className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${studioIgStatus === 'taken' ? 'rgba(248,113,113,0.5)' : studioIgStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
-                    {studioIgStatus === 'taken' && (
-                      <p className="text-xs leading-relaxed" style={{ color: 'rgba(248,113,113,0.7)', marginTop: 6 }}>
-                        Este Instagram ya tiene un perfil en Flashttoo.
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Descripción</p>
-                    <textarea value={studioForm.description} onChange={e => setStudioForm(v => ({ ...v, description: e.target.value }))}
-                      placeholder="Breve descripción del estudio..."
-                      rows={2}
-                      className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg resize-none"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                  </div>
-                  <div>
-                    <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vencimiento</p>
-                    <input type="date" value={studioForm.expires_at} onChange={e => setStudioForm(v => ({ ...v, expires_at: e.target.value }))}
-                      className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
-                  </div>
+                </div>
+                <div>
+                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vencimiento</p>
+                  <input type="date" value={studioForm.expires_at} onChange={e => setStudioForm(v => ({ ...v, expires_at: e.target.value }))}
+                    className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
                 </div>
               </div>
 
@@ -3524,7 +3468,7 @@ export default function AdminPage() {
                 </div>
               )}
 
-              <button type="submit" disabled={savingStudio || !studioForm.name.trim()} className="self-start font-bold text-sm py-2 px-6 rounded-full disabled:opacity-40"
+              <button type="submit" disabled={savingStudio || !studioForm.instagram.trim() || studioIgStatus === 'taken'} className="self-start font-bold text-sm py-2 px-6 rounded-full disabled:opacity-40"
                 style={{ background: '#efff42', color: '#000' }}>
                 {savingStudio ? 'Guardando...' : 'Crear estudio'}
               </button>
