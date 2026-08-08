@@ -17,6 +17,18 @@ function genKey() {
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
+const VERIFY_WORDS = [
+  'paloma','tigre','luna','sol','flor','río','mar','viento','fuego','piedra',
+  'nube','rayo','brisa','selva','arena','perla','coral','cedro','puma','cóndor',
+  'alerce','cactus','llama','toro','zorro','nutria','jaguar','ñandú','carpa','garza',
+  'álamo','roble','sauce','pino','olivo','menta','tomillo','azahar','canela','vainilla',
+  'ámbar','topacio','jaspe','cuarzo','ónice','rubí','jade','ágata','lapislázuli','malaquita',
+]
+
+function genVerifyWord() {
+  return VERIFY_WORDS[Math.floor(Math.random() * VERIFY_WORDS.length)]
+}
+
 export default function AgregarPage() {
   const { t } = useTranslation()
   const [form, setForm] = useState({
@@ -31,7 +43,17 @@ export default function AgregarPage() {
   const stylesRef = useRef<HTMLDivElement>(null)
   const [igStatus, setIgStatus]     = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [verifyWord] = useState(() => genVerifyWord())
+  const [verifyIG, setVerifyIG] = useState('')
+  const [verifyWA, setVerifyWA] = useState('')
   const igTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useEffect(() => {
+    fetch('/api/features').then(r => r.json()).then(d => {
+      if (d.verification_instagram) setVerifyIG(d.verification_instagram)
+      if (d.verification_whatsapp) setVerifyWA(d.verification_whatsapp)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const handle = form.instagram.trim().replace('@', '')
@@ -189,6 +211,7 @@ export default function AgregarPage() {
         bio:       form.bio.trim()       || null,
         edit_key:  editKey.trim().toUpperCase(),
         status:    moderation ? 'pending' : 'active',
+        verification_word: moderation ? verifyWord : null,
         interview: Object.fromEntries(Object.entries(interview).filter(([, v]) => v.trim())),
         visits,
         gallery_photo_1: galleryUrls[0],
@@ -212,10 +235,39 @@ export default function AgregarPage() {
 
   if (done === 'pending') return (
     <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="text-center max-w-sm">
+      <div className="text-center max-w-sm w-full">
         <h2 className="text-xl font-bold mb-2">{t('agregar', 'done_pending_title', 'Perfil en revisión')}</h2>
-        <p className="text-white/50 text-sm mb-2">{t('agregar', 'done_pending_msg1', 'Tu perfil fue enviado y está esperando aprobación.')}</p>
-        <p className="text-white/30 text-sm mb-6">{t('agregar', 'done_pending_msg2', 'Vas a aparecer en el buscador una vez que sea aprobado.')}</p>
+        <p className="text-white/50 text-sm mb-6">{t('agregar', 'done_pending_msg1', 'Tu perfil fue enviado y está esperando aprobación.')}</p>
+
+        {/* Palabra de verificación */}
+        <div className="rounded-2xl p-5 mb-6 text-left" style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.2)' }}>
+          <p className="text-xs font-bold mb-1" style={{ color: 'rgba(239,255,66,0.6)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+            Un paso más para activar tu perfil
+          </p>
+          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+            Envianos esta palabra por DM para confirmar que sos vos:
+          </p>
+          <p className="text-3xl font-black text-center tracking-widest mb-4" style={{ color: '#efff42', letterSpacing: '0.2em' }}>
+            {verifyWord}
+          </p>
+          <div className="flex flex-col gap-2">
+            {verifyIG && (
+              <a href={`https://ig.me/m/${verifyIG.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
+                style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', textDecoration: 'none' }}>
+                <span>📩</span> Enviar por Instagram DM
+              </a>
+            )}
+            {verifyWA && (
+              <a href={`https://wa.me/${verifyWA.replace(/\D/g, '')}?text=${encodeURIComponent(verifyWord)}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
+                style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366', textDecoration: 'none' }}>
+                <span>💬</span> Enviar por WhatsApp
+              </a>
+            )}
+          </div>
+        </div>
+
         <Link href="/" className="text-sm text-[#efff42] underline underline-offset-4">{t('agregar', 'done_pending_link', 'Volver al inicio')}</Link>
       </div>
     </main>

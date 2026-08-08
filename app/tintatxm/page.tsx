@@ -13,6 +13,7 @@ type Artist = {
   photo_url: string; instagram: string | null; whatsapp: string | null
   profile_views: number; instagram_clicks: number; whatsapp_clicks: number; likes: number
   edit_key: string; visible: boolean; created_at: string; status: string
+  verification_word: string | null
 }
 
 function fmtN(n: number): string {
@@ -1083,6 +1084,10 @@ export default function AdminPage() {
   const [savingEventsCountry, setSavingEventsCountry]   = useState(false)
   const [registrationOpen, setRegistrationOpen]         = useState(true)
   const [savingRegistration, setSavingRegistration]     = useState(false)
+  const [verifyIG, setVerifyIG]                         = useState('')
+  const [verifyWA, setVerifyWA]                         = useState('')
+  const [savingVerify, setSavingVerify]                 = useState(false)
+  const [wordSearch, setWordSearch]                     = useState('')
   const [storageR2, setStorageR2]           = useState(false)
   const [savingStorage, setSavingStorage]   = useState(false)
   const [r2Available, setR2Available]       = useState(false)
@@ -1296,6 +1301,8 @@ export default function AdminPage() {
         setGalleryEnabled(cfg.value.settings?.artist_gallery_enabled === true)
         setEventsCountryFilter(cfg.value.settings?.events_country_filter === true)
         setRegistrationOpen(cfg.value.settings?.registration_open !== false)
+        setVerifyIG(cfg.value.settings?.verification_instagram || '')
+        setVerifyWA(cfg.value.settings?.verification_whatsapp || '')
         setStorageR2(cfg.value.settings?.storage_provider === 'r2')
         setR2Available(cfg.value.r2_available === true)
         if (Array.isArray(cfg.value.settings?.styles) && cfg.value.settings.styles.length > 0)
@@ -1750,40 +1757,59 @@ export default function AdminPage() {
           // ── PENDIENTES ───────────────────────────────────────────────────────
           (() => {
             const pending = artists.filter(a => a.status === 'pending')
-            if (pending.length === 0) return (
-              <p className="text-sm py-12 text-center" style={{ color: 'rgba(255,255,255,0.15)' }}>
-                No hay perfiles pendientes
-              </p>
-            )
+            const filtered = wordSearch.trim()
+              ? pending.filter(a => a.verification_word?.toLowerCase() === wordSearch.trim().toLowerCase())
+              : pending
             return (
-              <div className="flex flex-col gap-3">
-                {pending.map(a => (
-                  <div key={a.id} className="rounded-xl overflow-hidden flex gap-4 p-4 items-center"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,200,0,0.2)' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={a.photo_url} alt={a.name}
-                      className="rounded-lg object-cover shrink-0"
-                      style={{ width: 64, height: 64 }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-white truncate">{a.name}</p>
-                      <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
-                      {a.instagram && <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>{a.instagram}</p>}
-                      <p className="text-xs mt-1 font-mono" style={{ color: 'rgba(239,255,66,0.5)' }}>{a.edit_key}</p>
-                    </div>
-                    <div className="flex flex-col gap-2 shrink-0">
-                      <button onClick={() => approveArtist(a.id)}
-                        className="text-xs px-4 py-2 rounded-lg font-bold transition-colors"
-                        style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80' }}>
-                        Aprobar
-                      </button>
-                      <button onClick={() => rejectArtist(a.id)} disabled={deleting === a.id}
-                        className="text-xs px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
-                        style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.7)' }}>
-                        {deleting === a.id ? '...' : 'Rechazar'}
-                      </button>
-                    </div>
+              <div className="flex flex-col gap-4">
+                {/* Buscador por palabra */}
+                <input
+                  value={wordSearch}
+                  onChange={e => setWordSearch(e.target.value)}
+                  placeholder="Buscá por palabra de verificación..."
+                  className="w-full text-sm text-white outline-none rounded-xl px-4 py-3"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                />
+                {filtered.length === 0 ? (
+                  <p className="text-sm py-8 text-center" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                    {wordSearch.trim() ? 'No se encontró ningún perfil con esa palabra' : 'No hay perfiles pendientes'}
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {filtered.map(a => (
+                      <div key={a.id} className="rounded-xl overflow-hidden flex gap-4 p-4 items-center"
+                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,200,0,0.2)' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={a.photo_url} alt={a.name}
+                          className="rounded-lg object-cover shrink-0"
+                          style={{ width: 64, height: 64 }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-white truncate">{a.name}</p>
+                          <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
+                          {a.instagram && <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>{a.instagram}</p>}
+                          {a.whatsapp && <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>{a.whatsapp}</p>}
+                          {a.verification_word && (
+                            <p className="text-xs mt-1 font-bold tracking-widest" style={{ color: '#efff42', letterSpacing: '0.15em' }}>
+                              ✦ {a.verification_word}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2 shrink-0">
+                          <button onClick={() => approveArtist(a.id)}
+                            className="text-xs px-4 py-2 rounded-lg font-bold transition-colors"
+                            style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80' }}>
+                            Aprobar
+                          </button>
+                          <button onClick={() => rejectArtist(a.id)} disabled={deleting === a.id}
+                            className="text-xs px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
+                            style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.7)' }}>
+                            {deleting === a.id ? '...' : 'Rechazar'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )
           })()
@@ -1963,6 +1989,42 @@ export default function AdminPage() {
               <p className="text-xs mt-3 font-bold" style={{ color: registrationOpen ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
                 {registrationOpen ? 'Abierto — cualquiera puede registrarse' : 'Cerrado — se muestra aviso al tocar el botón'}
               </p>
+            </div>
+
+            {/* Contacto para verificación */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-sm font-bold text-white mb-1">Contacto para verificación</p>
+              <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
+                Los tatuadores envían su palabra de verificación a estos contactos. Dejá vacío el que no uses.
+              </p>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>Instagram</p>
+                  <input value={verifyIG} onChange={e => setVerifyIG(e.target.value)} placeholder="@flashttoo"
+                    className="w-full text-sm text-white outline-none rounded-lg px-3 py-2"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                </div>
+                <div>
+                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>WhatsApp</p>
+                  <input value={verifyWA} onChange={e => setVerifyWA(e.target.value)} placeholder="+54 9 11 1234 5678"
+                    className="w-full text-sm text-white outline-none rounded-lg px-3 py-2"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                </div>
+                <button
+                  onClick={async () => {
+                    setSavingVerify(true)
+                    await Promise.all([
+                      fetch('/api/admin/settings', { method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'verification_instagram', value: verifyIG }) }),
+                      fetch('/api/admin/settings', { method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'verification_whatsapp', value: verifyWA }) }),
+                    ])
+                    setSavingVerify(false)
+                  }}
+                  disabled={savingVerify}
+                  className="self-start text-xs px-4 py-2 rounded-lg font-bold disabled:opacity-50"
+                  style={{ background: '#efff42', color: '#000' }}>
+                  {savingVerify ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
             </div>
 
             {/* Storage R2 */}
