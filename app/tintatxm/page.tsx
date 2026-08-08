@@ -1063,6 +1063,7 @@ export default function AdminPage() {
   const [statsArtists, setStatsArtists] = useState<Artist[]>([])
   const [loadingStats, setLoadingStats] = useState(false)
   const [loadingPending, setLoadingPending] = useState(false)
+  const [loadingArtists, setLoadingArtists] = useState(false)
   const [searchStats, setSearchStats] = useState<{ countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }>({ countries: [], cities: [], styles: [] })
   const [appEventCounts, setAppEventCounts] = useState<Record<string, number>>({})
   const [artistSearch, setArtistSearch] = useState('')
@@ -1356,6 +1357,17 @@ export default function AdminPage() {
     }, 400)
     return () => clearTimeout(searchTimer.current)
   }, [artistSearch, auth, pass])
+
+  const refreshArtists = async () => {
+    setLoadingArtists(true)
+    const r = await fetch(`/api/admin/artists?limit=${ARTISTS_PAGE}&offset=0`, { headers: H(pass) }).then(res => res.json()).catch(() => null)
+    if (r?.artists) {
+      setArtists(prev => [...prev.filter(a => a.status === 'pending'), ...r.artists])
+      setArtistsTotal(r.total ?? 0)
+      setArtistsOffset(r.artists.length)
+    }
+    setLoadingArtists(false)
+  }
 
   const refreshPending = async (p: string) => {
     setLoadingPending(true)
@@ -1700,8 +1712,19 @@ export default function AdminPage() {
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando...</p>
         ) : tab === 'artistas' ? (
 
-          // ── ARTISTAS ────────────────────────────────────────────────────────
+          // ── ARTISTAS ──────────���─────────────────────────────────────────────
           <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>Tatuadores ({artistsTotal})</p>
+              <button
+                onClick={refreshArtists}
+                disabled={loadingArtists}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                style={{ background: 'rgba(255,255,255,0.05)', color: loadingArtists ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ display: 'inline-block', animation: loadingArtists ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+                {loadingArtists ? 'Actualizando…' : 'Actualizar'}
+              </button>
+            </div>
             <div className="relative">
               <input
                 value={artistSearch}
