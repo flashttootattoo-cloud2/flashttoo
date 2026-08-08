@@ -254,7 +254,7 @@ export default function AgregarPage() {
             {verifyIG && (
               <a href={`https://ig.me/m/${verifyIG.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
-                style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', textDecoration: 'none' }}>
+                style={{ background: '#efff42', color: '#000', textDecoration: 'none' }}>
                 <span>📩</span> {t('agregar', 'verify_ig_btn', 'Enviar por Instagram DM')}
               </a>
             )}
