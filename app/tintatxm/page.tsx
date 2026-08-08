@@ -1063,6 +1063,7 @@ export default function AdminPage() {
   const [statsArtists, setStatsArtists] = useState<Artist[]>([])
   const [loadingStats, setLoadingStats] = useState(false)
   const [loadingPending, setLoadingPending] = useState(false)
+  const [copiedMsg, setCopiedMsg] = useState<string | null>(null)
   const [loadingArtists, setLoadingArtists] = useState(false)
   const [searchStats, setSearchStats] = useState<{ countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }>({ countries: [], cities: [], styles: [] })
   const [appEventCounts, setAppEventCounts] = useState<Record<string, number>>({})
@@ -1872,6 +1873,17 @@ export default function AdminPage() {
                               className="text-xs px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
                               style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.7)' }}>
                               {deleting === a.id ? '...' : 'Rechazar'}
+                            </button>
+                            <button onClick={() => {
+                              const msg = `Hola ${a.name}, tu perfil en flashttoo ya está activo 🎉 Si tenés colegas tatuadores que quieran sumarse: flashttoo.com/agregar`
+                              navigator.clipboard.writeText(msg).then(() => {
+                                setCopiedMsg(a.id)
+                                setTimeout(() => setCopiedMsg(null), 2000)
+                              })
+                            }}
+                              className="text-xs px-4 py-2 rounded-lg transition-colors"
+                              style={{ background: copiedMsg === a.id ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copiedMsg === a.id ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.1)'}`, color: copiedMsg === a.id ? '#4ade80' : 'rgba(255,255,255,0.3)' }}>
+                              {copiedMsg === a.id ? '✓ copiado' : 'Copiar msg'}
                             </button>
                           </div>
                         </div>
