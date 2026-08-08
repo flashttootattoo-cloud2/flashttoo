@@ -319,7 +319,39 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
           )}
 
           {/* PASO 2: Formulario */}
-          {step === 'form' && (
+          {step === 'form' && igDone && (
+            <div className="rounded-2xl p-5" style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.2)' }}>
+              <p className="text-xs font-bold mb-1" style={{ color: 'rgba(239,255,66,0.6)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                {t('agregar', 'verify_step_title', 'Un paso más para activar tu perfil')}
+              </p>
+              <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+                {t('agregar', 'verify_step_msg', 'Envianos esta palabra por DM desde tu Instagram para confirmar que el perfil es tuyo y proteger tu identidad:')}
+              </p>
+              <p className="text-3xl font-black text-center tracking-widest mb-4" style={{ color: '#efff42', letterSpacing: '0.2em' }}>{igDone.word}</p>
+              <div className="flex flex-col gap-2">
+                {verifyIG && (
+                  <a href={`https://ig.me/m/${verifyIG.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
+                    style={{ background: '#efff42', color: '#000', textDecoration: 'none' }}>
+                    📩 {t('agregar', 'verify_ig_btn', 'Enviar por Instagram DM')}
+                  </a>
+                )}
+                {verifyWA && (
+                  <a href={`https://wa.me/${verifyWA.replace(/\D/g, '')}?text=${encodeURIComponent(igDone.word)}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
+                    style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366', textDecoration: 'none' }}>
+                    💬 {t('agregar', 'verify_wa_btn', 'Enviar por WhatsApp')}
+                  </a>
+                )}
+              </div>
+              <button onClick={onClose} className="w-full mt-4 py-2.5 rounded-xl text-xs font-bold"
+                style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
+                {t('editar', 'close_btn', 'Cerrar')}
+              </button>
+            </div>
+          )}
+
+          {step === 'form' && !igDone && (
             <>
               {/* Foto */}
               <label className="cursor-pointer block">
@@ -377,85 +409,57 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                 )}
               </div>
 
-              {igDone ? (
-                <div className="rounded-2xl p-5" style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.2)' }}>
-                  <p className="text-xs font-bold mb-1" style={{ color: 'rgba(239,255,66,0.6)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                    {t('agregar', 'verify_step_title', 'Un paso más para activar tu perfil')}
-                  </p>
-                  <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-                    {t('agregar', 'verify_step_msg', 'Envianos esta palabra por DM desde tu Instagram para confirmar que el perfil es tuyo y proteger tu identidad:')}
-                  </p>
-                  <p className="text-3xl font-black text-center tracking-widest mb-4" style={{ color: '#efff42', letterSpacing: '0.2em' }}>{igDone.word}</p>
-                  <div className="flex flex-col gap-2">
-                    {verifyIG && (
-                      <a href={`https://ig.me/m/${verifyIG.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
-                        style={{ background: '#efff42', color: '#000', textDecoration: 'none' }}>
-                        📩 {t('agregar', 'verify_ig_btn', 'Enviar por Instagram DM')}
-                      </a>
-                    )}
-                    {verifyWA && (
-                      <a href={`https://wa.me/${verifyWA.replace(/\D/g, '')}?text=${encodeURIComponent(igDone.word)}`} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
-                        style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366', textDecoration: 'none' }}>
-                        💬 {t('agregar', 'verify_wa_btn', 'Enviar por WhatsApp')}
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'instagram_label', 'Instagram')}</p>
-                    {!igEdit && (
-                      <button onClick={() => setIgEdit(true)}
-                        className="text-xs px-2.5 py-1 rounded-lg"
-                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
-                        {t('editar', 'ig_change_btn', 'Cambiar')}
-                      </button>
-                    )}
-                  </div>
-                  <input readOnly value={form.instagram} className={iCls}
-                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', cursor: 'default' }} />
-                  {igEdit && (
-                    <div className="mt-3 rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
-                        {t('editar', 'ig_change_warning', 'Al cambiar el Instagram tu perfil vuelve a revisión y deberás verificarlo nuevamente.')}
-                      </p>
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('editar', 'ig_new_label', 'Nuevo Instagram')}</p>
-                          {igNewStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'ig_checking', 'verificando...')}</span>}
-                          {igNewStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('agregar', 'ig_available', '✓ disponible')}</span>}
-                          {igNewStatus === 'taken' && igNew.trim().replace(/^@/, '').toLowerCase() === (form.instagram || '').trim().replace(/^@/, '').toLowerCase() && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('editar', 'ig_same_as_current', '✗ es el mismo')}</span>}
-                          {igNewStatus === 'taken' && igNew.trim().replace(/^@/, '').toLowerCase() !== (form.instagram || '').trim().replace(/^@/, '').toLowerCase() && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('agregar', 'ig_taken', '✗ ya registrado')}</span>}
-                        </div>
-                        <input value={igNew} onChange={e => setIgNew(e.target.value)}
-                          placeholder="@nuevousuario" className={iCls}
-                          style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${igNewStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igNewStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
-                      </div>
-                      {saveError && <p className="text-xs" style={{ color: '#f87171' }}>{saveError}</p>}
-                      <div className="flex gap-2">
-                        <button onClick={() => { setIgEdit(false); setIgNew(''); setIgNewStatus('idle'); setSaveError('') }}
-                          className="flex-1 py-2 rounded-lg text-xs"
-                          style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
-                          {t('agregar', 'date_cancel', 'Cancelar')}
-                        </button>
-                        <button onClick={changeInstagram} disabled={igNewStatus !== 'ok' || igChanging}
-                          className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
-                          style={{ background: '#efff42', color: '#000' }}>
-                          {igChanging ? '...' : t('editar', 'ig_confirm_change', 'Confirmar')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'instagram_label', 'Instagram')}</p>
                   {!igEdit && (
-                    <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
-                      {t('editar', 'ig_locked_hint', 'El cambio requiere nueva verificación.')}
-                    </p>
+                    <button onClick={() => setIgEdit(true)}
+                      className="text-xs px-2.5 py-1 rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
+                      {t('editar', 'ig_change_btn', 'Cambiar')}
+                    </button>
                   )}
                 </div>
-              )}
+                <input readOnly value={form.instagram} className={iCls}
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', cursor: 'default' }} />
+                {igEdit && (
+                  <div className="mt-3 rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                      {t('editar', 'ig_change_warning', 'Al cambiar el Instagram tu perfil vuelve a revisión y deberás verificarlo nuevamente.')}
+                    </p>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('editar', 'ig_new_label', 'Nuevo Instagram')}</p>
+                        {igNewStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'ig_checking', 'verificando...')}</span>}
+                        {igNewStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('agregar', 'ig_available', '✓ disponible')}</span>}
+                        {igNewStatus === 'taken' && igNew.trim().replace(/^@/, '').toLowerCase() === (form.instagram || '').trim().replace(/^@/, '').toLowerCase() && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('editar', 'ig_same_as_current', '✗ es el mismo')}</span>}
+                        {igNewStatus === 'taken' && igNew.trim().replace(/^@/, '').toLowerCase() !== (form.instagram || '').trim().replace(/^@/, '').toLowerCase() && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('agregar', 'ig_taken', '✗ ya registrado')}</span>}
+                      </div>
+                      <input value={igNew} onChange={e => setIgNew(e.target.value)}
+                        placeholder="@nuevousuario" className={iCls}
+                        style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${igNewStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igNewStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
+                    </div>
+                    {saveError && <p className="text-xs" style={{ color: '#f87171' }}>{saveError}</p>}
+                    <div className="flex gap-2">
+                      <button onClick={() => { setIgEdit(false); setIgNew(''); setIgNewStatus('idle'); setSaveError('') }}
+                        className="flex-1 py-2 rounded-lg text-xs"
+                        style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
+                        {t('agregar', 'date_cancel', 'Cancelar')}
+                      </button>
+                      <button onClick={changeInstagram} disabled={igNewStatus !== 'ok' || igChanging}
+                        className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
+                        style={{ background: '#efff42', color: '#000' }}>
+                        {igChanging ? '...' : t('editar', 'ig_confirm_change', 'Confirmar')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {!igEdit && (
+                  <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
+                    {t('editar', 'ig_locked_hint', 'El cambio requiere nueva verificación.')}
+                  </p>
+                )}
+              </div>
 
               <Field label={t('agregar', 'whatsapp_label', 'WhatsApp')}>
                 <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
