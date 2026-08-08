@@ -268,7 +268,7 @@ export default function AgregarPage() {
               onClick={() => { navigator.clipboard.writeText(verifyWord).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }) }}
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
               style={{ background: copied ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.07)', color: copied ? '#efff42' : 'rgba(255,255,255,0.4)', border: `1px solid ${copied ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}` }}>
-              {copied ? '✓ Copiado' : 'Copiar'}
+              {copied ? t('agregar', 'verify_copied', '✓ Copiado') : t('agregar', 'verify_copy_btn', 'Copiar')}
             </button>
           </div>
           <div className="flex flex-col gap-2">
