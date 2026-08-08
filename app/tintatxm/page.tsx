@@ -1086,6 +1086,8 @@ export default function AdminPage() {
   const [savingGallery, setSavingGallery]               = useState(false)
   const [eventsCountryFilter, setEventsCountryFilter]   = useState(false)
   const [savingEventsCountry, setSavingEventsCountry]   = useState(false)
+  const [showInsumos, setShowInsumos]                   = useState(true)
+  const [savingShowInsumos, setSavingShowInsumos]       = useState(false)
   const [registrationOpen, setRegistrationOpen]         = useState(true)
   const [savingRegistration, setSavingRegistration]     = useState(false)
   const [verifyIG, setVerifyIG]                         = useState('')
@@ -1306,6 +1308,7 @@ export default function AdminPage() {
         setShowCount(cfg.value.settings?.show_count === true)
         setGalleryEnabled(cfg.value.settings?.artist_gallery_enabled === true)
         setEventsCountryFilter(cfg.value.settings?.events_country_filter === true)
+        setShowInsumos(cfg.value.settings?.show_insumos !== false)
         setRegistrationOpen(cfg.value.settings?.registration_open !== false)
         setVerifyIG(cfg.value.settings?.verification_instagram || '')
         setVerifyWA(cfg.value.settings?.verification_whatsapp || '')
@@ -1418,6 +1421,17 @@ export default function AdminPage() {
     })
     setModeration(val)
     setSavingMod(false)
+  }
+
+  const toggleShowInsumos = async (val: boolean) => {
+    setSavingShowInsumos(true)
+    await fetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'show_insumos', value: val }),
+    })
+    setShowInsumos(val)
+    setSavingShowInsumos(false)
   }
 
   const toggleShowCount = async (val: boolean) => {
@@ -1957,6 +1971,35 @@ export default function AdminPage() {
               </div>
               <p className="text-xs mt-3 font-bold" style={{ color: showCount ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
                 {showCount ? 'Activado — se ve el contador en la home' : 'Desactivado — contador oculto'}
+              </p>
+            </div>
+
+            {/* Mostrar insumos */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Mostrar sección Insumos</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                    Muestra el botón "Insumos" junto al de "Eventos" en la página principal. Si está desactivado, solo se ve Eventos.
+                  </p>
+                </div>
+                <button
+                  onClick={() => toggleShowInsumos(!showInsumos)}
+                  disabled={savingShowInsumos}
+                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                  style={{ width: 48, height: 28, background: showInsumos ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', top: 4,
+                    left: showInsumos ? 24 : 4,
+                    width: 20, height: 20,
+                    borderRadius: '50%',
+                    background: showInsumos ? '#000' : 'rgba(255,255,255,0.4)',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              <p className="text-xs mt-3 font-bold" style={{ color: showInsumos ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                {showInsumos ? 'Activado — se ven Insumos y Eventos' : 'Desactivado — solo se ve Eventos'}
               </p>
             </div>
 
