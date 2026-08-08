@@ -245,7 +245,7 @@ export default function AgregarPage() {
             Un paso más para activar tu perfil
           </p>
           <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-            Envianos esta palabra por DM para confirmar que sos vos:
+            Envianos esta palabra por DM desde tu Instagram para confirmar que el perfil es tuyo y proteger tu identidad:
           </p>
           <p className="text-3xl font-black text-center tracking-widest mb-4" style={{ color: '#efff42', letterSpacing: '0.2em' }}>
             {verifyWord}
