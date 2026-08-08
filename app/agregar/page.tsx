@@ -141,6 +141,7 @@ export default function AgregarPage() {
     setError('')
     if (!photo) { setError(t('agregar', 'error_photo', 'Agregá una foto')); return }
     if (styles.length === 0) { setError(t('agregar', 'error_styles', 'Elegí al menos un estilo')); return }
+    if (!form.instagram.trim()) { setError(t('agregar', 'error_instagram', 'Ingresá tu usuario de Instagram')); return }
 
     setLoading(true)
     try {
@@ -343,7 +344,7 @@ export default function AgregarPage() {
           {/* Contacto */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs text-white/40 uppercase tracking-widest">{t('agregar', 'instagram_label', 'Instagram')}</label>
+              <label className="text-xs text-white/40 uppercase tracking-widest">{t('agregar', 'instagram_label', 'Instagram')} *</label>
               {igStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'ig_checking', 'verificando...')}</span>}
               {igStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('agregar', 'ig_available', '✓ disponible')}</span>}
               {igStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('agregar', 'ig_taken', '✗ ya registrado')}</span>}
