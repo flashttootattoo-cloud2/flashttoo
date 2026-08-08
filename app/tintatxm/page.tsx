@@ -14,6 +14,7 @@ type Artist = {
   profile_views: number; instagram_clicks: number; whatsapp_clicks: number; likes: number
   edit_key: string; visible: boolean; created_at: string; status: string
   verification_word: string | null
+  pending_reason: string | null
 }
 
 function fmtN(n: number): string {
@@ -1808,13 +1809,29 @@ export default function AdminPage() {
                             style={{ width: 64, height: 64 }} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-baseline justify-between gap-2">
-                              <p className="text-sm font-bold text-white truncate">{a.name}</p>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <p className="text-sm font-bold text-white truncate">{a.name}</p>
+                                {a.pending_reason?.startsWith('ig_change') && (
+                                  <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}>
+                                    cambio IG
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs shrink-0" style={{ color: expired ? 'rgba(255,100,100,0.6)' : 'rgba(255,255,255,0.2)' }}>
                                 {new Date(a.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })} {new Date(a.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
                             <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
-                            {a.instagram && <p className="text-xs mt-0.5 truncate font-semibold" style={{ color: '#c77dff' }}>{a.instagram}</p>}
+                            {a.instagram && (
+                              <p className="text-xs mt-0.5 truncate font-semibold" style={{ color: '#c77dff' }}>
+                                {a.instagram}
+                                {a.pending_reason?.startsWith('ig_change') && (
+                                  <span className="font-normal ml-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                                    (antes: @{a.pending_reason.split(':')[1]})
+                                  </span>
+                                )}
+                              </p>
+                            )}
                             {a.whatsapp && <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>{a.whatsapp}</p>}
                             {a.verification_word && (
                               <p className="text-xs mt-1 font-bold tracking-widest" style={{ color: '#efff42', letterSpacing: '0.15em' }}>

@@ -52,4 +52,5 @@ export type Artist = {
   gallery_photo_1?: string | null
   gallery_photo_2?: string | null
   gallery_photo_3?: string | null
+  pending_reason?: string | null
 }

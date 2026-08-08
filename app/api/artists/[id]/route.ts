@@ -24,7 +24,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   // Cambio de Instagram: verifica unicidad y manda a pendiente con nueva palabra
   if (body._ig_change) {
-    const newIG = String(fields.instagram || '').trim().replace(/^@/, '').toLowerCase()
+    const newIG = String(body.instagram || '').trim().replace(/^@/, '').toLowerCase()
+    const oldIG = String(artist.instagram || '').trim().replace(/^@/, '').toLowerCase()
     if (!newIG) return NextResponse.json({ error: 'Instagram requerido' }, { status: 400 })
     // Verificar que no esté en uso por otro artista
     const { data: existing } = await sb().from('artists').select('id')
@@ -37,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const available = WORDS.filter(w => !usedSet.has(w))
     const word = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : WORDS[Math.floor(Math.random() * WORDS.length)]
     const { data: updated, error: upErr } = await sb().from('artists')
-      .update({ instagram: newIG, status: 'pending', verification_word: word })
+      .update({ instagram: newIG, status: 'pending', verification_word: word, pending_reason: `ig_change:${oldIG}` })
       .eq('id', id).select().single()
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
     return NextResponse.json({ artist: updated, verification_word: word })
