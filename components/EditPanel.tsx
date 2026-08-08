@@ -356,18 +356,16 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'instagram_label', 'Instagram')}</p>
-                  {igStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'ig_checking', 'verificando...')}</span>}
-                  {igStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('agregar', 'ig_available', '✓ disponible')}</span>}
-                  {igStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('agregar', 'ig_taken', '✗ ya registrado')}</span>}
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>🔒</span>
                 </div>
-                <input value={form.instagram} onChange={e => setForm(f => ({ ...f, instagram: e.target.value }))}
-                  placeholder={t('agregar', 'instagram_placeholder', '@usuario')} className={iCls}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${igStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
-                {igStatus === 'taken' && (
-                  <p className="text-xs mt-1.5 leading-relaxed" style={{ color: 'rgba(248,113,113,0.7)' }}>
-                    {t('agregar', 'ig_taken_msg', 'Este Instagram ya tiene un perfil en Flashttoo. Si es tuyo y perdiste la clave, escribinos.')}
-                  </p>
-                )}
+                <input
+                  readOnly
+                  value={form.instagram}
+                  className={iCls}
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', cursor: 'default' }} />
+                <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
+                  {t('editar', 'ig_locked_msg', 'El Instagram no se puede cambiar desde acá. Si necesitás actualizarlo, escribinos a soporte.flashttoo@gmail.com.')}
+                </p>
               </div>
 
               <Field label={t('agregar', 'whatsapp_label', 'WhatsApp')}>
