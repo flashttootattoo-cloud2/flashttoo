@@ -242,10 +242,10 @@ export default function AgregarPage() {
         {/* Palabra de verificación */}
         <div className="rounded-2xl p-5 mb-6 text-left" style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.2)' }}>
           <p className="text-xs font-bold mb-1" style={{ color: 'rgba(239,255,66,0.6)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-            Un paso más para activar tu perfil
+            {t('agregar', 'verify_step_title', 'Un paso más para activar tu perfil')}
           </p>
           <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-            Envianos esta palabra por DM desde tu Instagram para confirmar que el perfil es tuyo y proteger tu identidad:
+            {t('agregar', 'verify_step_msg', 'Envianos esta palabra por DM desde tu Instagram para confirmar que el perfil es tuyo y proteger tu identidad:')}
           </p>
           <p className="text-3xl font-black text-center tracking-widest mb-4" style={{ color: '#efff42', letterSpacing: '0.2em' }}>
             {verifyWord}
@@ -255,14 +255,14 @@ export default function AgregarPage() {
               <a href={`https://ig.me/m/${verifyIG.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
                 style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', textDecoration: 'none' }}>
-                <span>📩</span> Enviar por Instagram DM
+                <span>📩</span> {t('agregar', 'verify_ig_btn', 'Enviar por Instagram DM')}
               </a>
             )}
             {verifyWA && (
               <a href={`https://wa.me/${verifyWA.replace(/\D/g, '')}?text=${encodeURIComponent(verifyWord)}`} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
                 style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366', textDecoration: 'none' }}>
-                <span>💬</span> Enviar por WhatsApp
+                <span>💬</span> {t('agregar', 'verify_wa_btn', 'Enviar por WhatsApp')}
               </a>
             )}
           </div>
