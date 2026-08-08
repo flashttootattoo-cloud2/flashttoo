@@ -544,40 +544,41 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         )
       })()}
 
-      {/* Banner fijo */}
-      <div
-        onTouchStart={e => startDrag(e.touches[0].clientX)}
-        onTouchMove={e => moveDrag(e.touches[0].clientX)}
-        onTouchEnd={endDrag}
-        onMouseDown={e => startDrag(e.clientX)}
-        onMouseMove={e => moveDrag(e.clientX)}
-        onMouseUp={endDrag}
-        onMouseLeave={endDrag}
-        style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
-          padding: '0 20px',
-          userSelect: 'none', touchAction: 'pan-x', cursor: 'grab',
-        }}>
-        <div style={{ maxWidth: '80rem', margin: '0 auto', background: '#000', borderRadius: '14px 14px 0 0', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}>
-          {/* Logos */}
-          <div style={{ overflow: 'hidden', padding: '16px 16px 16px' }}>
-            <div ref={trackRef} style={{ display: 'flex', willChange: 'transform' }}>
-              <div ref={firstRef} style={{ display: 'flex', gap: 40, paddingRight: 40, flexShrink: 0 }}>
-                {sponsors.map(s => <Logo key={s.id} s={s} dragRef={dragRef} />)}
-              </div>
-              {Array.from({ length: 3 }, (_, ci) => (
-                <div key={ci} style={{ display: 'flex', gap: 40, paddingRight: 40, flexShrink: 0 }}>
-                  {sponsors.map(s => <Logo key={`${ci}-${s.id}`} s={s} dragRef={dragRef} />)}
+      {/* Banner fijo — solo cuando insumos está activo */}
+      {showInsumos && (
+        <div
+          onTouchStart={e => startDrag(e.touches[0].clientX)}
+          onTouchMove={e => moveDrag(e.touches[0].clientX)}
+          onTouchEnd={endDrag}
+          onMouseDown={e => startDrag(e.clientX)}
+          onMouseMove={e => moveDrag(e.clientX)}
+          onMouseUp={endDrag}
+          onMouseLeave={endDrag}
+          style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
+            padding: '0 20px',
+            userSelect: 'none', touchAction: 'pan-x', cursor: 'grab',
+          }}>
+          <div style={{ maxWidth: '80rem', margin: '0 auto', background: '#000', borderRadius: '14px 14px 0 0', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}>
+            <div style={{ overflow: 'hidden', padding: '16px 16px 16px' }}>
+              <div ref={trackRef} style={{ display: 'flex', willChange: 'transform' }}>
+                <div ref={firstRef} style={{ display: 'flex', gap: 40, paddingRight: 40, flexShrink: 0 }}>
+                  {sponsors.map(s => <Logo key={s.id} s={s} dragRef={dragRef} />)}
                 </div>
-              ))}
+                {Array.from({ length: 3 }, (_, ci) => (
+                  <div key={ci} style={{ display: 'flex', gap: 40, paddingRight: 40, flexShrink: 0 }}>
+                    {sponsors.map(s => <Logo key={`${ci}-${s.id}`} s={s} dragRef={dragRef} />)}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Botones flotantes sobre el banner */}
-      <div style={{ position: 'fixed', bottom: 70, left: 0, right: 0, zIndex: 41, pointerEvents: 'none', padding: '0 20px' }}>
-        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 8px', display: 'flex', gap: 8, pointerEvents: 'auto' }}>
+      {/* Botones flotantes */}
+      <div style={{ position: 'fixed', bottom: showInsumos ? 70 : 20, left: 0, right: 0, zIndex: 41, pointerEvents: 'none', padding: '0 20px' }}>
+        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 8px', display: 'flex', justifyContent: showInsumos ? 'stretch' : 'center', gap: 8, pointerEvents: 'auto' }}>
           {showInsumos && (
             <button onClick={() => { setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}
               style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
@@ -585,7 +586,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             </button>
           )}
           <button onClick={() => { setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}
-            style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
+            style={{ flex: showInsumos ? 1 : 'unset', width: showInsumos ? undefined : 160, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
             {t('inicio', 'events_btn', 'Eventos')}
           </button>
         </div>
