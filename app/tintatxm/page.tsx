@@ -1776,38 +1776,41 @@ export default function AdminPage() {
                   </p>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    {filtered.map(a => (
-                      <div key={a.id} className="rounded-xl overflow-hidden flex gap-4 p-4 items-center"
-                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,200,0,0.2)' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={a.photo_url} alt={a.name}
-                          className="rounded-lg object-cover shrink-0"
-                          style={{ width: 64, height: 64 }} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-white truncate">{a.name}</p>
-                          <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
-                          {a.instagram && <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>{a.instagram}</p>}
-                          {a.whatsapp && <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>{a.whatsapp}</p>}
-                          {a.verification_word && (
-                            <p className="text-xs mt-1 font-bold tracking-widest" style={{ color: '#efff42', letterSpacing: '0.15em' }}>
-                              ✦ {a.verification_word}
-                            </p>
-                          )}
+                    {filtered.map(a => {
+                      const expired = Date.now() - new Date(a.created_at).getTime() > 60 * 60 * 1000
+                      return (
+                        <div key={a.id} className="rounded-xl overflow-hidden flex gap-4 p-4 items-center"
+                          style={{ background: expired ? 'rgba(255,60,60,0.04)' : 'rgba(255,255,255,0.03)', border: expired ? '1px solid rgba(255,80,80,0.5)' : '1px solid rgba(255,200,0,0.2)' }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={a.photo_url} alt={a.name}
+                            className="rounded-lg object-cover shrink-0"
+                            style={{ width: 64, height: 64 }} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white truncate">{a.name}</p>
+                            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
+                            {a.instagram && <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>{a.instagram}</p>}
+                            {a.whatsapp && <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>{a.whatsapp}</p>}
+                            {a.verification_word && (
+                              <p className="text-xs mt-1 font-bold tracking-widest" style={{ color: '#efff42', letterSpacing: '0.15em' }}>
+                                ✦ {a.verification_word}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-2 shrink-0">
+                            <button onClick={() => approveArtist(a.id)}
+                              className="text-xs px-4 py-2 rounded-lg font-bold transition-colors"
+                              style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80' }}>
+                              Aprobar
+                            </button>
+                            <button onClick={() => rejectArtist(a.id)} disabled={deleting === a.id}
+                              className="text-xs px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
+                              style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.7)' }}>
+                              {deleting === a.id ? '...' : 'Rechazar'}
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-2 shrink-0">
-                          <button onClick={() => approveArtist(a.id)}
-                            className="text-xs px-4 py-2 rounded-lg font-bold transition-colors"
-                            style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80' }}>
-                            Aprobar
-                          </button>
-                          <button onClick={() => rejectArtist(a.id)} disabled={deleting === a.id}
-                            className="text-xs px-4 py-2 rounded-lg transition-colors disabled:opacity-40"
-                            style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.7)' }}>
-                            {deleting === a.id ? '...' : 'Rechazar'}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>

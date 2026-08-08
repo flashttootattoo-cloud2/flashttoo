@@ -266,6 +266,9 @@ export default function AgregarPage() {
               </a>
             )}
           </div>
+          <p className="text-xs mt-4" style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+            {t('agregar', 'verify_expiry', 'Envianos la palabra lo antes posible para que activemos tu perfil.')}
+          </p>
         </div>
 
         <Link href="/" className="text-sm text-[#efff42] underline underline-offset-4">{t('agregar', 'done_pending_link', 'Volver al inicio')}</Link>
