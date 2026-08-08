@@ -44,6 +44,7 @@ export default function AgregarPage() {
   const [igStatus, setIgStatus]     = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [verifyWord, setVerifyWord] = useState(() => genVerifyWord())
+  const [copied, setCopied] = useState(false)
   const [verifyIG, setVerifyIG] = useState('')
   const [verifyWA, setVerifyWA] = useState('')
   const igTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -261,9 +262,15 @@ export default function AgregarPage() {
           <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
             {t('agregar', 'verify_step_msg', 'Envianos esta palabra por DM desde tu Instagram para confirmar que el perfil es tuyo y proteger tu identidad:')}
           </p>
-          <p className="text-3xl font-black text-center tracking-widest mb-4" style={{ color: '#efff42', letterSpacing: '0.2em' }}>
-            {verifyWord}
-          </p>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <p className="text-3xl font-black tracking-widest" style={{ color: '#efff42', letterSpacing: '0.2em' }}>{verifyWord}</p>
+            <button
+              onClick={() => { navigator.clipboard.writeText(verifyWord).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }) }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+              style={{ background: copied ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.07)', color: copied ? '#efff42' : 'rgba(255,255,255,0.4)', border: `1px solid ${copied ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}` }}>
+              {copied ? '✓ Copiado' : 'Copiar'}
+            </button>
+          </div>
           <div className="flex flex-col gap-2">
             {verifyIG && (
               <a href={`https://ig.me/m/${verifyIG.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
