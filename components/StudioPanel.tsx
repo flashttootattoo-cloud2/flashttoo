@@ -263,7 +263,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
       )}
 
       {!loading && !notFound && studio && (
-        <div style={{ paddingBottom: 60 }}>
+        <div style={{ paddingBottom: 60, maxWidth: 480, margin: '0 auto' }}>
 
           {/* HERO */}
           <div style={{ position: 'relative', width: '100%', background: '#0a0a0a' }}>
