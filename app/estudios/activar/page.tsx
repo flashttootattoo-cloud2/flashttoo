@@ -1,12 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useTranslation } from '@/contexts/TranslationContext'
 
 const iCls = 'w-full py-2.5 px-4 text-sm text-white outline-none rounded-lg'
 const iStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }
 
 export default function ActivarEstudio() {
+  const { t, setLanguage } = useTranslation()
+
+  useEffect(() => {
+    const lang = new URLSearchParams(window.location.search).get('lang')
+    if (lang) setLanguage(lang)
+  }, [setLanguage])
+
   const [step, setStep] = useState<'key' | 'form' | 'done'>('key')
   const [key, setKey] = useState('')
   const [keyError, setKeyError] = useState('')
@@ -29,7 +37,7 @@ export default function ActivarEstudio() {
     const r = await fetch(`/api/estudios/activar?key=${key.trim().toUpperCase()}`)
     const d = await r.json()
     setChecking(false)
-    if (!r.ok) { setKeyError('Clave incorrecta. Verificá que la copiaste bien.'); return }
+    if (!r.ok) { setKeyError(t('estudio_activacion', 'key_error', 'Clave incorrecta. Verificá que la copiaste bien.')); return }
     setInstagram(d.studio.instagram || '')
     setIsEdit(!!d.studio.visible)
     setForm({
@@ -63,8 +71,8 @@ export default function ActivarEstudio() {
   }
 
   const save = async () => {
-    if (!isEdit && !terms) { setSaveError('Debés aceptar los términos y la política de privacidad.'); return }
-    if (!form.name.trim()) { setSaveError('El nombre del estudio es obligatorio.'); return }
+    if (!isEdit && !terms) { setSaveError(t('estudio_activacion', 'error_terms', 'Debés aceptar los términos y la política de privacidad.')); return }
+    if (!form.name.trim()) { setSaveError(t('estudio_activacion', 'error_name', 'El nombre del estudio es obligatorio.')); return }
     setSaving(true); setSaveError(''); setSaved(false)
     try {
       let logo_url: string | null = null
@@ -73,7 +81,7 @@ export default function ActivarEstudio() {
         fd.append('file', logo)
         fd.append('path', `studio-logos/${Date.now()}.webp`)
         const r = await fetch('/api/upload', { method: 'POST', body: fd })
-        if (!r.ok) throw new Error('Error al subir el logo')
+        if (!r.ok) throw new Error(t('estudio_activacion', 'error_logo_upload', 'Error al subir el logo'))
         logo_url = (await r.json()).url
       }
       const res = await fetch('/api/estudios/activar', {
@@ -86,15 +94,16 @@ export default function ActivarEstudio() {
       if (isEdit) { setSaved(true); setTimeout(() => setSaved(false), 3000) }
       else { setStep('done') }
     } catch (e: unknown) {
-      setSaveError(e instanceof Error ? e.message : 'Error al guardar')
+      setSaveError(e instanceof Error ? e.message : t('estudio_activacion', 'error_save', 'Error al guardar'))
     } finally { setSaving(false) }
   }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#000', color: '#fff' }}>
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <Link href="/" style={{ fontSize: 18, fontWeight: 900, color: '#efff42', letterSpacing: '-0.02em', textDecoration: 'none' }}>
-          flashttoo
+        <Link href="/">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 26 }} />
         </Link>
       </div>
 
@@ -104,9 +113,9 @@ export default function ActivarEstudio() {
           {step === 'key' && (
             <>
               <div>
-                <p className="text-xl font-bold text-white mb-1">Perfil de estudio</p>
+                <p className="text-xl font-bold text-white mb-1">{t('estudio_activacion', 'title_key', 'Perfil de estudio')}</p>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-                  Ingresá tu clave de 10 caracteres para activar o editar tu perfil.
+                  {t('estudio_activacion', 'subtitle_key', 'Ingresá tu clave de 10 caracteres para activar o editar tu perfil.')}
                 </p>
               </div>
               <div>
@@ -124,7 +133,7 @@ export default function ActivarEstudio() {
               <button onClick={verifyKey} disabled={!key.trim() || checking}
                 className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
                 style={{ background: '#efff42', color: '#000' }}>
-                {checking ? 'Verificando...' : 'Continuar →'}
+                {checking ? t('estudio_activacion', 'btn_checking', 'Verificando...') : t('estudio_activacion', 'btn_continue', 'Continuar →')}
               </button>
             </>
           )}
@@ -132,15 +141,19 @@ export default function ActivarEstudio() {
           {step === 'form' && (
             <>
               <div>
-                <p className="text-xl font-bold text-white mb-1">{isEdit ? 'Editar perfil' : 'Completá tu perfil'}</p>
+                <p className="text-xl font-bold text-white mb-1">
+                  {isEdit ? t('estudio_activacion', 'form_title_edit', 'Editar perfil') : t('estudio_activacion', 'form_title_new', 'Completá tu perfil')}
+                </p>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-                  {isEdit ? 'Editá los datos de tu estudio y guardá los cambios.' : 'Al guardar tu estudio quedará visible en flashttoo.'}
+                  {isEdit ? t('estudio_activacion', 'form_subtitle_edit', 'Editá los datos de tu estudio y guardá los cambios.') : t('estudio_activacion', 'form_subtitle_new', 'Al guardar tu estudio quedará visible en flashttoo.')}
                 </p>
               </div>
 
               {/* Instagram — fijo, no editable */}
               <div>
-                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Instagram</p>
+                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {t('estudio_activacion', 'label_instagram', 'Instagram')}
+                </p>
                 <input readOnly value={instagram ? `@${instagram}` : ''}
                   className={iCls}
                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', cursor: 'default' }} />
@@ -148,13 +161,15 @@ export default function ActivarEstudio() {
 
               {/* Logo */}
               <label className="cursor-pointer block">
-                <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Logo</p>
+                <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {t('estudio_activacion', 'label_logo', 'Logo')}
+                </p>
                 <div className="rounded-xl overflow-hidden flex items-center justify-center"
                   style={{ height: 120, background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(255,255,255,0.1)' }}>
                   {logoPreview
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={logoPreview} alt="" style={{ maxHeight: 110, maxWidth: '100%', objectFit: 'contain' }} />
-                    : <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>Subir logo</span>
+                    : <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>{t('estudio_activacion', 'logo_placeholder', 'Subir logo')}</span>
                   }
                 </div>
                 <input type="file" accept="image/*" className="hidden" onChange={handleLogo} />
@@ -162,44 +177,56 @@ export default function ActivarEstudio() {
 
               {/* Nombre */}
               <div>
-                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Nombre del estudio *</p>
+                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {t('estudio_activacion', 'label_name', 'Nombre del estudio *')}
+                </p>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Ej: Black Needle Studio" className={iCls} style={iStyle} />
+                  placeholder={t('estudio_activacion', 'name_placeholder', 'Ej: Black Needle Studio')} className={iCls} style={iStyle} />
               </div>
 
               {/* Ciudad / País */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Ciudad</p>
+                  <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    {t('estudio_activacion', 'label_city', 'Ciudad')}
+                  </p>
                   <input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
-                    placeholder="Buenos Aires" className={iCls} style={iStyle} />
+                    placeholder={t('estudio_activacion', 'city_placeholder', 'Buenos Aires')} className={iCls} style={iStyle} />
                 </div>
                 <div>
-                  <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>País</p>
+                  <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    {t('estudio_activacion', 'label_country', 'País')}
+                  </p>
                   <input value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
-                    placeholder="Argentina" className={iCls} style={iStyle} />
+                    placeholder={t('estudio_activacion', 'country_placeholder', 'Argentina')} className={iCls} style={iStyle} />
                 </div>
               </div>
 
               {/* Descripción */}
               <div>
-                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Descripción</p>
+                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {t('estudio_activacion', 'label_description', 'Descripción')}
+                </p>
                 <textarea value={form.description} rows={3}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="Contá algo sobre tu estudio..."
+                  placeholder={t('estudio_activacion', 'description_placeholder', 'Contá algo sobre tu estudio...')}
                   className={iCls} style={{ ...iStyle, resize: 'none', lineHeight: 1.6 }} />
               </div>
 
               {/* WhatsApp */}
               <div>
-                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>WhatsApp</p>
+                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {t('estudio_activacion', 'label_whatsapp', 'WhatsApp')}
+                </p>
                 <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
                   placeholder="+54 9 11 1234 5678" className={iCls} style={iStyle} />
               </div>
 
               {/* Web */}
               <div>
-                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Sitio web</p>
+                <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {t('estudio_activacion', 'label_website', 'Sitio web')}
+                </p>
                 <input value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))}
                   placeholder="https://..." className={iCls} style={iStyle} />
               </div>
@@ -210,39 +237,58 @@ export default function ActivarEstudio() {
                   <input type="checkbox" checked={terms} onChange={e => setTerms(e.target.checked)}
                     className="mt-0.5 shrink-0" style={{ accentColor: '#efff42', width: 16, height: 16 }} />
                   <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.7 }}>
-                    Acepto los{' '}
-                    <Link href="/terminos" target="_blank" style={{ color: '#efff42', textDecoration: 'underline' }}>términos y condiciones</Link>
-                    {' '}y la{' '}
-                    <Link href="/privacidad" target="_blank" style={{ color: '#efff42', textDecoration: 'underline' }}>política de privacidad</Link>
-                    {' '}de flashttoo.
+                    {t('estudio_activacion', 'terms_prefix', 'Acepto los')}{' '}
+                    <Link href="/terminos" target="_blank" style={{ color: '#efff42', textDecoration: 'underline' }}>
+                      {t('estudio_activacion', 'terms_link1', 'términos y condiciones')}
+                    </Link>
+                    {' '}{t('estudio_activacion', 'terms_and', 'y la')}{' '}
+                    <Link href="/privacidad" target="_blank" style={{ color: '#efff42', textDecoration: 'underline' }}>
+                      {t('estudio_activacion', 'terms_link2', 'política de privacidad')}
+                    </Link>
+                    {' '}{t('estudio_activacion', 'terms_suffix', 'de flashttoo.')}
                   </p>
                 </label>
               )}
 
               {saveError && <p className="text-xs" style={{ color: '#f87171' }}>{saveError}</p>}
-              {saved && <p className="text-xs font-bold" style={{ color: '#4ade80' }}>✓ Cambios guardados</p>}
+              {saved && <p className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('estudio_activacion', 'saved_msg', '✓ Cambios guardados')}</p>}
 
               <button onClick={save} disabled={saving || (!isEdit && !terms) || !form.name.trim()}
                 className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
                 style={{ background: '#efff42', color: '#000' }}>
-                {saving ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Activar perfil →'}
+                {saving
+                  ? t('estudio_activacion', 'btn_saving', 'Guardando...')
+                  : isEdit
+                    ? t('estudio_activacion', 'btn_save', 'Guardar cambios')
+                    : t('estudio_activacion', 'btn_activate', 'Activar perfil →')}
               </button>
             </>
           )}
 
           {step === 'done' && (
-            <div className="text-center flex flex-col gap-5">
-              <p className="text-4xl">🎉</p>
+            <div className="text-center flex flex-col items-center gap-5">
+              {logoPreview
+                ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoPreview} alt=""
+                    style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)' }} />
+                ) : (
+                  <div style={{ width: 96, height: 96, borderRadius: 14, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/Logoprincipal.svg" alt="" style={{ height: 28, opacity: 0.25 }} />
+                  </div>
+                )
+              }
               <div>
-                <p className="text-xl font-bold text-white mb-2">¡Tu estudio está activo!</p>
+                <p className="text-xl font-bold text-white mb-2">{t('estudio_activacion', 'done_title', '¡Tu estudio está activo!')}</p>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-                  Ya aparecés en flashttoo. Podés editar tu perfil en cualquier momento volviendo aquí con tu clave.
+                  {t('estudio_activacion', 'done_msg', 'Ya aparecés en flashttoo. Podés editar tu perfil en cualquier momento volviendo aquí con tu clave.')}
                 </p>
               </div>
               <Link href="/"
                 className="w-full py-3 rounded-xl font-bold text-sm text-center"
                 style={{ background: '#efff42', color: '#000', textDecoration: 'none', display: 'block' }}>
-                Ver flashttoo →
+                {t('estudio_activacion', 'done_btn', 'Ver flashttoo →')}
               </Link>
             </div>
           )}

@@ -1226,6 +1226,8 @@ export default function AdminPage() {
   const [studioError, setStudioError]         = useState('')
   const [studioCreated, setStudioCreated]     = useState<{ name: string; slug: string; edit_key: string } | null>(null)
   const [keyCopied, setKeyCopied]             = useState(false)
+  const [copiedLinkLang, setCopiedLinkLang]   = useState<string | null>(null)
+  const [copiedStudioLink, setCopiedStudioLink] = useState<string | null>(null)
   const [studioIgStatus, setStudioIgStatus]   = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const studioIgTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
@@ -3452,7 +3454,7 @@ export default function AdminPage() {
               {studioError && <p className="text-xs text-red-400">{studioError}</p>}
 
               {studioCreated && (
-                <div className="rounded-xl p-4 flex flex-col gap-2" style={{ background: 'rgba(239,255,66,0.07)', border: '1px solid rgba(239,255,66,0.2)' }}>
+                <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(239,255,66,0.07)', border: '1px solid rgba(239,255,66,0.2)' }}>
                   <p className="text-xs font-bold" style={{ color: '#efff42' }}>Estudio creado: {studioCreated.name}</p>
                   <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>URL: /estudio/{studioCreated.slug}</p>
                   <div className="flex items-center gap-3">
@@ -3464,7 +3466,28 @@ export default function AdminPage() {
                       {keyCopied ? 'Copiado ✓' : 'Copiar clave'}
                     </button>
                   </div>
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Pasale esta clave al dueño del estudio. Visible solo ahora.</p>
+                  <div>
+                    <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Copiar link de activación por idioma:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {langs.filter(l => l.active).map(l => {
+                        const copied = copiedLinkLang === l.code
+                        return (
+                          <button key={l.code} type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`https://flashttoo.com/estudios/activar?lang=${l.code}`).catch(() => {})
+                              setCopiedLinkLang(l.code)
+                              setTimeout(() => setCopiedLinkLang(null), 2000)
+                            }}
+                            className="text-xs px-3 py-1 rounded-lg flex items-center gap-1.5"
+                            style={{ background: copied ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)', color: copied ? '#4ade80' : 'rgba(255,255,255,0.6)', border: `1px solid ${copied ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.1)'}`, transition: 'all 0.2s' }}>
+                            <span>{l.flag}</span>
+                            <span>{copied ? '✓' : l.code.toUpperCase()}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Pasale la clave al dueño del estudio. Visible solo ahora.</p>
                 </div>
               )}
 
@@ -3500,6 +3523,25 @@ export default function AdminPage() {
                           {expired && <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{ background: 'rgba(255,80,80,0.15)', color: '#f87171' }}>Vencido</span>}
                         </div>
                         <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>/estudio/{studio.slug}{studio.city ? ` · ${studio.city}` : ''}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {langs.filter(l => l.active).map(l => {
+                            const k = `${studio.id}:${l.code}`
+                            const copied = copiedStudioLink === k
+                            return (
+                              <button key={l.code} type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`https://flashttoo.com/estudios/activar?lang=${l.code}`).catch(() => {})
+                                  setCopiedStudioLink(k)
+                                  setTimeout(() => setCopiedStudioLink(null), 2000)
+                                }}
+                                className="text-xs px-2 py-0.5 rounded-lg flex items-center gap-1"
+                                style={{ background: copied ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.04)', color: copied ? '#4ade80' : 'rgba(255,255,255,0.35)', border: `1px solid ${copied ? 'rgba(74,222,128,0.25)' : 'rgba(255,255,255,0.08)'}`, transition: 'all 0.2s' }}>
+                                <span>{l.flag}</span>
+                                <span>{copied ? '✓' : l.code.toUpperCase()}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
                         <div className="flex items-center gap-3 mt-1">
                           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.15)', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.1em' }}>clave: {studio.edit_key}</p>
                           {daysLeft !== null && (
