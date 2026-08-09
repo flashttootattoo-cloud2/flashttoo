@@ -1375,8 +1375,8 @@ export default function Home() {
 
       {/* ── AVISO CONTACTO ───────────────────────────────────── */}
       {contactDisclaimer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6"
-          style={{ background: 'rgba(0,0,0,0.75)' }}
+        <div className="fixed inset-0 flex items-center justify-center px-6"
+          style={{ zIndex: 80, background: 'rgba(0,0,0,0.75)' }}
           onClick={() => setContactDisclaimer(null)}>
           <div className="max-w-xs w-full rounded-2xl p-6"
             style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}
