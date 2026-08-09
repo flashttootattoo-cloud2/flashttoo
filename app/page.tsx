@@ -115,7 +115,7 @@ export default function Home() {
   const [liked, setLiked]             = useState(false)
   const [localLikes, setLocalLikes]   = useState(0)
   const [copied, setCopied]           = useState(false)
-  const [copiedEmail, setCopiedEmail] = useState(false)
+  const [contactDisclaimer, setContactDisclaimer] = useState<{ type: 'whatsapp' | 'email'; url: string } | null>(null)
   const [loading, setLoading]         = useState(true)
   const [conventions, setConventions]       = useState<Convention[]>([])
   const [flashDays, setFlashDays]           = useState<{ id: string; studio_slug: string; studio_name: string; flyer_url: string; date: string }[]>([])
@@ -1226,34 +1226,25 @@ export default function Home() {
                   </a>
                 )}
                 {showContactInfo && selected.whatsapp && (
-                  <a href={`https://wa.me/${selected.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${selected.name}, te encontré en Flashttoo 👋`)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    onClick={() => trackClick(selected.id, 'whatsapp')}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+                  <button
+                    onClick={() => { trackClick(selected.id, 'whatsapp'); setContactDisclaimer({ type: 'whatsapp', url: `https://wa.me/${selected.whatsapp!.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${selected.name}, te encontré en Flashttoo 👋`)}` }) }}
+                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>WhatsApp</p>
                     <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
-                  </a>
+                  </button>
                 )}
                 {showContactInfo && selected.email && (
                   <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(selected.email!)
-                      setCopiedEmail(true)
-                      setTimeout(() => setCopiedEmail(false), 2000)
-                    }}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full relative"
-                    style={{ background: copiedEmail ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copiedEmail ? 'rgba(239,255,66,0.25)' : 'rgba(255,255,255,0.07)'}` }}
-                    onMouseEnter={e => { if (!copiedEmail) e.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
-                    onMouseLeave={e => { if (!copiedEmail) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}>
-                    <p style={{ fontSize: 13, color: copiedEmail ? '#efff42' : 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>
-                      {copiedEmail ? t('artista', 'email_copied', 'Mail copiado') : t('artista', 'email_btn', 'Email')}
-                    </p>
-                    <span style={{ color: copiedEmail ? '#efff42' : 'rgba(255,255,255,0.2)', fontSize: 14 }}>
-                      {copiedEmail ? '✓' : '⎘'}
-                    </span>
+                    onClick={() => setContactDisclaimer({ type: 'email', url: selected.email! })}
+                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>Email</p>
+                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>⎘</span>
                   </button>
                 )}
               </div>
@@ -1378,6 +1369,41 @@ export default function Home() {
               style={{ background: '#efff42', color: '#000' }}>
               {t('global', 'close', 'Cerrar')}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── AVISO CONTACTO ───────────────────────────────────── */}
+      {contactDisclaimer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+          onClick={() => setContactDisclaimer(null)}>
+          <div className="max-w-xs w-full rounded-2xl p-6"
+            style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}
+            onClick={e => e.stopPropagation()}>
+            <p className="text-sm font-bold text-white mb-2">Antes de continuar</p>
+            <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>
+              Flashttoo no verifica ni garantiza este dato de contacto. Es responsabilidad del tatuador mantenerlo actualizado.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setContactDisclaimer(null)}
+                className="flex-1 py-2.5 rounded-xl text-xs"
+                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                Cancelar
+              </button>
+              <button onClick={() => {
+                if (contactDisclaimer.type === 'whatsapp') {
+                  window.open(contactDisclaimer.url, '_blank')
+                } else {
+                  navigator.clipboard.writeText(contactDisclaimer.url)
+                }
+                setContactDisclaimer(null)
+              }}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
+                {contactDisclaimer.type === 'whatsapp' ? 'Ir a WhatsApp' : 'Copiar mail'}
+              </button>
+            </div>
           </div>
         </div>
       )}
