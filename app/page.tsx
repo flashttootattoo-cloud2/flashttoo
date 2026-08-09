@@ -849,6 +849,15 @@ export default function Home() {
         </div>
       )}
 
+      {/* ── VERIFIED BANNER ────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-5 pt-3 pb-1">
+        <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 6, color: '#efff42' }}>✶</span>
+          {t('inicio', 'verified_msg', 'Todos los perfiles fueron verificados vía Instagram')}
+          <span style={{ fontSize: 16, verticalAlign: 'middle', marginLeft: 6, color: '#efff42' }}>✶</span>
+        </p>
+      </div>
+
       {/* ── GRID ───────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-5 py-4">
         {loading ? (
