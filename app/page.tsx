@@ -1381,15 +1381,15 @@ export default function Home() {
           <div className="max-w-xs w-full rounded-2xl p-6"
             style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}
             onClick={e => e.stopPropagation()}>
-            <p className="text-sm font-bold text-white mb-2">Antes de continuar</p>
+            <p className="text-sm font-bold text-white mb-2">{t('artista', 'disclaimer_title', 'Antes de continuar')}</p>
             <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>
-              Flashttoo no verifica ni garantiza este dato de contacto. Es responsabilidad del tatuador mantenerlo actualizado.
+              {t('artista', 'disclaimer_body', 'Flashttoo no verifica ni garantiza este dato de contacto. Es responsabilidad del tatuador mantenerlo actualizado.')}
             </p>
             <div className="flex gap-2">
               <button onClick={() => setContactDisclaimer(null)}
                 className="flex-1 py-2.5 rounded-xl text-xs"
                 style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                Cancelar
+                {t('artista', 'disclaimer_cancel', 'Cancelar')}
               </button>
               <button onClick={() => {
                 if (contactDisclaimer.type === 'whatsapp') {
@@ -1401,7 +1401,7 @@ export default function Home() {
               }}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
-                {contactDisclaimer.type === 'whatsapp' ? 'Ir a WhatsApp' : 'Copiar mail'}
+                {contactDisclaimer.type === 'whatsapp' ? t('artista', 'disclaimer_whatsapp', 'Ir a WhatsApp') : t('artista', 'disclaimer_email', 'Copiar mail')}
               </button>
             </div>
           </div>
