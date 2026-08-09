@@ -136,6 +136,7 @@ export default function Home() {
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [eventsCountryFilter, setEventsCountryFilter] = useState(false)
   const [showInsumos, setShowInsumos] = useState(true)
+  const [showVerifiedBanner, setShowVerifiedBanner] = useState(true)
   const [registrationOpen, setRegistrationOpen] = useState(true)
   const [showRegistrationClosed, setShowRegistrationClosed] = useState(false)
   const [totalActiveArtists, setTotalActiveArtists] = useState<number | null>(null)
@@ -282,7 +283,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
-    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_verified_banner === false) setShowVerifiedBanner(false) }).catch(() => {})
     fetch('/api/secret-card').then(r => r.json()).then(d => {
       if (d.card) {
         setSecretCard(d.card)
@@ -850,13 +851,15 @@ export default function Home() {
       )}
 
       {/* ── VERIFIED BANNER ────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-5 pt-3 pb-1">
-        <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' }}>
-          <span style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 6, color: '#efff42' }}>✶</span>
-          {t('inicio', 'verified_msg', 'Todos los perfiles fueron verificados vía Instagram')}
-          <span style={{ fontSize: 16, verticalAlign: 'middle', marginLeft: 6, color: '#efff42' }}>✶</span>
-        </p>
-      </div>
+      {showVerifiedBanner && (
+        <div className="max-w-7xl mx-auto px-5 pt-3 pb-1">
+          <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 6, color: '#efff42' }}>✶</span>
+            {t('inicio', 'verified_msg', 'Todos los perfiles fueron verificados vía Instagram')}
+            <span style={{ fontSize: 16, verticalAlign: 'middle', marginLeft: 6, color: '#efff42' }}>✶</span>
+          </p>
+        </div>
+      )}
 
       {/* ── GRID ───────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-5 py-4">
