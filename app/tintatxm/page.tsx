@@ -1064,6 +1064,9 @@ export default function AdminPage() {
   const [loadingStats, setLoadingStats] = useState(false)
   const [loadingPending, setLoadingPending] = useState(false)
   const [copiedMsg, setCopiedMsg] = useState<string | null>(null)
+  const [editingIG, setEditingIG] = useState<string | null>(null)
+  const [editIGValue, setEditIGValue] = useState('')
+  const [savingIG, setSavingIG] = useState(false)
   const [loadingArtists, setLoadingArtists] = useState(false)
   const [searchStats, setSearchStats] = useState<{ countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }>({ countries: [], cities: [], styles: [] })
   const [appEventCounts, setAppEventCounts] = useState<Record<string, number>>({})
@@ -1452,6 +1455,22 @@ export default function AdminPage() {
       body: JSON.stringify({ status: 'active' }),
     })
     if (r.ok) patchArtistInLists(id, { status: 'active' })
+  }
+
+  const saveIG = async (id: string) => {
+    const ig = editIGValue.trim().replace(/^@/, '').toLowerCase()
+    if (!ig) return
+    setSavingIG(true)
+    const r = await fetch(`/api/admin/artists/${id}`, {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instagram: ig }),
+    })
+    if (r.ok) {
+      patchArtistInLists(id, { instagram: ig })
+      setEditingIG(null)
+    }
+    setSavingIG(false)
   }
 
   const rejectArtist = async (id: string) => {
@@ -1862,15 +1881,41 @@ export default function AdminPage() {
                               </p>
                             </div>
                             <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{a.city}, {a.country}</p>
-                            {a.instagram && (
-                              <p className="text-xs mt-0.5 truncate font-semibold" style={{ color: '#c77dff' }}>
-                                {a.instagram}
-                                {a.pending_reason?.startsWith('ig_change') && (
-                                  <span className="font-normal ml-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                                    (antes: @{a.pending_reason.split(':')[1]})
-                                  </span>
-                                )}
-                              </p>
+                            {editingIG === a.id ? (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-xs" style={{ color: '#c77dff' }}>@</span>
+                                <input
+                                  value={editIGValue}
+                                  onChange={e => setEditIGValue(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') saveIG(a.id); if (e.key === 'Escape') setEditingIG(null) }}
+                                  className="text-xs rounded px-1.5 py-0.5 flex-1 min-w-0"
+                                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(199,125,255,0.4)', color: '#c77dff', outline: 'none' }}
+                                  autoFocus
+                                />
+                                <button onClick={() => saveIG(a.id)} disabled={savingIG}
+                                  className="text-xs px-2 py-0.5 rounded font-bold shrink-0"
+                                  style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80' }}>
+                                  {savingIG ? '...' : 'ok'}
+                                </button>
+                                <button onClick={() => setEditingIG(null)}
+                                  className="text-xs px-1.5 py-0.5 rounded shrink-0"
+                                  style={{ color: 'rgba(255,255,255,0.3)' }}>✕</button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <p className="text-xs truncate font-semibold" style={{ color: '#c77dff' }}>
+                                  {a.instagram}
+                                  {a.pending_reason?.startsWith('ig_change') && (
+                                    <span className="font-normal ml-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                                      (antes: @{a.pending_reason.split(':')[1]})
+                                    </span>
+                                  )}
+                                </p>
+                                <button onClick={() => { setEditingIG(a.id); setEditIGValue(a.instagram || '') }}
+                                  className="shrink-0 text-xs"
+                                  style={{ color: 'rgba(199,125,255,0.4)', lineHeight: 1 }}
+                                  title="Editar Instagram">✎</button>
+                              </div>
                             )}
                             {a.whatsapp && <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>{a.whatsapp}</p>}
                             {a.verification_word && (

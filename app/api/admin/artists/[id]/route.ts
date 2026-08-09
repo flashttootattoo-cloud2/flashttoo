@@ -21,6 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if ('visible'   in body) updates.visible  = body.visible
   if ('status'   in body) updates.status   = body.status
   if ('edit_key' in body) updates.edit_key = String(body.edit_key).trim().toUpperCase()
+  if ('instagram' in body) updates.instagram = String(body.instagram).trim().replace(/^@/, '').toLowerCase()
   const { error } = await getAdminClient().from('artists').update(updates).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
