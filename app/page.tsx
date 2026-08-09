@@ -1383,7 +1383,7 @@ export default function Home() {
             onClick={e => e.stopPropagation()}>
             <p className="text-sm font-bold text-white mb-2">{t('artista', 'disclaimer_title', 'Antes de continuar')}</p>
             <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>
-              {t('artista', 'disclaimer_body', 'Flashttoo no verifica ni garantiza este dato de contacto. Es responsabilidad del tatuador mantenerlo actualizado.')}
+              {t('artista', 'disclaimer_body', 'Flashttoo no verifica ni se responsabiliza por estos datos de contacto. Usá tu criterio al comunicarte.')}
             </p>
             <div className="flex gap-2">
               <button onClick={() => setContactDisclaimer(null)}
