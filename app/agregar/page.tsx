@@ -26,7 +26,9 @@ const VERIFY_WORDS = [
 ]
 
 function genVerifyWord() {
-  return VERIFY_WORDS[Math.floor(Math.random() * VERIFY_WORDS.length)]
+  const base = VERIFY_WORDS[Math.floor(Math.random() * VERIFY_WORDS.length)]
+  const nums = String(Math.floor(Math.random() * 900) + 100)
+  return `${base}${nums}`
 }
 
 export default function AgregarPage() {
