@@ -210,8 +210,11 @@ export default function AgregarPage() {
           .eq('status', 'pending')
           .not('verification_word', 'is', null)
         const usedSet = new Set((usedRows || []).map((r: { verification_word: string }) => r.verification_word))
-        const available = VERIFY_WORDS.filter(w => !usedSet.has(w))
-        finalWord = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : verifyWord
+        const usedBases = new Set([...usedSet].map(w => w.replace(/\d+$/, '')))
+        const available = VERIFY_WORDS.filter(w => !usedBases.has(w))
+        const base = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : VERIFY_WORDS[Math.floor(Math.random() * VERIFY_WORDS.length)]
+        const nums = String(Math.floor(Math.random() * 900) + 100)
+        finalWord = `${base}${nums}`
         setVerifyWord(finalWord)
       }
 
