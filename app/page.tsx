@@ -136,7 +136,7 @@ export default function Home() {
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [eventsCountryFilter, setEventsCountryFilter] = useState(false)
   const [showInsumos, setShowInsumos] = useState(true)
-  const [showVerifiedBanner, setShowVerifiedBanner] = useState(true)
+  const [showVerifiedBanner, setShowVerifiedBanner] = useState(false)
   const [showContactInfo, setShowContactInfo] = useState(true)
   const [registrationOpen, setRegistrationOpen] = useState(true)
   const [showRegistrationClosed, setShowRegistrationClosed] = useState(false)
@@ -284,7 +284,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
-    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_verified_banner === false) setShowVerifiedBanner(false); if (d.show_contact_info === false) setShowContactInfo(false) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_verified_banner !== false) setShowVerifiedBanner(true); if (d.show_contact_info === false) setShowContactInfo(false) }).catch(() => {})
     fetch('/api/secret-card').then(r => r.json()).then(d => {
       if (d.card) {
         setSecretCard(d.card)
