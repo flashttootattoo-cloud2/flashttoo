@@ -1093,6 +1093,8 @@ export default function AdminPage() {
   const [savingShowInsumos, setSavingShowInsumos]       = useState(false)
   const [showVerifiedBanner, setShowVerifiedBanner]     = useState(true)
   const [savingVerifiedBanner, setSavingVerifiedBanner] = useState(false)
+  const [showContactInfo, setShowContactInfo]           = useState(true)
+  const [savingContactInfo, setSavingContactInfo]       = useState(false)
   const [registrationOpen, setRegistrationOpen]         = useState(true)
   const [savingRegistration, setSavingRegistration]     = useState(false)
   const [verifyIG, setVerifyIG]                         = useState('')
@@ -1315,6 +1317,7 @@ export default function AdminPage() {
         setEventsCountryFilter(cfg.value.settings?.events_country_filter === true)
         setShowInsumos(cfg.value.settings?.show_insumos !== false)
         setShowVerifiedBanner(cfg.value.settings?.show_verified_banner !== false)
+        setShowContactInfo(cfg.value.settings?.show_contact_info !== false)
         setRegistrationOpen(cfg.value.settings?.registration_open !== false)
         setVerifyIG(cfg.value.settings?.verification_instagram || '')
         setVerifyWA(cfg.value.settings?.verification_whatsapp || '')
@@ -1427,6 +1430,17 @@ export default function AdminPage() {
     })
     setModeration(val)
     setSavingMod(false)
+  }
+
+  const toggleContactInfo = async (val: boolean) => {
+    setSavingContactInfo(true)
+    await fetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'show_contact_info', value: val }),
+    })
+    setShowContactInfo(val)
+    setSavingContactInfo(false)
   }
 
   const toggleVerifiedBanner = async (val: boolean) => {
@@ -2088,6 +2102,35 @@ export default function AdminPage() {
               </div>
               <p className="text-xs mt-3 font-bold" style={{ color: showVerifiedBanner ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
                 {showVerifiedBanner ? 'Activado — se muestra el aviso' : 'Desactivado — el aviso está oculto'}
+              </p>
+            </div>
+
+            {/* Mostrar WhatsApp y mail */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Mostrar WhatsApp y mail en perfiles</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                    Si está desactivado, los perfiles solo muestran Instagram. El contacto queda en manos del tatuador.
+                  </p>
+                </div>
+                <button
+                  onClick={() => toggleContactInfo(!showContactInfo)}
+                  disabled={savingContactInfo}
+                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                  style={{ width: 48, height: 28, background: showContactInfo ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', top: 4,
+                    left: showContactInfo ? 24 : 4,
+                    width: 20, height: 20,
+                    borderRadius: '50%',
+                    background: showContactInfo ? '#000' : 'rgba(255,255,255,0.4)',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              <p className="text-xs mt-3 font-bold" style={{ color: showContactInfo ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                {showContactInfo ? 'Activado — se muestran WhatsApp y mail' : 'Desactivado — solo se muestra Instagram'}
               </p>
             </div>
 

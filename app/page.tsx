@@ -137,6 +137,7 @@ export default function Home() {
   const [eventsCountryFilter, setEventsCountryFilter] = useState(false)
   const [showInsumos, setShowInsumos] = useState(true)
   const [showVerifiedBanner, setShowVerifiedBanner] = useState(true)
+  const [showContactInfo, setShowContactInfo] = useState(true)
   const [registrationOpen, setRegistrationOpen] = useState(true)
   const [showRegistrationClosed, setShowRegistrationClosed] = useState(false)
   const [totalActiveArtists, setTotalActiveArtists] = useState<number | null>(null)
@@ -283,7 +284,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
-    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_verified_banner === false) setShowVerifiedBanner(false) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_verified_banner === false) setShowVerifiedBanner(false); if (d.show_contact_info === false) setShowContactInfo(false) }).catch(() => {})
     fetch('/api/secret-card').then(r => r.json()).then(d => {
       if (d.card) {
         setSecretCard(d.card)
@@ -1224,7 +1225,7 @@ export default function Home() {
                     <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
                   </a>
                 )}
-                {selected.whatsapp && (
+                {showContactInfo && selected.whatsapp && (
                   <a href={`https://wa.me/${selected.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${selected.name}, te encontré en Flashttoo 👋`)}`}
                     target="_blank" rel="noopener noreferrer"
                     onClick={() => trackClick(selected.id, 'whatsapp')}
@@ -1236,7 +1237,7 @@ export default function Home() {
                     <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
                   </a>
                 )}
-                {selected.email && (
+                {showContactInfo && selected.email && (
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(selected.email!)
