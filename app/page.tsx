@@ -136,6 +136,7 @@ export default function Home() {
   const [eventsCountryFilter, setEventsCountryFilter] = useState(false)
   const [showInsumos, setShowInsumos] = useState(true)
   const [showVerifiedBanner, setShowVerifiedBanner] = useState(false)
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [showContactInfo, setShowContactInfo] = useState(true)
   const [registrationOpen, setRegistrationOpen] = useState(true)
   const [showRegistrationClosed, setShowRegistrationClosed] = useState(false)
@@ -283,7 +284,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
-    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_verified_banner !== false) setShowVerifiedBanner(true); if (d.show_contact_info === false) setShowContactInfo(false) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_verified_banner !== false) setShowVerifiedBanner(true); if (d.show_contact_info === false) setShowContactInfo(false); if (d.maintenance_mode === true) setMaintenanceMode(true) }).catch(() => {})
     fetch('/api/secret-card').then(r => r.json()).then(d => {
       if (d.card) {
         setSecretCard(d.card)
@@ -682,6 +683,16 @@ export default function Home() {
   }, [selected, selectedContent, selectedStudioSlug])
 
   const hasFilters = country.trim() || city.trim() || activeStyles.length > 0
+
+  if (maintenanceMode) return (
+    <main style={{ background: '#000', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 36, opacity: 0.9 }} />
+      <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center', lineHeight: 1.7, maxWidth: 260 }}>
+        La página no está disponible en este momento.<br />Probá más tarde.
+      </p>
+    </main>
+  )
 
   return (
     <main style={{ background: '#000', minHeight: '100vh', paddingBottom: 40 }}>
