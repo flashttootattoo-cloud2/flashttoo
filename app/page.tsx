@@ -129,6 +129,8 @@ export default function Home() {
   const [migrateTyc, setMigrateTyc] = useState(false)
   const [migrateError, setMigrateError] = useState('')
   const [migrateDoc, setMigrateDoc] = useState<'terms' | 'privacy' | null>(null)
+  const migrateDocRef = useRef<'terms' | 'privacy' | null>(null)
+  migrateDocRef.current = migrateDoc
   const [migrateLoading, setMigrateLoading] = useState(false)
 
   useEffect(() => {
@@ -712,6 +714,7 @@ export default function Home() {
   useEffect(() => {
     const h = () => {
       if (fullscreenRef.current) return
+      if (migrateDocRef.current) return
       if (selectedContent) {
         setSelectedContent(null)
       } else if (selected) {
