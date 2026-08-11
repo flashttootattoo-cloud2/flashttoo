@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from '@/contexts/TranslationContext'
 
 type View = 'menu' | 'login' | 'register' | 'registered' | 'forgot' | 'forgot_sent' | 'terms' | 'privacy'
@@ -20,6 +20,15 @@ export default function ArtistAuthModal({ onClose, onLoggedIn }: Props) {
   const [error, setError] = useState('')
 
   const reset = () => { setError(''); setLoading(false) }
+
+  useEffect(() => {
+    if (view === 'terms' || view === 'privacy') {
+      history.pushState({ doc: view }, '')
+      const handler = () => setView('register')
+      window.addEventListener('popstate', handler)
+      return () => window.removeEventListener('popstate', handler)
+    }
+  }, [view])
 
   const handleRegister = async () => {
     if (!tyc) { setError(t('ingresar', 'error_tyc', 'Tenés que aceptar los términos para continuar')); return }

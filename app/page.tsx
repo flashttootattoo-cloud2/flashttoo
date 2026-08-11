@@ -130,6 +130,15 @@ export default function Home() {
   const [migrateError, setMigrateError] = useState('')
   const [migrateDoc, setMigrateDoc] = useState<'terms' | 'privacy' | null>(null)
   const [migrateLoading, setMigrateLoading] = useState(false)
+
+  useEffect(() => {
+    if (migrateDoc) {
+      history.pushState({ doc: migrateDoc }, '')
+      const handler = () => setMigrateDoc(null)
+      window.addEventListener('popstate', handler)
+      return () => window.removeEventListener('popstate', handler)
+    }
+  }, [migrateDoc])
   const [liked, setLiked]             = useState(false)
   const [localLikes, setLocalLikes]   = useState(0)
   const [copied, setCopied]           = useState(false)
