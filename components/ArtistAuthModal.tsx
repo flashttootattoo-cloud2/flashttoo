@@ -226,29 +226,22 @@ export default function ArtistAuthModal({ onClose, onLoggedIn }: Props) {
           </div>
         )}
 
-        {/* TERMS */}
-        {view === 'terms' && (
-          <div className="flex flex-col gap-4">
-            <button onClick={() => setView('register')} className="text-xs text-left" style={{ color: 'rgba(255,255,255,0.4)' }}>← {t('ingresar', 'back_btn', 'Volver')}</button>
-            <p className="text-sm font-bold text-white">{t('terminos', 'title', 'Términos y Condiciones')}</p>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 1.8, whiteSpace: 'pre-wrap', maxHeight: 320, overflowY: 'auto' }}>
-              {t('terminos', 'content', '')}
-            </div>
-          </div>
-        )}
-
-        {/* PRIVACY */}
-        {view === 'privacy' && (
-          <div className="flex flex-col gap-4">
-            <button onClick={() => setView('register')} className="text-xs text-left" style={{ color: 'rgba(255,255,255,0.4)' }}>← {t('ingresar', 'back_btn', 'Volver')}</button>
-            <p className="text-sm font-bold text-white">{t('privacidad', 'title', 'Política de privacidad')}</p>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 1.8, whiteSpace: 'pre-wrap', maxHeight: 320, overflowY: 'auto' }}>
-              {t('privacidad', 'content', '')}
-            </div>
-          </div>
-        )}
-
       </div>
     </div>
+
+    {/* TERMS / PRIVACY — fullscreen overlay */}
+    {(view === 'terms' || view === 'privacy') && (
+      <div className="fixed inset-0 flex flex-col" style={{ zIndex: 200, background: '#000' }}>
+        <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <button onClick={() => setView('register')} style={{ color: 'rgba(255,255,255,0.4)', fontSize: 20, lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer' }}>←</button>
+          <p className="text-sm font-bold text-white">
+            {view === 'terms' ? t('terminos', 'title', 'Términos y Condiciones') : t('privacidad', 'title', 'Política de privacidad')}
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-6" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+          {view === 'terms' ? t('terminos', 'content', '') : t('privacidad', 'content', '')}
+        </div>
+      </div>
+    )}
   )
 }

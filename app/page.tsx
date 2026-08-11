@@ -1436,21 +1436,6 @@ export default function Home() {
                 </>
               )}
 
-              {/* Términos / Privacidad inline */}
-              {migrateDoc && (
-                <div>
-                  <button type="button" onClick={() => setMigrateDoc(null)} style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', marginBottom: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
-                    ← {t('ingresar', 'back_btn', 'Volver')}
-                  </button>
-                  <p style={{ color: '#000', fontWeight: 800, fontSize: 12, marginBottom: 8 }}>
-                    {migrateDoc === 'terms' ? t('terminos', 'title', 'Términos y Condiciones') : t('privacidad', 'title', 'Política de privacidad')}
-                  </p>
-                  <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.6)', lineHeight: 1.8, whiteSpace: 'pre-wrap', maxHeight: 260, overflowY: 'auto' }}>
-                    {migrateDoc === 'terms' ? t('terminos', 'content', '') : t('privacidad', 'content', '')}
-                  </div>
-                </div>
-              )}
-
               {/* Paso 3: mail enviado */}
               {migrateSent && (
                 <div style={{ textAlign: 'center' }}>
@@ -1505,6 +1490,21 @@ export default function Home() {
             )
           })()}
           </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TÉRMINOS / PRIVACIDAD FULLSCREEN (migración) ─────── */}
+      {migrateDoc && (
+        <div className="fixed inset-0 z-90 flex flex-col" style={{ background: '#000', zIndex: 200 }}>
+          <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <button onClick={() => setMigrateDoc(null)} style={{ color: 'rgba(255,255,255,0.4)', fontSize: 20, lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer' }}>←</button>
+            <p className="text-sm font-bold text-white">
+              {migrateDoc === 'terms' ? t('terminos', 'title', 'Términos y Condiciones') : t('privacidad', 'title', 'Política de privacidad')}
+            </p>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-6" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+            {migrateDoc === 'terms' ? t('terminos', 'content', '') : t('privacidad', 'content', '')}
           </div>
         </div>
       )}
