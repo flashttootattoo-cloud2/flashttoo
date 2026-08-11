@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useTranslation } from '@/contexts/TranslationContext'
 
-type View = 'menu' | 'login' | 'register' | 'registered' | 'forgot' | 'forgot_sent'
+type View = 'menu' | 'login' | 'register' | 'registered' | 'forgot' | 'forgot_sent' | 'terms' | 'privacy'
 
 type Props = {
   onClose: () => void
@@ -115,9 +115,9 @@ export default function ArtistAuthModal({ onClose, onLoggedIn }: Props) {
                 className="mt-0.5 shrink-0" />
               <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
                 {t('ingresar', 'tyc_prefix', 'Al registrarme acepto los')}{' '}
-                <a href="/terminos" target="_blank" style={{ color: 'rgba(255,255,255,0.65)' }}>{t('ingresar', 'tyc_terms', 'Términos y condiciones')}</a>
+                <button type="button" onClick={() => setView('terms')} style={{ color: 'rgba(255,255,255,0.65)', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit' }}>{t('ingresar', 'tyc_terms', 'Términos y condiciones')}</button>
                 {' '}{t('ingresar', 'tyc_and', 'y la')}{' '}
-                <a href="/privacidad" target="_blank" style={{ color: 'rgba(255,255,255,0.65)' }}>{t('ingresar', 'tyc_privacy', 'Política de privacidad')}</a>
+                <button type="button" onClick={() => setView('privacy')} style={{ color: 'rgba(255,255,255,0.65)', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit' }}>{t('ingresar', 'tyc_privacy', 'Política de privacidad')}</button>
                 {' '}de Flashttoo.
               </span>
             </label>
@@ -223,6 +223,28 @@ export default function ArtistAuthModal({ onClose, onLoggedIn }: Props) {
               style={{ background: '#efff42', color: '#000' }}>
               {t('ingresar', 'close_btn', 'Cerrar')}
             </button>
+          </div>
+        )}
+
+        {/* TERMS */}
+        {view === 'terms' && (
+          <div className="flex flex-col gap-4">
+            <button onClick={() => setView('register')} className="text-xs text-left" style={{ color: 'rgba(255,255,255,0.4)' }}>← {t('ingresar', 'back_btn', 'Volver')}</button>
+            <p className="text-sm font-bold text-white">{t('terminos', 'title', 'Términos y Condiciones')}</p>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 1.8, whiteSpace: 'pre-wrap', maxHeight: 320, overflowY: 'auto' }}>
+              {t('terminos', 'content', '')}
+            </div>
+          </div>
+        )}
+
+        {/* PRIVACY */}
+        {view === 'privacy' && (
+          <div className="flex flex-col gap-4">
+            <button onClick={() => setView('register')} className="text-xs text-left" style={{ color: 'rgba(255,255,255,0.4)' }}>← {t('ingresar', 'back_btn', 'Volver')}</button>
+            <p className="text-sm font-bold text-white">{t('privacidad', 'title', 'Política de privacidad')}</p>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 1.8, whiteSpace: 'pre-wrap', maxHeight: 320, overflowY: 'auto' }}>
+              {t('privacidad', 'content', '')}
+            </div>
           </div>
         )}
 
