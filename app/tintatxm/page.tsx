@@ -1244,6 +1244,8 @@ export default function AdminPage() {
   type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number; studio_artists?: AdminStudioArtist[] }
   const [adminStudios, setAdminStudios]       = useState<AdminStudio[]>([])
   const [studioSearch, setStudioSearch]       = useState('')
+  const [studioExpiryEdits, setStudioExpiryEdits] = useState<Record<string, string>>({})
+  const [studioExpirySaving, setStudioExpirySaving] = useState<Record<string, boolean>>({})
   const [studioForm, setStudioForm]           = useState({ name: '', slug: '', city: '', country: '', description: '', instagram: '', whatsapp: '', website: '', expires_at: '' })
   const [studioLogo, setStudioLogo]           = useState<File | null>(null)
   const [studioLogoPreview, setStudioLogoPreview] = useState<string | null>(null)
@@ -3670,7 +3672,15 @@ export default function AdminPage() {
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
             />
             <div className="flex flex-col gap-3">
-              {adminStudios.filter(s => s.name.toLowerCase().includes(studioSearch.toLowerCase())).map(studio => (
+              {adminStudios
+                .filter(s => s.name.toLowerCase().includes(studioSearch.toLowerCase()))
+                .sort((a, b) => {
+                  if (!a.expires_at && !b.expires_at) return 0
+                  if (!a.expires_at) return 1
+                  if (!b.expires_at) return -1
+                  return new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime()
+                })
+                .map(studio => (
                 <div key={studio.id} className="rounded-xl p-4 flex items-center gap-4"
                   style={{ background: 'rgba(255,255,255,0.03)', border: studio.visible ? '1px solid rgba(239,255,66,0.2)' : '1px solid rgba(255,255,255,0.07)' }}>
                   {(() => {
@@ -3706,13 +3716,43 @@ export default function AdminPage() {
                             )
                           })}
                         </div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.15)', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.1em' }}>clave: {studio.edit_key}</p>
-                          {daysLeft !== null && (
-                            <p className="text-xs font-bold" style={{ color: expired ? '#f87171' : urgent ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}>
-                              {expired ? `venció hace ${Math.abs(daysLeft)}d` : `vence en ${daysLeft}d`}
-                            </p>
-                          )}
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <p className="text-xs shrink-0" style={{ color: 'rgba(255,255,255,0.15)', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.1em' }}>clave: {studio.edit_key}</p>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="date"
+                              value={studioExpiryEdits[studio.id] !== undefined ? studioExpiryEdits[studio.id] : (studio.expires_at ? studio.expires_at.slice(0, 10) : '')}
+                              onChange={e => setStudioExpiryEdits(prev => ({ ...prev, [studio.id]: e.target.value }))}
+                              className="text-xs rounded-lg py-1 px-2 outline-none"
+                              style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${expired ? 'rgba(248,113,113,0.3)' : urgent ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.1)'}`, color: expired ? '#f87171' : urgent ? '#fbbf24' : 'rgba(255,255,255,0.4)', colorScheme: 'dark' }}
+                              title="Fecha de vencimiento (vacío = sin vencimiento)"
+                            />
+                            {studioExpiryEdits[studio.id] !== undefined && (
+                              <button
+                                disabled={studioExpirySaving[studio.id]}
+                                onClick={async () => {
+                                  setStudioExpirySaving(prev => ({ ...prev, [studio.id]: true }))
+                                  const newDate = studioExpiryEdits[studio.id] || null
+                                  await fetch(`/api/admin/studios/${studio.id}`, {
+                                    method: 'PATCH',
+                                    headers: { ...H(pass), 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ expires_at: newDate }),
+                                  })
+                                  setAdminStudios(prev => prev.map(s => s.id === studio.id ? { ...s, expires_at: newDate } : s))
+                                  setStudioExpiryEdits(prev => { const n = { ...prev }; delete n[studio.id]; return n })
+                                  setStudioExpirySaving(prev => ({ ...prev, [studio.id]: false }))
+                                }}
+                                className="text-xs px-2 py-1 rounded-lg font-bold"
+                                style={{ background: 'rgba(239,255,66,0.15)', color: '#efff42', border: '1px solid rgba(239,255,66,0.3)', opacity: studioExpirySaving[studio.id] ? 0.5 : 1 }}>
+                                {studioExpirySaving[studio.id] ? '...' : 'Guardar'}
+                              </button>
+                            )}
+                            {daysLeft !== null && studioExpiryEdits[studio.id] === undefined && (
+                              <span className="text-xs font-bold" style={{ color: expired ? '#f87171' : urgent ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}>
+                                {expired ? `venció hace ${Math.abs(daysLeft)}d` : `vence en ${daysLeft}d`}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-3 mt-1">
                           <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{studio.profile_views ?? 0} vis</span>
