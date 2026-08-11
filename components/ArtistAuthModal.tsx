@@ -70,7 +70,7 @@ export default function ArtistAuthModal({ onClose, onLoggedIn }: Props) {
     })
     const d = await r.json()
     setLoading(false)
-    if (!r.ok) { setError(d.error); return }
+    if (!r.ok) { setError(t('ingresar', d.error, d.error)); return }
     setView('forgot_sent')
   }
 
