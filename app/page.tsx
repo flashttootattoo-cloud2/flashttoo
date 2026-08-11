@@ -128,6 +128,7 @@ export default function Home() {
   const [migratePassword, setMigratePassword] = useState('')
   const [migrateTyc, setMigrateTyc] = useState(false)
   const [migrateError, setMigrateError] = useState('')
+  const [migrateDoc, setMigrateDoc] = useState<'terms' | 'privacy' | null>(null)
   const [migrateLoading, setMigrateLoading] = useState(false)
   const [liked, setLiked]             = useState(false)
   const [localLikes, setLocalLikes]   = useState(0)
@@ -1377,7 +1378,7 @@ export default function Home() {
               )}
 
               {/* Paso 2: form de migración (clave correcta) */}
-              {migrateMode && !migrateSent && (
+              {migrateMode && !migrateSent && !migrateDoc && (
                 <>
                   <p style={{ color: '#000', fontWeight: 800, fontSize: 12, marginBottom: 4 }}>{t('artista', 'migrate_title', 'Tu perfil está desactivado')}</p>
                   <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
@@ -1403,7 +1404,10 @@ export default function Home() {
                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
                       <input type="checkbox" checked={migrateTyc} onChange={e => setMigrateTyc(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
                       <span style={{ fontSize: 11, color: 'rgba(0,0,0,0.55)', lineHeight: 1.5 }}>
-                        {t('ingresar', 'tyc_prefix', 'Al registrarme acepto los')} <a href="/terminos" target="_blank" style={{ color: '#000' }}>{t('ingresar', 'tyc_terms', 'Términos y condiciones')}</a> {t('ingresar', 'tyc_and', 'y la')} <a href="/privacidad" target="_blank" style={{ color: '#000' }}>{t('ingresar', 'tyc_privacy', 'Política de privacidad')}</a>.
+                        {t('ingresar', 'tyc_prefix', 'Al registrarme acepto los')}{' '}
+                        <button type="button" onClick={() => setMigrateDoc('terms')} style={{ color: '#000', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit' }}>{t('ingresar', 'tyc_terms', 'Términos y condiciones')}</button>
+                        {' '}{t('ingresar', 'tyc_and', 'y la')}{' '}
+                        <button type="button" onClick={() => setMigrateDoc('privacy')} style={{ color: '#000', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit' }}>{t('ingresar', 'tyc_privacy', 'Política de privacidad')}</button>.
                       </span>
                     </label>
                     {migrateError && <p style={{ fontSize: 11, color: 'rgba(160,0,0,0.8)' }}>{migrateError}</p>}
@@ -1430,6 +1434,21 @@ export default function Home() {
                     </button>
                   </div>
                 </>
+              )}
+
+              {/* Términos / Privacidad inline */}
+              {migrateDoc && (
+                <div>
+                  <button type="button" onClick={() => setMigrateDoc(null)} style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', marginBottom: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                    ← {t('ingresar', 'back_btn', 'Volver')}
+                  </button>
+                  <p style={{ color: '#000', fontWeight: 800, fontSize: 12, marginBottom: 8 }}>
+                    {migrateDoc === 'terms' ? t('terminos', 'title', 'Términos y Condiciones') : t('privacidad', 'title', 'Política de privacidad')}
+                  </p>
+                  <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.6)', lineHeight: 1.8, whiteSpace: 'pre-wrap', maxHeight: 260, overflowY: 'auto' }}>
+                    {migrateDoc === 'terms' ? t('terminos', 'content', '') : t('privacidad', 'content', '')}
+                  </div>
+                </div>
               )}
 
               {/* Paso 3: mail enviado */}
