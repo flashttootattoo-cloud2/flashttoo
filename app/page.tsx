@@ -1012,7 +1012,7 @@ export default function Home() {
                               }
                               <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
                               <div className="absolute top-2 right-2">
-                                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.55)', padding: '2px 5px', borderRadius: 4, border: '1px solid rgba(239,255,66,0.3)' }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
+                                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', background: '#efff42', padding: '2px 5px', borderRadius: 4 }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
                               </div>
                               <div className="absolute bottom-0 left-0 right-0">
                                 <div style={{ padding: '4px 8px 4px' }}>
@@ -1099,7 +1099,7 @@ export default function Home() {
                           }
                           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
                           <div className="absolute top-2 right-2">
-                            <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.55)', padding: '2px 5px', borderRadius: 4, border: '1px solid rgba(239,255,66,0.3)' }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
+                            <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', background: '#efff42', padding: '2px 5px', borderRadius: 4 }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
                           </div>
                           <div className="absolute bottom-0 left-0 right-0">
                             <div style={{ padding: '8px 12px 8px' }}>
