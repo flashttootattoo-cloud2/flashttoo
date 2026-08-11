@@ -107,7 +107,7 @@ export default function ArtistAuthModal({ onClose, onLoggedIn }: Props) {
         {/* MENU */}
         {view === 'menu' && (
           <div className="flex flex-col gap-3">
-            <p className="text-xs text-center mb-1" style={{ color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em' }}>{t('ingresar', 'solo_tatuadores', 'Solo para tatuadores')}</p>
+            <p className="text-xs text-center mb-1" style={{ color: '#efff42', letterSpacing: '0.06em' }}>{t('ingresar', 'solo_tatuadores', 'Solo para tatuadores')}</p>
             <button onClick={() => { reset(); setView('register') }}
               className="w-full py-3 rounded-xl text-sm font-bold"
               style={{ background: '#efff42', color: '#000' }}>
