@@ -33,6 +33,19 @@ function genVerifyWord() {
 
 export default function AgregarPage() {
   const { t } = useTranslation()
+
+  const [authParams, setAuthParams] = useState({ userId: '', authEmail: '' })
+  const [isAuthFlow, setIsAuthFlow] = useState(false)
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    const userId = p.get('user_id') || ''
+    setAuthParams({ userId, authEmail: p.get('email') || '' })
+    if (userId) {
+      setIsAuthFlow(true)
+      setTermsAccepted(true)
+    }
+  }, [])
+
   const [form, setForm] = useState({
     name: '', city: '', country: '', instagram: '', whatsapp: '', email: '', bio: '',
   })
@@ -45,6 +58,7 @@ export default function AgregarPage() {
   const stylesRef = useRef<HTMLDivElement>(null)
   const [igStatus, setIgStatus]     = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [showEmail, setShowEmail] = useState(false)
   const [verifyWord, setVerifyWord] = useState(() => genVerifyWord())
   const [copied, setCopied] = useState(false)
   const [verifyIG, setVerifyIG] = useState('')
@@ -101,7 +115,7 @@ export default function AgregarPage() {
     fetch('/api/config').then(r => r.json()).then(d => setModeration(!!d.moderation)).catch(() => {})
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles?.length) setAllStyles(d.styles) }).catch(() => {})
     fetch('/api/features').then(r => r.json()).then(d => setGalleryEnabled(!!d.artist_gallery)).catch(() => {})
-  }, [])
+  }, [authParams.authEmail])
 
   const toggleStyle = (s: string) =>
     setStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
@@ -164,6 +178,9 @@ export default function AgregarPage() {
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
     setError('')
+    const p = new URLSearchParams(window.location.search)
+    const submitUserId = p.get('user_id') || ''
+    const submitAuthEmail = p.get('email') || ''
     if (!photo) { setError(t('agregar', 'error_photo', 'Agregá una foto')); return }
     if (styles.length === 0) { setError(t('agregar', 'error_styles', 'Elegí al menos un estilo')); return }
     if (!form.instagram.trim()) { setError(t('agregar', 'error_instagram', 'Ingresá tu usuario de Instagram')); return }
@@ -228,15 +245,17 @@ export default function AgregarPage() {
         instagram: form.instagram.trim() || null,
         whatsapp:  form.whatsapp.trim()  || null,
         email:     form.email.trim()     || null,
+        show_email: showEmail,
         bio:       form.bio.trim()       || null,
-        edit_key:  editKey.trim().toUpperCase(),
-        status:    moderation ? 'pending' : 'active',
-        verification_word: moderation ? finalWord : null,
+        edit_key:  submitUserId ? null : editKey.trim().toUpperCase(),
+        status:    (moderation || isAuthFlow) ? 'pending' : 'active',
+        verification_word: (moderation && !isAuthFlow) ? finalWord : null,
         interview: Object.fromEntries(Object.entries(interview).filter(([, v]) => v.trim())),
         visits,
         gallery_photo_1: galleryUrls[0],
         gallery_photo_2: galleryUrls[1],
         gallery_photo_3: galleryUrls[2],
+        ...(submitUserId ? { user_id: submitUserId, auth_email: submitAuthEmail, tyc_accepted_at: new Date().toISOString() } : {}),
       })
       if (insErr) {
         setError(`Error al guardar: ${insErr.message}`)
@@ -244,7 +263,19 @@ export default function AgregarPage() {
         return
       }
 
-      setDone(moderation ? 'pending' : 'active')
+      if (submitUserId) {
+        await fetch('/api/artists/link-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instagram: form.instagram.trim().toLowerCase().replace('@', ''),
+            user_id: submitUserId,
+            auth_email: submitAuthEmail,
+          }),
+        })
+      }
+
+      setDone((moderation || !!submitUserId) ? 'pending' : 'active')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : JSON.stringify(err)
       setError(`Error inesperado: ${msg}`)
@@ -259,7 +290,7 @@ export default function AgregarPage() {
         <h2 className="text-xl font-bold mb-2">{t('agregar', 'done_pending_title', 'Perfil en revisión')}</h2>
         <p className="text-white/50 text-sm mb-6">{t('agregar', 'done_pending_msg1', 'Tu perfil fue enviado y está esperando aprobación.')}</p>
 
-        {/* Palabra de verificación */}
+        {!isAuthFlow && (
         <div className="rounded-2xl p-5 mb-6 text-left" style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.2)' }}>
           <p className="text-xs font-bold mb-1" style={{ color: 'rgba(239,255,66,0.6)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
             {t('agregar', 'verify_step_title', 'Un paso más para activar tu perfil')}
@@ -296,6 +327,7 @@ export default function AgregarPage() {
             {t('agregar', 'verify_expiry', 'Envianos la palabra lo antes posible para que activemos tu perfil.')}
           </p>
         </div>
+        )}
 
         <Link href="/" className="text-sm text-[#efff42] underline underline-offset-4">{t('agregar', 'done_pending_link', 'Volver al inicio')}</Link>
       </div>
@@ -316,7 +348,7 @@ export default function AgregarPage() {
     <main className="min-h-screen p-6">
       <div className="max-w-md mx-auto">
         <div className="mb-8">
-          <Link href="/" className="text-xs text-white/30 hover:text-white/60 transition-colors">{t('agregar', 'back', '← volver')}</Link>
+          {!isAuthFlow && <Link href="/" className="text-xs text-white/30 hover:text-white/60 transition-colors">{t('agregar', 'back', '← volver')}</Link>}
           <h1 className="text-xl font-bold mt-3">{t('agregar', 'add_title', 'Agregáte como tatuador/a')}</h1>
           <p className="text-sm text-white/40 mt-1">{t('agregar', 'add_subtitle', 'Completá tu perfil para aparecer en el buscador.')}</p>
         </div>
@@ -447,10 +479,32 @@ export default function AgregarPage() {
             <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
               placeholder="+54 9 11 1234 5678" className={inputCls} />
           </Field>
-          <Field label={t('agregar', 'email_label', 'Email')}>
-            <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              placeholder={t('agregar', 'email_placeholder', 'hola@ejemplo.com')} className={inputCls} />
-          </Field>
+          {authParams.authEmail ? (
+            <div className="flex flex-col gap-2">
+              <div className="rounded-lg px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <p className="text-xs mb-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>Mail de acceso (no cambia)</p>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>{authParams.authEmail}</p>
+              </div>
+              <Field label={t('agregar', 'email_label', 'Email de contacto (opcional)')}>
+                <input type="email" value={form.email}
+                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  placeholder={t('agregar', 'email_placeholder', 'hola@ejemplo.com')} className={inputCls} />
+              </Field>
+            </div>
+          ) : (
+            <Field label={t('agregar', 'email_label', 'Email')}>
+              <input type="email" value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                placeholder={t('agregar', 'email_placeholder', 'hola@ejemplo.com')} className={inputCls} />
+              {form.email && (
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input type="checkbox" checked={showEmail} onChange={e => setShowEmail(e.target.checked)}
+                    className="shrink-0 accent-[#efff42]" style={{ width: 14, height: 14 }} />
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Mostrar mi mail en el perfil público</span>
+                </label>
+              )}
+            </Field>
+          )}
 
           {/* Bio con contador */}
           <div>
@@ -648,7 +702,8 @@ export default function AgregarPage() {
 
           {error && <p className="text-xs text-red-400">{error}</p>}
 
-          {/* Clave de edición */}
+          {/* Clave de edición — solo para flujo sin auth */}
+          {!isAuthFlow && (
           <div style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.2)', borderRadius: 12, padding: '16px' }}>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-bold uppercase tracking-widest" style={{ color: '#efff42' }}>
@@ -679,7 +734,9 @@ export default function AgregarPage() {
               </button>
             </div>
           </div>
+          )}
 
+          {!isAuthFlow && (
           <label className="flex items-start gap-3 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -699,6 +756,7 @@ export default function AgregarPage() {
               </Link>
             </span>
           </label>
+          )}
 
           <button
             type="submit"

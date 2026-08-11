@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 
 type DayVisit = { date: string; count: number }
 type Visit = { from: string; to: string; city: string; country: string }
@@ -11,6 +12,10 @@ type InstallStats = { days: DayVisit[]; byPlatform: { ios: number; android: numb
 type Artist = {
   id: string; name: string; city: string; country: string
   photo_url: string; instagram: string | null; whatsapp: string | null
+  email: string | null; auth_email: string | null
+  bio: string | null; styles: string[] | null
+  interview: Record<string, string> | null
+  gallery_photo_1: string | null; gallery_photo_2: string | null; gallery_photo_3: string | null
   profile_views: number; instagram_clicks: number; whatsapp_clicks: number; likes: number
   edit_key: string; visible: boolean; created_at: string; status: string
   verification_word: string | null
@@ -529,6 +534,11 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
                     style={{ color: '#c084fc', textDecoration: 'none' }}>
                     {a.instagram.startsWith('@') ? a.instagram : `@${a.instagram}`}
                   </a>
+                )}
+                {a.auth_email && (
+                  <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full mt-1" style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
+                    registro x mail
+                  </span>
                 )}
                 {isDupe(a) && <p className="text-xs font-bold" style={{ color: '#f87171' }}>⚠ duplicado</p>}
               </div>
@@ -1103,6 +1113,7 @@ export default function AdminPage() {
   const [verifyWA, setVerifyWA]                         = useState('')
   const [savingVerify, setSavingVerify]                 = useState(false)
   const [wordSearch, setWordSearch]                     = useState('')
+  const [previewArtist, setPreviewArtist]               = useState<Artist | null>(null)
   const [storageR2, setStorageR2]           = useState(false)
   const [savingStorage, setSavingStorage]   = useState(false)
   const [r2Available, setR2Available]       = useState(false)
@@ -1169,6 +1180,9 @@ export default function AdminPage() {
     { key: 'estudio',    label: 'Estudio — Panel del estudio' },
     { key: 'eventos',    label: 'Eventos — Flash days y convenciones' },
     { key: 'insumos',    label: 'Insumos — Proveedores' },
+    { key: 'ingresar',   label: 'Ingresar — Modal de login y registro' },
+    { key: 'activar',    label: 'Activar — Página de activación de perfil' },
+    { key: 'password',   label: 'Password — Página de nueva contraseña' },
   ]
 
   const openLang = async (code: string) => {
@@ -1295,7 +1309,7 @@ export default function AdminPage() {
       fetch('/api/admin/studios', { headers: H(p) }).then(r => r.json()),
     ]).then(([a, b, v, cfg, ins, sp, sp2, conv, stu]) => {
       if (a.status === 'fulfilled') {
-        setArtists(a.value.artists || [])
+        setArtists((a.value.artists || []).filter((x: Artist) => x.status !== 'pending'))
         setArtistsTotal(a.value.total ?? 0)
         setArtistsOffset(ARTISTS_PAGE)
       }
@@ -1380,7 +1394,7 @@ export default function AdminPage() {
     setLoadingArtists(true)
     const r = await fetch(`/api/admin/artists?limit=${ARTISTS_PAGE}&offset=0`, { headers: H(pass) }).then(res => res.json()).catch(() => null)
     if (r?.artists) {
-      setArtists(prev => [...prev.filter(a => a.status === 'pending'), ...r.artists])
+      setArtists(prev => [...prev.filter(a => a.status === 'pending'), ...r.artists.filter((a: Artist) => a.status !== 'pending')])
       setArtistsTotal(r.total ?? 0)
       setArtistsOffset(r.artists.length)
     }
@@ -1416,7 +1430,7 @@ export default function AdminPage() {
     try {
       const r = await fetch(`/api/admin/artists?limit=${ARTISTS_PAGE}&offset=${artistsOffset}`, { headers: H(pass) })
       const d = await r.json()
-      setArtists(prev => [...prev, ...(d.artists || [])])
+      setArtists(prev => [...prev, ...(d.artists || []).filter((a: Artist) => a.status !== 'pending')])
       setArtistsTotal(d.total ?? 0)
       setArtistsOffset(prev => prev + (d.artists?.length ?? 0))
     } finally {
@@ -1912,6 +1926,11 @@ export default function AdminPage() {
                             <div className="flex items-baseline justify-between gap-2">
                               <div className="flex items-center gap-2 min-w-0">
                                 <p className="text-sm font-bold text-white truncate">{a.name}</p>
+                                {a.auth_email && (
+                                  <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
+                                    registro x mail
+                                  </span>
+                                )}
                                 {a.pending_reason?.startsWith('ig_change') && (
                                   <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}>
                                     cambio IG
@@ -1967,6 +1986,11 @@ export default function AdminPage() {
                             )}
                           </div>
                           <div className="flex flex-col gap-2 shrink-0">
+                            <button onClick={() => setPreviewArtist(a)}
+                              className="text-xs px-4 py-2 rounded-lg font-bold transition-colors"
+                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}>
+                              Ver perfil
+                            </button>
                             <button onClick={() => approveArtist(a.id)}
                               className="text-xs px-4 py-2 rounded-lg font-bold transition-colors"
                               style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80' }}>
@@ -4445,6 +4469,133 @@ export default function AdminPage() {
           })()}
         </div>
       )}
+      {/* ── PREVIEW MODAL ─────────────────────────────────────────────────── */}
+      {previewArtist && (() => {
+        const iv = (previewArtist.interview ?? {}) as Record<string, string>
+        const answeredQ = INTERVIEW_QUESTIONS.filter(q => iv[q.key]?.trim())
+        const galleryPhotos = [previewArtist.gallery_photo_1, previewArtist.gallery_photo_2, previewArtist.gallery_photo_3].filter(Boolean) as string[]
+        return (
+          <div
+            onClick={() => setPreviewArtist(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', backdropFilter: 'blur(4px)' }}>
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ width: '100%', maxWidth: 390, height: '100dvh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '20px 16px 32px' }}>
+
+              {/* Misma card que el perfil público */}
+              <div style={{ background: '#111', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 100px rgba(0,0,0,0.9)', overflow: 'hidden' }}>
+
+                {/* Foto con degradé */}
+                <div style={{ position: 'relative', width: '100%', paddingBottom: '115%' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={previewArtist.photo_url} alt={previewArtist.name}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, #111 0%, rgba(0,0,0,0.5) 50%, transparent 100%)' }} />
+                  <button onClick={() => setPreviewArtist(null)}
+                    style={{ position: 'absolute', top: 16, right: 16, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', fontSize: 18, cursor: 'pointer' }}>
+                    ×
+                  </button>
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20 }}>
+                    <h2 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1, color: '#fff', overflowWrap: 'break-word', margin: 0 }}>{previewArtist.name}</h2>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 4, marginBottom: 0 }}>{previewArtist.city}, {previewArtist.country}</p>
+                  </div>
+                </div>
+
+                {/* Contenido */}
+                <div style={{ padding: '12px 20px 20px' }}>
+                  {/* Estilos */}
+                  {previewArtist.styles && previewArtist.styles.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                      {previewArtist.styles.map(s => (
+                        <span key={s} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 99, background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.18)', color: 'rgba(239,255,66,0.75)' }}>{s}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Bio */}
+                  {previewArtist.bio && (
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 16 }}>{previewArtist.bio}</p>
+                  )}
+
+                  {/* Galería */}
+                  {galleryPhotos.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 16 }}>
+                      {galleryPhotos.map((src, i) => (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img key={i} src={src} alt=""
+                          style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 12 }} />
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 16 }} />
+
+                  {/* Contacto */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {previewArtist.instagram && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em', margin: 0 }}>Instagram</p>
+                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                      </div>
+                    )}
+                    {previewArtist.whatsapp && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em', margin: 0 }}>WhatsApp</p>
+                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                      </div>
+                    )}
+                    {previewArtist.email && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em', margin: 0 }}>Email</p>
+                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>⎘</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Entrevista — tarjeta amarilla igual que en el público */}
+              {answeredQ.length > 0 && (
+                <div style={{ background: '#efff42', borderRadius: 20, padding: '22px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
+                  <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', marginBottom: 20 }}>
+                    Conocé a {previewArtist.name}
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                    {answeredQ.map(q => (
+                      <div key={q.key}>
+                        <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 5, lineHeight: 1.4 }}>{q.label}</p>
+                        <p style={{ fontSize: 14, color: '#000', lineHeight: 1.65, margin: 0 }}>{iv[q.key]}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Acciones admin */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                {previewArtist.auth_email && (
+                  <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.12)' }}>
+                    <p style={{ fontSize: 11, color: 'rgba(239,255,66,0.6)', margin: 0 }}>Mail de acceso: <strong style={{ color: '#efff42' }}>{previewArtist.auth_email}</strong></p>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => { approveArtist(previewArtist.id); setPreviewArtist(null) }}
+                    style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontWeight: 700, fontSize: 13, background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.35)', color: '#4ade80', cursor: 'pointer' }}>
+                    Aprobar
+                  </button>
+                  <button
+                    onClick={() => { rejectArtist(previewArtist.id); setPreviewArtist(null) }}
+                    style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontWeight: 700, fontSize: 13, background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.7)', cursor: 'pointer' }}>
+                    Rechazar
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )
+      })()}
     </main>
   )
 }

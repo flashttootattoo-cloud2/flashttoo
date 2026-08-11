@@ -19,11 +19,12 @@ interface Props {
   onSaved: (updated: Artist) => void
   onDeleted: () => void
   prefilledKey?: string
+  accessToken?: string
 }
 
-export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefilledKey }: Props) {
+export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefilledKey, accessToken }: Props) {
   const { t } = useTranslation()
-  const [step, setStep]       = useState<'key' | 'form'>(prefilledKey ? 'form' : 'key')
+  const [step, setStep]       = useState<'key' | 'form'>(prefilledKey || accessToken ? 'form' : 'key')
   const [key, setKey]         = useState(prefilledKey || '')
   const [keyError, setKeyError] = useState('')
   const [verifying, setVerifying] = useState(false)
@@ -34,7 +35,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     country:   artist.country,
     instagram: artist.instagram || '',
     whatsapp:  artist.whatsapp  || '',
-    email:     artist.email     || '',
+    email:     artist.email !== artist.auth_email ? (artist.email || '') : '',
     bio:       artist.bio       || '',
   })
   const [allStyles, setAllStyles] = useState<string[]>(DEFAULT_STYLES)
@@ -79,11 +80,13 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
   const [igEdit, setIgEdit]       = useState(false)
   const [igNew, setIgNew]         = useState('')
   const [igNewStatus, setIgNewStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
+  const [igAuthStatus, setIgAuthStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [igChanging, setIgChanging] = useState(false)
   const [igDone, setIgDone]       = useState<{ word: string } | null>(null)
   const [verifyIG, setVerifyIG]   = useState('')
   const [verifyWA, setVerifyWA]   = useState('')
   const igNewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const igAuthTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => {
     fetch('/api/features').then(r => r.json()).then(d => { setVerifyIG(d.verification_instagram || ''); setVerifyWA(d.verification_whatsapp || '') }).catch(() => {})
   }, [])
@@ -103,6 +106,22 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     return () => clearTimeout(igNewTimer.current)
   }, [igNew, artist.id, form.instagram])
 
+  useEffect(() => {
+    if (!accessToken) return
+    const handle = (form.instagram || '').trim().replace(/^@/, '')
+    const original = (artist.instagram || '').trim().replace(/^@/, '').toLowerCase()
+    if (!handle || handle.toLowerCase() === original) { setIgAuthStatus('idle'); return }
+    setIgAuthStatus('checking')
+    clearTimeout(igAuthTimer.current)
+    igAuthTimer.current = setTimeout(async () => {
+      const { data } = await supabase.from('artists').select('id')
+        .or(`instagram.ilike.${handle},instagram.ilike.@${handle}`)
+        .neq('id', artist.id).limit(1)
+      setIgAuthStatus(data && data.length > 0 ? 'taken' : 'ok')
+    }, 600)
+    return () => clearTimeout(igAuthTimer.current)
+  }, [form.instagram, artist.id, artist.instagram, accessToken])
+
   const changeInstagram = async () => {
     if (igNewStatus !== 'ok' || !igNew.trim()) return
     setIgChanging(true)
@@ -110,7 +129,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
       const res = await fetch(`/api/artists/${artist.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ editKey: key.trim().toUpperCase(), instagram: igNew.trim().replace('@', ''), _ig_change: true }),
+        body: JSON.stringify({ ...(accessToken ? { access_token: accessToken } : { editKey: key.trim().toUpperCase() }), instagram: igNew.trim().replace('@', ''), _ig_change: true }),
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error)
@@ -131,7 +150,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     const res = await fetch(`/api/artists/${artist.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ editKey: key.trim().toUpperCase(), new_edit_key: newKey }),
+      body: JSON.stringify({ ...(accessToken ? { access_token: accessToken } : { editKey: key.trim().toUpperCase() }), new_edit_key: newKey }),
     })
     if (res.ok) {
       setKey(newKey)
@@ -149,7 +168,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     const res = await fetch(`/api/artists/${artist.id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ editKey: key }),
+      body: JSON.stringify({ ...(accessToken ? { access_token: accessToken } : { editKey: key }) }),
     })
     if (res.ok) { onDeleted() }
     else { const d = await res.json(); setDeleteError(d.error || 'Error'); setDeleting(false) }
@@ -251,7 +270,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          editKey: key.trim().toUpperCase(),
+          ...(accessToken ? { access_token: accessToken } : { editKey: key.trim().toUpperCase() }),
           photo_url,
           ...form,
           instagram: form.instagram.trim() || null,
@@ -277,6 +296,52 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
   }
 
   const iCls = 'w-full py-2.5 px-4 text-sm text-white outline-none rounded-lg transition-colors'
+
+  const claveSection = !artist.auth_email ? (
+    <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <p className="text-xs uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('editar', 'key_section_title', 'Clave de edición')}</p>
+      {newKey === null ? (
+        <button onClick={() => setNewKey(genKey())}
+          className="text-xs px-4 py-2 rounded-lg transition-all"
+          style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}>
+          {t('editar', 'change_key', 'Cambiar clave')}
+        </button>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <div className="rounded-lg p-3" style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.2)' }}>
+            <p className="text-xs font-bold mb-1" style={{ color: '#efff42' }}>{t('editar', 'new_key_warning', '⚠ Guardá esta clave antes de confirmar')}</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>{t('editar', 'new_key_desc', 'Sin ella no vas a poder editar ni eliminar tu perfil.')}</p>
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1 py-2.5 px-4 rounded-lg text-center font-bold font-mono tracking-widest"
+              style={{ background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', color: '#efff42', fontSize: 20, letterSpacing: '0.15em' }}>
+              {newKey}
+            </div>
+            <button
+              onClick={() => { navigator.clipboard.writeText(newKey!); setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000) }}
+              className="px-4 rounded-lg text-xs font-bold shrink-0 transition-all"
+              style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${keyCopied ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: keyCopied ? '#4ade80' : '#efff42' }}>
+              {keyCopied ? '✓' : t('agregar', 'copy', 'copiar')}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { setNewKey(null); setKeyCopied(false) }}
+              className="flex-1 py-2 rounded-lg text-xs"
+              style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
+              {t('agregar', 'date_cancel', 'Cancelar')}
+            </button>
+            <button onClick={saveNewKey} disabled={savingNewKey}
+              className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
+              style={{ background: '#efff42', color: '#000' }}>
+              {savingNewKey ? '...' : t('editar', 'confirm_change', 'Confirmar cambio')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  ) : null
 
   return (
     <div className="fixed inset-0 z-[80] flex flex-col" style={{ background: '#000' }}>
@@ -410,54 +475,68 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'instagram_label', 'Instagram')}</p>
-                  {!igEdit && (
-                    <button onClick={() => setIgEdit(true)}
-                      className="text-xs px-2.5 py-1 rounded-lg"
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
-                      {t('editar', 'ig_change_btn', 'Cambiar')}
-                    </button>
-                  )}
-                </div>
-                <input readOnly value={form.instagram} className={iCls}
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', cursor: 'default' }} />
-                {igEdit && (
-                  <div className="mt-3 rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
-                      {t('editar', 'ig_change_warning', 'Al cambiar el Instagram tu perfil vuelve a revisión y deberás verificarlo nuevamente.')}
-                    </p>
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('editar', 'ig_new_label', 'Nuevo Instagram')}</p>
-                        {igNewStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'ig_checking', 'verificando...')}</span>}
-                        {igNewStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('agregar', 'ig_available', '✓ disponible')}</span>}
-                        {igNewStatus === 'taken' && igNew.trim().replace(/^@/, '').toLowerCase() === (form.instagram || '').trim().replace(/^@/, '').toLowerCase() && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('editar', 'ig_same_as_current', '✗ es el mismo')}</span>}
-                        {igNewStatus === 'taken' && igNew.trim().replace(/^@/, '').toLowerCase() !== (form.instagram || '').trim().replace(/^@/, '').toLowerCase() && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('agregar', 'ig_taken', '✗ ya registrado')}</span>}
-                      </div>
-                      <input value={igNew} onChange={e => setIgNew(e.target.value)}
-                        placeholder="@nuevousuario" className={iCls}
-                        style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${igNewStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igNewStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
-                    </div>
-                    {saveError && <p className="text-xs" style={{ color: '#f87171' }}>{saveError}</p>}
-                    <div className="flex gap-2">
-                      <button onClick={() => { setIgEdit(false); setIgNew(''); setIgNewStatus('idle'); setSaveError('') }}
-                        className="flex-1 py-2 rounded-lg text-xs"
-                        style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
-                        {t('agregar', 'date_cancel', 'Cancelar')}
-                      </button>
-                      <button onClick={changeInstagram} disabled={igNewStatus !== 'ok' || igChanging}
-                        className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
-                        style={{ background: '#efff42', color: '#000' }}>
-                        {igChanging ? '...' : t('editar', 'ig_confirm_change', 'Confirmar')}
-                      </button>
-                    </div>
+                <p className="text-xs uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'instagram_label', 'Instagram')}</p>
+                {accessToken ? (
+                  <div>
+                    <input value={form.instagram} onChange={e => setForm(f => ({ ...f, instagram: e.target.value }))}
+                      placeholder="@usuario" className={iCls}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${igAuthStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igAuthStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
+                    {igAuthStatus === 'checking' && <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>verificando...</p>}
+                    {igAuthStatus === 'taken'   && <p className="text-xs mt-1 font-bold" style={{ color: '#f87171' }}>✗ este Instagram ya está registrado</p>}
+                    {igAuthStatus === 'ok'      && <p className="text-xs mt-1 font-bold" style={{ color: '#4ade80' }}>✓ disponible</p>}
                   </div>
-                )}
-                {!igEdit && (
-                  <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
-                    {t('editar', 'ig_locked_hint', 'El cambio requiere nueva verificación.')}
-                  </p>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span />
+                      {!igEdit && (
+                        <button onClick={() => setIgEdit(true)}
+                          className="text-xs px-2.5 py-1 rounded-lg"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
+                          {t('editar', 'ig_change_btn', 'Cambiar')}
+                        </button>
+                      )}
+                    </div>
+                    <input readOnly value={form.instagram} className={iCls}
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', cursor: 'default' }} />
+                    {igEdit && (
+                      <div className="mt-3 rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                          {t('editar', 'ig_change_warning', 'Al cambiar el Instagram tu perfil vuelve a revisión y deberás verificarlo nuevamente.')}
+                        </p>
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('editar', 'ig_new_label', 'Nuevo Instagram')}</p>
+                            {igNewStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('agregar', 'ig_checking', 'verificando...')}</span>}
+                            {igNewStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('agregar', 'ig_available', '✓ disponible')}</span>}
+                            {igNewStatus === 'taken' && igNew.trim().replace(/^@/, '').toLowerCase() === (form.instagram || '').trim().replace(/^@/, '').toLowerCase() && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('editar', 'ig_same_as_current', '✗ es el mismo')}</span>}
+                            {igNewStatus === 'taken' && igNew.trim().replace(/^@/, '').toLowerCase() !== (form.instagram || '').trim().replace(/^@/, '').toLowerCase() && <span className="text-xs font-bold" style={{ color: '#f87171' }}>{t('agregar', 'ig_taken', '✗ ya registrado')}</span>}
+                          </div>
+                          <input value={igNew} onChange={e => setIgNew(e.target.value)}
+                            placeholder="@nuevousuario" className={iCls}
+                            style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${igNewStatus === 'taken' ? 'rgba(248,113,113,0.5)' : igNewStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
+                        </div>
+                        {saveError && <p className="text-xs" style={{ color: '#f87171' }}>{saveError}</p>}
+                        <div className="flex gap-2">
+                          <button onClick={() => { setIgEdit(false); setIgNew(''); setIgNewStatus('idle'); setSaveError('') }}
+                            className="flex-1 py-2 rounded-lg text-xs"
+                            style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
+                            {t('agregar', 'date_cancel', 'Cancelar')}
+                          </button>
+                          <button onClick={changeInstagram} disabled={igNewStatus !== 'ok' || igChanging}
+                            className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
+                            style={{ background: '#efff42', color: '#000' }}>
+                            {igChanging ? '...' : t('editar', 'ig_confirm_change', 'Confirmar')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {!igEdit && (
+                      <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
+                        {t('editar', 'ig_locked_hint', 'El cambio requiere nueva verificación.')}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -466,10 +545,27 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                   placeholder="+54 9 11 1234 5678" className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
               </Field>
 
-              <Field label={t('agregar', 'email_label', 'Email')}>
-                <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder={t('agregar', 'email_placeholder', 'hola@ejemplo.com')} className={iCls} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
-              </Field>
+              {artist.auth_email ? (
+                <div className="flex flex-col gap-2">
+                  <div className="rounded-lg px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <p className="text-xs mb-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('editar', 'auth_email_label', 'Mail de acceso (no cambia)')}</p>
+                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>{artist.auth_email}</p>
+                  </div>
+                  <Field label={t('agregar', 'email_label', 'Email de contacto (opcional)')}>
+                    <input type="email" value={form.email}
+                      onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                      placeholder={t('agregar', 'email_placeholder', 'hola@ejemplo.com')} className={iCls}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                    </Field>
+                </div>
+              ) : (
+                <Field label={t('agregar', 'email_label', 'Email de contacto')}>
+                  <input type="email" value={form.email}
+                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                    placeholder={t('agregar', 'email_placeholder', 'hola@ejemplo.com')} className={iCls}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                </Field>
+              )}
 
               <div>
                 <div className="flex justify-between mb-1.5">
@@ -674,56 +770,14 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
 
               {saveError && <p className="text-xs" style={{ color: '#f87171' }}>{saveError}</p>}
 
-              <button onClick={save} disabled={saving}
+              <button onClick={save} disabled={saving || igAuthStatus === 'taken' || igAuthStatus === 'checking'}
                 className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
                 style={{ background: '#efff42', color: '#000' }}>
                 {saving ? t('editar', 'saving', 'Guardando...') : t('editar', 'save_btn', 'Guardar cambios')}
               </button>
 
-              {/* Cambiar clave */}
-              <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p className="text-xs uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('editar', 'key_section_title', 'Clave de edición')}</p>
-                {newKey === null ? (
-                  <button onClick={() => setNewKey(genKey())}
-                    className="text-xs px-4 py-2 rounded-lg transition-all"
-                    style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}>
-                    {t('editar', 'change_key', 'Cambiar clave')}
-                  </button>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    <div className="rounded-lg p-3" style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.2)' }}>
-                      <p className="text-xs font-bold mb-1" style={{ color: '#efff42' }}>{t('editar', 'new_key_warning', '⚠ Guardá esta clave antes de confirmar')}</p>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>{t('editar', 'new_key_desc', 'Sin ella no vas a poder editar ni eliminar tu perfil.')}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="flex-1 py-2.5 px-4 rounded-lg text-center font-bold font-mono tracking-widest"
-                        style={{ background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', color: '#efff42', fontSize: 20, letterSpacing: '0.15em' }}>
-                        {newKey}
-                      </div>
-                      <button
-                        onClick={() => { navigator.clipboard.writeText(newKey); setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000) }}
-                        className="px-4 rounded-lg text-xs font-bold shrink-0 transition-all"
-                        style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${keyCopied ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: keyCopied ? '#4ade80' : '#efff42' }}>
-                        {keyCopied ? '✓' : t('agregar', 'copy', 'copiar')}
-                      </button>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => { setNewKey(null); setKeyCopied(false) }}
-                        className="flex-1 py-2 rounded-lg text-xs"
-                        style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
-                        {t('agregar', 'date_cancel', 'Cancelar')}
-                      </button>
-                      <button onClick={saveNewKey} disabled={savingNewKey}
-                        className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
-                        style={{ background: '#efff42', color: '#000' }}>
-                        {savingNewKey ? '...' : t('editar', 'confirm_change', 'Confirmar cambio')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Cambiar clave — solo para usuarios sin auth */}
+              {claveSection}
 
               {/* Eliminar perfil */}
               {!deleteConfirm ? (

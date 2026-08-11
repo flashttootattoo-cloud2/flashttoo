@@ -9,14 +9,25 @@ function sb() {
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const body = await req.json()
-  const { editKey, photo_url, _verify, ...fields } = body
+  const { editKey, access_token, photo_url, _verify, ...fields } = body
 
   // Verificar clave y traer URLs actuales para limpiar storage si cambian
   const { data: artist } = await sb().from('artists')
-    .select('edit_key, photo_url, gallery_photo_1, gallery_photo_2, gallery_photo_3, instagram')
+    .select('edit_key, user_id, photo_url, gallery_photo_1, gallery_photo_2, gallery_photo_3, instagram')
     .eq('id', id).single()
-  if (!artist || artist.edit_key !== editKey) {
-    return NextResponse.json({ error: 'Clave incorrecta' }, { status: 401 })
+
+  if (!artist) return NextResponse.json({ error: 'Artista no encontrado' }, { status: 404 })
+
+  if (access_token) {
+    const sbAnon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const { data: { user }, error } = await sbAnon.auth.getUser(access_token)
+    if (error || !user || user.id !== artist.user_id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+  } else {
+    if (artist.edit_key !== editKey) {
+      return NextResponse.json({ error: 'Clave incorrecta' }, { status: 401 })
+    }
   }
 
   // Solo verificar sin modificar
@@ -49,7 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ artist: updated, verification_word: word })
   }
 
-  const allowed = ['name', 'city', 'country', 'styles', 'bio', 'instagram', 'whatsapp', 'email', 'interview', 'visits', 'gallery_photo_1', 'gallery_photo_2', 'gallery_photo_3']
+  const allowed = ['name', 'city', 'country', 'styles', 'bio', 'instagram', 'whatsapp', 'email', 'show_email', 'interview', 'visits', 'gallery_photo_1', 'gallery_photo_2', 'gallery_photo_3']
   const updates: Record<string, unknown> = {}
   for (const k of allowed) { if (k in fields) updates[k] = fields[k] }
 
@@ -75,10 +86,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const body = await req.json()
-  const { editKey } = body
+  const { editKey, access_token } = body
 
-  const { data: artist } = await sb().from('artists').select('edit_key, photo_url').eq('id', id).single()
-  if (!artist || artist.edit_key !== editKey) {
+  const { data: artist } = await sb().from('artists').select('edit_key, user_id, photo_url').eq('id', id).single()
+  if (!artist) return NextResponse.json({ error: 'Artista no encontrado' }, { status: 404 })
+
+  if (access_token) {
+    const sbAnon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const { data: { user }, error } = await sbAnon.auth.getUser(access_token)
+    if (error || !user || user.id !== artist.user_id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+  } else if (artist.edit_key !== editKey) {
     return NextResponse.json({ error: 'Clave incorrecta' }, { status: 401 })
   }
 

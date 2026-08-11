@@ -4,6 +4,7 @@ import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMe
 import Image from 'next/image'
 import { supabase, type Artist, type Studio } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
+import ArtistAuthModal from '@/components/ArtistAuthModal'
 import SponsorsBannerV2 from '@/components/SponsorsBannerV2'
 import ConventionModal from '@/components/ConventionModal'
 import StudioPanel from '@/components/StudioPanel'
@@ -112,6 +113,22 @@ export default function Home() {
   const [editKeyError, setEditKeyError] = useState('')
   const [editVerifying, setEditVerifying] = useState(false)
   const [editKeyVerified, setEditKeyVerified] = useState('')
+  const [authAccessToken, setAuthAccessToken] = useState('')
+  const [migrateMode, setMigrateMode] = useState(false)
+  const migrateModeRef = useRef(false)
+  migrateModeRef.current = migrateMode
+  const editKeyVerifiedRef = useRef('')
+  editKeyVerifiedRef.current = editKeyVerified
+  const selectedRef = useRef<Artist | null>(null)
+  selectedRef.current = selected
+  const [migrateSent, setMigrateSent] = useState(false)
+  const migrateSentRef = useRef(false)
+  migrateSentRef.current = migrateSent
+  const [migrateEmail, setMigrateEmail] = useState('')
+  const [migratePassword, setMigratePassword] = useState('')
+  const [migrateTyc, setMigrateTyc] = useState(false)
+  const [migrateError, setMigrateError] = useState('')
+  const [migrateLoading, setMigrateLoading] = useState(false)
   const [liked, setLiked]             = useState(false)
   const [localLikes, setLocalLikes]   = useState(0)
   const [copied, setCopied]           = useState(false)
@@ -137,6 +154,7 @@ export default function Home() {
   const [showInsumos, setShowInsumos] = useState(true)
   const [showVerifiedBanner, setShowVerifiedBanner] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const [showContactInfo, setShowContactInfo] = useState(true)
   const [registrationOpen, setRegistrationOpen] = useState(true)
   const [showRegistrationClosed, setShowRegistrationClosed] = useState(false)
@@ -557,8 +575,7 @@ export default function Home() {
     })
     if (res.ok) {
       setEditKeyVerified(editKey.trim().toUpperCase())
-      setEditOpen(false)
-      setEditing(true)
+      setMigrateMode(true)
     } else {
       setEditKeyError(t('artista', 'wrong_key', 'Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo'))
     }
@@ -577,12 +594,28 @@ export default function Home() {
     }
   }, [secretCard])
 
+  const resetMigrate = () => { setMigrateMode(false); setMigrateSent(false); setMigrateEmail(''); setMigratePassword(''); setMigrateTyc(false); setMigrateError('') }
+
+  const deleteForMigration = async () => {
+    const artist = selectedRef.current
+    const key = editKeyVerifiedRef.current
+    if (!artist || !key || !migrateModeRef.current || migrateSentRef.current) return
+    await fetch(`/api/artists/${artist.id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ editKey: key }),
+    })
+    setArtists(prev => prev.filter(a => a.id !== artist.id))
+  }
+
   const closeModal = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
+      deleteForMigration()
       setSelected(null)
       setEditOpen(false)
       setEditKey('')
       setEditKeyError('')
+      setMigrateMode(false); setMigrateSent(false); setMigrateEmail(''); setMigratePassword(''); setMigrateTyc(false); setMigrateError('')
       const studioSlug = selectedStudioSlugRef.current
       if (studioSlug) window.history.pushState({}, '', `/?estudio=${studioSlug}`)
       else window.history.pushState({}, '', '/')
@@ -590,10 +623,12 @@ export default function Home() {
   }, [])
 
   const closeModalFull = useCallback(() => {
+    deleteForMigration()
     setSelected(null)
     setEditOpen(false)
     setEditKey('')
     setEditKeyError('')
+    setMigrateMode(false); setMigrateSent(false); setMigrateEmail(''); setMigratePassword(''); setMigrateTyc(false); setMigrateError('')
     const studioSlug = selectedStudioSlugRef.current
     if (studioSlug) window.history.pushState({}, '', `/?estudio=${studioSlug}`)
     else window.history.pushState({}, '', '/')
@@ -707,7 +742,7 @@ export default function Home() {
           <img src="/Logoprincipal.svg" alt="Flashttoo" className="h-7 shrink-0" onClick={handleLogoTap} style={{ cursor: 'default' }} />
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => { if (registrationOpen) { window.location.href = '/agregar' } else { setShowRegistrationClosed(true) } }}
+              onClick={() => { if (registrationOpen) { setShowAuthModal(true) } else { setShowRegistrationClosed(true) } }}
               className="text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
               style={{ background: '#efff42', color: '#000' }}>
               {t('inicio', 'add_artist', '+ tatuador/a')}
@@ -1247,7 +1282,7 @@ export default function Home() {
                     <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
                   </a>
                 )}
-                {showContactInfo && selected.email && (
+                {selected.email && (
                   <button
                     onClick={() => { navigator.clipboard.writeText(selected.email!) }}
                     className="flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full"
@@ -1285,55 +1320,146 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Tres puntos */}
-                <div className="mt-3 flex justify-center">
-                  <button
-                    onClick={() => { setEditOpen(v => !v); setEditKey(''); setEditKeyError('') }}
-                    className="flex items-center justify-center px-3 py-1 rounded-full transition-all"
-                    style={{ color: editOpen ? 'rgba(239,255,66,0.6)' : 'rgba(255,255,255,0.18)', fontSize: 20, letterSpacing: '-2px', lineHeight: 1 }}>
-                    ···
-                  </button>
-                </div>
+                {/* Tres puntos — solo para artistas sin auth */}
+                {!selected.auth_email && (
+                  <div className="mt-3 flex justify-center">
+                    <button
+                      onClick={() => { if (migrateMode && !migrateSent) { deleteForMigration(); setSelected(null); resetMigrate(); setEditOpen(false) } else if (migrateMode && migrateSent) { setEditOpen(v => !v) } else { setEditOpen(v => !v); setEditKey(''); setEditKeyError('') } }}
+                      className="flex items-center justify-center px-3 py-1 rounded-full transition-all"
+                      style={{ color: editOpen ? 'rgba(239,255,66,0.6)' : 'rgba(255,255,255,0.18)', fontSize: 20, letterSpacing: '-2px', lineHeight: 1 }}>
+                      ···
+                    </button>
+                  </div>
+                )}
               </div>
 
             </div>
           </div>
 
           {/* Panel amarillo — extensión del modal */}
-          {editOpen && (
+          {editOpen && !selected.auth_email && (
             <div style={{ background: '#efff42', borderRadius: '0 0 20px 20px', padding: '20px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
-              <p style={{ color: '#000', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
-                {t('artista', 'edit_profile', 'Editar perfil')}
-              </p>
-              <input
-                autoFocus
-                value={editKey}
-                onChange={e => { setEditKey(e.target.value.toUpperCase()); setEditKeyError('') }}
-                onKeyDown={e => { if (e.key === 'Enter') verifyEditKey() }}
-                placeholder={t('artista', 'edit_key_placeholder', 'CLAVE DE EDICIÓN')}
-                className="w-full py-2.5 px-3 outline-none rounded-xl"
-                style={{
-                  background: 'rgba(0,0,0,0.1)',
-                  border: `1px solid ${editKeyError ? 'rgba(160,0,0,0.4)' : 'rgba(0,0,0,0.15)'}`,
-                  color: '#000',
-                  letterSpacing: '0.12em',
-                  textAlign: 'center',
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              />
-              {editKeyError && (
-                <p className="text-xs mt-1.5 text-center" style={{ color: 'rgba(160,0,0,0.8)' }}>{editKeyError}</p>
+
+              {/* Paso 1: ingresar clave */}
+              {!migrateMode && (
+                <>
+                  <p style={{ color: '#000', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+                    {t('artista', 'edit_profile', 'Editar perfil')}
+                  </p>
+                  <input
+                    autoFocus
+                    value={editKey}
+                    onChange={e => { setEditKey(e.target.value.toUpperCase()); setEditKeyError('') }}
+                    onKeyDown={e => { if (e.key === 'Enter') verifyEditKey() }}
+                    placeholder={t('artista', 'edit_key_placeholder', 'CLAVE DE EDICIÓN')}
+                    className="w-full py-2.5 px-3 outline-none rounded-xl"
+                    style={{
+                      background: 'rgba(0,0,0,0.1)',
+                      border: `1px solid ${editKeyError ? 'rgba(160,0,0,0.4)' : 'rgba(0,0,0,0.15)'}`,
+                      color: '#000',
+                      letterSpacing: '0.12em',
+                      textAlign: 'center',
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  />
+                  {editKeyError && (
+                    <p className="text-xs mt-1.5 text-center" style={{ color: 'rgba(160,0,0,0.8)' }}>{editKeyError}</p>
+                  )}
+                  <button
+                    onClick={verifyEditKey}
+                    disabled={!editKey.trim() || editVerifying}
+                    className="w-full mt-3 py-2.5 rounded-xl text-xs font-bold disabled:opacity-30 transition-all"
+                    style={{ background: '#000', color: '#efff42' }}>
+                    {editVerifying ? t('artista', 'verifying', 'Verificando...') : t('artista', 'enter_btn', 'Entrar →')}
+                  </button>
+                </>
               )}
+
+              {/* Paso 2: form de migración (clave correcta) */}
+              {migrateMode && !migrateSent && (
+                <>
+                  <p style={{ color: '#000', fontWeight: 800, fontSize: 12, marginBottom: 4 }}>{t('artista', 'migrate_title', 'Tu perfil está desactivado')}</p>
+                  <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
+                    {t('artista', 'migrate_desc', 'Registrá un mail y contraseña para volver a aparecer. Si cerrás esta ventana perderás el perfil, pero podés volver a crear otro desde el botón ingresar.')}
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input
+                      type="email"
+                      placeholder={t('ingresar', 'email_placeholder', 'Tu email')}
+                      value={migrateEmail}
+                      onChange={e => { setMigrateEmail(e.target.value); setMigrateError('') }}
+                      className="w-full py-2.5 px-3 outline-none rounded-xl"
+                      style={{ background: 'rgba(0,0,0,0.1)', border: '1px solid rgba(0,0,0,0.15)', color: '#000', fontSize: 13 }}
+                    />
+                    <input
+                      type="password"
+                      placeholder={t('ingresar', 'password_placeholder', 'Contraseña (mín. 8 caracteres)')}
+                      value={migratePassword}
+                      onChange={e => { setMigratePassword(e.target.value); setMigrateError('') }}
+                      className="w-full py-2.5 px-3 outline-none rounded-xl"
+                      style={{ background: 'rgba(0,0,0,0.1)', border: '1px solid rgba(0,0,0,0.15)', color: '#000', fontSize: 13 }}
+                    />
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={migrateTyc} onChange={e => setMigrateTyc(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, color: 'rgba(0,0,0,0.55)', lineHeight: 1.5 }}>
+                        {t('ingresar', 'tyc_prefix', 'Al registrarme acepto los')} <a href="/terminos" target="_blank" style={{ color: '#000' }}>{t('ingresar', 'tyc_terms', 'Términos y condiciones')}</a> {t('ingresar', 'tyc_and', 'y la')} <a href="/privacidad" target="_blank" style={{ color: '#000' }}>{t('ingresar', 'tyc_privacy', 'Política de privacidad')}</a>.
+                      </span>
+                    </label>
+                    {migrateError && <p style={{ fontSize: 11, color: 'rgba(160,0,0,0.8)' }}>{migrateError}</p>}
+                    <button
+                      disabled={migrateLoading}
+                      onClick={async () => {
+                        if (!migrateTyc) { setMigrateError(t('ingresar', 'error_tyc', 'Tenés que aceptar los términos para continuar')); return }
+                        if (!migrateEmail) { setMigrateError(t('ingresar', 'error_email_required', 'Ingresá tu email')); return }
+                        if (migratePassword.length < 8) { setMigrateError(t('ingresar', 'error_password_short', 'La contraseña debe tener al menos 8 caracteres')); return }
+                        setMigrateLoading(true); setMigrateError('')
+                        const r = await fetch('/api/auth/migrate', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: migrateEmail, password: migratePassword, artist_id: selected.id, edit_key: editKeyVerified }),
+                        })
+                        const d = await r.json()
+                        setMigrateLoading(false)
+                        if (!r.ok) { setMigrateError(d.error || 'Error al procesar'); return }
+                        setMigrateSent(true)
+                      }}
+                      className="w-full py-2.5 rounded-xl text-xs font-bold disabled:opacity-40 transition-all"
+                      style={{ background: '#000', color: '#efff42' }}>
+                      {migrateLoading ? t('ingresar', 'sending', 'Enviando...') : t('artista', 'migrate_continue_btn', 'Continuar →')}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Paso 3: mail enviado */}
+              {migrateSent && (
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ color: '#000', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>{t('artista', 'migrate_sent_title', 'Revisá tu mail')}</p>
+                  <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 12, lineHeight: 1.6 }}>
+                    {t('artista', 'migrate_sent_desc', 'Te enviamos un link a')} <strong>{migrateEmail}</strong>.<br />
+                    {t('artista', 'migrate_sent_desc2', 'Hacé click en el link para activar tu nuevo acceso.')}
+                  </p>
+                </div>
+              )}
+
+            </div>
+          )}
+          {/* Aviso perfil desactivado — cuando cerró el panel sin migrar */}
+          {migrateMode && !editOpen && !migrateSent && (
+            <div style={{ background: '#efff42', borderRadius: 16, padding: '16px 20px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', marginTop: 4 }}>
+              <p style={{ color: '#000', fontWeight: 800, fontSize: 13, marginBottom: 4 }}>{t('artista', 'migrate_title', 'Tu perfil está desactivado')}</p>
+              <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
+                {t('artista', 'migrate_banner_desc', 'Para volver a aparecer en el buscador tenés que migrar al nuevo sistema de acceso.')}
+              </p>
               <button
-                onClick={verifyEditKey}
-                disabled={!editKey.trim() || editVerifying}
-                className="w-full mt-3 py-2.5 rounded-xl text-xs font-bold disabled:opacity-30 transition-all"
-                style={{ background: '#000', color: '#efff42' }}>
-                {editVerifying ? t('artista', 'verifying', 'Verificando...') : t('artista', 'enter_btn', 'Entrar →')}
+                onClick={() => setEditOpen(true)}
+                style={{ background: '#000', color: '#efff42', fontWeight: 700, fontSize: 12, padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer', width: '100%' }}>
+                {t('artista', 'migrate_complete_btn', 'Completar migración →')}
               </button>
             </div>
           )}
+
           {/* Sección entrevista — tarjeta amarilla separada debajo de todo */}
           {(() => {
             const iv = (selected.interview ?? {}) as Record<string, string>
@@ -1362,6 +1488,31 @@ export default function Home() {
           </div>
           </div>
         </div>
+      )}
+
+      {/* ── AUTH MODAL ───────────────────────────────────────── */}
+      {showAuthModal && (
+        <ArtistAuthModal
+          onClose={() => setShowAuthModal(false)}
+          onLoggedIn={async (artist) => {
+            setShowAuthModal(false)
+            let a = artists.find(x => x.id === artist.id)
+            if (!a) {
+              const { data } = await supabase.from('artists').select('*').eq('id', artist.id).single()
+              if (data) { a = data; setArtists(prev => [...prev, data]) }
+            }
+            if (a) {
+              setSelected(a)
+              if (artist.auth_email && artist.access_token) {
+                setAuthAccessToken(artist.access_token)
+                setEditing(true)
+              } else if (artist.edit_key) {
+                setEditKeyVerified(artist.edit_key)
+                setEditing(true)
+              }
+            }
+          }}
+        />
       )}
 
       {/* ── REGISTRO CERRADO ──────────────────────────────────── */}
@@ -1761,16 +1912,19 @@ export default function Home() {
         <EditPanel
           artist={selected}
           prefilledKey={editKeyVerified}
-          onClose={() => { setEditing(false); setEditKeyVerified('') }}
+          accessToken={authAccessToken}
+          onClose={() => { setEditing(false); setEditKeyVerified(''); setAuthAccessToken('') }}
           onSaved={(updated) => {
             setSelected(updated)
             setArtists(prev => prev.map(a => a.id === updated.id ? updated : a))
             setEditing(false)
             setEditKeyVerified('')
+            setAuthAccessToken('')
           }}
           onDeleted={() => {
             setEditing(false)
             setEditKeyVerified('')
+            setAuthAccessToken('')
             setSelected(null)
             setArtists(prev => prev.filter(a => a.id !== selected.id))
           }}
