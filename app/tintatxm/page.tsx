@@ -3642,101 +3642,24 @@ export default function AdminPage() {
           // ── ESTUDIOS ─────────────────────────────────────────────────────────
           <div className="flex flex-col gap-8">
 
-            {/* Formulario nuevo estudio */}
-            <form onSubmit={async e => {
-              e.preventDefault(); setSavingStudio(true); setStudioError(''); setStudioCreated(null)
-              const fd = new FormData()
-              Object.entries(studioForm).forEach(([k, v]) => fd.append(k, v))
-              if (studioLogo) fd.append('logo', studioLogo)
-              const r = await fetch('/api/admin/studios', { method: 'POST', headers: H(pass), body: fd })
-              const d = await r.json()
-              if (!r.ok) { setStudioError(d.error || 'Error'); setSavingStudio(false); return }
-              setAdminStudios(prev => [d.studio, ...prev])
-              setStudioCreated({ name: d.studio.name, slug: d.studio.slug, edit_key: d.edit_key })
-              setStudioForm({ name: '', slug: '', city: '', country: '', description: '', instagram: '', whatsapp: '', website: '', expires_at: '' })
-              setStudioLogo(null); setStudioLogoPreview(null); setStudioIgStatus('idle')
-              setSavingStudio(false)
-            }}
-              className="rounded-xl p-5 flex flex-col gap-4"
+            {/* Link de registro para estudios */}
+            <div className="rounded-xl p-5 flex flex-col gap-3"
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>NUEVO ESTUDIO</p>
+              <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>REGISTRO DE ESTUDIOS</p>
               <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
-                Ingresá el Instagram del estudio. El estudio completa el resto con su clave en <span style={{ color: 'rgba(255,255,255,0.5)' }}>flashttoo.com/estudios/activar</span>
+                Los estudios se registran solos con email y contraseña. Compartí este link.
               </p>
-
-              <div className="flex flex-col gap-3">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Instagram *</p>
-                    {studioIgStatus === 'checking' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>verificando...</span>}
-                    {studioIgStatus === 'ok'       && <span className="text-xs font-bold" style={{ color: '#4ade80' }}>✓ disponible</span>}
-                    {studioIgStatus === 'taken'    && <span className="text-xs font-bold" style={{ color: '#f87171' }}>✗ ya registrado</span>}
-                  </div>
-                  <input
-                    value={studioForm.instagram}
-                    onChange={e => { setStudioForm(v => ({ ...v, instagram: e.target.value })); setStudioIgStatus('idle') }}
-                    placeholder="@estudio"
-                    className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${studioIgStatus === 'taken' ? 'rgba(248,113,113,0.5)' : studioIgStatus === 'ok' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}` }} />
-                  {studioIgStatus === 'taken' && (
-                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(248,113,113,0.7)', marginTop: 6 }}>
-                      Este Instagram ya tiene un perfil en Flashttoo.
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vencimiento</p>
-                  <input type="date" value={studioForm.expires_at} onChange={e => setStudioForm(v => ({ ...v, expires_at: e.target.value }))}
-                    className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
-                </div>
-              </div>
-
-              {studioError && <p className="text-xs text-red-400">{studioError}</p>}
-
-              {studioCreated && (
-                <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(239,255,66,0.07)', border: '1px solid rgba(239,255,66,0.2)' }}>
-                  <p className="text-xs font-bold" style={{ color: '#efff42' }}>Estudio creado: {studioCreated.name}</p>
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>URL: /estudio/{studioCreated.slug}</p>
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm font-bold text-white" style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '0.15em' }}>{studioCreated.edit_key}</p>
-                    <button type="button"
-                      onClick={() => { navigator.clipboard.writeText(studioCreated.edit_key).catch(() => {}); setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000) }}
-                      className="text-xs px-3 py-1 rounded-lg"
-                      style={{ background: 'rgba(239,255,66,0.15)', color: '#efff42', border: '1px solid rgba(239,255,66,0.3)' }}>
-                      {keyCopied ? 'Copiado ✓' : 'Copiar clave'}
-                    </button>
-                  </div>
-                  <div>
-                    <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Copiar link de activación por idioma:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {langs.filter(l => l.active).map(l => {
-                        const copied = copiedLinkLang === l.code
-                        return (
-                          <button key={l.code} type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(`https://flashttoo.com/estudios/activar?lang=${l.code}`).catch(() => {})
-                              setCopiedLinkLang(l.code)
-                              setTimeout(() => setCopiedLinkLang(null), 2000)
-                            }}
-                            className="text-xs px-3 py-1 rounded-lg flex items-center gap-1.5"
-                            style={{ background: copied ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)', color: copied ? '#4ade80' : 'rgba(255,255,255,0.6)', border: `1px solid ${copied ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.1)'}`, transition: 'all 0.2s' }}>
-                            <span>{l.flag}</span>
-                            <span>{copied ? '✓' : l.code.toUpperCase()}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Pasale la clave al dueño del estudio. Visible solo ahora.</p>
-                </div>
-              )}
-
-              <button type="submit" disabled={savingStudio || !studioForm.instagram.trim() || studioIgStatus === 'taken'} className="self-start font-bold text-sm py-2 px-6 rounded-full disabled:opacity-40"
-                style={{ background: '#efff42', color: '#000' }}>
-                {savingStudio ? 'Guardando...' : 'Crear estudio'}
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText('https://flashttoo.com/registrar-estudio').catch(() => {})
+                  setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000)
+                }}
+                className="self-start font-bold text-sm py-2 px-5 rounded-full"
+                style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : '#efff42', color: keyCopied ? '#4ade80' : '#000', border: keyCopied ? '1px solid rgba(74,222,128,0.4)' : 'none', transition: 'all 0.2s' }}>
+                {keyCopied ? 'Copiado ✓' : 'Copiar link de registro'}
               </button>
-            </form>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>flashttoo.com/registrar-estudio</p>
+            </div>
 
             {/* Lista de estudios */}
             <input
