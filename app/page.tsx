@@ -745,7 +745,7 @@ export default function Home() {
               onClick={() => { if (registrationOpen) { setShowAuthModal(true) } else { setShowRegistrationClosed(true) } }}
               className="text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
               style={{ background: '#efff42', color: '#000' }}>
-              {t('inicio', 'add_artist', '+ tatuador/a')}
+              {t('inicio', 'add_artist', 'Ingresar')}
             </button>
             {/* Menú tres puntos */}
             <div ref={langRef} className="relative">
