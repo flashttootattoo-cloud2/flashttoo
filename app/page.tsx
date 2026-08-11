@@ -647,7 +647,8 @@ export default function Home() {
     else window.history.pushState({}, '', '/')
   }, [])
 
-  const openStudio = useCallback((slug: string) => {
+  const openStudio = useCallback((slug: string, keepAuth = false) => {
+    if (!keepAuth) setStudioAuth(null)
     setSelectedStudioSlug(slug)
     history.pushState({ estudio: slug }, '', `/?estudio=${slug}`)
     const k = `vs_${slug}`
@@ -1531,7 +1532,7 @@ export default function Home() {
           onStudioLoggedIn={(studio, access_token) => {
             setShowAuthModal(false)
             setStudioAuth({ slug: studio.slug, auth_email: studio.auth_email, access_token })
-            setSelectedStudioSlug(studio.slug)
+            openStudio(studio.slug, true)
           }}
           onLoggedIn={async (artist) => {
             setShowAuthModal(false)
@@ -1975,8 +1976,8 @@ export default function Home() {
           slug={selectedStudioSlug}
           onClose={() => { closeStudio(); setStudioAuth(null) }}
           onOpenArtist={(artist) => openModal(artist)}
-          accessToken={studioAuth?.slug === selectedStudioSlug ? studioAuth.access_token : undefined}
-          authEmail={studioAuth?.slug === selectedStudioSlug ? (studioAuth.auth_email ?? undefined) : undefined}
+          accessToken={studioAuth?.access_token}
+          authEmail={studioAuth?.auth_email ?? undefined}
         />
       )}
 
