@@ -32,12 +32,16 @@ function StatItem({ label, value }: { label: string; value: number }) {
   )
 }
 
-export default function StudioPanel({ slug, onClose, onOpenArtist }: {
+export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, authEmail }: {
   slug: string
   onClose: () => void
   onOpenArtist: (artist: Artist) => void
+  accessToken?: string
+  authEmail?: string
 }) {
   const { t } = useTranslation()
+  const authMode = Boolean(accessToken)
+
   const [studio, setStudio] = useState<Studio | null>(null)
   const [artists, setArtists] = useState<Artist[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,12 +79,26 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
 
   useEffect(() => {
     setLoading(true); setNotFound(false); setStudio(null); setArtists([])
-    fetch(`/api/studios/${slug}`)
+    fetch(`/api/studios/${slug}`, {
+      headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
+    })
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(d => { setStudio(d.studio); setArtists(d.artists || []) })
       .catch(s => { if (s === 404) setNotFound(true) })
       .finally(() => setLoading(false))
-  }, [slug])
+  }, [slug, accessToken])
+
+  // Auto-open edit panel and pre-fill form in auth mode
+  useEffect(() => {
+    if (!studio || !authMode) return
+    setEditOpen(true)
+    setEditForm({ name: studio.name || '', description: studio.description || '', instagram: studio.instagram || '', whatsapp: studio.whatsapp || '', website: studio.website || '' })
+    setHiring(studio.hiring || false)
+    setHiringRole(studio.hiring_role === 'residente' ? 'residente' : 'guest artist')
+    fetch(`/api/studios/${slug}/flash-days`)
+      .then(r => r.json()).then(d => setFlashDays(d.flashDays ?? [])).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studio, authMode])
 
   useEffect(() => {
     if (!studio) return
@@ -150,6 +168,10 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
     img.src = URL.createObjectURL(file)
   }
 
+  const authKey = () => authMode && accessToken
+    ? { access_token: accessToken }
+    : { edit_key: keyVerified }
+
   const addFlashDay = async () => {
     if (!fdFile || !fdDate) return
     setAddingFd(true); setFdError('')
@@ -163,7 +185,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
       const r = await fetch(`/api/studios/${slug}/flash-days`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ edit_key: keyVerified, flyer_url: url, date: fdDate }),
+        body: JSON.stringify({ ...authKey(), flyer_url: url, date: fdDate }),
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Error')
@@ -178,7 +200,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
     const r = await fetch(`/api/studios/${slug}/flash-days`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ edit_key: keyVerified, id }),
+      body: JSON.stringify({ ...authKey(), id }),
     })
     if (r.ok) setFlashDays(prev => prev.filter(f => f.id !== id))
   }
@@ -204,7 +226,11 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
   const saveEdit = async () => {
     setSaving(true); setSaveError('')
     const fd = new FormData()
-    fd.append('edit_key', keyVerified)
+    if (authMode && accessToken) {
+      fd.append('access_token', accessToken)
+    } else {
+      fd.append('edit_key', keyVerified)
+    }
     Object.entries(editForm).forEach(([k, v]) => fd.append(k, v))
     if (logoFile) fd.append('logo', logoFile)
     fd.append('hiring', String(hiring))
@@ -213,7 +239,8 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
     const d = await r.json()
     if (!r.ok) { setSaveError(d.error || 'Error al guardar'); setSaving(false); return }
     setStudio(d.studio); setLogoFile(null); setLogoPreview(null)
-    setSaving(false); setEditOpen(false); setKeyVerified(''); setKeyInput('')
+    setSaving(false)
+    if (!authMode) { setEditOpen(false); setKeyVerified(''); setKeyInput('') }
   }
 
   const addArtist = async () => {
@@ -222,7 +249,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
     const r = await fetch(`/api/studios/${slug}/artists`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ edit_key: keyVerified, instagram: igInput.trim() }),
+      body: JSON.stringify({ ...authKey(), instagram: igInput.trim() }),
     })
     const d = await r.json()
     if (!r.ok) {
@@ -238,7 +265,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
     const r = await fetch(`/api/studios/${slug}/artists`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ edit_key: keyVerified, artist_id }),
+      body: JSON.stringify({ ...authKey(), artist_id }),
     })
     if (r.ok) setArtists(prev => prev.filter(a => a.id !== artist_id))
   }
@@ -346,13 +373,15 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
                     {copied ? '✓' : '↑'}
                   </button>
                 </div>
-                <div className="mt-3 flex justify-center">
-                  <button onClick={() => { setEditOpen(v => !v); setKeyInput(''); setKeyError('') }}
-                    className="flex items-center justify-center px-3 py-1 rounded-full transition-all"
-                    style={{ color: editOpen ? 'rgba(239,255,66,0.6)' : 'rgba(255,255,255,0.18)', fontSize: 20, letterSpacing: '-2px', lineHeight: 1 }}>
-                    ···
-                  </button>
-                </div>
+                {!authMode && (
+                  <div className="mt-3 flex justify-center">
+                    <button onClick={() => { setEditOpen(v => !v); setKeyInput(''); setKeyError('') }}
+                      className="flex items-center justify-center px-3 py-1 rounded-full transition-all"
+                      style={{ color: editOpen ? 'rgba(239,255,66,0.6)' : 'rgba(255,255,255,0.18)', fontSize: 20, letterSpacing: '-2px', lineHeight: 1 }}>
+                      ···
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -375,6 +404,13 @@ export default function StudioPanel({ slug, onClose, onOpenArtist }: {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <p style={{ color: '#000', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{t('estudio', 'edit_title', 'Editar estudio')}</p>
+
+                  {authEmail && (
+                    <div style={{ background: 'rgba(0,0,0,0.12)', borderRadius: 10, padding: '8px 12px', border: '1px solid rgba(0,0,0,0.15)' }}>
+                      <p style={{ fontSize: 9, fontWeight: 800, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>Cuenta registrada con</p>
+                      <p style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', wordBreak: 'break-all' }}>{authEmail}</p>
+                    </div>
+                  )}
 
                   {/* Foto */}
                   <div>

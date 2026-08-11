@@ -9,11 +9,27 @@ function sbAnon() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+async function verifyToken(token: string, userId: string) {
+  const { data: { user } } = await sbAnon().auth.getUser(token)
+  return user?.id === userId
+}
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const sb = sbAnon()
-  const { data: studio, error } = await sb.from('studios').select('*').eq('slug', slug).eq('visible', true).single()
+  const sb = sbAdmin()
+  const { data: studio, error } = await sb.from('studios').select('*').eq('slug', slug).single()
   if (error || !studio) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+
+  // Non-visible studios only accessible to owner
+  if (!studio.visible) {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ') || !studio.user_id) {
+      return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    }
+    const token = authHeader.slice(7)
+    const ok = await verifyToken(token, studio.user_id)
+    if (!ok) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+  }
 
   const { data: links } = await sb
     .from('studio_artists')
@@ -21,7 +37,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
     .eq('studio_id', studio.id)
 
   const artists = (links || []).map((l: { artist_id: string; artists: unknown }) => l.artists).filter(Boolean)
-
   return NextResponse.json({ studio, artists })
 }
 
@@ -29,7 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
   const { slug } = await params
   const sb = sbAdmin()
 
-  const { data: studio } = await sb.from('studios').select('id, edit_key, logo_url').eq('slug', slug).single()
+  const { data: studio } = await sb.from('studios').select('id, edit_key, logo_url, user_id').eq('slug', slug).single()
   if (!studio) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
 
   const contentType = req.headers.get('content-type') || ''
@@ -37,7 +52,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
   if (contentType.includes('multipart/form-data')) {
     const fd = await req.formData()
     const key = (fd.get('edit_key') as string)?.trim()
-    if (key !== studio.edit_key) return NextResponse.json({ error: 'Clave incorrecta' }, { status: 401 })
+    const token = (fd.get('access_token') as string)?.trim()
+
+    let authorized = false
+    if (token && studio.user_id) authorized = await verifyToken(token, studio.user_id)
+    if (!authorized && key !== studio.edit_key) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const verify = fd.get('_verify') === 'true'
     if (verify) return NextResponse.json({ ok: true })
@@ -69,8 +88,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
   }
 
   const body = await req.json()
-  const { edit_key, _verify, ...fields } = body
-  if (edit_key !== studio.edit_key) return NextResponse.json({ error: 'Clave incorrecta' }, { status: 401 })
+  const { edit_key, access_token, _verify, ...fields } = body
+
+  let authorized = false
+  if (access_token && studio.user_id) authorized = await verifyToken(access_token, studio.user_id)
+  if (!authorized && edit_key !== studio.edit_key) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (_verify) return NextResponse.json({ ok: true })
 
   if (fields.instagram) {

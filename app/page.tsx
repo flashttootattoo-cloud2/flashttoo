@@ -167,6 +167,7 @@ export default function Home() {
   const [showVerifiedBanner, setShowVerifiedBanner] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [studioAuth, setStudioAuth] = useState<{ slug: string; auth_email: string | null; access_token: string } | null>(null)
   const [showContactInfo, setShowContactInfo] = useState(true)
   const [registrationOpen, setRegistrationOpen] = useState(true)
   const [showRegistrationClosed, setShowRegistrationClosed] = useState(false)
@@ -1527,6 +1528,11 @@ export default function Home() {
       {showAuthModal && (
         <ArtistAuthModal
           onClose={() => setShowAuthModal(false)}
+          onStudioLoggedIn={(studio, access_token) => {
+            setShowAuthModal(false)
+            setStudioAuth({ slug: studio.slug, auth_email: studio.auth_email, access_token })
+            setSelectedStudioSlug(studio.slug)
+          }}
           onLoggedIn={async (artist) => {
             setShowAuthModal(false)
             let a = artists.find(x => x.id === artist.id)
@@ -1967,8 +1973,10 @@ export default function Home() {
       {selectedStudioSlug && (
         <StudioPanel
           slug={selectedStudioSlug}
-          onClose={closeStudio}
+          onClose={() => { closeStudio(); setStudioAuth(null) }}
           onOpenArtist={(artist) => openModal(artist)}
+          accessToken={studioAuth?.slug === selectedStudioSlug ? studioAuth.access_token : undefined}
+          authEmail={studioAuth?.slug === selectedStudioSlug ? (studioAuth.auth_email ?? undefined) : undefined}
         />
       )}
 

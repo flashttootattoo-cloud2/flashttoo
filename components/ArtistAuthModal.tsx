@@ -5,12 +5,15 @@ import { useTranslation } from '@/contexts/TranslationContext'
 
 type View = 'menu' | 'login' | 'register' | 'registered' | 'forgot' | 'forgot_sent' | 'terms' | 'privacy'
 
+type StudioSession = { slug: string; name: string; auth_email: string | null }
+
 type Props = {
   onClose: () => void
   onLoggedIn: (artist: { id: string; name: string; photo_url: string; edit_key: string; auth_email?: string | null; access_token?: string }) => void
+  onStudioLoggedIn?: (studio: StudioSession, access_token: string) => void
 }
 
-export default function ArtistAuthModal({ onClose, onLoggedIn }: Props) {
+export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn }: Props) {
   const { t } = useTranslation()
   const [view, setView] = useState<View>('menu')
   const [email, setEmail] = useState('')
@@ -57,6 +60,10 @@ export default function ArtistAuthModal({ onClose, onLoggedIn }: Props) {
     const d = await r.json()
     setLoading(false)
     if (!r.ok) { setError(d.error); return }
+    if (d.type === 'studio') {
+      onStudioLoggedIn?.(d.studio, d.access_token)
+      return
+    }
     onLoggedIn({ ...d.artist, access_token: d.access_token })
   }
 
