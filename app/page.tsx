@@ -1020,8 +1020,8 @@ export default function Home() {
                                   <p style={{ fontSize: 10, color: 'rgba(0,0,0,0.5)' }}>{item.data.city}</p>
                                 </div>
                                 {item.data.hiring && (
-                                  <div style={{ background: '#000', padding: '1px 8px', textAlign: 'center' }}>
-                                    <span style={{ fontSize: 8, fontWeight: 600, color: '#efff42', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{item.data.hiring_role === 'residente' ? t('inicio', 'hiring_resident_badge', 'Se busca Residente') : t('inicio', 'hiring_guest_badge', 'Se busca Guest Artist')}</span>
+                                  <div style={{ background: '#efff42', padding: '1px 8px', textAlign: 'center' }}>
+                                    <span style={{ fontSize: 8, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{item.data.hiring_role === 'residente' ? t('inicio', 'hiring_resident_badge', 'Se busca Residente') : t('inicio', 'hiring_guest_badge', 'Se busca Guest Artist')}</span>
                                   </div>
                                 )}
                               </div>
@@ -1108,8 +1108,8 @@ export default function Home() {
                               )}
                             </div>
                             {s.hiring && (
-                              <div style={{ background: '#000', padding: '2px 12px', textAlign: 'center' }}>
-                                <span style={{ fontSize: 9, fontWeight: 600, color: '#efff42', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.hiring_role === 'residente' ? t('inicio', 'hiring_resident_badge', 'Se busca Residente') : t('inicio', 'hiring_guest_badge', 'Se busca Guest Artist')}</span>
+                              <div style={{ background: '#efff42', padding: '2px 12px', textAlign: 'center' }}>
+                                <span style={{ fontSize: 9, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.hiring_role === 'residente' ? t('inicio', 'hiring_resident_badge', 'Se busca Residente') : t('inicio', 'hiring_guest_badge', 'Se busca Guest Artist')}</span>
                               </div>
                             )}
                           </div>
