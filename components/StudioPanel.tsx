@@ -389,7 +389,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
           {/* PANEL EDICIÓN */}
           {editOpen && (
             <div style={{ background: '#efff42', borderRadius: '0 0 20px 20px', padding: '20px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
-              {!keyVerified ? (
+              {!keyVerified && !authMode ? (
                 <>
                   <p style={{ color: '#000', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>{t('estudio', 'manage_title', 'Gestionar estudio')}</p>
                   <input autoFocus value={keyInput} onChange={e => { setKeyInput(e.target.value); setKeyError('') }} onKeyDown={e => { if (e.key === 'Enter') verifyKey() }}
