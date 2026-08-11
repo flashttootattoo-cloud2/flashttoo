@@ -104,5 +104,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (artist.photo_url) deleteFile(artist.photo_url).catch(() => {})
 
   await sb().from('artists').delete().eq('id', id)
+
+  if (artist.user_id) {
+    await sb().auth.admin.deleteUser(artist.user_id)
+  }
+
   return NextResponse.json({ ok: true })
 }
