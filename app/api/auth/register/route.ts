@@ -15,31 +15,28 @@ export async function POST(req: NextRequest) {
   const { data: existing } = await sb().from('artists').select('id').eq('auth_email', email.toLowerCase()).limit(1)
   if (existing?.length) return NextResponse.json({ error: 'Ya existe un perfil con ese mail' }, { status: 400 })
 
-  // Crear usuario en Supabase Auth
-  let { data, error } = await sb().auth.admin.createUser({
-    email: email.toLowerCase(),
-    password,
-    email_confirm: true,
-  })
+  // Crear usuario en Supabase Auth (con reintentos si el mail quedó huérfano)
+  const authUser = await (async () => {
+    const result = await sb().auth.admin.createUser({ email: email.toLowerCase(), password, email_confirm: true })
+    if (!result.error) return result.data.user
 
-  // Si el mail ya existe en Auth pero no tiene perfil → registro huérfano: limpiar y recrear
-  if (error) {
-    const isEmailTaken = error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered') || error.status === 422
-    if (isEmailTaken) {
-      const { data: { users } } = await sb().auth.admin.listUsers({ page: 1, perPage: 1000 })
-      const orphan = users.find(u => u.email === email.toLowerCase())
-      if (orphan) {
-        await sb().auth.admin.deleteUser(orphan.id)
-        const recreated = await sb().auth.admin.createUser({ email: email.toLowerCase(), password, email_confirm: true })
-        if (recreated.error) return NextResponse.json({ error: recreated.error.message }, { status: 400 })
-        data = recreated.data
-        error = null
-      }
-    }
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  }
+    // Si el mail ya existe en Auth pero no tiene perfil → registro huérfano: limpiar y recrear
+    const isEmailTaken = result.error.message.toLowerCase().includes('already registered') || result.error.message.toLowerCase().includes('already been registered') || result.error.status === 422
+    if (!isEmailTaken) return null
 
-  const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/agregar?user_id=${data.user.id}&email=${encodeURIComponent(email.toLowerCase())}`
+    const { data: { users } } = await sb().auth.admin.listUsers({ page: 1, perPage: 1000 })
+    const orphan = users.find(u => u.email === email.toLowerCase())
+    if (!orphan) return null
+
+    await sb().auth.admin.deleteUser(orphan.id)
+    const recreated = await sb().auth.admin.createUser({ email: email.toLowerCase(), password, email_confirm: true })
+    if (recreated.error) return null
+    return recreated.data.user
+  })()
+
+  if (!authUser) return NextResponse.json({ error: 'No se pudo crear la cuenta' }, { status: 400 })
+
+  const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/agregar?user_id=${authUser.id}&email=${encodeURIComponent(email.toLowerCase())}`
 
   const resend = new Resend(process.env.RESEND_API_KEY)
   const emailResult = await resend.emails.send({
@@ -67,5 +64,5 @@ export async function POST(req: NextRequest) {
   })
   console.log('Resend result:', JSON.stringify(emailResult))
 
-  return NextResponse.json({ user_id: data.user.id })
+  return NextResponse.json({ user_id: authUser.id })
 }
