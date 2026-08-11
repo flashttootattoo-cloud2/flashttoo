@@ -10,8 +10,7 @@ export async function POST(req: NextRequest) {
 
   // Verificar que existe un artista con ese mail
   const { data: artist } = await sb.from('artists').select('id').eq('auth_email', email.toLowerCase()).limit(1)
-  // Siempre respondemos ok para no revelar si el mail existe
-  if (!artist?.length) return NextResponse.json({ ok: true })
+  if (!artist?.length) return NextResponse.json({ error: 'No hay ninguna cuenta registrada con ese mail' }, { status: 404 })
 
   const { data } = await sb.auth.admin.generateLink({
     type: 'recovery',

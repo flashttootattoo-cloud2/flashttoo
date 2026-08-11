@@ -63,12 +63,14 @@ export default function ArtistAuthModal({ onClose, onLoggedIn }: Props) {
   const handleForgot = async () => {
     if (!email) { setError(t('ingresar', 'error_email_required', 'Ingresá tu email')); return }
     setLoading(true); setError('')
-    await fetch('/api/auth/reset-password', {
+    const r = await fetch('/api/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     })
+    const d = await r.json()
     setLoading(false)
+    if (!r.ok) { setError(d.error); return }
     setView('forgot_sent')
   }
 
