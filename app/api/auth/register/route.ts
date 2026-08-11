@@ -16,12 +16,28 @@ export async function POST(req: NextRequest) {
   if (existing?.length) return NextResponse.json({ error: 'Ya existe un perfil con ese mail' }, { status: 400 })
 
   // Crear usuario en Supabase Auth
-  const { data, error } = await sb().auth.admin.createUser({
+  let { data, error } = await sb().auth.admin.createUser({
     email: email.toLowerCase(),
     password,
     email_confirm: true,
   })
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+  // Si el mail ya existe en Auth pero no tiene perfil → registro huérfano: limpiar y recrear
+  if (error) {
+    const isEmailTaken = error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered') || error.status === 422
+    if (isEmailTaken) {
+      const { data: { users } } = await sb().auth.admin.listUsers({ page: 1, perPage: 1000 })
+      const orphan = users.find(u => u.email === email.toLowerCase())
+      if (orphan) {
+        await sb().auth.admin.deleteUser(orphan.id)
+        const recreated = await sb().auth.admin.createUser({ email: email.toLowerCase(), password, email_confirm: true })
+        if (recreated.error) return NextResponse.json({ error: recreated.error.message }, { status: 400 })
+        data = recreated.data
+        error = null
+      }
+    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  }
 
   const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/agregar?user_id=${data.user.id}&email=${encodeURIComponent(email.toLowerCase())}`
 
