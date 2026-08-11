@@ -999,29 +999,29 @@ export default function Home() {
                           <button key={`studio-s${si}-${item.data.id}`}
                             onClick={() => openStudio(item.data.slug)}
                             className="group relative overflow-hidden text-left"
-                            style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', display: 'block', width: '100%', padding: 0, cursor: 'pointer' }}>
+                            style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.3)', display: 'block', width: '100%', padding: 0, cursor: 'pointer' }}>
                             <div style={{ paddingBottom: '133%' }} />
-                            <div className="absolute inset-0" style={{ background: '#111' }}>
+                            <div className="absolute inset-0" style={{ background: '#efff42' }}>
                               {item.data.logo_url && !brokenPhotoIds.has(item.data.id)
                                 // eslint-disable-next-line @next/next/no-img-element
                                 ? <img src={item.data.logo_url} alt={item.data.name} loading="lazy"
                                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                     onError={() => markPhotoBroken(item.data.id)} />
                                 : <div className="absolute inset-0 flex items-center justify-center"
-                                    style={{ color: 'rgba(239,255,66,0.4)', fontSize: 22, fontWeight: 900 }}>{initialsOf(item.data.name)}</div>
+                                    style={{ color: 'rgba(0,0,0,0.2)', fontSize: 22, fontWeight: 900 }}>{initialsOf(item.data.name)}</div>
                               }
-                              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
+                              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(239,255,66,0.95) 0%, transparent 55%)' }} />
                               <div className="absolute top-1.5 right-1.5">
-                                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.65)', padding: '2px 5px', borderRadius: 4, border: '1px solid rgba(239,255,66,0.3)' }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
+                                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#000', background: 'rgba(239,255,66,0.9)', padding: '2px 5px', borderRadius: 4, border: '1px solid rgba(0,0,0,0.15)' }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
                               </div>
                               <div className="absolute bottom-0 left-0 right-0">
                                 <div style={{ padding: '4px 8px 6px' }}>
-                                  <p className="text-white font-bold leading-tight" style={{ fontSize: 11, overflowWrap: 'break-word' }}>{item.data.name}</p>
-                                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{item.data.city}</p>
+                                  <p className="font-bold leading-tight" style={{ fontSize: 11, overflowWrap: 'break-word', color: '#000' }}>{item.data.name}</p>
+                                  <p style={{ fontSize: 10, color: 'rgba(0,0,0,0.5)' }}>{item.data.city}</p>
                                 </div>
                                 {item.data.hiring && (
-                                  <div style={{ background: '#efff42', padding: '1px 8px', textAlign: 'center' }}>
-                                    <span style={{ fontSize: 8, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{item.data.hiring_role === 'residente' ? t('inicio', 'hiring_resident_badge', 'Se busca Residente') : t('inicio', 'hiring_guest_badge', 'Se busca Guest Artist')}</span>
+                                  <div style={{ background: '#000', padding: '1px 8px', textAlign: 'center' }}>
+                                    <span style={{ fontSize: 8, fontWeight: 600, color: '#efff42', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{item.data.hiring_role === 'residente' ? t('inicio', 'hiring_resident_badge', 'Se busca Residente') : t('inicio', 'hiring_guest_badge', 'Se busca Guest Artist')}</span>
                                   </div>
                                 )}
                               </div>
@@ -1085,31 +1085,31 @@ export default function Home() {
                       <button key={`studio-${s.id}`}
                         onClick={() => openStudio(s.slug)}
                         className="group relative overflow-hidden text-left"
-                        style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', display: 'block', width: '100%', padding: 0, cursor: 'pointer' }}>
+                        style={{ borderRadius: 12, border: '1px solid rgba(239,255,66,0.3)', display: 'block', width: '100%', padding: 0, cursor: 'pointer' }}>
                         <div style={{ paddingBottom: '133%' }} />
-                        <div className="absolute inset-0" style={{ background: '#111' }}>
+                        <div className="absolute inset-0" style={{ background: '#efff42' }}>
                           {s.logo_url && !brokenPhotoIds.has(s.id)
                             // eslint-disable-next-line @next/next/no-img-element
                             ? <img src={s.logo_url} alt={s.name} loading="lazy"
                                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                 onError={() => markPhotoBroken(s.id)} />
                             : <div className="absolute inset-0 flex items-center justify-center"
-                                style={{ color: 'rgba(239,255,66,0.45)', fontSize: 36, fontWeight: 900 }}>{initialsOf(s.name)}</div>
+                                style={{ color: 'rgba(0,0,0,0.2)', fontSize: 36, fontWeight: 900 }}>{initialsOf(s.name)}</div>
                           }
-                          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
+                          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(239,255,66,0.95) 0%, transparent 55%)' }} />
                           <div className="absolute top-2 right-2">
-                            <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.65)', padding: '3px 6px', borderRadius: 5, border: '1px solid rgba(239,255,66,0.3)' }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
+                            <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#000', background: 'rgba(239,255,66,0.9)', padding: '3px 6px', borderRadius: 5, border: '1px solid rgba(0,0,0,0.15)' }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
                           </div>
                           <div className="absolute bottom-0 left-0 right-0">
                             <div style={{ padding: '8px 12px 10px' }}>
-                              <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{s.name}</p>
+                              <p className="font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word', color: '#000' }}>{s.name}</p>
                               {s.country && (
-                                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.country}</p>
+                                <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', marginTop: 2 }}>{s.country}</p>
                               )}
                             </div>
                             {s.hiring && (
-                              <div style={{ background: '#efff42', padding: '2px 12px', textAlign: 'center' }}>
-                                <span style={{ fontSize: 9, fontWeight: 600, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.hiring_role === 'residente' ? t('inicio', 'hiring_resident_badge', 'Se busca Residente') : t('inicio', 'hiring_guest_badge', 'Se busca Guest Artist')}</span>
+                              <div style={{ background: '#000', padding: '2px 12px', textAlign: 'center' }}>
+                                <span style={{ fontSize: 9, fontWeight: 600, color: '#efff42', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.hiring_role === 'residente' ? t('inicio', 'hiring_resident_badge', 'Se busca Residente') : t('inicio', 'hiring_guest_badge', 'Se busca Guest Artist')}</span>
                               </div>
                             )}
                           </div>
