@@ -242,7 +242,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
     if (!r.ok) { setSaveError(d.error || 'Error al guardar'); setSaving(false); return }
     setStudio(d.studio); setLogoFile(null); setLogoPreview(null)
     setSaving(false)
-    if (!authMode) { setEditOpen(false); setKeyVerified(''); setKeyInput('') }
+    setEditOpen(false); setKeyVerified(''); setKeyInput('')
   }
 
   const addArtist = async () => {
