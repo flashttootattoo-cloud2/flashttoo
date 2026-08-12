@@ -3651,7 +3651,7 @@ export default function AdminPage() {
                           <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(239,255,66,0.4)' }}>✉ {studio.auth_email}</p>
                         )}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <p className="text-xs shrink-0" style={{ color: 'rgba(255,255,255,0.15)', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.1em' }}>clave: {studio.edit_key}</p>
+                          {!studio.auth_email && <p className="text-xs shrink-0" style={{ color: 'rgba(255,255,255,0.15)', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.1em' }}>clave: {studio.edit_key}</p>}
                           <div className="flex items-center gap-1.5">
                             <input
                               type="date"
