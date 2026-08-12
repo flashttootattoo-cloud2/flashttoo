@@ -2757,8 +2757,8 @@ export default function AdminPage() {
                   fd.append('name', sponsorV2Form.name.trim())
                   fd.append('description', sponsorV2Form.category.trim())
                   fd.append('link', sponsorV2Form.link.trim())
-                  fd.append('level', sponsorV2Form.level)
-                  fd.append('city', sponsorV2Form.city.trim())
+                  fd.append('level', sponsorV2Form.country.trim() ? 'country' : 'global')
+                  fd.append('city', '')
                   fd.append('country', sponsorV2Form.country.trim())
                   fd.append('keep_color', 'true')
                   fd.append('detail_logo_mode', 'color')
@@ -2818,41 +2818,11 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              {/* Nivel */}
+              {/* Países */}
               <div>
-                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Nivel</p>
-                <div className="flex gap-2">
-                  {(['global', 'country', 'city'] as const).map(lvl => (
-                    <button key={lvl} type="button"
-                      onClick={() => setSponsorV2Form(f => ({ ...f, level: lvl, city: lvl === 'global' ? '' : f.city, country: lvl === 'global' ? '' : f.country }))}
-                      className="flex-1 py-2 rounded-lg text-xs font-bold transition-all"
-                      style={{
-                        background: sponsorV2Form.level === lvl ? '#efff42' : 'rgba(255,255,255,0.05)',
-                        color: sponsorV2Form.level === lvl ? '#000' : 'rgba(255,255,255,0.4)',
-                        border: `1px solid ${sponsorV2Form.level === lvl ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
-                      }}>
-                      {lvl === 'global' ? 'Global' : lvl === 'country' ? 'País' : 'Ciudad'}
-                    </button>
-                  ))}
-                </div>
-                {sponsorV2Form.level !== 'global' && (
-                  <div className="grid grid-cols-1 gap-3 mt-3">
-                    <div>
-                      <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                        {sponsorV2Form.level === 'city' ? 'Países (separar con coma)' : 'País'}
-                      </p>
-                      <input value={sponsorV2Form.country} onChange={e => setSponsorV2Form(f => ({ ...f, country: e.target.value }))}
-                        placeholder={sponsorV2Form.level === 'city' ? 'Argentina, Chile' : 'Argentina'} className={iCls} />
-                    </div>
-                    <div>
-                      <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                        {sponsorV2Form.level === 'city' ? 'Ciudades (separar con coma)' : 'Ciudad (opcional, para mostrar dónde están)'}
-                      </p>
-                      <input value={sponsorV2Form.city} onChange={e => setSponsorV2Form(f => ({ ...f, city: e.target.value }))}
-                        placeholder={sponsorV2Form.level === 'city' ? 'Buenos Aires, Santiago' : 'Buenos Aires'} className={iCls} />
-                    </div>
-                  </div>
-                )}
+                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Países (separar con coma, vacío = todos)</p>
+                <input value={sponsorV2Form.country} onChange={e => setSponsorV2Form(f => ({ ...f, country: e.target.value }))}
+                  placeholder="Argentina, Chile, Uruguay..." className={iCls} />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3035,38 +3005,11 @@ export default function AdminPage() {
                   {/* Edición inline */}
                   {editingV2 === sp.id && (
                     <div className="mt-3 pt-4 flex flex-col gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-                      <div className="flex gap-2">
-                        {(['global', 'country', 'city'] as const).map(lvl => (
-                          <button key={lvl} type="button"
-                            onClick={() => setEditV2Form(f => ({ ...f, level: lvl }))}
-                            className="flex-1 py-1.5 rounded-lg text-xs font-bold"
-                            style={{
-                              background: editV2Form.level === lvl ? '#efff42' : 'rgba(255,255,255,0.05)',
-                              color: editV2Form.level === lvl ? '#000' : 'rgba(255,255,255,0.4)',
-                              border: `1px solid ${editV2Form.level === lvl ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
-                            }}>
-                            {lvl === 'global' ? 'Global' : lvl === 'country' ? 'País' : 'Ciudad'}
-                          </button>
-                        ))}
+                      <div>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Países (separar con coma, vacío = todos)</p>
+                        <input value={editV2Form.country} onChange={e => setEditV2Form(f => ({ ...f, country: e.target.value }))}
+                          placeholder="Argentina, Chile, Uruguay..." className={iCls} />
                       </div>
-                      {editV2Form.level !== 'global' && (
-                        <div className="flex flex-col gap-2">
-                          <div>
-                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                              {editV2Form.level === 'city' ? 'Países (separar con coma)' : 'País'}
-                            </p>
-                            <input value={editV2Form.country} onChange={e => setEditV2Form(f => ({ ...f, country: e.target.value }))}
-                              placeholder={editV2Form.level === 'city' ? 'Argentina, Chile' : 'Argentina'} className={iCls} />
-                          </div>
-                          <div>
-                            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                              {editV2Form.level === 'city' ? 'Ciudades (separar con coma)' : 'Ciudad (opcional, para mostrar dónde están)'}
-                            </p>
-                            <input value={editV2Form.city} onChange={e => setEditV2Form(f => ({ ...f, city: e.target.value }))}
-                              placeholder={editV2Form.level === 'city' ? 'Buenos Aires, Santiago' : 'Buenos Aires'} className={iCls} />
-                          </div>
-                        </div>
-                      )}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
                           <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Nombre</p>
@@ -3118,8 +3061,8 @@ export default function AdminPage() {
                                 name: editV2Form.name.trim(),
                                 description: editV2Form.category.trim() || null,
                                 link: editV2Form.link.trim() || null,
-                                level: editV2Form.level,
-                                city: editV2Form.city.trim() || null,
+                                level: editV2Form.country.trim() ? 'country' : 'global',
+                                city: null,
                                 country: editV2Form.country.trim() || null,
                                 keep_color: true,
                                 detail_logo_mode: 'color',
