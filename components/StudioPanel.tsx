@@ -372,21 +372,20 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                     <span style={{ fontSize: 12, fontWeight: 700, color: liked ? '#efff42' : 'rgba(255,255,255,0.3)' }}>{fmt(localLikes)}</span>
                   </button>
                 </div>
-                <div className="mt-2 flex justify-end">
-                  <button onClick={shareStudio} className="flex items-center justify-center w-9 h-9 rounded-full transition-all"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.08)'}`, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.3)', fontSize: 15 }}>
-                    {copied ? '✓' : '↑'}
+                <div className="mt-3 flex items-center justify-between">
+                  <button onClick={shareStudio} className="flex items-center gap-2 px-4 py-2 rounded-full transition-all"
+                    style={{ background: copied ? 'rgba(239,255,66,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.08)'}`, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.3)', fontSize: 12, fontWeight: 700 }}>
+                    <span style={{ fontSize: 14, lineHeight: 1 }}>{copied ? '✓' : '↑'}</span>
+                    <span>{copied ? '¡Copiado!' : t('estudio', 'share_btn', 'Compartir perfil')}</span>
                   </button>
-                </div>
-                {!authMode && !studio?.auth_email && (
-                  <div className="mt-3 flex justify-center">
+                  {!authMode && !studio?.auth_email && (
                     <button onClick={() => { setEditOpen(v => !v); setKeyInput(''); setKeyError('') }}
                       className="flex items-center justify-center px-3 py-1 rounded-full transition-all"
                       style={{ color: editOpen ? 'rgba(239,255,66,0.6)' : 'rgba(255,255,255,0.18)', fontSize: 20, letterSpacing: '-2px', lineHeight: 1 }}>
                       ···
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
