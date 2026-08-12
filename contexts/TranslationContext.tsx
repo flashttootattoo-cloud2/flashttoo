@@ -37,9 +37,12 @@ export function TranslationProvider({ children }: { children: React.ReactNode })
   }, [])
 
   useEffect(() => {
-    fetch(`/api/translations/${language}`).then(r => r.json()).then(d => {
-      if (d.translations) setTr(d.translations)
-    }).catch(() => {})
+    const controller = new AbortController()
+    fetch(`/api/translations/${language}`, { signal: controller.signal })
+      .then(r => r.json())
+      .then(d => { if (d.translations) setTr(d.translations) })
+      .catch(() => {})
+    return () => controller.abort()
   }, [language])
 
   const setLanguage = useCallback((code: string) => {
