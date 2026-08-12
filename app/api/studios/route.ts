@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-function genKey() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-}
-
 function slugify(name: string) {
   return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
@@ -53,7 +48,6 @@ export async function POST(req: NextRequest) {
     user_id,
     auth_email: email.toLowerCase(),
     visible: false,
-    edit_key: genKey(),
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
