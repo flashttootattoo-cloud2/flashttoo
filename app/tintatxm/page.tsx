@@ -3624,6 +3624,10 @@ export default function AdminPage() {
               {adminStudios
                 .filter(s => s.name.toLowerCase().includes(studioSearch.toLowerCase()))
                 .sort((a, b) => {
+                  // Inactivos primero
+                  if (!a.visible && b.visible) return -1
+                  if (a.visible && !b.visible) return 1
+                  // Luego por proximidad de vencimiento
                   if (!a.expires_at && !b.expires_at) return 0
                   if (!a.expires_at) return 1
                   if (!b.expires_at) return -1
