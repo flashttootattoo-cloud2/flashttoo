@@ -285,10 +285,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'banner_click' }) }).catch(() => {})
                       }}
                       style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '24px 20px',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        padding: '24px 20px 20px',
                         textDecoration: 'none',
                         cursor: s.link ? 'pointer' : 'default',
+                        gap: 10,
                       }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -297,6 +298,15 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
                         opacity: s.keep_color ? 1 : 0.65,
                       }} />
+                      {s.description && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                          textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)',
+                          textAlign: 'center', lineHeight: 1.3,
+                        }}>
+                          {s.description}
+                        </span>
+                      )}
                     </a>
                   ))}
                 </div>
