@@ -20,15 +20,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const { data: studio, error } = await sb.from('studios').select('*').eq('slug', slug).single()
   if (error || !studio) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
 
-  // Non-visible studios only accessible to owner
+  // Non-visible studios only accessible to owner or admin
   if (!studio.visible) {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader?.startsWith('Bearer ') || !studio.user_id) {
-      return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    const adminPass = req.headers.get('x-admin-pass')
+    if (adminPass && adminPass === process.env.ADMIN_PASSWORD) {
+      // admin preview — allowed
+    } else {
+      const authHeader = req.headers.get('Authorization')
+      if (!authHeader?.startsWith('Bearer ') || !studio.user_id) {
+        return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+      }
+      const token = authHeader.slice(7)
+      const ok = await verifyToken(token, studio.user_id)
+      if (!ok) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
     }
-    const token = authHeader.slice(7)
-    const ok = await verifyToken(token, studio.user_id)
-    if (!ok) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
   }
 
   const { data: links } = await sb

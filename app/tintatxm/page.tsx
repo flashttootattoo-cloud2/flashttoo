@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
+import StudioPanel from '@/components/StudioPanel'
 
 type DayVisit = { date: string; count: number }
 type Visit = { from: string; to: string; city: string; country: string }
@@ -1246,6 +1247,7 @@ export default function AdminPage() {
   const [studioSearch, setStudioSearch]       = useState('')
   const [studioExpiryEdits, setStudioExpiryEdits] = useState<Record<string, string>>({})
   const [studioExpirySaving, setStudioExpirySaving] = useState<Record<string, boolean>>({})
+  const [previewStudioSlug, setPreviewStudioSlug] = useState<string | null>(null)
   const [studioForm, setStudioForm]           = useState({ name: '', slug: '', city: '', country: '', description: '', instagram: '', whatsapp: '', website: '', expires_at: '' })
   const [studioLogo, setStudioLogo]           = useState<File | null>(null)
   const [studioLogoPreview, setStudioLogoPreview] = useState<string | null>(null)
@@ -3700,25 +3702,6 @@ export default function AdminPage() {
                         {studio.auth_email && (
                           <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(239,255,66,0.4)' }}>✉ {studio.auth_email}</p>
                         )}
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {langs.filter(l => l.active).map(l => {
-                            const k = `${studio.id}:${l.code}`
-                            const copied = copiedStudioLink === k
-                            return (
-                              <button key={l.code} type="button"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(`https://flashttoo.com/estudios/activar?lang=${l.code}`).catch(() => {})
-                                  setCopiedStudioLink(k)
-                                  setTimeout(() => setCopiedStudioLink(null), 2000)
-                                }}
-                                className="text-xs px-2 py-0.5 rounded-lg flex items-center gap-1"
-                                style={{ background: copied ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.04)', color: copied ? '#4ade80' : 'rgba(255,255,255,0.35)', border: `1px solid ${copied ? 'rgba(74,222,128,0.25)' : 'rgba(255,255,255,0.08)'}`, transition: 'all 0.2s' }}>
-                                <span>{l.flag}</span>
-                                <span>{copied ? '✓' : l.code.toUpperCase()}</span>
-                              </button>
-                            )
-                          })}
-                        </div>
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           <p className="text-xs shrink-0" style={{ color: 'rgba(255,255,255,0.15)', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.1em' }}>clave: {studio.edit_key}</p>
                           <div className="flex items-center gap-1.5">
@@ -3776,7 +3759,13 @@ export default function AdminPage() {
                       </div>
                     )
                   })()}
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex flex-col gap-2 shrink-0">
+                    <button
+                      onClick={() => setPreviewStudioSlug(studio.slug)}
+                      className="text-xs px-3 py-1.5 rounded-lg font-bold"
+                      style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                      Ver
+                    </button>
                     <button
                       onClick={async () => {
                         const next = !studio.visible
@@ -4562,6 +4551,28 @@ export default function AdminPage() {
           </div>
         )
       })()}
+      {/* Preview estudio */}
+      {previewStudioSlug && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+          onClick={e => { if (e.target === e.currentTarget) setPreviewStudioSlug(null) }}>
+          <div style={{ minHeight: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '16px' }}>
+            <div style={{ width: '100%', maxWidth: 480, position: 'relative' }}>
+              <button
+                onClick={() => setPreviewStudioSlug(null)}
+                style={{ position: 'absolute', top: -12, right: 0, zIndex: 1, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 20, padding: '4px 12px', fontSize: 13, cursor: 'pointer' }}>
+                ✕ Cerrar
+              </button>
+              <StudioPanel
+                slug={previewStudioSlug}
+                onClose={() => setPreviewStudioSlug(null)}
+                onOpenArtist={() => {}}
+                adminPass={pass}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

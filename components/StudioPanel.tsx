@@ -9,7 +9,7 @@ type Studio = {
   description: string | null; logo_url: string | null; instagram: string | null
   whatsapp: string | null; website: string | null; profile_views: number
   instagram_clicks: number; whatsapp_clicks: number; website_clicks: number
-  hiring: boolean; hiring_role: string | null
+  hiring: boolean; hiring_role: string | null; auth_email?: string | null
 }
 
 function initialsOf(name: string) {
@@ -32,12 +32,13 @@ function StatItem({ label, value }: { label: string; value: number }) {
   )
 }
 
-export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, authEmail }: {
+export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, authEmail, adminPass }: {
   slug: string
   onClose: () => void
   onOpenArtist: (artist: Artist) => void
   accessToken?: string
   authEmail?: string
+  adminPass?: string
 }) {
   const { t } = useTranslation()
   const authMode = Boolean(accessToken)
@@ -79,14 +80,15 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
 
   useEffect(() => {
     setLoading(true); setNotFound(false); setStudio(null); setArtists([])
-    fetch(`/api/studios/${slug}`, {
-      headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
-    })
+    const headers: Record<string, string> = {}
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`
+    if (adminPass) headers['x-admin-pass'] = adminPass
+    fetch(`/api/studios/${slug}`, { headers })
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(d => { setStudio(d.studio); setArtists(d.artists || []) })
       .catch(s => { if (s === 404) setNotFound(true) })
       .finally(() => setLoading(false))
-  }, [slug, accessToken])
+  }, [slug, accessToken, adminPass])
 
   // Auto-open edit panel and pre-fill form in auth mode
   useEffect(() => {
@@ -373,7 +375,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                     {copied ? '✓' : '↑'}
                   </button>
                 </div>
-                {!authMode && (
+                {!authMode && !studio?.auth_email && (
                   <div className="mt-3 flex justify-center">
                     <button onClick={() => { setEditOpen(v => !v); setKeyInput(''); setKeyError('') }}
                       className="flex items-center justify-center px-3 py-1 rounded-full transition-all"
@@ -414,7 +416,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
 
                   {/* Foto */}
                   <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{t('estudio', 'photo_label', 'Foto del estudio')}</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#000', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{t('estudio', 'photo_label', 'Foto del estudio')}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       {(logoPreview || studio.logo_url) && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -437,7 +439,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                     { key: 'website',     label: t('estudio', 'stat_web', 'Web'), placeholder: 'https://tuestudio.com' },
                   ] as const).map(({ key, label, placeholder }) => (
                     <div key={key}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</p>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: '#000', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</p>
                       {key === 'description' ? (
                         <textarea value={editForm[key]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))} rows={3} placeholder={placeholder}
                           style={{ width: '100%', padding: '10px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.12)', color: '#000', fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
@@ -450,7 +452,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
 
                   {/* Convocatoria */}
                   <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('estudio', 'hiring_title', 'Convocatoria')}</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#000', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('estudio', 'hiring_title', 'Convocatoria')}</p>
                     <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', lineHeight: 1.5, marginBottom: 10 }}>{t('estudio', 'hiring_desc', 'Mostrá un cartel en el feed avisando que tu estudio busca guest artist o residente.')}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: hiring ? 10 : 0 }}>
                       <button onClick={() => setHiring(v => !v)} style={{ width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', background: hiring ? '#000' : 'rgba(0,0,0,0.15)', flexShrink: 0 }}>
@@ -470,15 +472,9 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                     )}
                   </div>
 
-                  {saveError && <p style={{ color: 'rgba(160,0,0,0.8)', fontSize: 12 }}>{saveError}</p>}
-                  <button onClick={saveEdit} disabled={saving}
-                    style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#000', color: '#efff42', fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer', opacity: saving ? 0.4 : 1 }}>
-                    {saving ? t('estudio', 'saving', 'Guardando...') : t('estudio', 'save_btn', 'Guardar cambios')}
-                  </button>
-
                   {/* Agregar artista */}
                   <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('estudio', 'add_artist_title', 'Agregar artista por IG')}</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#000', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('estudio', 'add_artist_title', 'Agregar artista por IG')}</p>
                     <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', lineHeight: 1.5, marginBottom: 10 }}>{t('estudio', 'add_artist_desc', 'El artista ya tiene que tener perfil en Flashttoo.')}</p>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <input value={igInput} onChange={e => setIgInput(e.target.value)} placeholder={t('agregar', 'instagram_placeholder', '@usuario')} onKeyDown={e => e.key === 'Enter' && addArtist()}
@@ -494,7 +490,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                   {/* Artistas vinculados */}
                   {artists.length > 0 && (
                     <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{t('estudio', 'linked_artists', 'Artistas vinculados')}</p>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: '#000', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{t('estudio', 'linked_artists', 'Artistas vinculados')}</p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {artists.map(a => (
                           <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(0,0,0,0.07)', borderRadius: 10 }}>
@@ -514,7 +510,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
 
                   {/* Flash Days */}
                   <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('estudio', 'flash_days_title', 'Flash Days')}</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#000', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('estudio', 'flash_days_title', 'Flash Days')}</p>
                     <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', lineHeight: 1.5, marginBottom: 10 }}>{t('estudio', 'flash_days_desc', 'Subí el flyer y la fecha. Aparece en la sección de Eventos de Flashttoo.')}</p>
 
                     {flashDays.map(f => (
@@ -550,6 +546,12 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                       </button>
                     </div>
                   </div>
+
+                  {saveError && <p style={{ color: 'rgba(160,0,0,0.8)', fontSize: 12 }}>{saveError}</p>}
+                  <button onClick={saveEdit} disabled={saving}
+                    style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#000', color: '#efff42', fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer', opacity: saving ? 0.4 : 1 }}>
+                    {saving ? t('estudio', 'saving', 'Guardando...') : t('estudio', 'save_btn', 'Guardar cambios')}
+                  </button>
 
                   {/* Términos */}
                   <p style={{ fontSize: 10, color: 'rgba(0,0,0,0.3)', textAlign: 'center', lineHeight: 1.6, paddingTop: 8 }}>
