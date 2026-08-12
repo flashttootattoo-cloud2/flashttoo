@@ -287,8 +287,6 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         padding: '24px 20px',
-                        borderBottom: '1px solid rgba(255,255,255,0.05)',
-                        borderRight: '1px solid rgba(255,255,255,0.05)',
                         textDecoration: 'none',
                         cursor: s.link ? 'pointer' : 'default',
                       }}
