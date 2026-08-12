@@ -1243,6 +1243,7 @@ export default function AdminPage() {
   type AdminStudioArtist = { artist_id: string; artists: { id: string; name: string; instagram: string | null } | null }
   type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number; auth_email?: string | null; studio_artists?: AdminStudioArtist[] }
   const [adminStudios, setAdminStudios]       = useState<AdminStudio[]>([])
+  const [loadingStudios, setLoadingStudios]   = useState(false)
   const [studioSearch, setStudioSearch]       = useState('')
   const [studioExpiryEdits, setStudioExpiryEdits] = useState<Record<string, string>>({})
   const [studioExpirySaving, setStudioExpirySaving] = useState<Record<string, boolean>>({})
@@ -1411,6 +1412,13 @@ export default function AdminPage() {
       setArtists(prev => [...prev.filter(a => a.status !== 'pending'), ...r.artists])
     }
     setLoadingPending(false)
+  }
+
+  const refreshStudios = async (p: string) => {
+    setLoadingStudios(true)
+    const d = await fetch('/api/admin/studios', { headers: H(p) }).then(r => r.json()).catch(() => ({}))
+    if (d.studios) setAdminStudios(d.studios)
+    setLoadingStudios(false)
   }
 
   const loadStatsArtists = async (p: string, force = false) => {
@@ -3613,6 +3621,19 @@ export default function AdminPage() {
             </div>
 
             {/* Lista de estudios */}
+            <div className="flex items-center justify-between">
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>
+                Estudios ({adminStudios.length})
+              </p>
+              <button
+                onClick={() => refreshStudios(pass)}
+                disabled={loadingStudios}
+                style={{ fontSize: 12, color: loadingStudios ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: loadingStudios ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, padding: '2px 0' }}
+              >
+                <span style={{ display: 'inline-block', animation: loadingStudios ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+                {loadingStudios ? 'Actualizando…' : 'Actualizar'}
+              </button>
+            </div>
             <input
               value={studioSearch}
               onChange={e => setStudioSearch(e.target.value)}
