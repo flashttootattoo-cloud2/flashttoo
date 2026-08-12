@@ -273,32 +273,32 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     {t('insumos', 'no_results', 'Sin proveedores en ese país')}
                   </p>
                 )}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {gridSponsors.map(s => (
                     <button key={s.id} onClick={() => openSponsor(s.id)} style={{
-                      position: 'relative', overflow: 'hidden',
-                      border: '1px solid rgba(255,255,255,0.07)',
-                      borderRadius: 14, padding: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', aspectRatio: '3/2',
-                      background: '#111',
+                      display: 'flex', alignItems: 'center', gap: 16,
+                      padding: '14px 16px',
+                      background: 'transparent',
+                      border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      cursor: 'pointer', textAlign: 'left', width: '100%',
                     }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={s.bg_image_url || s.logo_url} alt="" aria-hidden style={{
-                        position: 'absolute', inset: 0,
-                        width: '100%', height: '100%',
-                        objectFit: 'cover', objectPosition: 'center',
-                        transform: 'scale(1.04)', opacity: 0.55, pointerEvents: 'none',
-                      }} />
-                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)' }} />
-                      <div style={{ position: 'relative', zIndex: 1, width: '70%', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 72, height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={s.logo_url} alt={s.name} style={{
-                          maxHeight: `${s.logo_scale || 100}%`, maxWidth: `${s.logo_scale || 100}%`, objectFit: 'contain',
+                          maxHeight: 32, maxWidth: 72, objectFit: 'contain',
                           filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
-                          opacity: s.keep_color ? 1 : 0.88,
+                          opacity: s.keep_color ? 1 : 0.75,
                         }} />
                       </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.85)', lineHeight: 1.3 }}>{s.name}</p>
+                        {(s.country || s.city) && (
+                          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+                            {countryFlag(s.country)}{[s.country, s.city].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.15)', flexShrink: 0 }}>›</span>
                     </button>
                   ))}
                 </div>
