@@ -358,7 +358,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                   )}
                 </div>
               )}
-              <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
+              <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14, paddingBottom: 20 }}>
                 <div className="flex items-center justify-between">
                   <div className="flex mr-3">
                     <StatItem label={t('estudio', 'stat_views', 'visitas')} value={studio.profile_views ?? 0} />
