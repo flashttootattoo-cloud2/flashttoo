@@ -43,21 +43,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { data: existing } = await sb().from('artists').select('id')
       .or(`instagram.ilike.${newIG},instagram.ilike.@${newIG}`).neq('id', id).limit(1)
     if (existing?.length) return NextResponse.json({ error: 'Este Instagram ya está en uso' }, { status: 400 })
-    // Generar palabra única entre pendientes
-    const WORDS = ['río','mar','sol','luna','viento','fuego','tierra','nube','piedra','árbol','flor','lago','monte','cielo','arena','ola','roca','brisa','hielo','llama','vapor','niebla','bosque','desierto','isla','volcán','glaciar','selva','pradera','tormenta','estrella','aurora','eclipse','marea','corriente','cima','valle','cueva','manantial','cascada','playa','acantilado','pantano','llanura','delta','bahía','cabo','fiordo','meseta','arrecife']
-    const { data: pendingRows } = await sb().from('artists').select('verification_word').eq('status', 'pending').not('verification_word', 'is', null)
-    const usedSet = new Set((pendingRows || []).map((r: { verification_word: string }) => r.verification_word))
-    const available = WORDS.filter(w => !usedSet.has(w))
-    const base = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : WORDS[Math.floor(Math.random() * WORDS.length)]
-    const nums = String(Math.floor(Math.random() * 900) + 100)
-    const word = `${base}${nums}`
     const { data: updated, error: upErr } = await sb().from('artists')
-      .update({ instagram: newIG, status: 'pending', verification_word: word })
+      .update({ instagram: newIG, status: 'pending', verification_word: null })
       .eq('id', id).select().single()
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
-    // pending_reason es opcional (columna puede no existir aún) — fallo silencioso
     try { await sb().from('artists').update({ pending_reason: `ig_change:${oldIG}` }).eq('id', id) } catch { /* ignorar */ }
-    return NextResponse.json({ artist: updated, verification_word: word })
+    return NextResponse.json({ artist: updated })
   }
 
   const allowed = ['name', 'city', 'country', 'styles', 'bio', 'instagram', 'whatsapp', 'email', 'show_email', 'interview', 'visits', 'gallery_photo_1', 'gallery_photo_2', 'gallery_photo_3']

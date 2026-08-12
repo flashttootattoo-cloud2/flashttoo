@@ -19,7 +19,6 @@ type Artist = {
   gallery_photo_1: string | null; gallery_photo_2: string | null; gallery_photo_3: string | null
   profile_views: number; instagram_clicks: number; whatsapp_clicks: number; likes: number
   edit_key: string; visible: boolean; created_at: string; status: string
-  verification_word: string | null
   pending_reason: string | null
 }
 

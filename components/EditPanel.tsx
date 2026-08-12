@@ -82,14 +82,9 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
   const [igNewStatus, setIgNewStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [igAuthStatus, setIgAuthStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [igChanging, setIgChanging] = useState(false)
-  const [igDone, setIgDone]       = useState<{ word: string } | null>(null)
-  const [verifyIG, setVerifyIG]   = useState('')
-  const [verifyWA, setVerifyWA]   = useState('')
+  const [igDone, setIgDone]       = useState(false)
   const igNewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const igAuthTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  useEffect(() => {
-    fetch('/api/features').then(r => r.json()).then(d => { setVerifyIG(d.verification_instagram || ''); setVerifyWA(d.verification_whatsapp || '') }).catch(() => {})
-  }, [])
   useEffect(() => {
     const handle = igNew.trim().replace(/^@/, '')
     if (!handle) { setIgNewStatus('idle'); return }
@@ -133,7 +128,7 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error)
-      setIgDone({ word: d.verification_word })
+      setIgDone(true)
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : 'Error al cambiar Instagram')
     } finally { setIgChanging(false) }
@@ -385,31 +380,10 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
 
           {/* PASO 2: Formulario */}
           {step === 'form' && igDone && (
-            <div className="rounded-2xl p-5" style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.2)' }}>
-              <p className="text-xs font-bold mb-1" style={{ color: 'rgba(239,255,66,0.6)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                {t('agregar', 'verify_step_title', 'Un paso más para activar tu perfil')}
-              </p>
-              <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-                {t('agregar', 'verify_step_msg', 'Envianos esta palabra por DM desde tu Instagram para confirmar que el perfil es tuyo y proteger tu identidad:')}
-              </p>
-              <p className="text-3xl font-black text-center tracking-widest mb-4" style={{ color: '#efff42', letterSpacing: '0.2em' }}>{igDone.word}</p>
-              <div className="flex flex-col gap-2">
-                {verifyIG && (
-                  <a href={`https://ig.me/m/${verifyIG.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
-                    style={{ background: '#efff42', color: '#000', textDecoration: 'none' }}>
-                    📩 {t('agregar', 'verify_ig_btn', 'Enviar por Instagram DM')}
-                  </a>
-                )}
-                {verifyWA && (
-                  <a href={`https://wa.me/${verifyWA.replace(/\D/g, '')}?text=${encodeURIComponent(igDone.word)}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
-                    style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366', textDecoration: 'none' }}>
-                    💬 {t('agregar', 'verify_wa_btn', 'Enviar por WhatsApp')}
-                  </a>
-                )}
-              </div>
-              <button onClick={onDeleted} className="w-full mt-4 py-2.5 rounded-xl text-xs font-bold"
+            <div className="rounded-2xl p-5 text-center" style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.2)' }}>
+              <p className="text-sm font-bold mb-2" style={{ color: '#efff42' }}>¡Instagram actualizado!</p>
+              <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>Tu cambio está pendiente de aprobación.</p>
+              <button onClick={onDeleted} className="w-full py-2.5 rounded-xl text-xs font-bold"
                 style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
                 {t('editar', 'close_btn', 'Cerrar')}
               </button>

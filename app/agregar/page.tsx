@@ -17,19 +17,6 @@ function genKey() {
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-const VERIFY_WORDS = [
-  'paloma','tigre','luna','sol','flor','río','mar','viento','fuego','piedra',
-  'nube','rayo','brisa','selva','arena','perla','coral','cedro','puma','cóndor',
-  'alerce','cactus','llama','toro','zorro','nutria','jaguar','ñandú','carpa','garza',
-  'álamo','roble','sauce','pino','olivo','menta','tomillo','azahar','canela','vainilla',
-  'ámbar','topacio','jaspe','cuarzo','ónice','rubí','jade','ágata','lapislázuli','malaquita',
-]
-
-function genVerifyWord() {
-  const base = VERIFY_WORDS[Math.floor(Math.random() * VERIFY_WORDS.length)]
-  const nums = String(Math.floor(Math.random() * 900) + 100)
-  return `${base}${nums}`
-}
 
 export default function AgregarPage() {
   const { t } = useTranslation()
@@ -59,18 +46,7 @@ export default function AgregarPage() {
   const [igStatus, setIgStatus]     = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [showEmail, setShowEmail] = useState(false)
-  const [verifyWord, setVerifyWord] = useState(() => genVerifyWord())
-  const [copied, setCopied] = useState(false)
-  const [verifyIG, setVerifyIG] = useState('')
-  const [verifyWA, setVerifyWA] = useState('')
   const igTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  useEffect(() => {
-    fetch('/api/features').then(r => r.json()).then(d => {
-      if (d.verification_instagram) setVerifyIG(d.verification_instagram)
-      if (d.verification_whatsapp) setVerifyWA(d.verification_whatsapp)
-    }).catch(() => {})
-  }, [])
 
   useEffect(() => {
     const handle = form.instagram.trim().replace('@', '')
@@ -218,23 +194,6 @@ export default function AgregarPage() {
         }
       }
 
-      // Elegir palabra de verificación que no esté en uso por otro pendiente
-      let finalWord = verifyWord
-      if (moderation) {
-        const { data: usedRows } = await supabase
-          .from('artists')
-          .select('verification_word')
-          .eq('status', 'pending')
-          .not('verification_word', 'is', null)
-        const usedSet = new Set((usedRows || []).map((r: { verification_word: string }) => r.verification_word))
-        const usedBases = new Set([...usedSet].map(w => w.replace(/\d+$/, '')))
-        const available = VERIFY_WORDS.filter(w => !usedBases.has(w))
-        const base = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : VERIFY_WORDS[Math.floor(Math.random() * VERIFY_WORDS.length)]
-        const nums = String(Math.floor(Math.random() * 900) + 100)
-        finalWord = `${base}${nums}`
-        setVerifyWord(finalWord)
-      }
-
       // Insertar artista
       const { error: insErr } = await supabase.from('artists').insert({
         name:      form.name.trim(),
@@ -249,7 +208,6 @@ export default function AgregarPage() {
         bio:       form.bio.trim()       || null,
         edit_key:  submitUserId ? null : editKey.trim().toUpperCase(),
         status:    (moderation || isAuthFlow) ? 'pending' : 'active',
-        verification_word: (moderation && !isAuthFlow) ? finalWord : null,
         interview: Object.fromEntries(Object.entries(interview).filter(([, v]) => v.trim())),
         visits,
         gallery_photo_1: galleryUrls[0],
@@ -290,44 +248,6 @@ export default function AgregarPage() {
         <h2 className="text-xl font-bold mb-2">{t('agregar', 'done_pending_title', 'Perfil en revisión')}</h2>
         <p className="text-white/50 text-sm mb-6">{t('agregar', 'done_pending_msg1', 'Tu perfil fue enviado y está esperando aprobación.')}</p>
 
-        {!isAuthFlow && (
-        <div className="rounded-2xl p-5 mb-6 text-left" style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.2)' }}>
-          <p className="text-xs font-bold mb-1" style={{ color: 'rgba(239,255,66,0.6)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-            {t('agregar', 'verify_step_title', 'Un paso más para activar tu perfil')}
-          </p>
-          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-            {t('agregar', 'verify_step_msg', 'Envianos esta palabra por DM desde tu Instagram para confirmar que el perfil es tuyo y proteger tu identidad:')}
-          </p>
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <p className="text-3xl font-black tracking-widest" style={{ color: '#efff42', letterSpacing: '0.2em' }}>{verifyWord}</p>
-            <button
-              onClick={() => { navigator.clipboard.writeText(verifyWord).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }) }}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-              style={{ background: copied ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.07)', color: copied ? '#efff42' : 'rgba(255,255,255,0.4)', border: `1px solid ${copied ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}` }}>
-              {copied ? t('agregar', 'verify_copied', '✓ Copiado') : t('agregar', 'verify_copy_btn', 'Copiar')}
-            </button>
-          </div>
-          <div className="flex flex-col gap-2">
-            {verifyIG && (
-              <a href={`https://ig.me/m/${verifyIG.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
-                style={{ background: '#efff42', color: '#000', textDecoration: 'none' }}>
-                <span>📩</span> {t('agregar', 'verify_ig_btn', 'Enviar por Instagram DM')}
-              </a>
-            )}
-            {verifyWA && (
-              <a href={`https://wa.me/${verifyWA.replace(/\D/g, '')}?text=${encodeURIComponent(verifyWord)}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
-                style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366', textDecoration: 'none' }}>
-                <span>💬</span> {t('agregar', 'verify_wa_btn', 'Enviar por WhatsApp')}
-              </a>
-            )}
-          </div>
-          <p className="text-xs mt-4" style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
-            {t('agregar', 'verify_expiry', 'Envianos la palabra lo antes posible para que activemos tu perfil.')}
-          </p>
-        </div>
-        )}
 
         <Link href="/" className="text-sm text-[#efff42] underline underline-offset-4">{t('agregar', 'done_pending_link', 'Volver al inicio')}</Link>
       </div>
