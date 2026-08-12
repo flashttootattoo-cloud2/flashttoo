@@ -1241,7 +1241,7 @@ export default function AdminPage() {
 
   // Estudios
   type AdminStudioArtist = { artist_id: string; artists: { id: string; name: string; instagram: string | null } | null }
-  type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number; studio_artists?: AdminStudioArtist[] }
+  type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number; auth_email?: string | null; studio_artists?: AdminStudioArtist[] }
   const [adminStudios, setAdminStudios]       = useState<AdminStudio[]>([])
   const [studioSearch, setStudioSearch]       = useState('')
   const [studioExpiryEdits, setStudioExpiryEdits] = useState<Record<string, string>>({})
@@ -3697,6 +3697,9 @@ export default function AdminPage() {
                           {expired && <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{ background: 'rgba(255,80,80,0.15)', color: '#f87171' }}>Vencido</span>}
                         </div>
                         <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>/estudio/{studio.slug}{studio.city ? ` · ${studio.city}` : ''}</p>
+                        {studio.auth_email && (
+                          <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(239,255,66,0.4)' }}>✉ {studio.auth_email}</p>
+                        )}
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {langs.filter(l => l.active).map(l => {
                             const k = `${studio.id}:${l.code}`

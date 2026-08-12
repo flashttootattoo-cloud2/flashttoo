@@ -515,11 +515,24 @@ export default function Home() {
   }, [])
 
   // Deep link: abre el panel de estudio si la URL tiene ?estudio=slug
+  // Si viene de /completar-estudio, lee el auth del sessionStorage
   useEffect(() => {
     if (studioDeepLinkHandled.current) return
     const slug = new URLSearchParams(window.location.search).get('estudio')
     if (slug) {
       studioDeepLinkHandled.current = true
+      const pending = sessionStorage.getItem('flashttoo_studio_auth')
+      if (pending) {
+        try {
+          const auth = JSON.parse(pending)
+          sessionStorage.removeItem('flashttoo_studio_auth')
+          if (auth.slug === slug) {
+            setStudioAuth({ slug: auth.slug, auth_email: auth.auth_email, access_token: auth.access_token })
+            openStudio(slug, true)
+            return
+          }
+        } catch { /* ignorar */ }
+      }
       setSelectedStudioSlug(slug)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
