@@ -273,33 +273,33 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     {t('insumos', 'no_results', 'Sin proveedores en ese país')}
                   </p>
                 )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 1 }}>
                   {gridSponsors.map(s => (
-                    <button key={s.id} onClick={() => openSponsor(s.id)} style={{
-                      display: 'flex', alignItems: 'center', gap: 16,
-                      padding: '14px 16px',
-                      background: 'transparent',
-                      border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      cursor: 'pointer', textAlign: 'left', width: '100%',
-                    }}>
-                      <div style={{ width: 72, height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={s.logo_url} alt={s.name} style={{
-                          maxHeight: 32, maxWidth: 72, objectFit: 'contain',
-                          filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
-                          opacity: s.keep_color ? 1 : 0.75,
-                        }} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.85)', lineHeight: 1.3 }}>{s.name}</p>
-                        {(s.country || s.city) && (
-                          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
-                            {countryFlag(s.country)}{[s.country, s.city].filter(Boolean).join(', ')}
-                          </p>
-                        )}
-                      </div>
-                      <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.15)', flexShrink: 0 }}>›</span>
-                    </button>
+                    <a
+                      key={s.id}
+                      href={s.link || undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => {
+                        fetch(`/api/sponsors-v2/${s.id}/click`, { method: 'POST' }).catch(() => {})
+                        fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'banner_click' }) }).catch(() => {})
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '24px 20px',
+                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        borderRight: '1px solid rgba(255,255,255,0.05)',
+                        textDecoration: 'none',
+                        cursor: s.link ? 'pointer' : 'default',
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={s.logo_url} alt={s.name} style={{
+                        maxHeight: 30, maxWidth: 100, objectFit: 'contain',
+                        filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
+                        opacity: s.keep_color ? 1 : 0.65,
+                      }} />
+                    </a>
                   ))}
                 </div>
               </div>
