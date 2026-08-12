@@ -273,7 +273,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     {t('insumos', 'no_results', 'Sin proveedores en ese país')}
                   </p>
                 )}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 1 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
                   {gridSponsors.map(s => (
                     <a
                       key={s.id}
@@ -286,7 +286,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                       }}
                       style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        padding: '24px 20px 20px',
+                        padding: '28px 16px 22px',
                         textDecoration: 'none',
                         cursor: s.link ? 'pointer' : 'default',
                         gap: 10,
@@ -294,7 +294,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={s.logo_url} alt={s.name} style={{
-                        maxHeight: 30, maxWidth: 100, objectFit: 'contain',
+                        maxHeight: 44, maxWidth: '90%', objectFit: 'contain',
                         filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
                         opacity: s.keep_color ? 1 : 0.65,
                       }} />
