@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Artist } from '@/lib/supabase'
 import { useTranslation } from '@/contexts/TranslationContext'
 
@@ -50,6 +50,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
   const [heroLoaded, setHeroLoaded] = useState(false)
 
   const [editOpen, setEditOpen] = useState(false)
+  const authAutoOpenedRef = useRef(false)
   const [keyInput, setKeyInput] = useState('')
   const [keyVerified, setKeyVerified] = useState('')
   const [keyError, setKeyError] = useState('')
@@ -90,9 +91,11 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
       .finally(() => setLoading(false))
   }, [slug, accessToken, adminPass])
 
-  // Auto-open edit panel and pre-fill form in auth mode
+  // Auto-open edit panel and pre-fill form in auth mode (only on first load)
   useEffect(() => {
     if (!studio || !authMode) return
+    if (authAutoOpenedRef.current) return
+    authAutoOpenedRef.current = true
     setEditOpen(true)
     setEditForm({ name: studio.name || '', description: studio.description || '', instagram: studio.instagram || '', whatsapp: studio.whatsapp || '', website: studio.website || '' })
     setHiring(studio.hiring || false)
