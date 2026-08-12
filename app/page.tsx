@@ -1994,7 +1994,7 @@ export default function Home() {
         />
       )}
 
-      <ConventionModal conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} />
+      {!selectedStudioSlug && <ConventionModal conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} />}
       <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} />
 
       {/* Visor fullscreen galería — tira deslizante */}
