@@ -36,13 +36,13 @@ function CompletarEstudioForm() {
   if (!userId || !email) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#000' }}>
-        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>Link inválido.</p>
+        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>{t('completar_estudio', 'invalid_link', 'Link inválido.')}</p>
       </div>
     )
   }
 
   const handleEdit = async () => {
-    if (!password) { setError('Ingresá tu contraseña'); return }
+    if (!password) { setError(t('completar_estudio', 'error_password_empty', 'Ingresá tu contraseña')); return }
     setLoading(true); setError('')
 
     const r = await fetch('/api/studios', {
@@ -53,7 +53,7 @@ function CompletarEstudioForm() {
     const d = await r.json()
 
     if (!r.ok && r.status !== 409) {
-      setError(d.error || 'Error al crear el estudio')
+      setError(d.error || t('completar_estudio', 'error_create', 'Error al crear el estudio'))
       setLoading(false)
       return
     }
@@ -66,7 +66,7 @@ function CompletarEstudioForm() {
     )
     const { data: auth, error: authError } = await sb.auth.signInWithPassword({ email, password })
     if (authError || !auth.session) {
-      setError('Contraseña incorrecta')
+      setError(t('completar_estudio', 'error_wrong_password', 'Contraseña incorrecta'))
       setLoading(false)
       return
     }
@@ -140,20 +140,20 @@ function CompletarEstudioForm() {
       {/* Contenido */}
       <div className="flex-1 flex items-center justify-center px-5 py-8">
         <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <p className="text-sm font-bold text-white mb-2">Bienvenido a Flashttoo</p>
+          <p className="text-sm font-bold text-white mb-2">{t('completar_estudio', 'title', 'Bienvenido a Flashttoo')}</p>
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 20 }}>
-            Tu cuenta fue creada con éxito. Ingresá con tu contraseña para abrir el editor de tu estudio.
+            {t('completar_estudio', 'subtitle', 'Tu cuenta fue creada con éxito. Ingresá con tu contraseña para abrir el editor de tu estudio.')}
           </p>
 
           <div style={{ background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 20 }}>
-            <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.6)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Cuenta registrada con</p>
+            <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.6)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>{t('completar_estudio', 'registered_with', 'Cuenta registrada con')}</p>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', wordBreak: 'break-all' }}>{email}</p>
           </div>
 
           <div className="flex flex-col gap-3">
             <input
               type="password"
-              placeholder="Contraseña"
+              placeholder={t('completar_estudio', 'password_placeholder', 'Contraseña')}
               value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleEdit()}
@@ -165,7 +165,7 @@ function CompletarEstudioForm() {
             <button onClick={handleEdit} disabled={loading}
               className="w-full py-3 rounded-xl text-sm font-bold disabled:opacity-50"
               style={{ background: '#efff42', color: '#000' }}>
-              {loading ? 'Entrando...' : 'Editar mi perfil'}
+              {loading ? t('completar_estudio', 'btn_loading', 'Entrando...') : t('completar_estudio', 'btn_edit', 'Editar mi perfil')}
             </button>
           </div>
         </div>
