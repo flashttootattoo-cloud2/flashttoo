@@ -263,11 +263,14 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                   onChange={e => setGridSearch(e.target.value)}
                   style={{
                     width: '100%', boxSizing: 'border-box',
-                    marginBottom: 24, padding: '10px 16px',
+                    marginBottom: 8, padding: '10px 16px',
                     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
                     borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none',
                   }}
                 />
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.22)', textAlign: 'center', marginBottom: 20 }}>
+                  {t('insumos', 'tap_hint', 'Tocá el logo para visitar al proveedor')}
+                </p>
                 {gridSponsors.length === 0 && (
                   <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
                     {t('insumos', 'no_results', 'Sin proveedores en ese país')}
