@@ -1142,13 +1142,9 @@ export default function AdminPage() {
   const [sponsorsV2, setSponsorsV2]           = useState<SponsorV2Admin[]>([])
   const [bannerV2Active, setBannerV2Active]   = useState(false)
   const [savingBannerV2, setSavingBannerV2]   = useState(false)
-  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', description: '', link: '', whatsapp: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white', logo_scale: 100 })
+  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100 })
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
-  const [sponsorV2Bg, setSponsorV2Bg]         = useState<File | null>(null)
-  const [sponsorV2BgPreview, setSponsorV2BgPreview] = useState<string | null>(null)
-  const [sponsorV2DetailLogo, setSponsorV2DetailLogo] = useState<File | null>(null)
-  const [sponsorV2DetailLogoPreview, setSponsorV2DetailLogoPreview] = useState<string | null>(null)
   const [savingSponsorsV2, setSavingSponsorsV2] = useState(false)
   const [sponsorV2Error, setSponsorV2Error]   = useState('')
   const [editingV2, setEditingV2]             = useState<string | null>(null)
@@ -1219,15 +1215,10 @@ export default function AdminPage() {
     })
     setIdiomaSaving(null)
   }
-  const [previewV2, setPreviewV2]             = useState<SponsorV2Admin | null>(null)
   const [statsV2Sp, setStatsV2Sp]             = useState<SponsorV2Admin | null>(null)
   const [statsV2Data, setStatsV2Data]         = useState<StatsV2Data | null>(null)
   const [statsV2Loading, setStatsV2Loading]   = useState(false)
-  const [editV2Form, setEditV2Form]           = useState({ name: '', description: '', link: '', whatsapp: '', level: 'global', city: '', country: '', keep_color: false as boolean | null, starts_at: '', expires_at: '', notes: '', detail_logo_mode: 'white', logo_scale: 100 })
-  const [editV2BgFile, setEditV2BgFile]       = useState<File | null>(null)
-  const [editV2BgPreview, setEditV2BgPreview] = useState<string | null>(null)
-  const [editV2DetailLogoFile, setEditV2DetailLogoFile] = useState<File | null>(null)
-  const [editV2DetailLogoPreview, setEditV2DetailLogoPreview] = useState<string | null>(null)
+  const [editV2Form, setEditV2Form]           = useState({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100 })
   const [savingEditV2, setSavingEditV2]       = useState(false)
   const [conventions, setConventions]         = useState<Convention[]>([])
   const [convForm, setConvForm]               = useState({ name: '', link: '', expires_at: '', country: '' })
@@ -2763,29 +2754,23 @@ export default function AdminPage() {
                 try {
                   const fd = new FormData()
                   fd.append('logo', sponsorV2Logo)
-                  if (sponsorV2Bg) fd.append('bg_image', sponsorV2Bg)
-                  if (sponsorV2DetailLogo) fd.append('detail_logo', sponsorV2DetailLogo)
                   fd.append('name', sponsorV2Form.name.trim())
-                  fd.append('description', sponsorV2Form.description.trim())
+                  fd.append('description', sponsorV2Form.category.trim())
                   fd.append('link', sponsorV2Form.link.trim())
-                  fd.append('whatsapp', sponsorV2Form.whatsapp.trim())
                   fd.append('level', sponsorV2Form.level)
                   fd.append('city', sponsorV2Form.city.trim())
                   fd.append('country', sponsorV2Form.country.trim())
-                  fd.append('keep_color', String(sponsorV2Form.keep_color))
-                  if (sponsorV2Form.starts_at) fd.append('starts_at', new Date(sponsorV2Form.starts_at).toISOString())
+                  fd.append('keep_color', 'true')
+                  fd.append('detail_logo_mode', 'color')
                   if (sponsorV2Form.expires_at) fd.append('expires_at', new Date(sponsorV2Form.expires_at).toISOString())
                   fd.append('notes', sponsorV2Form.notes.trim())
-                  fd.append('detail_logo_mode', sponsorV2Form.detail_logo_mode)
                   fd.append('logo_scale', String(sponsorV2Form.logo_scale))
                   const r = await fetch('/api/admin/sponsors-v2', { method: 'POST', headers: H(pass), body: fd })
                   const d = await r.json()
                   if (!r.ok) throw new Error(d.error || 'Error')
                   setSponsorsV2(prev => [d.sponsor, ...prev])
-                  setSponsorV2Form({ name: '', description: '', link: '', whatsapp: '', level: 'global', city: '', country: '', starts_at: '', expires_at: '', keep_color: false, notes: '', detail_logo_mode: 'white', logo_scale: 100 })
+                  setSponsorV2Form({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100 })
                   setSponsorV2Logo(null); setSponsorV2LogoPreview(null)
-                  setSponsorV2Bg(null); setSponsorV2BgPreview(null)
-                  setSponsorV2DetailLogo(null); setSponsorV2DetailLogoPreview(null)
                 } catch (err: unknown) {
                   setSponsorV2Error(err instanceof Error ? err.message : 'Error')
                 } finally { setSavingSponsorsV2(false) }
@@ -2794,100 +2779,30 @@ export default function AdminPage() {
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>NUEVA MARCA</p>
 
-              {/* Logo + Imagen de fondo */}
-              <div className="flex gap-4 flex-wrap">
-                <label className="cursor-pointer block flex-1 min-w-[140px]">
-                  <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo *</p>
-                  <div className="flex items-center gap-3">
-                    {sponsorV2LogoPreview ? (
-                      <div className="rounded-lg overflow-hidden flex items-center justify-center"
-                        style={{ width: 100, height: 40, background: sponsorV2Form.keep_color ? '#fff' : 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={sponsorV2LogoPreview} alt="" style={{ maxHeight: 32, maxWidth: 90, objectFit: 'contain', filter: sponsorV2Form.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sponsorV2Form.keep_color ? 1 : 0.6 }} />
-                      </div>
-                    ) : (
-                      <div className="rounded-lg flex items-center justify-center text-xs"
-                        style={{ width: 100, height: 40, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
-                        subir logo
-                      </div>
-                    )}
-                    <input type="file" accept="image/*" className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0]; if (!file) return
-                        setSponsorV2Logo(file)
-                        setSponsorV2LogoPreview(URL.createObjectURL(file))
-                      }} />
-                  </div>
-                </label>
-                <label className="cursor-pointer block flex-1 min-w-[140px]">
-                  <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Imagen de fondo</p>
-                  <div className="flex items-center gap-3">
-                    {sponsorV2BgPreview ? (
-                      <div className="rounded-lg overflow-hidden flex items-center justify-center"
-                        style={{ width: 100, height: 40, border: '1px solid rgba(255,255,255,0.1)' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={sponsorV2BgPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                    ) : (
-                      <div className="rounded-lg flex items-center justify-center text-xs text-center"
-                        style={{ width: 100, height: 40, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)', lineHeight: 1.3 }}>
-                        fondo<br/>(opcional)
-                      </div>
-                    )}
-                    <input type="file" accept="image/*" className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0]; if (!file) return
-                        setSponsorV2Bg(file)
-                        setSponsorV2BgPreview(URL.createObjectURL(file))
-                      }} />
-                  </div>
-                </label>
-                <label className="cursor-pointer block flex-1 min-w-[140px]">
-                  <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo a color (modal)</p>
-                  <div className="flex items-center gap-3">
-                    {sponsorV2DetailLogoPreview ? (
-                      <div className="rounded-lg overflow-hidden flex items-center justify-center"
-                        style={{ width: 100, height: 40, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={sponsorV2DetailLogoPreview} alt="" style={{ maxHeight: 32, maxWidth: 90, objectFit: 'contain' }} />
-                      </div>
-                    ) : (
-                      <div className="rounded-lg flex items-center justify-center text-xs text-center"
-                        style={{ width: 100, height: 40, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)', lineHeight: 1.3 }}>
-                        color<br/>(opcional)
-                      </div>
-                    )}
-                    <input type="file" accept="image/*" className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0]; if (!file) return
-                        setSponsorV2DetailLogo(file)
-                        setSponsorV2DetailLogoPreview(URL.createObjectURL(file))
-                      }} />
-                  </div>
-                </label>
-              </div>
-
-              {/* Modo logo modal */}
-              <div>
-                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo en modal</p>
-                <div className="flex gap-2">
-                  {([['white', 'Blanco'], ['color', 'Color'], ['shadow', 'Sombra']] as const).map(([val, label]) => (
-                    <button key={val} type="button"
-                      onClick={() => setSponsorV2Form(f => ({ ...f, detail_logo_mode: val }))}
-                      className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
-                      style={{
-                        background: sponsorV2Form.detail_logo_mode === val ? '#efff42' : 'rgba(255,255,255,0.05)',
-                        color: sponsorV2Form.detail_logo_mode === val ? '#000' : 'rgba(255,255,255,0.4)',
-                        border: `1px solid ${sponsorV2Form.detail_logo_mode === val ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
-                      }}>
-                      {label}
-                    </button>
-                  ))}
+              {/* Logo */}
+              <label className="cursor-pointer block">
+                <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo *</p>
+                <div className="flex items-center gap-3">
+                  {sponsorV2LogoPreview ? (
+                    <div className="rounded-lg overflow-hidden flex items-center justify-center"
+                      style={{ width: 100, height: 40, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={sponsorV2LogoPreview} alt="" style={{ maxHeight: 32, maxWidth: 90, objectFit: 'contain' }} />
+                    </div>
+                  ) : (
+                    <div className="rounded-lg flex items-center justify-center text-xs"
+                      style={{ width: 100, height: 40, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
+                      subir logo
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0]; if (!file) return
+                      setSponsorV2Logo(file)
+                      setSponsorV2LogoPreview(URL.createObjectURL(file))
+                    }} />
                 </div>
-                <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                  {sponsorV2Form.detail_logo_mode === 'white' ? 'Logo invertido a blanco — para logos negros' : sponsorV2Form.detail_logo_mode === 'color' ? 'Logo en sus colores originales' : 'Logo original con halo blanco — para logos negros sin invertir'}
-                </p>
-              </div>
+              </label>
 
               {/* Tamaño del logo */}
               <div>
@@ -2943,33 +2858,20 @@ export default function AdminPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <AdField label="Nombre *">
                   <input required value={sponsorV2Form.name} onChange={e => setSponsorV2Form(f => ({ ...f, name: e.target.value }))}
-                    placeholder="Estudio Roma" className={iCls} />
+                    placeholder="Nombre de la marca" className={iCls} />
+                </AdField>
+                <AdField label="Categoría">
+                  <input value={sponsorV2Form.category} onChange={e => setSponsorV2Form(f => ({ ...f, category: e.target.value }))}
+                    placeholder="tinta, cremas, agujas..." className={iCls} />
                 </AdField>
                 <AdField label="Link">
                   <input value={sponsorV2Form.link} onChange={e => setSponsorV2Form(f => ({ ...f, link: e.target.value }))}
                     placeholder="https://..." className={iCls} />
                 </AdField>
-                <AdField label="WhatsApp">
-                  <input value={sponsorV2Form.whatsapp} onChange={e => setSponsorV2Form(f => ({ ...f, whatsapp: e.target.value }))}
-                    placeholder="5491123456789" className={iCls} />
-                </AdField>
-                <AdField label="Inicio (vacío = hoy)">
-                  <input type="date" value={sponsorV2Form.starts_at} onChange={e => setSponsorV2Form(f => ({ ...f, starts_at: e.target.value }))}
-                    className={iCls} style={{ colorScheme: 'dark' }} />
-                </AdField>
                 <AdField label="Vencimiento (opcional)">
                   <input type="date" value={sponsorV2Form.expires_at} onChange={e => setSponsorV2Form(f => ({ ...f, expires_at: e.target.value }))}
                     className={iCls} style={{ colorScheme: 'dark' }} />
                 </AdField>
-              </div>
-
-              {/* Descripción */}
-              <div>
-                <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Descripción (qué hacen / qué ofrecen)</p>
-                <textarea value={sponsorV2Form.description} rows={3}
-                  onChange={e => setSponsorV2Form(f => ({ ...f, description: e.target.value }))}
-                  placeholder="Breve presentación de la marca, sin intención de vender..."
-                  className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
               </div>
 
               {/* Notas internas */}
@@ -2980,29 +2882,6 @@ export default function AdminPage() {
                   placeholder="Precio acordado, contacto, condiciones..."
                   className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
               </div>
-
-              {/* Mantener color */}
-              <button type="button"
-                onClick={() => setSponsorV2Form(f => ({ ...f, keep_color: !f.keep_color }))}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left transition-all"
-                style={{
-                  background: sponsorV2Form.keep_color ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${sponsorV2Form.keep_color ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}`,
-                }}>
-                <div className="shrink-0 rounded-full transition-all"
-                  style={{ width: 40, height: 24, background: sponsorV2Form.keep_color ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
-                  <span style={{
-                    position: 'absolute', top: 3,
-                    left: sponsorV2Form.keep_color ? 19 : 3,
-                    width: 18, height: 18, borderRadius: '50%',
-                    background: sponsorV2Form.keep_color ? '#000' : 'rgba(255,255,255,0.4)',
-                    transition: 'left 0.15s',
-                  }} />
-                </div>
-                <p className="text-sm" style={{ color: sponsorV2Form.keep_color ? '#efff42' : 'rgba(255,255,255,0.5)' }}>
-                  {sponsorV2Form.keep_color ? 'Mantener color original' : 'Logo en negro'}
-                </p>
-              </button>
 
               {sponsorV2Error && <p className="text-xs text-red-400">{sponsorV2Error}</p>}
               <button type="submit" disabled={savingSponsorsV2}
@@ -3107,12 +2986,6 @@ export default function AdminPage() {
                         {sp.active ? 'activo' : 'inactivo'}
                       </button>
                       <button
-                        onClick={() => setPreviewV2(sp)}
-                        className="text-xs px-3 py-1 rounded-full transition-all"
-                        style={{ border: '1px solid rgba(147,197,253,0.25)', color: '#93c5fd' }}>
-                        vista previa
-                      </button>
-                      <button
                         onClick={() => loadStatsV2(sp)}
                         className="text-xs px-3 py-1 rounded-full transition-all"
                         style={{ border: '1px solid rgba(167,243,208,0.25)', color: '#6ee7b7' }}>
@@ -3132,20 +3005,15 @@ export default function AdminPage() {
                           setEditingV2(sp.id)
                           setEditV2Form({
                             name: sp.name,
-                            description: sp.description || '',
+                            category: sp.description || '',
                             link: sp.link || '',
-                            whatsapp: sp.whatsapp || '',
                             level: sp.level,
                             city: sp.city || '',
                             country: sp.country || '',
-                            keep_color: sp.keep_color,
-                            starts_at: sp.starts_at ? sp.starts_at.slice(0, 10) : '',
                             expires_at: sp.expires_at ? sp.expires_at.slice(0, 10) : '',
                             notes: sp.notes || '',
-                            detail_logo_mode: sp.detail_logo_mode || 'white',
                             logo_scale: sp.logo_scale || 100,
                           })
-                          setEditV2DetailLogoFile(null); setEditV2DetailLogoPreview(null)
                         }}
                         className="text-xs px-3 py-1 rounded-full transition-all"
                         style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)' }}>
@@ -3205,16 +3073,12 @@ export default function AdminPage() {
                           <input value={editV2Form.name} onChange={e => setEditV2Form(f => ({ ...f, name: e.target.value }))} className={iCls} />
                         </div>
                         <div>
+                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Categoría</p>
+                          <input value={editV2Form.category} onChange={e => setEditV2Form(f => ({ ...f, category: e.target.value }))} placeholder="tinta, cremas, agujas..." className={iCls} />
+                        </div>
+                        <div>
                           <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Link</p>
                           <input value={editV2Form.link} onChange={e => setEditV2Form(f => ({ ...f, link: e.target.value }))} placeholder="https://..." className={iCls} />
-                        </div>
-                        <div>
-                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>WhatsApp</p>
-                          <input value={editV2Form.whatsapp} onChange={e => setEditV2Form(f => ({ ...f, whatsapp: e.target.value }))} placeholder="5491123456789" className={iCls} />
-                        </div>
-                        <div>
-                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Inicio</p>
-                          <input type="date" value={editV2Form.starts_at} onChange={e => setEditV2Form(f => ({ ...f, starts_at: e.target.value }))} className={iCls} style={{ colorScheme: 'dark' }} />
                         </div>
                         <div>
                           <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Vencimiento</p>
@@ -3222,89 +3086,11 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Descripción</p>
-                        <textarea value={editV2Form.description} rows={3}
-                          onChange={e => setEditV2Form(f => ({ ...f, description: e.target.value }))}
-                          className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
-                      </div>
-                      <div>
                         <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Notas internas</p>
                         <textarea value={editV2Form.notes} rows={2}
                           onChange={e => setEditV2Form(f => ({ ...f, notes: e.target.value }))}
                           placeholder="Precio acordado, contacto, condiciones..."
                           className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
-                      </div>
-                      {/* Imágenes */}
-                      <div className="flex gap-3 flex-wrap">
-                        <label className="cursor-pointer block flex-1 min-w-[140px]">
-                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Imagen de fondo</p>
-                          <div className="flex items-center gap-3">
-                            {editV2BgPreview || sp.bg_image_url ? (
-                              <div className="rounded-lg overflow-hidden" style={{ width: 80, height: 36, border: '1px solid rgba(255,255,255,0.1)' }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={editV2BgPreview || sp.bg_image_url!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              </div>
-                            ) : (
-                              <div className="rounded-lg flex items-center justify-center text-xs"
-                                style={{ width: 80, height: 36, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
-                                sin fondo
-                              </div>
-                            )}
-                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                              {editV2BgPreview ? 'nueva seleccionada' : 'clic para cambiar'}
-                            </span>
-                            <input type="file" accept="image/*" className="hidden"
-                              onChange={e => {
-                                const file = e.target.files?.[0]; if (!file) return
-                                setEditV2BgFile(file)
-                                setEditV2BgPreview(URL.createObjectURL(file))
-                              }} />
-                          </div>
-                        </label>
-                        <label className="cursor-pointer block flex-1 min-w-[140px]">
-                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Logo a color (modal)</p>
-                          <div className="flex items-center gap-3">
-                            {editV2DetailLogoPreview || sp.detail_logo_url ? (
-                              <div className="rounded-lg overflow-hidden flex items-center justify-center"
-                                style={{ width: 80, height: 36, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(239,255,66,0.2)' }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={editV2DetailLogoPreview || sp.detail_logo_url!} alt="" style={{ maxHeight: 28, maxWidth: 74, objectFit: 'contain' }} />
-                              </div>
-                            ) : (
-                              <div className="rounded-lg flex items-center justify-center text-xs"
-                                style={{ width: 80, height: 36, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
-                                sin color
-                              </div>
-                            )}
-                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                              {editV2DetailLogoPreview ? 'nueva seleccionada' : 'clic para cambiar'}
-                            </span>
-                            <input type="file" accept="image/*" className="hidden"
-                              onChange={e => {
-                                const file = e.target.files?.[0]; if (!file) return
-                                setEditV2DetailLogoFile(file)
-                                setEditV2DetailLogoPreview(URL.createObjectURL(file))
-                              }} />
-                          </div>
-                        </label>
-                      </div>
-                      {/* Modo logo modal */}
-                      <div>
-                        <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Logo en modal</p>
-                        <div className="flex gap-2">
-                          {([['white', 'Blanco'], ['color', 'Color'], ['shadow', 'Sombra']] as const).map(([val, label]) => (
-                            <button key={val} type="button"
-                              onClick={() => setEditV2Form(f => ({ ...f, detail_logo_mode: val }))}
-                              className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
-                              style={{
-                                background: editV2Form.detail_logo_mode === val ? '#efff42' : 'rgba(255,255,255,0.05)',
-                                color: editV2Form.detail_logo_mode === val ? '#000' : 'rgba(255,255,255,0.4)',
-                                border: `1px solid ${editV2Form.detail_logo_mode === val ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
-                              }}>
-                              {label}
-                            </button>
-                          ))}
-                        </div>
                       </div>
                       {/* Tamaño del logo */}
                       <div>
@@ -3316,16 +3102,6 @@ export default function AdminPage() {
                           onChange={e => setEditV2Form(f => ({ ...f, logo_scale: parseInt(e.target.value, 10) }))}
                           className="w-full" />
                       </div>
-                      <button type="button" onClick={() => setEditV2Form(f => ({ ...f, keep_color: !f.keep_color }))}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left"
-                        style={{ background: editV2Form.keep_color ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.03)', border: `1px solid ${editV2Form.keep_color ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}` }}>
-                        <div className="shrink-0 rounded-full" style={{ width: 36, height: 20, background: editV2Form.keep_color ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
-                          <span style={{ position: 'absolute', top: 2, left: editV2Form.keep_color ? 17 : 2, width: 16, height: 16, borderRadius: '50%', background: editV2Form.keep_color ? '#000' : 'rgba(255,255,255,0.4)', transition: 'left 0.15s' }} />
-                        </div>
-                        <p className="text-xs" style={{ color: editV2Form.keep_color ? '#efff42' : 'rgba(255,255,255,0.4)' }}>
-                          {editV2Form.keep_color ? 'Color original' : 'Logo en negro'}
-                        </p>
-                      </button>
                       <div className="flex gap-2 justify-end">
                         <button type="button" onClick={() => setEditingV2(null)}
                           className="px-4 py-2 rounded-lg text-xs"
@@ -3335,51 +3111,26 @@ export default function AdminPage() {
                         <button type="button" disabled={savingEditV2}
                           onClick={async () => {
                             setSavingEditV2(true)
-                            let r: Response
-                            if (editV2BgFile || editV2DetailLogoFile) {
-                              const fd = new FormData()
-                              if (editV2BgFile) fd.append('bg_image', editV2BgFile)
-                              if (editV2DetailLogoFile) fd.append('detail_logo', editV2DetailLogoFile)
-                              fd.append('name', editV2Form.name.trim())
-                              fd.append('description', editV2Form.description.trim())
-                              fd.append('link', editV2Form.link.trim())
-                              fd.append('whatsapp', editV2Form.whatsapp.trim())
-                              fd.append('level', editV2Form.level)
-                              fd.append('city', editV2Form.city.trim())
-                              fd.append('country', editV2Form.country.trim())
-                              fd.append('keep_color', String(editV2Form.keep_color))
-                              if (editV2Form.starts_at) fd.append('starts_at', new Date(editV2Form.starts_at).toISOString())
-                              if (editV2Form.expires_at) fd.append('expires_at', new Date(editV2Form.expires_at).toISOString())
-                              fd.append('notes', editV2Form.notes.trim())
-                              fd.append('detail_logo_mode', editV2Form.detail_logo_mode)
-                              fd.append('logo_scale', String(editV2Form.logo_scale))
-                              r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'PATCH', headers: H(pass), body: fd })
-                            } else {
-                              r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
-                                method: 'PATCH',
-                                headers: { ...H(pass), 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  name: editV2Form.name.trim(),
-                                  description: editV2Form.description.trim() || null,
-                                  link: editV2Form.link.trim() || null,
-                                  whatsapp: editV2Form.whatsapp.trim() || null,
-                                  level: editV2Form.level,
-                                  city: editV2Form.city.trim() || null,
-                                  country: editV2Form.country.trim() || null,
-                                  keep_color: editV2Form.keep_color,
-                                  ...(editV2Form.starts_at ? { starts_at: new Date(editV2Form.starts_at).toISOString() } : {}),
-                                  expires_at: editV2Form.expires_at ? new Date(editV2Form.expires_at).toISOString() : null,
-                                  notes: editV2Form.notes.trim() || null,
-                                  detail_logo_mode: editV2Form.detail_logo_mode,
-                                  logo_scale: editV2Form.logo_scale,
-                                }),
-                              })
-                            }
+                            const r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
+                              method: 'PATCH',
+                              headers: { ...H(pass), 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                name: editV2Form.name.trim(),
+                                description: editV2Form.category.trim() || null,
+                                link: editV2Form.link.trim() || null,
+                                level: editV2Form.level,
+                                city: editV2Form.city.trim() || null,
+                                country: editV2Form.country.trim() || null,
+                                keep_color: true,
+                                detail_logo_mode: 'color',
+                                expires_at: editV2Form.expires_at ? new Date(editV2Form.expires_at).toISOString() : null,
+                                notes: editV2Form.notes.trim() || null,
+                                logo_scale: editV2Form.logo_scale,
+                              }),
+                            })
                             const d = await r.json()
                             if (d.sponsor) setSponsorsV2(prev => prev.map(s => s.id === sp.id ? d.sponsor : s))
                             setEditingV2(null)
-                            setEditV2BgFile(null); setEditV2BgPreview(null)
-                            setEditV2DetailLogoFile(null); setEditV2DetailLogoPreview(null)
                             setSavingEditV2(false)
                           }}
                           className="px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
@@ -3394,69 +3145,6 @@ export default function AdminPage() {
               })}
             </div>
 
-            {/* Vista previa — réplica del modal público */}
-            {previewV2 && (
-              <div style={{ position: 'fixed', inset: 0, zIndex: 80, background: '#000', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={previewV2.bg_image_url || previewV2.logo_url} alt="" aria-hidden style={{
-                    position: 'absolute', inset: 0, width: '100%', height: '100%',
-                    objectFit: 'cover', objectPosition: 'center', transform: 'scale(1.04)', opacity: 0.6,
-                  }} />
-                </div>
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.93) 68%, rgba(0,0,0,1) 100%)',
-                }} />
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '20px 20px 0', display: 'flex', justifyContent: 'flex-end', zIndex: 3 }}>
-                  <button onClick={() => setPreviewV2(null)} style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: 14,
-                  }}>✕</button>
-                </div>
-                <div style={{
-                  position: 'absolute', inset: 0, zIndex: 2,
-                  display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center',
-                  padding: '80px 36px 32px',
-                }}>
-                  <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: '65%', maxWidth: 280, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={previewV2.detail_logo_url || previewV2.logo_url} alt={previewV2.name} style={{
-                        maxHeight: `${previewV2.logo_scale || 100}%`, maxWidth: `${previewV2.logo_scale || 100}%`, objectFit: 'contain',
-                        filter: previewV2.detail_logo_mode === 'color' ? 'none'
-                          : previewV2.detail_logo_mode === 'shadow' ? 'drop-shadow(0 0 10px rgba(255,255,255,0.95)) drop-shadow(0 0 4px rgba(255,255,255,0.8))'
-                          : 'brightness(0) invert(1)',
-                        opacity: 1,
-                      } as React.CSSProperties} />
-                    </div>
-                  </div>
-                  <div style={{ width: '100%', maxWidth: 480 }}>
-                    <p style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: '0 0 10px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>
-                      {previewV2.name}
-                    </p>
-                    {previewV2.description && (
-                      <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.52)', lineHeight: 1.75, margin: '0 0 28px' }}>
-                        {previewV2.description}
-                      </p>
-                    )}
-                    {previewV2.link ? (
-                      <a href={previewV2.link} target="_blank" rel="noopener noreferrer"
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 8,
-                          padding: '13px 26px', background: '#efff42', color: '#000',
-                          borderRadius: 14, fontSize: 14, fontWeight: 800, textDecoration: 'none',
-                        }}>Ver más →</a>
-                    ) : (
-                      <div style={{ height: 12 }} />
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
         ) : tab === 'agregar' ? (
