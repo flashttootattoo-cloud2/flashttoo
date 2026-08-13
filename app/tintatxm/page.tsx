@@ -1142,7 +1142,7 @@ export default function AdminPage() {
   const [sponsorsV2, setSponsorsV2]           = useState<SponsorV2Admin[]>([])
   const [bannerV2Active, setBannerV2Active]   = useState(false)
   const [savingBannerV2, setSavingBannerV2]   = useState(false)
-  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100 })
+  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
   const [savingSponsorsV2, setSavingSponsorsV2] = useState(false)
@@ -1218,7 +1218,7 @@ export default function AdminPage() {
   const [statsV2Sp, setStatsV2Sp]             = useState<SponsorV2Admin | null>(null)
   const [statsV2Data, setStatsV2Data]         = useState<StatsV2Data | null>(null)
   const [statsV2Loading, setStatsV2Loading]   = useState(false)
-  const [editV2Form, setEditV2Form]           = useState({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100 })
+  const [editV2Form, setEditV2Form]           = useState({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
   const [savingEditV2, setSavingEditV2]       = useState(false)
   const [conventions, setConventions]         = useState<Convention[]>([])
   const [convForm, setConvForm]               = useState({ name: '', link: '', expires_at: '', country: '' })
@@ -2765,11 +2765,12 @@ export default function AdminPage() {
                   if (sponsorV2Form.expires_at) fd.append('expires_at', new Date(sponsorV2Form.expires_at).toISOString())
                   fd.append('notes', sponsorV2Form.notes.trim())
                   fd.append('logo_scale', String(sponsorV2Form.logo_scale))
+                  fd.append('grid_logo_scale', String(sponsorV2Form.grid_logo_scale))
                   const r = await fetch('/api/admin/sponsors-v2', { method: 'POST', headers: H(pass), body: fd })
                   const d = await r.json()
                   if (!r.ok) throw new Error(d.error || 'Error')
                   setSponsorsV2(prev => [d.sponsor, ...prev])
-                  setSponsorV2Form({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100 })
+                  setSponsorV2Form({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
                   setSponsorV2Logo(null); setSponsorV2LogoPreview(null)
                 } catch (err: unknown) {
                   setSponsorV2Error(err instanceof Error ? err.message : 'Error')
@@ -2805,17 +2806,25 @@ export default function AdminPage() {
               </label>
 
               {/* Tamaño del logo */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tamaño del logo</p>
-                  <span className="text-xs font-bold" style={{ color: '#efff42' }}>{sponsorV2Form.logo_scale}%</span>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Tamaño en banner</p>
+                    <span className="text-xs font-bold" style={{ color: '#efff42' }}>{sponsorV2Form.logo_scale}%</span>
+                  </div>
+                  <input type="range" min={50} max={150} step={5} value={sponsorV2Form.logo_scale}
+                    onChange={e => setSponsorV2Form(f => ({ ...f, logo_scale: parseInt(e.target.value, 10) }))}
+                    className="w-full" />
                 </div>
-                <input type="range" min={50} max={150} step={5} value={sponsorV2Form.logo_scale}
-                  onChange={e => setSponsorV2Form(f => ({ ...f, logo_scale: parseInt(e.target.value, 10) }))}
-                  className="w-full" />
-                <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                  Ajustá si este logo se ve más chico o más grande que los demás (banner y vista de detalle).
-                </p>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Tamaño en grilla</p>
+                    <span className="text-xs font-bold" style={{ color: '#efff42' }}>{sponsorV2Form.grid_logo_scale}px</span>
+                  </div>
+                  <input type="range" min={30} max={150} step={5} value={sponsorV2Form.grid_logo_scale}
+                    onChange={e => setSponsorV2Form(f => ({ ...f, grid_logo_scale: parseInt(e.target.value, 10) }))}
+                    className="w-full" />
+                </div>
               </div>
 
               {/* Países */}
@@ -2983,6 +2992,7 @@ export default function AdminPage() {
                             expires_at: sp.expires_at ? sp.expires_at.slice(0, 10) : '',
                             notes: sp.notes || '',
                             logo_scale: sp.logo_scale || 100,
+                            grid_logo_scale: sp.grid_logo_scale || 100,
                           })
                         }}
                         className="text-xs px-3 py-1 rounded-full transition-all"
@@ -3036,14 +3046,25 @@ export default function AdminPage() {
                           className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
                       </div>
                       {/* Tamaño del logo */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Tamaño del logo</p>
-                          <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.logo_scale}%</span>
+                      <div className="flex flex-col gap-3">
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Tamaño en banner</p>
+                            <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.logo_scale}%</span>
+                          </div>
+                          <input type="range" min={50} max={150} step={5} value={editV2Form.logo_scale}
+                            onChange={e => setEditV2Form(f => ({ ...f, logo_scale: parseInt(e.target.value, 10) }))}
+                            className="w-full" />
                         </div>
-                        <input type="range" min={50} max={150} step={5} value={editV2Form.logo_scale}
-                          onChange={e => setEditV2Form(f => ({ ...f, logo_scale: parseInt(e.target.value, 10) }))}
-                          className="w-full" />
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Tamaño en grilla</p>
+                            <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.grid_logo_scale}px</span>
+                          </div>
+                          <input type="range" min={30} max={150} step={5} value={editV2Form.grid_logo_scale}
+                            onChange={e => setEditV2Form(f => ({ ...f, grid_logo_scale: parseInt(e.target.value, 10) }))}
+                            className="w-full" />
+                        </div>
                       </div>
                       <div className="flex gap-2 justify-end">
                         <button type="button" onClick={() => setEditingV2(null)}
@@ -3069,6 +3090,7 @@ export default function AdminPage() {
                                 expires_at: editV2Form.expires_at ? new Date(editV2Form.expires_at).toISOString() : null,
                                 notes: editV2Form.notes.trim() || null,
                                 logo_scale: editV2Form.logo_scale,
+                                grid_logo_scale: editV2Form.grid_logo_scale,
                               }),
                             })
                             const d = await r.json()

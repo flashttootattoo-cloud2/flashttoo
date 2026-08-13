@@ -18,7 +18,7 @@ export async function GET() {
 
   const { data } = await sb
     .from('sponsors_v2')
-    .select('id,name,logo_url,bg_image_url,detail_logo_url,detail_logo_mode,description,link,level,city,country,keep_color,logo_scale,whatsapp')
+    .select('id,name,logo_url,bg_image_url,detail_logo_url,detail_logo_mode,description,link,level,city,country,keep_color,logo_scale,grid_logo_scale,whatsapp')
     .eq('active', true)
     .lte('starts_at', now)
     .or(`expires_at.is.null,expires_at.gt.${now}`)

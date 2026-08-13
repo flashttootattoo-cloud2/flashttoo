@@ -9,7 +9,7 @@ function auth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
-const JSON_ALLOWED = ['active', 'name', 'description', 'link', 'whatsapp', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url', 'detail_logo_url', 'detail_logo_mode', 'notes', 'logo_scale']
+const JSON_ALLOWED = ['active', 'name', 'description', 'link', 'whatsapp', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url', 'detail_logo_url', 'detail_logo_mode', 'notes', 'logo_scale', 'grid_logo_scale']
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -48,6 +48,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (ls !== null) {
       const parsed = parseInt(ls as string, 10)
       patch.logo_scale = Number.isFinite(parsed) && parsed > 0 ? parsed : 100
+    }
+    const gs = form.get('grid_logo_scale')
+    if (gs !== null) {
+      const parsed = parseInt(gs as string, 10)
+      patch.grid_logo_scale = Number.isFinite(parsed) && parsed > 0 ? parsed : 100
     }
   } else {
     const body = await req.json()

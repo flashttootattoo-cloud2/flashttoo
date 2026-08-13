@@ -51,6 +51,8 @@ export async function POST(req: NextRequest) {
   const detail_logo_mode = (form.get('detail_logo_mode') as string)?.trim() || 'white'
   const logoScaleRaw     = parseInt((form.get('logo_scale') as string) || '', 10)
   const logo_scale       = Number.isFinite(logoScaleRaw) && logoScaleRaw > 0 ? logoScaleRaw : 100
+  const gridScaleRaw     = parseInt((form.get('grid_logo_scale') as string) || '', 10)
+  const grid_logo_scale  = Number.isFinite(gridScaleRaw) && gridScaleRaw > 0 ? gridScaleRaw : 100
   const startsRaw   = (form.get('starts_at') as string)?.trim() || null
   const expiresRaw  = (form.get('expires_at') as string)?.trim() || null
   const starts_at   = startsRaw  ? new Date(startsRaw).toISOString()  : new Date().toISOString()
@@ -67,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await client.from('sponsors_v2').insert({
       name, description, link, whatsapp, level, city, country, keep_color, starts_at, expires_at,
-      logo_url, bg_image_url, detail_logo_url, detail_logo_mode, notes, logo_scale,
+      logo_url, bg_image_url, detail_logo_url, detail_logo_mode, notes, logo_scale, grid_logo_scale,
       active: true,
     }).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

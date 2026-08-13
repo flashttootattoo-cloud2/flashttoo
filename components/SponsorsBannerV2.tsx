@@ -8,7 +8,7 @@ type Sponsor = {
   detail_logo_url: string | null; detail_logo_mode: string | null
   description: string | null; link: string | null; level: string
   city: string | null; country: string | null; keep_color: boolean | null
-  logo_scale: number | null; whatsapp: string | null
+  logo_scale: number | null; grid_logo_scale: number | null; whatsapp: string | null
 }
 
 type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null; country: string | null }
@@ -297,7 +297,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={s.logo_url} alt={s.name} style={{
-                        height: 56, width: '100%', objectFit: 'contain',
+                        maxHeight: s.grid_logo_scale || 100, width: '100%', objectFit: 'contain',
                         filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
                         opacity: s.keep_color ? 1 : 0.65,
                       }} />
