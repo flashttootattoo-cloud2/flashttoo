@@ -53,7 +53,7 @@ type SponsorV2Admin = {
   city: string | null; country: string | null; active: boolean
   keep_color: boolean; starts_at: string; expires_at: string | null
   created_at: string; notes: string | null; clicks: number; logo_scale: number | null
-  whatsapp: string | null
+  grid_logo_scale: number | null; whatsapp: string | null
 }
 
 type Convention = {
