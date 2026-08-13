@@ -297,7 +297,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={s.logo_url} alt={s.name} style={{
-                        maxHeight: 44, maxWidth: '90%', objectFit: 'contain',
+                        height: 56, width: '100%', objectFit: 'contain',
                         filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
                         opacity: s.keep_color ? 1 : 0.65,
                       }} />
