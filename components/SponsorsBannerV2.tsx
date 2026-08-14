@@ -118,7 +118,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       }
       if (ready && !dragRef.current.on) {
         posRef.current = (posRef.current + 0.2) % loopRef.current
-        if (trackRef.current) trackRef.current.style.transform = `translateX(-${posRef.current}px)`
+        if (trackRef.current) trackRef.current.style.transform = `translate3d(-${posRef.current}px,0,0)`
       }
       rafId = requestAnimationFrame(tick)
     }
@@ -192,7 +192,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     const dx = clientX - dragRef.current.startX
     if (Math.abs(dx) > 5) dragRef.current.moved = true
     posRef.current = ((dragRef.current.startPos - dx) % loopRef.current + loopRef.current) % loopRef.current
-    if (trackRef.current) trackRef.current.style.transform = `translateX(-${posRef.current}px)`
+    if (trackRef.current) trackRef.current.style.transform = `translate3d(-${posRef.current}px,0,0)`
   }
   const endDrag = () => { dragRef.current.on = false }
 
@@ -575,7 +575,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           }}>
           <div style={{ maxWidth: '80rem', margin: '0 auto', background: '#000', borderRadius: '14px 14px 0 0', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}>
             <div style={{ overflow: 'hidden', padding: '16px 16px 16px' }}>
-              <div ref={trackRef} style={{ display: 'flex', willChange: 'transform' }}>
+              <div ref={trackRef} style={{ display: 'flex', willChange: 'transform', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
                 <div ref={firstRef} style={{ display: 'flex', gap: bannerGap, paddingRight: bannerGap, flexShrink: 0 }}>
                   {sponsors.map(s => <Logo key={s.id} s={s} dragRef={dragRef} />)}
                 </div>
