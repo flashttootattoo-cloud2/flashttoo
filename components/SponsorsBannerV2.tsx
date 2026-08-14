@@ -575,7 +575,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           }}>
           <div style={{ maxWidth: '80rem', margin: '0 auto', background: '#000', borderRadius: '14px 14px 0 0', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}>
             <div style={{ overflow: 'hidden', padding: '16px 16px 16px' }}>
-              <div ref={trackRef} style={{ display: 'flex', willChange: 'transform', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+              <div ref={trackRef} style={{ display: 'flex', willChange: 'transform', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', isolation: 'isolate' }}>
                 <div ref={firstRef} style={{ display: 'flex', gap: bannerGap, paddingRight: bannerGap, flexShrink: 0 }}>
                   {sponsors.map(s => <Logo key={s.id} s={s} dragRef={dragRef} />)}
                 </div>
@@ -673,7 +673,7 @@ function Logo({ s, dragRef }: { s: Sponsor; dragRef: React.RefObject<{ moved: bo
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={s.logo_url} alt={s.name ?? ''} draggable={false}
-        style={{ height: h, width: 'auto', display: 'block', filter: s.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: s.keep_color ? 1 : 0.7 }}
+        style={{ height: h, width: 'auto', display: 'block', filter: s.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: s.keep_color ? 1 : 0.7, transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}
       />
     </div>
   )
