@@ -1142,6 +1142,8 @@ export default function AdminPage() {
   const [sponsorsV2, setSponsorsV2]           = useState<SponsorV2Admin[]>([])
   const [bannerV2Active, setBannerV2Active]   = useState(false)
   const [savingBannerV2, setSavingBannerV2]   = useState(false)
+  const [bannerGap, setBannerGap]             = useState(8)
+  const [savingBannerGap, setSavingBannerGap] = useState(false)
   const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
@@ -1318,6 +1320,7 @@ export default function AdminPage() {
       if (sp2.status === 'fulfilled') {
         setSponsorsV2(sp2.value.sponsors || [])
         setBannerV2Active(sp2.value.banner_active === true)
+        if (typeof sp2.value.banner_gap === 'number') setBannerGap(sp2.value.banner_gap)
       }
       if (conv.status === 'fulfilled') setConventions(conv.value.conventions || [])
       if (stu.status === 'fulfilled') setAdminStudios(stu.value.studios || [])
@@ -2743,6 +2746,38 @@ export default function AdminPage() {
               <p className="text-xs mt-3 font-bold" style={{ color: bannerV2Active ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
                 {bannerV2Active ? 'Activo' : 'Inactivo'}
               </p>
+            </div>
+
+            {/* Separación entre logos del banner */}
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Separación entre logos en banner</p>
+                <span className="text-xs font-bold" style={{ color: '#efff42' }}>{bannerGap}px</span>
+              </div>
+              <input type="range" min={0} max={60} step={2} value={bannerGap}
+                onChange={e => setBannerGap(parseInt(e.target.value, 10))}
+                onMouseUp={async e => {
+                  const val = parseInt((e.target as HTMLInputElement).value, 10)
+                  setSavingBannerGap(true)
+                  await fetch('/api/admin/settings', {
+                    method: 'PATCH',
+                    headers: { ...H(pass), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: 'sponsors_v2_banner_gap', value: val }),
+                  })
+                  setSavingBannerGap(false)
+                }}
+                onTouchEnd={async e => {
+                  const val = parseInt((e.target as HTMLInputElement).value, 10)
+                  setSavingBannerGap(true)
+                  await fetch('/api/admin/settings', {
+                    method: 'PATCH',
+                    headers: { ...H(pass), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: 'sponsors_v2_banner_gap', value: val }),
+                  })
+                  setSavingBannerGap(false)
+                }}
+                className="w-full" />
+              {savingBannerGap && <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Guardando...</p>}
             </div>
 
             {/* Formulario nuevo sponsor v2 */}

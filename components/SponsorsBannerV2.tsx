@@ -60,6 +60,7 @@ function filterSponsors(all: Sponsor[], city?: string, country?: string): Sponso
 export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false, showInsumos = true }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean; showInsumos?: boolean }) {
   const { t, language } = useTranslation()
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
+  const [bannerGap, setBannerGap] = useState(8)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -87,6 +88,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         allRef.current = [...all].sort(() => Math.random() - 0.5)
         const filtered = filterSponsors(allRef.current, city, country)
         setSponsors(filtered)
+        if (typeof d.banner_gap === 'number') setBannerGap(d.banner_gap)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -574,11 +576,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           <div style={{ maxWidth: '80rem', margin: '0 auto', background: '#000', borderRadius: '14px 14px 0 0', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}>
             <div style={{ overflow: 'hidden', padding: '16px 16px 16px' }}>
               <div ref={trackRef} style={{ display: 'flex', willChange: 'transform' }}>
-                <div ref={firstRef} style={{ display: 'flex', gap: 20, paddingRight: 20, flexShrink: 0 }}>
+                <div ref={firstRef} style={{ display: 'flex', gap: bannerGap, paddingRight: bannerGap, flexShrink: 0 }}>
                   {sponsors.map(s => <Logo key={s.id} s={s} dragRef={dragRef} />)}
                 </div>
                 {Array.from({ length: 3 }, (_, ci) => (
-                  <div key={ci} style={{ display: 'flex', gap: 20, paddingRight: 20, flexShrink: 0 }}>
+                  <div key={ci} style={{ display: 'flex', gap: bannerGap, paddingRight: bannerGap, flexShrink: 0 }}>
                     {sponsors.map(s => <Logo key={`${ci}-${s.id}`} s={s} dragRef={dragRef} />)}
                   </div>
                 ))}

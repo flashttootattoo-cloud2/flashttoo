@@ -26,11 +26,13 @@ export async function GET(req: NextRequest) {
     .not('expires_at', 'is', null)
     .lt('expires_at', now)
 
-  const [{ data: sponsors }, { data: setting }] = await Promise.all([
+  const [{ data: sponsors }, { data: setting }, { data: gapSetting }] = await Promise.all([
     client.from('sponsors_v2').select('*').order('expires_at', { ascending: true, nullsFirst: false }),
     client.from('settings').select('value').eq('key', 'sponsors_v2_banner_active').single(),
+    client.from('settings').select('value').eq('key', 'sponsors_v2_banner_gap').single(),
   ])
-  return NextResponse.json({ sponsors: sponsors || [], banner_active: setting?.value === true })
+  const banner_gap = typeof gapSetting?.value === 'number' ? gapSetting.value : 8
+  return NextResponse.json({ sponsors: sponsors || [], banner_active: setting?.value === true, banner_gap })
 }
 
 export async function POST(req: NextRequest) {

@@ -4,8 +4,12 @@ import { createClient } from '@supabase/supabase-js'
 export async function GET() {
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-  const { data: setting } = await sb.from('settings').select('value').eq('key', 'sponsors_v2_banner_active').single()
+  const [{ data: setting }, { data: gapSetting }] = await Promise.all([
+    sb.from('settings').select('value').eq('key', 'sponsors_v2_banner_active').single(),
+    sb.from('settings').select('value').eq('key', 'sponsors_v2_banner_gap').single(),
+  ])
   if (!setting || setting.value !== true) return NextResponse.json({ sponsors: [] })
+  const banner_gap = typeof gapSetting?.value === 'number' ? gapSetting.value : 8
 
   const now = new Date().toISOString()
 
@@ -23,5 +27,5 @@ export async function GET() {
     .lte('starts_at', now)
     .or(`expires_at.is.null,expires_at.gt.${now}`)
 
-  return NextResponse.json({ sponsors: data || [] })
+  return NextResponse.json({ sponsors: data || [], banner_gap })
 }
