@@ -2925,7 +2925,7 @@ export default function AdminPage() {
                     <div className="flex items-start gap-4">
                       <div className="shrink-0 flex flex-col gap-1">
                         <div className="rounded-lg flex items-center justify-center overflow-hidden"
-                          style={{ width: 80, height: 32, background: sp.keep_color ? '#fff' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          style={{ width: 80, height: 32, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={sp.logo_url} alt={sp.name} style={{ maxHeight: 26, maxWidth: 72, objectFit: 'contain', filter: sp.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sp.keep_color ? 1 : 0.6 }} />
                         </div>
@@ -3977,7 +3977,7 @@ export default function AdminPage() {
                   <div style={{
                     width: 160, height: 64,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: sponsor.keep_color ? '#fff' : 'rgba(255,255,255,0.04)',
+                    background: 'rgba(255,255,255,0.06)',
                     borderRadius: 16, padding: '10px 20px',
                     border: '1px solid rgba(255,255,255,0.07)',
                   }}>

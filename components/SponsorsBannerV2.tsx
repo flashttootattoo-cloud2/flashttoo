@@ -667,12 +667,13 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
 }
 
 function Logo({ s, dragRef }: { s: Sponsor; dragRef: React.RefObject<{ moved: boolean }> }) {
+  const h = Math.round(34 * (s.logo_scale || 100) / 100)
   const img = (
-    <div style={{ width: 100, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ height: 34, display: 'flex', alignItems: 'center' }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={s.logo_url} alt={s.name ?? ''} draggable={false}
-        style={{ maxHeight: `${s.logo_scale || 100}%`, maxWidth: `${s.logo_scale || 100}%`, objectFit: 'contain', filter: s.keep_color ? 'none' : 'brightness(0) invert(1)', display: 'block', opacity: s.keep_color ? 1 : 0.7 }}
+        style={{ height: h, width: 'auto', display: 'block', filter: s.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: s.keep_color ? 1 : 0.7 }}
       />
     </div>
   )
