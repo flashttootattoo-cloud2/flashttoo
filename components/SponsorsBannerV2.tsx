@@ -293,7 +293,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         <div style={{ width: 120, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 10px 12px 0' }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={s.logo_url} alt={s.name} style={{
-                            height: s.grid_logo_scale || 60, maxWidth: '100%', width: 'auto',
+                            height: s.grid_logo_scale || 90, maxWidth: '100%', width: 'auto',
                             objectFit: 'contain', display: 'block',
                             filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
                             opacity: s.keep_color ? 1 : 0.65,
@@ -302,8 +302,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         {/* Categoria + boton derecha — ocupa todo el espacio restante */}
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', padding: '12px 12px 12px 0', gap: 8 }}>
                           {s.description && (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', lineHeight: 1.45,
-                              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', lineHeight: 1.45 }}>
                               {s.description}
                             </span>
                           )}
