@@ -74,6 +74,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const firstRef      = useRef<HTMLDivElement>(null)
   const posRef        = useRef(0)
   const loopRef       = useRef(0)
+  const [extraCopies, setExtraCopies] = useState(4)
   const dragRef       = useRef({ on: false, startX: 0, startPos: 0, moved: false })
   const histDepthRef  = useRef(0)  // cuántos estados pushState tiene el overlay
   const skipPopsRef   = useRef(0)  // popstate a ignorar tras history.go(-n)
@@ -112,6 +113,8 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       if (!ready) {
         loopRef.current = firstRef.current?.getBoundingClientRect().width ?? 0
         if (loopRef.current > 0) {
+          const needed = Math.ceil(window.innerWidth / loopRef.current) + 2
+          setExtraCopies(needed)
           posRef.current = Math.random() * loopRef.current
           ready = true
         }
@@ -602,7 +605,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 <div ref={firstRef} style={{ display: 'flex', gap: bannerGap, paddingRight: bannerGap, flexShrink: 0 }}>
                   {sponsors.map(s => <Logo key={s.id} s={s} dragRef={dragRef} />)}
                 </div>
-                {Array.from({ length: 3 }, (_, ci) => (
+                {Array.from({ length: extraCopies }, (_, ci) => (
                   <div key={ci} style={{ display: 'flex', gap: bannerGap, paddingRight: bannerGap, flexShrink: 0 }}>
                     {sponsors.map(s => <Logo key={`${ci}-${s.id}`} s={s} dragRef={dragRef} />)}
                   </div>
