@@ -111,16 +111,22 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     let ready = false
     const tick = () => {
       if (!ready) {
-        loopRef.current = firstRef.current?.getBoundingClientRect().width ?? 0
-        if (loopRef.current > 0) {
-          const needed = Math.ceil(window.innerWidth / loopRef.current) + 2
+        const w = firstRef.current?.getBoundingClientRect().width ?? 0
+        if (w > 0) {
+          loopRef.current = w
+          const needed = Math.ceil(window.innerWidth / w) + 2
           setExtraCopies(needed)
-          posRef.current = Math.random() * loopRef.current
+          posRef.current = Math.random() * w
           ready = true
         }
       }
       if (ready && !dragRef.current.on) {
-        posRef.current = (posRef.current + 0.2) % loopRef.current
+        posRef.current += 0.2
+        if (posRef.current >= loopRef.current) {
+          // remedir en cada reset para mantener alineacion exacta
+          loopRef.current = firstRef.current?.getBoundingClientRect().width ?? loopRef.current
+          posRef.current -= loopRef.current
+        }
         if (trackRef.current) trackRef.current.style.transform = `translate3d(-${posRef.current}px,0,0)`
       }
       rafId = requestAnimationFrame(tick)
