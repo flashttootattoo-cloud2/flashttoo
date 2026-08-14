@@ -574,11 +574,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           <div style={{ maxWidth: '80rem', margin: '0 auto', background: '#000', borderRadius: '14px 14px 0 0', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}>
             <div style={{ overflow: 'hidden', padding: '16px 16px 16px' }}>
               <div ref={trackRef} style={{ display: 'flex', willChange: 'transform' }}>
-                <div ref={firstRef} style={{ display: 'flex', gap: 40, paddingRight: 40, flexShrink: 0 }}>
+                <div ref={firstRef} style={{ display: 'flex', gap: 20, paddingRight: 20, flexShrink: 0 }}>
                   {sponsors.map(s => <Logo key={s.id} s={s} dragRef={dragRef} />)}
                 </div>
                 {Array.from({ length: 3 }, (_, ci) => (
-                  <div key={ci} style={{ display: 'flex', gap: 40, paddingRight: 40, flexShrink: 0 }}>
+                  <div key={ci} style={{ display: 'flex', gap: 20, paddingRight: 20, flexShrink: 0 }}>
                     {sponsors.map(s => <Logo key={`${ci}-${s.id}`} s={s} dragRef={dragRef} />)}
                   </div>
                 ))}
