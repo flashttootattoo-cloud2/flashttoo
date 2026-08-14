@@ -278,42 +278,65 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     {t('insumos', 'no_results', 'Sin proveedores en ese país')}
                   </p>
                 )}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {gridSponsors.map(s => (
-                    <a
-                      key={s.id}
-                      href={s.link || undefined}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => {
-                        fetch(`/api/sponsors-v2/${s.id}/click`, { method: 'POST' }).catch(() => {})
-                        fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'banner_click' }) }).catch(() => {})
-                      }}
-                      style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        padding: '28px 16px 22px',
-                        textDecoration: 'none',
-                        cursor: s.link ? 'pointer' : 'default',
-                        gap: 10,
-                      }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={s.logo_url} alt={s.name} style={{
-                        height: s.grid_logo_scale || 60, maxWidth: '100%', width: 'auto',
-                        objectFit: 'contain', display: 'block',
-                        filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
-                        opacity: s.keep_color ? 1 : 0.65,
-                      }} />
-                      {s.description && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-                          textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)',
-                          textAlign: 'center', lineHeight: 1.3,
-                        }}>
-                          {s.description}
-                        </span>
-                      )}
-                    </a>
+                    <div key={s.id} style={{
+                      display: 'flex', alignItems: 'stretch', minHeight: 80,
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    }}>
+                      {/* Logo - mitad izquierda */}
+                      <div style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '14px 20px',
+                      }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={s.logo_url} alt={s.name} style={{
+                          height: s.grid_logo_scale || 60, maxWidth: '100%', width: 'auto',
+                          objectFit: 'contain', display: 'block',
+                          filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
+                          opacity: s.keep_color ? 1 : 0.65,
+                        }} />
+                      </div>
+
+                      {/* Separador amarillo */}
+                      <div style={{ width: 2, background: '#efff42', opacity: 0.55, margin: '14px 0', borderRadius: 1, flexShrink: 0 }} />
+
+                      {/* Categoria + boton - mitad derecha */}
+                      <div style={{
+                        flex: 1, display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        padding: '14px 16px', gap: 10,
+                      }}>
+                        {s.description && (
+                          <span style={{
+                            fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)',
+                            textAlign: 'center', lineHeight: 1.45,
+                          }}>
+                            {s.description}
+                          </span>
+                        )}
+                        {s.link && (
+                          <a
+                            href={s.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => {
+                              fetch(`/api/sponsors-v2/${s.id}/click`, { method: 'POST' }).catch(() => {})
+                              fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'banner_click' }) }).catch(() => {})
+                            }}
+                            style={{
+                              padding: '5px 16px', borderRadius: 6,
+                              background: '#efff42', color: '#000',
+                              fontSize: 11, fontWeight: 800, textDecoration: 'none',
+                              letterSpacing: '0.06em', textTransform: 'uppercase',
+                              flexShrink: 0,
+                            }}
+                          >
+                            Visitar
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
