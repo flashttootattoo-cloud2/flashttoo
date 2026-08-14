@@ -288,7 +288,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                   {gridSponsors.map((s, i) => (
                     <div key={s.id}>
                       {i > 0 && <div style={{ height: 4, background: '#efff42', opacity: 0.7, borderRadius: 2, margin: '0 0 0 0' }} />}
-                      <div style={{ display: 'flex', alignItems: 'flex-start', minHeight: 72 }}>
+                      <div style={{ display: 'flex', alignItems: 'stretch', minHeight: 72 }}>
                         {/* Logo izquierda — ancho fijo, pegado al margen */}
                         <div style={{ width: 120, flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '12px 10px 12px 0' }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -307,7 +307,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                             </span>
                           )}
                           {s.link && (
-                            <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+                            <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', marginTop: 'auto' }}>
                               <a href={s.link} target="_blank" rel="noopener noreferrer"
                                 onClick={() => {
                                   fetch(`/api/sponsors-v2/${s.id}/click`, { method: 'POST' }).catch(() => {})
