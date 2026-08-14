@@ -290,7 +290,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                       {i > 0 && <div style={{ height: 4, background: '#efff42', opacity: 0.7, borderRadius: 2, margin: '0 0 0 0' }} />}
                       <div style={{ display: 'flex', alignItems: 'stretch', minHeight: 72 }}>
                         {/* Logo izquierda — ancho fijo, pegado al margen */}
-                        <div style={{ width: 120, flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '12px 10px 12px 0' }}>
+                        <div style={{ width: 180, flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '12px 10px 12px 0' }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={s.logo_url} alt={s.name} style={{
                             height: s.grid_logo_scale || 90, maxWidth: '100%', width: 'auto',
