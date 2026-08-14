@@ -288,9 +288,9 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                   {gridSponsors.map((s, i) => (
                     <div key={s.id}>
                       {i > 0 && <div style={{ height: 4, background: '#efff42', opacity: 0.7, borderRadius: 2, margin: '0 0 0 0' }} />}
-                      <div style={{ display: 'flex', alignItems: 'center', minHeight: 80 }}>
-                        {/* Logo izquierda */}
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', minHeight: 72 }}>
+                        {/* Logo izquierda — ancho fijo, pegado al margen */}
+                        <div style={{ width: 120, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 10px 12px 0' }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={s.logo_url} alt={s.name} style={{
                             height: s.grid_logo_scale || 60, maxWidth: '100%', width: 'auto',
@@ -299,10 +299,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                             opacity: s.keep_color ? 1 : 0.65,
                           }} />
                         </div>
-                        {/* Categoria + boton derecha */}
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', padding: '14px 16px 14px 0', gap: 10 }}>
+                        {/* Categoria + boton derecha — ocupa todo el espacio restante */}
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', padding: '12px 12px 12px 0', gap: 8 }}>
                           {s.description && (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', textAlign: 'left', lineHeight: 1.45 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', lineHeight: 1.45,
+                              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                               {s.description}
                             </span>
                           )}
