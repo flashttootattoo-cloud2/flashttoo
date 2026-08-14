@@ -118,7 +118,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       }
       if (ready && !dragRef.current.on) {
         posRef.current = (posRef.current + 0.2) % loopRef.current
-        if (trackRef.current) trackRef.current.style.transform = `translate3d(-${Math.round(posRef.current)}px,0,0)`
+        if (trackRef.current) trackRef.current.style.transform = `translate3d(-${posRef.current}px,0,0)`
       }
       rafId = requestAnimationFrame(tick)
     }
