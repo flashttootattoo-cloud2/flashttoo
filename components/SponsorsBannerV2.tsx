@@ -273,9 +273,6 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none',
                   }}
                 />
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.22)', textAlign: 'center', marginBottom: 20 }}>
-                  {t('insumos', 'tap_hint', 'Tocá el logo para visitar al proveedor')}
-                </p>
                 {gridSponsors.length === 0 && (
                   <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
                     {t('insumos', 'no_results', 'Sin proveedores en ese país')}
@@ -304,15 +301,17 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                             </span>
                           )}
                           {s.link && (
-                            <a href={s.link} target="_blank" rel="noopener noreferrer"
-                              onClick={() => {
-                                fetch(`/api/sponsors-v2/${s.id}/click`, { method: 'POST' }).catch(() => {})
-                                fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'banner_click' }) }).catch(() => {})
-                              }}
-                              style={{ padding: '5px 16px', borderRadius: 6, background: '#efff42', color: '#000', fontSize: 11, fontWeight: 800, textDecoration: 'none', letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}
-                            >
-                              Visitar
-                            </a>
+                            <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+                              <a href={s.link} target="_blank" rel="noopener noreferrer"
+                                onClick={() => {
+                                  fetch(`/api/sponsors-v2/${s.id}/click`, { method: 'POST' }).catch(() => {})
+                                  fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'banner_click' }) }).catch(() => {})
+                                }}
+                                style={{ padding: '5px 16px', borderRadius: 6, background: '#efff42', color: '#000', fontSize: 11, fontWeight: 800, textDecoration: 'none', letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}
+                              >
+                                {t('insumos', 'visit_btn', 'Visitar')}
+                              </a>
+                            </div>
                           )}
                         </div>
                       </div>
