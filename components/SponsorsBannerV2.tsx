@@ -100,6 +100,14 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         setSponsors(filtered)
         if (typeof d.banner_gap === 'number') setBannerGap(d.banner_gap)
         setLoading(false)
+        // Abrir perfil directo si la URL trae ?insumo=<id>
+        const insumoId = new URLSearchParams(window.location.search).get('insumo')
+        if (insumoId && all.find(s => s.id === insumoId)) {
+          history.replaceState(null, '', window.location.pathname)
+          setSelectedId(insumoId)
+          history.pushState({ sv2: 'detail' }, '')
+          histDepthRef.current = 1
+        }
       })
       .catch(() => setLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
