@@ -605,7 +605,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                             cursor: 'pointer', display: 'flex', alignItems: 'center',
                             justifyContent: 'center', gap: 5, width: '100%',
                           }}>
-                            <span>{bioExpanded ? 'Ver menos' : 'Ver más'}</span>
+                            <span>{bioExpanded ? t('insumos', 'bio_less', 'Ver menos') : t('insumos', 'bio_more', 'Ver más')}</span>
                             <span style={{
                               fontSize: 13, display: 'inline-block',
                               transition: 'transform 0.2s',
