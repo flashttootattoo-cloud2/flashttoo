@@ -622,21 +622,8 @@ export default function Home() {
 
   const resetMigrate = () => { setMigrateMode(false); setMigrateSent(false); setMigrateEmail(''); setMigratePassword(''); setMigrateTyc(false); setMigrateError('') }
 
-  const deleteForMigration = async () => {
-    const artist = selectedRef.current
-    const key = editKeyVerifiedRef.current
-    if (!artist || !key || !migrateModeRef.current || migrateSentRef.current) return
-    await fetch(`/api/artists/${artist.id}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ editKey: key }),
-    })
-    setArtists(prev => prev.filter(a => a.id !== artist.id))
-  }
-
   const closeModal = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
-      deleteForMigration()
       setSelected(null)
       setEditOpen(false)
       setEditKey('')
@@ -649,7 +636,6 @@ export default function Home() {
   }, [])
 
   const closeModalFull = useCallback(() => {
-    deleteForMigration()
     setSelected(null)
     setEditOpen(false)
     setEditKey('')
@@ -1351,7 +1337,7 @@ export default function Home() {
                 {!selected.auth_email && (
                   <div className="mt-3 flex justify-center">
                     <button
-                      onClick={() => { if (migrateMode && !migrateSent) { deleteForMigration(); setSelected(null); resetMigrate(); setEditOpen(false) } else if (migrateMode && migrateSent) { setEditOpen(v => !v) } else { setEditOpen(v => !v); setEditKey(''); setEditKeyError('') } }}
+                      onClick={() => { if (migrateMode) { setEditOpen(v => !v) } else { setEditOpen(v => !v); setEditKey(''); setEditKeyError('') } }}
                       className="flex items-center justify-center px-3 py-1 rounded-full transition-all"
                       style={{ color: editOpen ? 'rgba(239,255,66,0.6)' : 'rgba(255,255,255,0.18)', fontSize: 20, letterSpacing: '-2px', lineHeight: 1 }}>
                       ···
@@ -1406,9 +1392,9 @@ export default function Home() {
               {/* Paso 2: form de migración (clave correcta) */}
               {migrateMode && !migrateSent && !migrateDoc && (
                 <>
-                  <p style={{ color: '#000', fontWeight: 800, fontSize: 12, marginBottom: 4 }}>{t('artista', 'migrate_title', 'Tu perfil está desactivado')}</p>
+                  <p style={{ color: '#000', fontWeight: 800, fontSize: 12, marginBottom: 4 }}>{t('artista', 'migrate_title', 'Tu perfil está desactualizado')}</p>
                   <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
-                    {t('artista', 'migrate_desc', 'Registrá un mail y contraseña para volver a aparecer. Si cerrás esta ventana perderás el perfil, pero podés volver a crear otro desde el botón ingresar.')}
+                    {t('artista', 'migrate_desc', 'En agosto de 2026 modificamos el ingreso a editar, para mejor manejo y seguridad de la plataforma. El acceso ahora es con mail y contraseña. Para no perder tu perfil ya armado, ingresá los datos abajo:')}
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <input
@@ -1478,14 +1464,14 @@ export default function Home() {
           {/* Aviso perfil desactivado — cuando cerró el panel sin migrar */}
           {migrateMode && !editOpen && !migrateSent && (
             <div style={{ background: '#efff42', borderRadius: 16, padding: '16px 20px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', marginTop: 4 }}>
-              <p style={{ color: '#000', fontWeight: 800, fontSize: 13, marginBottom: 4 }}>{t('artista', 'migrate_title', 'Tu perfil está desactivado')}</p>
+              <p style={{ color: '#000', fontWeight: 800, fontSize: 13, marginBottom: 4 }}>{t('artista', 'migrate_title', 'Tu perfil está desactualizado')}</p>
               <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
-                {t('artista', 'migrate_banner_desc', 'Para volver a aparecer en el buscador tenés que migrar al nuevo sistema de acceso.')}
+                {t('artista', 'migrate_banner_desc', 'Para poder editar tu perfil, actualizá el acceso con mail y contraseña. No perdés nada de lo que tenés armado.')}
               </p>
               <button
                 onClick={() => setEditOpen(true)}
                 style={{ background: '#000', color: '#efff42', fontWeight: 700, fontSize: 12, padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer', width: '100%' }}>
-                {t('artista', 'migrate_complete_btn', 'Completar migración →')}
+                {t('artista', 'migrate_complete_btn', 'Actualizar acceso →')}
               </button>
             </div>
           )}
