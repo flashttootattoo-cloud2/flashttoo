@@ -48,20 +48,26 @@ function matchesAny(stored: string | null, target: string): boolean {
   return targets.some(v => v === t || t.includes(v) || v.includes(t))
 }
 
-// Resuelve un término al emoji de bandera (null si no está en el mapa)
-function resolveFlag(term: string): string | null {
-  return COUNTRY_FLAGS[norm(term)] ?? null
+// Todas las banderas cuya clave contiene el query (búsqueda parcial multiidioma)
+function flagsMatchingQuery(query: string): Set<string> {
+  const q = norm(query)
+  const result = new Set<string>()
+  for (const [k, v] of Object.entries(COUNTRY_FLAGS)) {
+    if (k.includes(q)) result.add(v)
+  }
+  return result
 }
 
 // Busca en el campo country de un sponsor, cruzando sinónimos vía bandera
 function countryMatchesSearch(stored: string | null, query: string): boolean {
   if (!stored || !query) return false
   const queryNorm = norm(query)
-  const queryFlag = resolveFlag(query)
+  const matchingFlags = flagsMatchingQuery(query)
   return stored.split(',').some(c => {
     const cn = norm(c.trim())
     if (cn.includes(queryNorm) || queryNorm.includes(cn)) return true
-    if (queryFlag && resolveFlag(c.trim()) === queryFlag) return true
+    const flag = COUNTRY_FLAGS[cn]
+    if (flag && matchingFlags.has(flag)) return true
     return false
   })
 }
