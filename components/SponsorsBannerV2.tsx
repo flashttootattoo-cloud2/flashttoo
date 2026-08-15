@@ -10,7 +10,7 @@ type Sponsor = {
   link: string | null; level: string
   city: string | null; country: string | null; keep_color: boolean | null
   logo_scale: number | null; grid_logo_scale: number | null; whatsapp: string | null
-  bg_image_dark: number | null
+  bg_image_dark: number | null; logo_bg_color: string | null
 }
 
 type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null; country: string | null }
@@ -549,13 +549,23 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
 
                   {/* Logo centrado en el hero */}
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, paddingBottom: 40 }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={sel.detail_logo_url || sel.logo_url} alt={sel.name} style={{
-                      maxHeight: 130, maxWidth: '70%', objectFit: 'contain',
-                      filter: sel.detail_logo_mode === 'color' ? 'none'
-                        : sel.detail_logo_mode === 'shadow' ? 'drop-shadow(0 2px 24px rgba(255,255,255,0.5)) drop-shadow(0 0 6px rgba(255,255,255,0.3))'
-                        : 'brightness(0) invert(1) drop-shadow(0 2px 20px rgba(255,255,255,0.25))',
-                    } as React.CSSProperties} />
+                    <div style={sel.logo_bg_color ? {
+                      width: 160, height: 160, borderRadius: '50%',
+                      background: sel.logo_bg_color,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      padding: 24, boxSizing: 'border-box',
+                      boxShadow: '0 8px 40px rgba(0,0,0,0.4)',
+                    } : { display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={sel.detail_logo_url || sel.logo_url} alt={sel.name} style={{
+                        maxHeight: sel.logo_bg_color ? '100%' : 130,
+                        maxWidth: sel.logo_bg_color ? '100%' : '70%',
+                        objectFit: 'contain',
+                        filter: sel.detail_logo_mode === 'color' ? 'none'
+                          : sel.detail_logo_mode === 'shadow' ? 'drop-shadow(0 2px 24px rgba(255,255,255,0.5)) drop-shadow(0 0 6px rgba(255,255,255,0.3))'
+                          : 'brightness(0) invert(1) drop-shadow(0 2px 20px rgba(255,255,255,0.25))',
+                      } as React.CSSProperties} />
+                    </div>
                   </div>
 
                   {/* Nombre y tag flotando sobre el borde inferior del hero */}

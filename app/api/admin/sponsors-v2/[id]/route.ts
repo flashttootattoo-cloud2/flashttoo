@@ -9,7 +9,7 @@ function auth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
-const JSON_ALLOWED = ['active', 'name', 'description', 'bio', 'instagram', 'link', 'whatsapp', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url', 'bg_image_dark', 'detail_logo_url', 'detail_logo_mode', 'notes', 'logo_scale', 'grid_logo_scale']
+const JSON_ALLOWED = ['active', 'name', 'description', 'bio', 'instagram', 'link', 'whatsapp', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'bg_image_url', 'bg_image_dark', 'logo_bg_color', 'detail_logo_url', 'detail_logo_mode', 'notes', 'logo_scale', 'grid_logo_scale']
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -54,7 +54,7 @@ type SponsorV2Admin = {
   keep_color: boolean; starts_at: string; expires_at: string | null
   created_at: string; notes: string | null; clicks: number; logo_scale: number | null
   grid_logo_scale: number | null; whatsapp: string | null
-  bio: string | null; instagram: string | null; bg_image_dark: number | null
+  bio: string | null; instagram: string | null; bg_image_dark: number | null; logo_bg_color: string | null
 }
 
 type Convention = {
@@ -1221,7 +1221,7 @@ export default function AdminPage() {
   const [statsV2Sp, setStatsV2Sp]             = useState<SponsorV2Admin | null>(null)
   const [statsV2Data, setStatsV2Data]         = useState<StatsV2Data | null>(null)
   const [statsV2Loading, setStatsV2Loading]   = useState(false)
-  const [editV2Form, setEditV2Form]           = useState({ name: '', category: '', bio: '', instagram: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100, bg_image_dark: 0 })
+  const [editV2Form, setEditV2Form]           = useState({ name: '', category: '', bio: '', instagram: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100, bg_image_dark: 0, logo_bg_color: '' })
   const [insumoBgImages, setInsumoBgImages]   = useState<string[]>([])
   const [uploadingBg, setUploadingBg]         = useState(false)
   const [savingEditV2, setSavingEditV2]       = useState(false)
@@ -3105,6 +3105,7 @@ export default function AdminPage() {
                             logo_scale: sp.logo_scale || 100,
                             grid_logo_scale: sp.grid_logo_scale || 100,
                             bg_image_dark: sp.bg_image_dark ?? 0,
+                            logo_bg_color: sp.logo_bg_color || '',
                           })
                         }}
                         className="text-xs px-3 py-1 rounded-full transition-all"
@@ -3244,6 +3245,33 @@ export default function AdminPage() {
                             className="w-full" />
                         </div>
                       </div>
+
+                      {/* Color del círculo del logo */}
+                      <div>
+                        <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Círculo de fondo del logo</p>
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-full flex items-center justify-center" style={{
+                            width: 44, height: 44,
+                            background: editV2Form.logo_bg_color || 'rgba(255,255,255,0.04)',
+                            border: editV2Form.logo_bg_color ? 'none' : '2px dashed rgba(255,255,255,0.1)',
+                          }} />
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="color" value={editV2Form.logo_bg_color || '#ffffff'}
+                              onChange={e => setEditV2Form(f => ({ ...f, logo_bg_color: e.target.value }))}
+                              style={{ width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'none', padding: 0 }} />
+                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                              {editV2Form.logo_bg_color || 'Sin círculo'}
+                            </span>
+                          </label>
+                          {editV2Form.logo_bg_color && (
+                            <button type="button" onClick={() => setEditV2Form(f => ({ ...f, logo_bg_color: '' }))}
+                              className="text-xs" style={{ color: 'rgba(255,80,80,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                              Quitar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="flex gap-2 justify-end">
                         <button type="button" onClick={() => setEditingV2(null)}
                           className="px-4 py-2 rounded-lg text-xs"
@@ -3269,6 +3297,7 @@ export default function AdminPage() {
                               logo_scale: editV2Form.logo_scale,
                               grid_logo_scale: editV2Form.grid_logo_scale,
                               bg_image_dark: editV2Form.bg_image_dark,
+                              logo_bg_color: editV2Form.logo_bg_color || null,
                             }
                             let r: Response
                             if (editV2BgFile) {
