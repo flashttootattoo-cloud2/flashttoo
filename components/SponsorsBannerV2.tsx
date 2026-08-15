@@ -600,12 +600,17 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         {isLong && (
                           <button onClick={() => setBioExpanded(v => !v)} style={{
                             marginTop: 10, background: 'none', border: 'none',
-                            color: 'rgba(239,255,66,0.7)', fontSize: 18,
-                            cursor: 'pointer', display: 'block', width: '100%', textAlign: 'center',
-                            transition: 'transform 0.2s',
-                            transform: bioExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            color: 'rgba(239,255,66,0.7)', fontSize: 11, fontWeight: 700,
+                            letterSpacing: '0.06em', textTransform: 'uppercase',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', gap: 5, width: '100%',
                           }}>
-                            ↓
+                            <span>{bioExpanded ? 'Ver menos' : 'Ver más'}</span>
+                            <span style={{
+                              fontSize: 13, display: 'inline-block',
+                              transition: 'transform 0.2s',
+                              transform: bioExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            }}>↓</span>
                           </button>
                         )}
                       </div>
