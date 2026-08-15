@@ -48,6 +48,24 @@ function matchesAny(stored: string | null, target: string): boolean {
   return targets.some(v => v === t || t.includes(v) || v.includes(t))
 }
 
+// Resuelve un término al emoji de bandera (null si no está en el mapa)
+function resolveFlag(term: string): string | null {
+  return COUNTRY_FLAGS[norm(term)] ?? null
+}
+
+// Busca en el campo country de un sponsor, cruzando sinónimos vía bandera
+function countryMatchesSearch(stored: string | null, query: string): boolean {
+  if (!stored || !query) return false
+  const queryNorm = norm(query)
+  const queryFlag = resolveFlag(query)
+  return stored.split(',').some(c => {
+    const cn = norm(c.trim())
+    if (cn.includes(queryNorm) || queryNorm.includes(cn)) return true
+    if (queryFlag && resolveFlag(c.trim()) === queryFlag) return true
+    return false
+  })
+}
+
 function filterSponsors(all: Sponsor[], city?: string, country?: string): Sponsor[] {
   if (!city && !country) return all
   return all.filter(s => {
@@ -244,7 +262,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   )
 
   const allGridSponsors = gridSearch.trim()
-    ? filterSponsors(allRef.current, undefined, gridSearch.trim())
+    ? allRef.current.filter(s => countryMatchesSearch(s.country, gridSearch.trim()) || norm(s.name ?? '').includes(norm(gridSearch.trim())))
     : allRef.current
   const gridSponsors = allGridSponsors.slice(0, gridPage * GRID_PAGE_SIZE)
   const hasMore = gridSponsors.length < allGridSponsors.length
