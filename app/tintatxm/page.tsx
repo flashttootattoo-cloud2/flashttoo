@@ -54,6 +54,7 @@ type SponsorV2Admin = {
   keep_color: boolean; starts_at: string; expires_at: string | null
   created_at: string; notes: string | null; clicks: number; logo_scale: number | null
   grid_logo_scale: number | null; whatsapp: string | null
+  bio: string | null; instagram: string | null; bg_image_dark: number | null
 }
 
 type Convention = {
@@ -1144,7 +1145,7 @@ export default function AdminPage() {
   const [savingBannerV2, setSavingBannerV2]   = useState(false)
   const [bannerGap, setBannerGap]             = useState(8)
   const [savingBannerGap, setSavingBannerGap] = useState(false)
-  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
+  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', bio: '', instagram: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
   const [savingSponsorsV2, setSavingSponsorsV2] = useState(false)
@@ -1220,8 +1221,13 @@ export default function AdminPage() {
   const [statsV2Sp, setStatsV2Sp]             = useState<SponsorV2Admin | null>(null)
   const [statsV2Data, setStatsV2Data]         = useState<StatsV2Data | null>(null)
   const [statsV2Loading, setStatsV2Loading]   = useState(false)
-  const [editV2Form, setEditV2Form]           = useState({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
+  const [editV2Form, setEditV2Form]           = useState({ name: '', category: '', bio: '', instagram: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100, bg_image_dark: 0 })
+  const [insumoBgImages, setInsumoBgImages]   = useState<string[]>([])
+  const [uploadingBg, setUploadingBg]         = useState(false)
   const [savingEditV2, setSavingEditV2]       = useState(false)
+  const [editV2BgFile, setEditV2BgFile]         = useState<File | null>(null)
+  const [editV2BgPreview, setEditV2BgPreview]   = useState<string | null>(null)
+  const [editV2BgClear, setEditV2BgClear]       = useState(false)
   const [conventions, setConventions]         = useState<Convention[]>([])
   const [convForm, setConvForm]               = useState({ name: '', link: '', expires_at: '', country: '' })
   const [convImage, setConvImage]             = useState<File | null>(null)
@@ -1304,7 +1310,8 @@ export default function AdminPage() {
       fetch('/api/admin/sponsors-v2', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/conventions', { headers: H(p) }).then(r => r.json()),
       fetch('/api/admin/studios', { headers: H(p) }).then(r => r.json()),
-    ]).then(([a, b, v, cfg, ins, sp, sp2, conv, stu]) => {
+      fetch('/api/admin/insumos-bg', { headers: H(p) }).then(r => r.json()),
+    ]).then(([a, b, v, cfg, ins, sp, sp2, conv, stu, ibg]) => {
       if (a.status === 'fulfilled') {
         setArtists((a.value.artists || []).filter((x: Artist) => x.status !== 'pending'))
         setArtistsTotal(a.value.total ?? 0)
@@ -1324,6 +1331,7 @@ export default function AdminPage() {
       }
       if (conv.status === 'fulfilled') setConventions(conv.value.conventions || [])
       if (stu.status === 'fulfilled') setAdminStudios(stu.value.studios || [])
+      if (ibg.status === 'fulfilled') setInsumoBgImages(ibg.value.urls || [])
       if (cfg.status === 'fulfilled') {
         setModeration(cfg.value.settings?.moderation === true)
         setShowCount(cfg.value.settings?.show_count === true)
@@ -2780,6 +2788,55 @@ export default function AdminPage() {
               {savingBannerGap && <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Guardando...</p>}
             </div>
 
+            {/* Imágenes de fondo — Insumos */}
+            <div className="rounded-xl p-5 flex flex-col gap-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>FONDOS GRILLA INSUMOS</p>
+                <label className="cursor-pointer">
+                  <span className="text-xs px-3 py-1.5 rounded-lg font-bold"
+                    style={{ background: uploadingBg ? 'rgba(255,255,255,0.05)' : 'rgba(239,255,66,0.12)', color: uploadingBg ? 'rgba(255,255,255,0.3)' : '#efff42', border: '1px solid rgba(239,255,66,0.2)' }}>
+                    {uploadingBg ? 'Subiendo...' : '+ Agregar imagen'}
+                  </span>
+                  <input type="file" accept="image/*" className="hidden" disabled={uploadingBg}
+                    onChange={async e => {
+                      const file = e.target.files?.[0]; if (!file) return
+                      setUploadingBg(true)
+                      try {
+                        const fd = new FormData(); fd.append('image', file)
+                        const r = await fetch('/api/admin/insumos-bg', { method: 'POST', headers: H(pass), body: fd })
+                        const d = await r.json()
+                        if (d.urls) setInsumoBgImages(d.urls)
+                      } finally { setUploadingBg(false); e.target.value = '' }
+                    }} />
+                </label>
+              </div>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                Se elige una al azar cada vez que alguien abre la sección Insumos. Idealmente fotos de personas tatuadas.
+              </p>
+              {insumoBgImages.length === 0 ? (
+                <p className="text-xs text-center py-4" style={{ color: 'rgba(255,255,255,0.15)' }}>Sin imágenes cargadas</p>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  {insumoBgImages.map(url => (
+                    <div key={url} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '3/4' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <button
+                        onClick={async () => {
+                          if (!confirm('¿Borrar esta imagen?')) return
+                          const r = await fetch('/api/admin/insumos-bg', { method: 'DELETE', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+                          const d = await r.json()
+                          if (d.urls) setInsumoBgImages(d.urls)
+                        }}
+                        style={{ position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Formulario nuevo sponsor v2 */}
             <form
               onSubmit={async e => {
@@ -2791,6 +2848,8 @@ export default function AdminPage() {
                   fd.append('logo', sponsorV2Logo)
                   fd.append('name', sponsorV2Form.name.trim())
                   fd.append('description', sponsorV2Form.category.trim())
+                  fd.append('bio', sponsorV2Form.bio.trim())
+                  fd.append('instagram', sponsorV2Form.instagram.trim())
                   fd.append('link', sponsorV2Form.link.trim())
                   fd.append('level', sponsorV2Form.country.trim() ? 'country' : 'global')
                   fd.append('city', '')
@@ -2805,7 +2864,7 @@ export default function AdminPage() {
                   const d = await r.json()
                   if (!r.ok) throw new Error(d.error || 'Error')
                   setSponsorsV2(prev => [d.sponsor, ...prev])
-                  setSponsorV2Form({ name: '', category: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
+                  setSponsorV2Form({ name: '', category: '', bio: '', instagram: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
                   setSponsorV2Logo(null); setSponsorV2LogoPreview(null)
                 } catch (err: unknown) {
                   setSponsorV2Error(err instanceof Error ? err.message : 'Error')
@@ -2886,6 +2945,20 @@ export default function AdminPage() {
                   <input type="date" value={sponsorV2Form.expires_at} onChange={e => setSponsorV2Form(f => ({ ...f, expires_at: e.target.value }))}
                     className={iCls} style={{ colorScheme: 'dark' }} />
                 </AdField>
+              </div>
+
+              {/* Bio e Instagram */}
+              <div>
+                <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Bio / Historia de la marca</p>
+                <textarea value={sponsorV2Form.bio} rows={3}
+                  onChange={e => setSponsorV2Form(f => ({ ...f, bio: e.target.value }))}
+                  placeholder="Contá la historia de la marca, dónde opera, qué hace..."
+                  className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
+              </div>
+              <div>
+                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Instagram (sin @)</p>
+                <input value={sponsorV2Form.instagram} onChange={e => setSponsorV2Form(f => ({ ...f, instagram: e.target.value }))}
+                  placeholder="nombredemarca" className={iCls} />
               </div>
 
               {/* Notas internas */}
@@ -3017,9 +3090,12 @@ export default function AdminPage() {
                       <button
                         onClick={() => {
                           setEditingV2(sp.id)
+                          setEditV2BgFile(null); setEditV2BgPreview(null); setEditV2BgClear(false)
                           setEditV2Form({
                             name: sp.name,
                             category: sp.description || '',
+                            bio: sp.bio || '',
+                            instagram: sp.instagram || '',
                             link: sp.link || '',
                             level: sp.level,
                             city: sp.city || '',
@@ -3028,6 +3104,7 @@ export default function AdminPage() {
                             notes: sp.notes || '',
                             logo_scale: sp.logo_scale || 100,
                             grid_logo_scale: sp.grid_logo_scale || 100,
+                            bg_image_dark: sp.bg_image_dark ?? 0,
                           })
                         }}
                         className="text-xs px-3 py-1 rounded-full transition-all"
@@ -3050,6 +3127,60 @@ export default function AdminPage() {
                   {/* Edición inline */}
                   {editingV2 === sp.id && (
                     <div className="mt-3 pt-4 flex flex-col gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+
+                      {/* Imagen de fondo */}
+                      <div>
+                        <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Imagen de fondo del perfil</p>
+                        <div className="flex items-center gap-3">
+                          <label className="cursor-pointer">
+                            {(editV2BgPreview || (sp.bg_image_url && !editV2BgClear)) ? (
+                              <div className="rounded-lg overflow-hidden" style={{ width: 80, height: 50, border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={editV2BgPreview || sp.bg_image_url!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                {editV2BgPreview && <span className="absolute inset-0 flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(239,255,66,0.15)', color: '#efff42' }}>nueva</span>}
+                              </div>
+                            ) : (
+                              <div className="rounded-lg flex items-center justify-center text-xs" style={{ width: 80, height: 50, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
+                                sin foto
+                              </div>
+                            )}
+                            <input type="file" accept="image/*" className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0]; if (!file) return
+                                setEditV2BgFile(file)
+                                setEditV2BgPreview(URL.createObjectURL(file))
+                                setEditV2BgClear(false)
+                              }} />
+                          </label>
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                              {editV2BgPreview ? 'Foto nueva seleccionada' : editV2BgClear ? 'Se borrará al guardar' : 'Tocar para cambiar'}
+                            </span>
+                            {(editV2BgPreview || (sp.bg_image_url && !editV2BgClear)) && (
+                              <button type="button"
+                                onClick={() => { setEditV2BgFile(null); setEditV2BgPreview(null); setEditV2BgClear(true) }}
+                                className="text-xs text-left"
+                                style={{ color: 'rgba(255,80,80,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                Borrar imagen
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Oscurecimiento imagen de fondo */}
+                      {(editV2BgPreview || (sp.bg_image_url && !editV2BgClear)) && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Oscurecer imagen de fondo</p>
+                            <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.bg_image_dark}%</span>
+                          </div>
+                          <input type="range" min={0} max={80} step={5} value={editV2Form.bg_image_dark}
+                            onChange={e => setEditV2Form(f => ({ ...f, bg_image_dark: parseInt(e.target.value, 10) }))}
+                            className="w-full" />
+                        </div>
+                      )}
+
                       <div>
                         <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Países (separar con coma, vacío = todos)</p>
                         <input value={editV2Form.country} onChange={e => setEditV2Form(f => ({ ...f, country: e.target.value }))}
@@ -3079,6 +3210,18 @@ export default function AdminPage() {
                           onChange={e => setEditV2Form(f => ({ ...f, notes: e.target.value }))}
                           placeholder="Precio acordado, contacto, condiciones..."
                           className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
+                      </div>
+                      <div>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Bio / Historia</p>
+                        <textarea value={editV2Form.bio} rows={3}
+                          onChange={e => setEditV2Form(f => ({ ...f, bio: e.target.value }))}
+                          placeholder="Historia de la marca..."
+                          className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
+                      </div>
+                      <div>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Instagram (sin @)</p>
+                        <input value={editV2Form.instagram} onChange={e => setEditV2Form(f => ({ ...f, instagram: e.target.value }))}
+                          placeholder="nombredemarca" className={iCls} />
                       </div>
                       {/* Tamaño del logo */}
                       <div className="flex flex-col gap-3">
@@ -3110,27 +3253,42 @@ export default function AdminPage() {
                         <button type="button" disabled={savingEditV2}
                           onClick={async () => {
                             setSavingEditV2(true)
-                            const r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
-                              method: 'PATCH',
-                              headers: { ...H(pass), 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                name: editV2Form.name.trim(),
-                                description: editV2Form.category.trim() || null,
-                                link: editV2Form.link.trim() || null,
-                                level: editV2Form.country.trim() ? 'country' : 'global',
-                                city: null,
-                                country: editV2Form.country.trim() || null,
-                                keep_color: true,
-                                detail_logo_mode: 'color',
-                                expires_at: editV2Form.expires_at ? new Date(editV2Form.expires_at).toISOString() : null,
-                                notes: editV2Form.notes.trim() || null,
-                                logo_scale: editV2Form.logo_scale,
-                                grid_logo_scale: editV2Form.grid_logo_scale,
-                              }),
-                            })
+                            const jsonBase = {
+                              name: editV2Form.name.trim(),
+                              description: editV2Form.category.trim() || null,
+                              bio: editV2Form.bio.trim() || null,
+                              instagram: editV2Form.instagram.trim() || null,
+                              link: editV2Form.link.trim() || null,
+                              level: editV2Form.country.trim() ? 'country' : 'global',
+                              city: null as null,
+                              country: editV2Form.country.trim() || null,
+                              keep_color: true,
+                              detail_logo_mode: 'color',
+                              expires_at: editV2Form.expires_at ? new Date(editV2Form.expires_at).toISOString() : null,
+                              notes: editV2Form.notes.trim() || null,
+                              logo_scale: editV2Form.logo_scale,
+                              grid_logo_scale: editV2Form.grid_logo_scale,
+                              bg_image_dark: editV2Form.bg_image_dark,
+                            }
+                            let r: Response
+                            if (editV2BgFile) {
+                              const fd = new FormData()
+                              fd.append('bg_image', editV2BgFile)
+                              for (const [k, v] of Object.entries(jsonBase)) fd.append(k, v === null ? '' : String(v))
+                              r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'PATCH', headers: H(pass), body: fd })
+                            } else {
+                              r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
+                                method: 'PATCH',
+                                headers: { ...H(pass), 'Content-Type': 'application/json' },
+                                body: JSON.stringify(editV2BgClear ? { ...jsonBase, bg_image_url: null } : jsonBase),
+                              })
+                            }
                             const d = await r.json()
                             if (d.sponsor) setSponsorsV2(prev => prev.map(s => s.id === sp.id ? d.sponsor : s))
                             setEditingV2(null)
+                            setEditV2BgFile(null)
+                            setEditV2BgPreview(null)
+                            setEditV2BgClear(false)
                             setSavingEditV2(false)
                           }}
                           className="px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-40"

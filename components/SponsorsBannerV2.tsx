@@ -6,9 +6,11 @@ import { useTranslation } from '@/contexts/TranslationContext'
 type Sponsor = {
   id: string; name: string; logo_url: string; bg_image_url: string | null
   detail_logo_url: string | null; detail_logo_mode: string | null
-  description: string | null; link: string | null; level: string
+  description: string | null; bio: string | null; instagram: string | null
+  link: string | null; level: string
   city: string | null; country: string | null; keep_color: boolean | null
   logo_scale: number | null; grid_logo_scale: number | null; whatsapp: string | null
+  bg_image_dark: number | null
 }
 
 type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null; country: string | null }
@@ -67,8 +69,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const [gridSearch, setGridSearch] = useState('')
   const [convView, setConvView] = useState(!showInsumos)
   const [convCountrySearch, setConvCountrySearch] = useState('')
+  const [gridBgImage, setGridBgImage] = useState<string | null>(null)
+  const [bioExpanded, setBioExpanded] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
   const [mailCopied, setMailCopied] = useState(false)
+  const bgImagesRef   = useRef<string[]>([])
   const allRef        = useRef<Sponsor[]>([])
   const trackRef      = useRef<HTMLDivElement>(null)
   const firstRef      = useRef<HTMLDivElement>(null)
@@ -87,6 +92,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       .then(d => {
         const all = (d.sponsors ?? []) as Sponsor[]
         allRef.current = [...all].sort(() => Math.random() - 0.5)
+        bgImagesRef.current = Array.isArray(d.bg_images) ? d.bg_images : []
         const filtered = filterSponsors(allRef.current, city, country)
         setSponsors(filtered)
         if (typeof d.banner_gap === 'number') setBannerGap(d.banner_gap)
@@ -140,6 +146,9 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     if (expanded && sponsors.length) {
       history.pushState({ sv2: 'grid' }, '')
       histDepthRef.current = 1
+      if (bgImagesRef.current.length > 0) {
+        setGridBgImage(bgImagesRef.current[Math.floor(Math.random() * bgImagesRef.current.length)])
+      }
     }
     if (!expanded) {
       setSelectedId(null)
@@ -175,6 +184,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const openSponsor = (id: string) => {
     history.pushState({ sv2: 'detail' }, '')
     histDepthRef.current++
+    setBioExpanded(false)
     setSelectedId(id)
     fetch(`/api/sponsors-v2/${id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_open' }) }).catch(() => {})
   }
@@ -228,15 +238,28 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
 
   return (
     <>
-      {/* Grilla de logos — fondo oscuro */}
+      {/* Grilla de logos */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 60,
-        background: '#0d0d0d',
+        background: '#0a0a0a',
         transform: expanded ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         overflow: 'hidden',
       }}>
-        <div style={{ height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        {/* Imagen de fondo fija — no se mueve con el scroll */}
+        {gridBgImage && !convView && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={gridBgImage} alt="" aria-hidden style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              objectFit: 'cover', objectPosition: 'center 30%',
+              zIndex: 0,
+            }} />
+            <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'rgba(0,0,0,0.72)' }} />
+          </>
+        )}
+
+        <div style={{ height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 2 }}>
           <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '28px 20px 100px' }}>
             {/* Header */}
             <p style={{ textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', marginBottom: 20 }}>
@@ -284,43 +307,38 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     {t('insumos', 'no_results', 'Sin proveedores en ese país')}
                   </p>
                 )}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {gridSponsors.map((s, i) => (
-                    <div key={s.id}>
-                      {i > 0 && <div style={{ height: 4, background: '#efff42', opacity: 0.7, borderRadius: 2, margin: '0 0 0 0' }} />}
-                      <div style={{ display: 'flex', alignItems: 'stretch', minHeight: 72 }}>
-                        {/* Logo izquierda — ancho fijo, pegado al margen */}
-                        <div style={{ width: 180, flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '12px 10px 12px 0' }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={s.logo_url} alt={s.name} style={{
-                            height: s.grid_logo_scale || 90, maxWidth: '100%', width: 'auto',
-                            objectFit: 'contain', display: 'block',
-                            filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
-                            opacity: s.keep_color ? 1 : 0.65,
-                          }} />
-                        </div>
-                        {/* Categoria + boton derecha — ocupa todo el espacio restante */}
-                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', padding: '12px 12px 12px 0', gap: 8 }}>
-                          {s.description && (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', lineHeight: 1.45 }}>
-                              {s.description}
-                            </span>
-                          )}
-                          {s.link && (
-                            <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', marginTop: 'auto' }}>
-                              <a href={s.link} target="_blank" rel="noopener noreferrer"
-                                onClick={() => {
-                                  fetch(`/api/sponsors-v2/${s.id}/click`, { method: 'POST' }).catch(() => {})
-                                  fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'banner_click' }) }).catch(() => {})
-                                }}
-                                style={{ padding: '5px 16px', borderRadius: 6, background: '#efff42', color: '#000', fontSize: 11, fontWeight: 800, textDecoration: 'none', letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}
-                              >
-                                {t('insumos', 'visit_btn', 'Visitar')}
-                              </a>
-                            </div>
-                          )}
-                        </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                  {gridSponsors.map(s => (
+                    <div key={s.id} onClick={() => openSponsor(s.id)} style={{
+                      borderRadius: 16,
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      background: gridBgImage ? 'rgba(255,255,255,0.07)' : '#111',
+                      backdropFilter: gridBgImage ? 'blur(20px)' : 'none',
+                      WebkitBackdropFilter: gridBgImage ? 'blur(20px)' : 'none',
+                      boxShadow: gridBgImage ? '0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1)' : 'none',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      cursor: 'pointer',
+                    }}>
+                      {/* Logo centrado */}
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 20px 16px' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={s.logo_url} alt={s.name} style={{
+                          height: s.grid_logo_scale || 90, maxWidth: '100%', width: 'auto',
+                          objectFit: 'contain', display: 'block',
+                          filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
+                          opacity: s.keep_color ? 1 : 0.65,
+                        }} />
                       </div>
+                      {/* Etiqueta */}
+                      {s.description && (
+                        <div style={{ padding: '0 12px 14px' }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, textAlign: 'center', display: 'block' }}>
+                            {s.description}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -448,119 +466,189 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       {/* Modal full-screen de detalle */}
       {(() => {
         const sel = allRef.current.find(s => s.id === selectedId) ?? null
-        const visible = expanded && !!selectedId
+        const visible = !!selectedId
         return (
           <div style={{
             position: 'fixed', inset: 0, zIndex: 61,
-            background: '#000',
-            opacity: visible ? 1 : 0,
+            background: '#0a0a0a',
+            transform: visible ? 'translateY(0)' : 'translateY(100%)',
             pointerEvents: visible ? 'auto' : 'none',
-            transition: 'opacity 0.3s ease',
+            transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             overflow: 'hidden',
           }}>
+            {/* Logo grande blureado — fijo, no se mueve con el scroll */}
             {sel && (
-              <>
-                {/* Imagen de fondo desenfocada */}
-                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={sel.bg_image_url || sel.logo_url} alt="" aria-hidden style={{
-                    position: 'absolute', inset: 0,
-                    width: '100%', height: '100%',
-                    objectFit: 'cover',
-                    objectPosition: 'center',
-                    transform: 'scale(1.04)',
-                    opacity: 0.6,
-                  }} />
-                </div>
-
-                {/* Gradiente oscuro — legibilidad del texto abajo */}
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.93) 68%, rgba(0,0,0,1) 100%)',
+              <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={sel.detail_logo_url || sel.logo_url} alt="" aria-hidden style={{
+                  position: 'absolute', top: '50%', left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '160%', height: '160%',
+                  objectFit: 'contain',
+                  filter: 'blur(60px) brightness(0.5)',
+                  opacity: 1,
+                  pointerEvents: 'none',
                 }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(8,8,8,0.35)' }} />
+              </div>
+            )}
 
-                {/* Botones de navegación */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '20px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 3 }}>
-                  <button onClick={closeDetail} style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', color: '#fff', fontSize: 16,
-                  }}>←</button>
-                  <button onClick={closeAll} style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: 14,
-                  }}>✕</button>
-                </div>
+            {sel && (
+              <div style={{ height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 1 }}>
 
-                {/* Contenido centrado — logo arriba */}
-                <div style={{
-                  position: 'absolute', inset: 0, zIndex: 2,
-                  display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center',
-                  padding: '80px 36px 32px',
-                }}>
-                  {/* Logo */}
-                  <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: '65%', maxWidth: 280, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={sel.detail_logo_url || sel.logo_url} alt={sel.name} style={{
-                        maxHeight: `${sel.logo_scale || 100}%`, maxWidth: `${sel.logo_scale || 100}%`, objectFit: 'contain',
-                        filter: sel.detail_logo_mode === 'color' ? 'none'
-                          : sel.detail_logo_mode === 'shadow' ? 'drop-shadow(0 0 10px rgba(255,255,255,0.95)) drop-shadow(0 0 4px rgba(255,255,255,0.8))'
-                          : 'brightness(0) invert(1)',
-                        opacity: 1,
-                      } as React.CSSProperties} />
-                    </div>
+                {/* ── HERO ── */}
+                <div style={{ position: 'relative', height: '58vh', minHeight: 300, overflow: 'hidden' }}>
+
+                  {/* Imagen de fondo del hero */}
+                  {sel.bg_image_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={sel.bg_image_url} alt="" aria-hidden style={{
+                      position: 'absolute', inset: 0, width: '100%', height: '100%',
+                      objectFit: 'cover', objectPosition: 'center',
+                      transform: 'scale(1.04)',
+                      opacity: 0.75,
+                    }} />
+                  ) : null}
+
+                  {/* Gradiente para legibilidad del texto — más suave si hay foto */}
+                  <div style={{ position: 'absolute', inset: 0, background: sel.bg_image_url
+                    ? 'linear-gradient(to bottom, rgba(8,8,8,0.25) 0%, rgba(8,8,8,0.05) 30%, rgba(8,8,8,0.6) 70%, rgba(8,8,8,1) 100%)'
+                    : 'linear-gradient(to bottom, rgba(8,8,8,0.5) 0%, rgba(8,8,8,0.15) 35%, rgba(8,8,8,0.75) 75%, rgba(8,8,8,1) 100%)',
+                  }} />
+                  {/* Oscurecimiento adicional configurable */}
+                  {sel.bg_image_url && (sel.bg_image_dark ?? 0) > 0 && (
+                    <div style={{ position: 'absolute', inset: 0, background: `rgba(0,0,0,${((sel.bg_image_dark ?? 0) / 100).toFixed(2)})` }} />
+                  )}
+
+                  {/* Halo de luz detrás del logo */}
+                  <div style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -58%)',
+                    width: 260, height: 260, borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(239,255,66,0.09) 0%, rgba(239,255,66,0.03) 40%, transparent 70%)',
+                    filter: 'blur(18px)',
+                    pointerEvents: 'none',
+                  }} />
+
+                  {/* Nav */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '18px 18px 0', display: 'flex', justifyContent: 'space-between', zIndex: 4 }}>
+                    <button onClick={closeDetail} style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 16 }}>←</button>
+                    <button onClick={closeAll} style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.55)', fontSize: 14 }}>✕</button>
                   </div>
 
-                  {/* Texto y botón */}
-                  <div style={{ width: '100%', maxWidth: 480 }}>
-                    <p style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: '0 0 6px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>
+                  {/* Logo centrado en el hero */}
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, paddingBottom: 40 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={sel.detail_logo_url || sel.logo_url} alt={sel.name} style={{
+                      maxHeight: 130, maxWidth: '70%', objectFit: 'contain',
+                      filter: sel.detail_logo_mode === 'color' ? 'none'
+                        : sel.detail_logo_mode === 'shadow' ? 'drop-shadow(0 2px 24px rgba(255,255,255,0.5)) drop-shadow(0 0 6px rgba(255,255,255,0.3))'
+                        : 'brightness(0) invert(1) drop-shadow(0 2px 20px rgba(255,255,255,0.25))',
+                    } as React.CSSProperties} />
+                  </div>
+
+                  {/* Nombre y tag flotando sobre el borde inferior del hero */}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 24px 24px', zIndex: 3 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.05, letterSpacing: '-0.03em', textShadow: '0 2px 20px rgba(0,0,0,0.8)' }}>
                       {sel.name}
-                    </p>
-                    {(sel.city || sel.country) && (
-                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', margin: '0 0 12px' }}>
-                        {countryFlag(sel.country)}{[sel.country, sel.city].filter(Boolean).join(', ')}
-                      </p>
-                    )}
+                    </h1>
                     {sel.description && (
-                      <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.52)', lineHeight: 1.75, margin: '0 0 28px' }}>
+                      <span style={{ display: 'inline-block', marginTop: 10, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.8)', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.2)', borderRadius: 999, padding: '3px 10px' }}>
                         {sel.description}
-                      </p>
+                      </span>
                     )}
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                      {sel.link && (
-                        <a href={sel.link} target="_blank" rel="noopener noreferrer"
-                          onClick={() => {
-                            fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {})
-                            fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_click' }) }).catch(() => {})
-                          }}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 8,
-                            padding: '13px 26px', background: '#efff42', color: '#000',
-                            borderRadius: 14, fontSize: 14, fontWeight: 800, textDecoration: 'none',
-                          }}>{t('insumos', 'see_more', 'Ver más →')}</a>
-                      )}
-                      {sel.whatsapp && (
-                        <a href={`https://wa.me/${sel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                          onClick={() => {
-                            fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'whatsapp_click' }) }).catch(() => {})
-                          }}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 8,
-                            padding: '13px 26px', background: 'rgba(37,211,102,0.15)', color: '#25d366',
-                            border: '1px solid rgba(37,211,102,0.3)',
-                            borderRadius: 14, fontSize: 14, fontWeight: 800, textDecoration: 'none',
-                          }}>WhatsApp</a>
-                      )}
-                      {!sel.link && !sel.whatsapp && <div style={{ height: 12 }} />}
-                    </div>
                   </div>
                 </div>
-              </>
+
+                {/* ── CONTENIDO ── */}
+                <div style={{ background: 'transparent', padding: '28px 24px 80px', maxWidth: 600, margin: '0 auto' }}>
+
+                  {sel.bio && (() => {
+                    const isLong = sel.bio.length > 400 || sel.bio.split('\n').length > 8
+                    return (
+                      <div style={{ marginBottom: 32 }}>
+                        <p style={{
+                          fontSize: 15, color: 'rgba(255,255,255,0.5)', lineHeight: 1.85, margin: 0, fontWeight: 400, whiteSpace: 'pre-wrap',
+                          ...(!bioExpanded && isLong ? {
+                            display: '-webkit-box', WebkitLineClamp: 10,
+                            WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                          } : {}),
+                        } as React.CSSProperties}>
+                          {sel.bio}
+                        </p>
+                        {isLong && (
+                          <button onClick={() => setBioExpanded(v => !v)} style={{
+                            marginTop: 10, background: 'none', border: 'none',
+                            color: 'rgba(239,255,66,0.7)', fontSize: 18,
+                            cursor: 'pointer', display: 'block', width: '100%', textAlign: 'center',
+                            transition: 'transform 0.2s',
+                            transform: bioExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                          }}>
+                            ↓
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })()}
+
+                  {/* Línea decorativa amarilla */}
+                  <div style={{ height: 1, background: 'linear-gradient(to right, rgba(239,255,66,0.25), transparent)', marginBottom: 28 }} />
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {sel.link && (
+                      <a href={sel.link} target="_blank" rel="noopener noreferrer"
+                        onClick={() => {
+                          fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {})
+                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_click' }) }).catch(() => {})
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(239,255,66,0.07)', color: 'rgba(239,255,66,0.85)', border: '1px solid rgba(239,255,66,0.2)', borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: 'none', letterSpacing: '0.02em' }}>
+                        Web
+                      </a>
+                    )}
+                    {sel.instagram && (
+                      <a href={`https://instagram.com/${sel.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                        onClick={() => {
+                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'instagram_click' }) }).catch(() => {})
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                        Instagram
+                      </a>
+                    )}
+                    <button
+                      onClick={() => {
+                        const url = `${window.location.origin}${window.location.pathname}?insumo=${sel.id}`
+                        if (navigator.share) {
+                          navigator.share({ title: sel.name ?? '', url }).catch(() => {})
+                        } else {
+                          navigator.clipboard.writeText(url).catch(() => {})
+                        }
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, fontSize: 14, fontWeight: 600, cursor: 'pointer', width: '100%' }}>
+                      {t('insumos', 'share_btn', 'Compartir perfil')}
+                    </button>
+                    {sel.whatsapp && (
+                      <a href={`https://wa.me/${sel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                        onClick={() => {
+                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'whatsapp_click' }) }).catch(() => {})
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(37,211,102,0.06)', color: 'rgba(37,211,102,0.8)', border: '1px solid rgba(37,211,102,0.18)', borderRadius: 14, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                        WhatsApp
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Países como chips */}
+                  {sel.country && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 24 }}>
+                      {sel.country.split(',').map(c => c.trim()).filter(Boolean).map(c => (
+                        <span key={c} style={{ fontSize: 12, fontWeight: 600, color: 'rgba(239,255,66,0.75)', background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.18)', borderRadius: 999, padding: '4px 12px' }}>
+                          {countryFlag(c)}{c}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )
@@ -585,11 +673,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             <div style={{ overflow: 'hidden', padding: '16px 16px 16px' }}>
               <div ref={trackRef} style={{ display: 'flex', willChange: 'transform', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', isolation: 'isolate' }}>
                 <div ref={firstRef} style={{ display: 'flex', gap: bannerGap, paddingRight: bannerGap, flexShrink: 0 }}>
-                  {sponsors.map(s => <Logo key={s.id} s={s} dragRef={dragRef} />)}
+                  {sponsors.map(s => <Logo key={s.id} s={s} dragRef={dragRef} onOpen={openSponsor} />)}
                 </div>
                 {Array.from({ length: extraCopies }, (_, ci) => (
                   <div key={ci} style={{ display: 'flex', gap: bannerGap, paddingRight: bannerGap, flexShrink: 0 }}>
-                    {sponsors.map(s => <Logo key={`${ci}-${s.id}`} s={s} dragRef={dragRef} />)}
+                    {sponsors.map(s => <Logo key={`${ci}-${s.id}`} s={s} dragRef={dragRef} onOpen={openSponsor} />)}
                   </div>
                 ))}
               </div>
@@ -674,10 +762,15 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   )
 }
 
-function Logo({ s, dragRef }: { s: Sponsor; dragRef: React.RefObject<{ moved: boolean }> }) {
+function Logo({ s, dragRef, onOpen }: { s: Sponsor; dragRef: React.RefObject<{ moved: boolean }>; onOpen: (id: string) => void }) {
   const h = Math.round(34 * (s.logo_scale || 100) / 100)
-  const img = (
-    <div style={{ height: 34, display: 'flex', alignItems: 'center' }}>
+  return (
+    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', cursor: 'pointer', height: 34 }}
+      onClick={() => {
+        if (dragRef.current?.moved) return
+        fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'banner_click' }) }).catch(() => {})
+        onOpen(s.id)
+      }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={s.logo_url} alt={s.name ?? ''} draggable={false}
@@ -685,18 +778,4 @@ function Logo({ s, dragRef }: { s: Sponsor; dragRef: React.RefObject<{ moved: bo
       />
     </div>
   )
-  if (s.link) {
-    return (
-      <a href={s.link} target="_blank" rel="noopener noreferrer"
-        style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}
-        onClick={e => {
-          if (dragRef.current?.moved) { e.preventDefault(); return }
-          fetch(`/api/sponsors-v2/${s.id}/click`, { method: 'POST' }).catch(() => {})
-          fetch(`/api/sponsors-v2/${s.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'banner_click' }) }).catch(() => {})
-        }}>
-        {img}
-      </a>
-    )
-  }
-  return <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{img}</span>
 }
