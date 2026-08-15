@@ -330,8 +330,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
               {studio.description && (
                 <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.75, marginBottom: 12 }}>{studio.description}</p>
               )}
-              {(studio.instagram || studio.whatsapp || studio.website) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
                   {studio.instagram && (
                     <a href={`https://instagram.com/${studio.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
                       onClick={() => fetch(`/api/studios/${slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'instagram' }) }).catch(() => {})}
@@ -356,8 +355,12 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                       <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
                     </a>
                   )}
+                  <button onClick={shareStudio}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: copied ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}`, width: '100%', cursor: 'pointer' }}>
+                    <span style={{ fontSize: 13, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>{copied ? '¡Copiado!' : t('estudio', 'share_btn', 'Compartir perfil')}</span>
+                    <span style={{ color: copied ? 'rgba(239,255,66,0.5)' : 'rgba(255,255,255,0.2)', fontSize: 16 }}>{copied ? '✓' : '↑'}</span>
+                  </button>
                 </div>
-              )}
               <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14, paddingBottom: 20 }}>
                 <div className="flex items-center justify-between">
                   <div className="flex mr-3">
@@ -372,22 +375,15 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                     <span style={{ fontSize: 12, fontWeight: 700, color: liked ? '#efff42' : 'rgba(255,255,255,0.3)' }}>{fmt(localLikes)}</span>
                   </button>
                 </div>
-                <div className="mt-3">
-                  <button onClick={shareStudio}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '15px 26px', borderRadius: 14, fontSize: 14, fontWeight: 600, cursor: 'pointer', background: copied ? 'rgba(239,255,66,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.09)'}`, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.7)' }}>
-                    <span style={{ fontSize: 14, lineHeight: 1 }}>{copied ? '✓' : '↑'}</span>
-                    <span>{copied ? '¡Copiado!' : t('estudio', 'share_btn', 'Compartir perfil')}</span>
-                  </button>
-                  {!authMode && !studio?.auth_email && (
-                    <div className="mt-2 flex justify-end">
-                      <button onClick={() => { setEditOpen(v => !v); setKeyInput(''); setKeyError('') }}
-                        className="flex items-center justify-center px-3 py-1 rounded-full transition-all"
-                        style={{ color: editOpen ? 'rgba(239,255,66,0.6)' : 'rgba(255,255,255,0.18)', fontSize: 20, letterSpacing: '-2px', lineHeight: 1 }}>
-                        ···
-                      </button>
-                    </div>
-                  )}
-                </div>
+                {!authMode && !studio?.auth_email && (
+                  <div className="mt-2 flex justify-end">
+                    <button onClick={() => { setEditOpen(v => !v); setKeyInput(''); setKeyError('') }}
+                      className="flex items-center justify-center px-3 py-1 rounded-full transition-all"
+                      style={{ color: editOpen ? 'rgba(239,255,66,0.6)' : 'rgba(255,255,255,0.18)', fontSize: 20, letterSpacing: '-2px', lineHeight: 1 }}>
+                      ···
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -1323,6 +1323,12 @@ export default function Home() {
                     <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>⎘</span>
                   </button>
                 )}
+                <button onClick={shareArtist}
+                  className="flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full"
+                  style={{ background: copied ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}` }}>
+                  <p style={{ fontSize: 13, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>{copied ? '¡Copiado!' : t('inicio', 'share_btn', 'Compartir perfil')}</p>
+                  <span style={{ color: copied ? 'rgba(239,255,66,0.5)' : 'rgba(255,255,255,0.2)', fontSize: 16 }}>{copied ? '✓' : '↑'}</span>
+                </button>
               </div>
 
               {/* Stats + Like */}
@@ -1338,15 +1344,6 @@ export default function Home() {
                     style={{ background: liked ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${liked ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.08)'}` }}>
                     <span style={{ fontSize: 16, color: liked ? '#efff42' : 'rgba(255,255,255,0.3)', lineHeight: 1 }}>{liked ? '♥' : '♡'}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: liked ? '#efff42' : 'rgba(255,255,255,0.3)' }}>{fmt(localLikes)}</span>
-                  </button>
-                </div>
-
-                {/* Compartir */}
-                <div className="mt-2">
-                  <button onClick={shareArtist}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '15px 26px', borderRadius: 14, fontSize: 14, fontWeight: 600, cursor: 'pointer', background: copied ? 'rgba(239,255,66,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.09)'}`, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.7)' }}>
-                    <span style={{ fontSize: 14, lineHeight: 1 }}>{copied ? '✓' : '↑'}</span>
-                    <span>{copied ? '¡Copiado!' : t('inicio', 'share_btn', 'Compartir perfil')}</span>
                   </button>
                 </div>
 
