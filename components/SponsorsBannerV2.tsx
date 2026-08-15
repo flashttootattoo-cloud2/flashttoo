@@ -70,6 +70,8 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const [expanded, setExpanded] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [gridSearch, setGridSearch] = useState('')
+  const [gridPage, setGridPage] = useState(1)
+  const GRID_PAGE_SIZE = 30
   const [convView, setConvView] = useState(!showInsumos)
   const [convCountrySearch, setConvCountrySearch] = useState('')
   const [gridBgImage, setGridBgImage] = useState<string | null>(null)
@@ -241,9 +243,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     </>
   )
 
-  const gridSponsors = gridSearch.trim()
+  const allGridSponsors = gridSearch.trim()
     ? filterSponsors(allRef.current, undefined, gridSearch.trim())
     : allRef.current
+  const gridSponsors = allGridSponsors.slice(0, gridPage * GRID_PAGE_SIZE)
+  const hasMore = gridSponsors.length < allGridSponsors.length
 
   if (!sponsors.length) return null
 
@@ -305,7 +309,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                   type="text"
                   placeholder={t('insumos', 'search_placeholder', 'Buscar proveedor por país...')}
                   value={gridSearch}
-                  onChange={e => setGridSearch(e.target.value)}
+                  onChange={e => { setGridSearch(e.target.value); setGridPage(1) }}
                   style={{
                     width: '100%', boxSizing: 'border-box',
                     marginBottom: 8, padding: '10px 16px',
@@ -353,6 +357,16 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     </div>
                   ))}
                 </div>
+                {hasMore && (
+                  <button onClick={() => setGridPage(p => p + 1)} style={{
+                    marginTop: 16, width: '100%', padding: '14px 0',
+                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)',
+                    borderRadius: 14, color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', letterSpacing: '0.02em',
+                  }}>
+                    {t('insumos', 'load_more', 'Cargar más')}
+                  </button>
+                )}
               </div>
             )}
 
