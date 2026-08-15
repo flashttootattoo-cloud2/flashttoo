@@ -553,7 +553,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                       width: 160, height: 160, borderRadius: '50%',
                       background: sel.logo_bg_color,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      padding: 24, boxSizing: 'border-box',
+                      padding: 14, boxSizing: 'border-box',
                       boxShadow: '0 8px 40px rgba(0,0,0,0.4)',
                     } : { display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
