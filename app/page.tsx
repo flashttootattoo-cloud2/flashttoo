@@ -1342,10 +1342,9 @@ export default function Home() {
                 </div>
 
                 {/* Compartir */}
-                <div className="mt-2 flex justify-end">
+                <div className="mt-2">
                   <button onClick={shareArtist}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full transition-all"
-                    style={{ background: copied ? 'rgba(239,255,66,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.08)'}`, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.3)', fontSize: 12, fontWeight: 700 }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '15px 26px', borderRadius: 14, fontSize: 14, fontWeight: 600, cursor: 'pointer', background: copied ? 'rgba(239,255,66,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.09)'}`, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.7)' }}>
                     <span style={{ fontSize: 14, lineHeight: 1 }}>{copied ? '✓' : '↑'}</span>
                     <span>{copied ? '¡Copiado!' : t('inicio', 'share_btn', 'Compartir perfil')}</span>
                   </button>
