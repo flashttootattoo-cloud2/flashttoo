@@ -24,7 +24,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
   argentina: '🇦🇷', brasil: '🇧🇷', brazil: '🇧🇷',
   chile: '🇨🇱', uruguay: '🇺🇾', paraguay: '🇵🇾', bolivia: '🇧🇴',
   peru: '🇵🇪', colombia: '🇨🇴', venezuela: '🇻🇪', ecuador: '🇪🇨',
-  mexico: '🇲🇽', españa: '🇪🇸', spain: '🇪🇸', 'estados unidos': '🇺🇸',
+  mexico: '🇲🇽', espana: '🇪🇸', spain: '🇪🇸', 'estados unidos': '🇺🇸',
   'united states': '🇺🇸', usa: '🇺🇸', alemania: '🇩🇪', germany: '🇩🇪',
   francia: '🇫🇷', france: '🇫🇷', italia: '🇮🇹', italy: '🇮🇹',
   portugal: '🇵🇹', canada: '🇨🇦', australia: '🇦🇺', japon: '🇯🇵',
