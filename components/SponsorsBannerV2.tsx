@@ -126,8 +126,9 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         setSponsors(filtered)
         if (typeof d.banner_gap === 'number') setBannerGap(d.banner_gap)
         setLoading(false)
-        // Precargar imágenes de fondo para que estén en caché al abrir el perfil
+        // Precargar imágenes de fondo de perfiles y de la grilla
         all.forEach(s => { if (s.bg_image_url) { const i = new Image(); i.src = s.bg_image_url } })
+        bgImagesRef.current.forEach(url => { const i = new Image(); i.src = url })
         // Abrir perfil directo si la URL trae ?insumo=<id>
         const insumoId = new URLSearchParams(window.location.search).get('insumo')
         if (insumoId && all.find(s => s.id === insumoId)) {
