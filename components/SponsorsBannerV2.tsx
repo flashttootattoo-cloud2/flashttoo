@@ -547,29 +547,29 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     <button onClick={closeAll} style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.55)', fontSize: 14 }}>✕</button>
                   </div>
 
-                  {/* Logo centrado en el hero */}
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, paddingBottom: 40 }}>
+                  {/* Nombre, logo y tag — esquina inferior izquierda */}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 24px 24px', zIndex: 3 }}>
+                    {/* Logo chico sobre el nombre */}
                     <div style={sel.logo_bg_color ? {
-                      width: 160, height: 160, borderRadius: '50%',
+                      width: 72, height: 72, borderRadius: '50%',
                       background: sel.logo_bg_color,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      padding: 14, boxSizing: 'border-box',
-                      boxShadow: '0 8px 40px rgba(0,0,0,0.4)',
-                    } : { display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      padding: 10, boxSizing: 'border-box',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                      marginBottom: 12,
+                    } : {
+                      width: 72, height: 56,
+                      display: 'flex', alignItems: 'flex-end',
+                      marginBottom: 12,
+                    }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={sel.detail_logo_url || sel.logo_url} alt={sel.name} style={{
-                        maxHeight: sel.logo_bg_color ? '100%' : 130,
-                        maxWidth: sel.logo_bg_color ? '100%' : '70%',
-                        objectFit: 'contain',
+                        maxHeight: '100%', maxWidth: '100%', objectFit: 'contain',
                         filter: sel.detail_logo_mode === 'color' ? 'none'
-                          : sel.detail_logo_mode === 'shadow' ? 'drop-shadow(0 2px 24px rgba(255,255,255,0.5)) drop-shadow(0 0 6px rgba(255,255,255,0.3))'
-                          : 'brightness(0) invert(1) drop-shadow(0 2px 20px rgba(255,255,255,0.25))',
+                          : sel.detail_logo_mode === 'shadow' ? 'drop-shadow(0 2px 16px rgba(255,255,255,0.5))'
+                          : 'brightness(0) invert(1) drop-shadow(0 2px 12px rgba(255,255,255,0.25))',
                       } as React.CSSProperties} />
                     </div>
-                  </div>
-
-                  {/* Nombre y tag flotando sobre el borde inferior del hero */}
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 24px 24px', zIndex: 3 }}>
                     <h1 style={{ fontSize: 30, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.05, letterSpacing: '-0.03em', textShadow: '0 2px 20px rgba(0,0,0,0.8)' }}>
                       {sel.name}
                     </h1>
