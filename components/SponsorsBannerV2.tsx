@@ -705,15 +705,20 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                   </div>
 
                   {/* Países como chips */}
-                  {sel.country && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 24 }}>
-                      {sel.country.split(',').map(c => c.trim()).filter(Boolean).map(c => (
-                        <span key={c} style={{ fontSize: 12, fontWeight: 600, color: 'rgba(239,255,66,0.75)', background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.18)', borderRadius: 999, padding: '4px 12px' }}>
-                          {countryFlag(c)}{c}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 24 }}>
+                    {sel.country
+                      ? sel.country.split(',').map(c => c.trim()).filter(Boolean).map(c => (
+                          <span key={c} style={{ fontSize: 12, fontWeight: 600, color: 'rgba(239,255,66,0.75)', background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.18)', borderRadius: 999, padding: '4px 12px' }}>
+                            {countryFlag(c)}{c}
+                          </span>
+                        ))
+                      : (
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 999, padding: '4px 12px' }}>
+                            🌍 {t('insumos', 'global_label', 'Global')}
+                          </span>
+                        )
+                    }
+                  </div>
                 </div>
               </div>
             )}
