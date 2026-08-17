@@ -126,8 +126,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         setSponsors(filtered)
         if (typeof d.banner_gap === 'number') setBannerGap(d.banner_gap)
         setLoading(false)
-        // Precargar imágenes de fondo de perfiles y de la grilla
-        all.forEach(s => { if (s.bg_image_url) { const i = new Image(); i.src = s.bg_image_url } })
+        // Precargar logos del banner, fondos de perfiles y de la grilla
+        all.forEach(s => {
+          if (s.logo_url)    { const i = new Image(); i.src = s.logo_url }
+          if (s.bg_image_url){ const i = new Image(); i.src = s.bg_image_url }
+        })
         bgImagesRef.current.forEach(url => { const i = new Image(); i.src = url })
         // Abrir perfil directo si la URL trae ?insumo=<id>
         const insumoId = new URLSearchParams(window.location.search).get('insumo')
@@ -732,6 +735,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           onTouchStart={e => startDrag(e.touches[0].clientX)}
           onTouchMove={e => moveDrag(e.touches[0].clientX)}
           onTouchEnd={endDrag}
+          onTouchCancel={endDrag}
           onMouseDown={e => startDrag(e.clientX)}
           onMouseMove={e => moveDrag(e.clientX)}
           onMouseUp={endDrag}
