@@ -402,7 +402,7 @@ export default function AgregarPage() {
           {authParams.authEmail ? (
             <div className="flex flex-col gap-2">
               <div className="rounded-lg px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <p className="text-xs mb-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>Mail de acceso (no cambia)</p>
+                <p className="text-xs mb-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('ingresar', 'email_access_label', 'Mail de acceso (no cambia)')}</p>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>{authParams.authEmail}</p>
               </div>
               <Field label={t('agregar', 'email_label', 'Email de contacto (opcional)')}>
@@ -420,7 +420,7 @@ export default function AgregarPage() {
                 <label className="flex items-center gap-2 mt-2 cursor-pointer">
                   <input type="checkbox" checked={showEmail} onChange={e => setShowEmail(e.target.checked)}
                     className="shrink-0 accent-[#efff42]" style={{ width: 14, height: 14 }} />
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Mostrar mi mail en el perfil público</span>
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{t('agregar', 'show_email_public', 'Mostrar mi mail en el perfil público')}</span>
                 </label>
               )}
             </Field>

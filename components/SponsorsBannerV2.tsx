@@ -196,7 +196,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     if (!expanded) {
       setSelectedId(null)
       histDepthRef.current = 0
-      setConvView(false)
+      setConvView(!showInsumos)
     }
     return () => { document.body.style.overflow = '' }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -415,7 +415,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 ? allItems.filter(i => {
                     const q = norm(convCountrySearch)
                     if (i.kind === 'conv') return norm(i.data.country || '').includes(q)
-                    return false
+                    return true // flash days no tienen país, se muestran siempre
                   })
                 : allItems
 

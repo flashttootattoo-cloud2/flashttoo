@@ -9,7 +9,7 @@ type Studio = {
   description: string | null; logo_url: string | null; instagram: string | null
   whatsapp: string | null; website: string | null; profile_views: number
   instagram_clicks: number; whatsapp_clicks: number; website_clicks: number
-  hiring: boolean; hiring_role: string | null; auth_email?: string | null
+  likes: number; hiring: boolean; hiring_role: string | null; auth_email?: string | null
 }
 
 function initialsOf(name: string) {
@@ -109,7 +109,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
     if (!studio) return
     const alreadyLiked = localStorage.getItem(`liked_studio_${studio.id}`) === '1'
     setLiked(alreadyLiked)
-    setLocalLikes(alreadyLiked ? 1 : 0)
+    setLocalLikes((studio.likes ?? 0) + (alreadyLiked ? 1 : 0))
   }, [studio])
 
   const toggleLike = () => {
@@ -117,9 +117,11 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
     if (liked) {
       localStorage.removeItem(`liked_studio_${studio.id}`)
       setLiked(false); setLocalLikes(n => Math.max(0, n - 1))
+      fetch(`/api/studios/${slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'unlike' }) }).catch(() => {})
     } else {
       localStorage.setItem(`liked_studio_${studio.id}`, '1')
       setLiked(true); setLocalLikes(n => n + 1)
+      fetch(`/api/studios/${slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'like' }) }).catch(() => {})
     }
   }
 
@@ -409,7 +411,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
 
                   {authEmail && (
                     <div style={{ background: 'rgba(0,0,0,0.12)', borderRadius: 10, padding: '8px 12px', border: '1px solid rgba(0,0,0,0.15)' }}>
-                      <p style={{ fontSize: 9, fontWeight: 800, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>Cuenta registrada con</p>
+                      <p style={{ fontSize: 9, fontWeight: 800, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{t('estudio', 'registered_with', 'Cuenta registrada con')}</p>
                       <p style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', wordBreak: 'break-all' }}>{authEmail}</p>
                     </div>
                   )}

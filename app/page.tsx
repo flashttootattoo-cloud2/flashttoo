@@ -877,7 +877,7 @@ export default function Home() {
                     style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,100,100,0.6)' }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,80,80,0.05)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                    quitar estilo
+                    {t('inicio', 'clear_style', 'quitar estilo')}
                   </button>
                 )}
               </div>
@@ -1139,7 +1139,7 @@ export default function Home() {
                             ···
                           </button>
                           <div className="absolute top-2 left-2">
-                            <span style={{ fontSize: 8, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Publicidad</span>
+                            <span style={{ fontSize: 8, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{t('inicio', 'ad_badge', 'Publicidad')}</span>
                           </div>
                           <div className="absolute bottom-0 left-0 right-0 p-3">
                             <p className="text-white font-bold leading-tight" style={{ fontSize: 13, overflowWrap: 'break-word' }}>{item.data.title}</p>
@@ -1768,7 +1768,7 @@ export default function Home() {
                 ×
               </button>
               <div className="absolute top-4 left-4">
-                <span style={{ fontSize: 9, color: 'rgba(239,255,66,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Publicidad</span>
+                <span style={{ fontSize: 9, color: 'rgba(239,255,66,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{t('inicio', 'ad_badge', 'Publicidad')}</span>
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-5">
                 <h2 style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.1, color: '#fff', overflowWrap: 'break-word' }}>{selectedAd.title}</h2>
@@ -1836,7 +1836,7 @@ export default function Home() {
                   </button>
                 ) : !adKeyVerified ? (
                   <div className="flex flex-col gap-2">
-                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Clave de edición</p>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{t('inicio', 'ad_edit_key', 'Clave de edición')}</p>
                     <div className="flex gap-2">
                       <input
                         value={adKeyInput}
@@ -1857,25 +1857,25 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    <p style={{ fontSize: 11, fontWeight: 700, color: '#efff42', letterSpacing: '0.08em' }}>EDITAR PUBLICIDAD</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#efff42', letterSpacing: '0.08em' }}>{t('inicio', 'ad_edit_title', 'EDITAR PUBLICIDAD')}</p>
                     {/* Métricas */}
                     <div className="flex gap-4 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                       <div>
                         <p style={{ fontSize: 22, fontWeight: 700, color: '#efff42', lineHeight: 1 }}>{selectedAd.clicks}</p>
-                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>clicks</p>
+                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>{t('inicio', 'ad_clicks_label', 'clicks')}</p>
                       </div>
                       {selectedAd.expires_at && (
                         <div style={{ borderLeft: '1px solid rgba(255,255,255,0.07)', paddingLeft: 16 }}>
                           <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1, color: new Date(selectedAd.expires_at) < new Date() ? '#f87171' : 'rgba(255,255,255,0.55)' }}>
                             {new Date(selectedAd.expires_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
-                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>vence</p>
+                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>{t('inicio', 'ad_expires_label', 'vence')}</p>
                         </div>
                       )}
                     </div>
                     {/* Foto */}
                     <div>
-                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Foto</p>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('inicio', 'ad_photo_label', 'Foto')}</p>
                       <label className="block cursor-pointer">
                         <div className="relative rounded-xl overflow-hidden" style={{ paddingBottom: '60%' }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1886,7 +1886,7 @@ export default function Home() {
                           />
                           <div className="absolute inset-0 flex items-center justify-center"
                             style={{ background: 'rgba(0,0,0,0.45)' }}>
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>cambiar foto</span>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{t('inicio', 'ad_change_photo', 'cambiar foto')}</span>
                           </div>
                         </div>
                         <input type="file" accept="image/*" className="hidden"
@@ -1911,12 +1911,12 @@ export default function Home() {
                       </label>
                     </div>
                     {[
-                      { label: 'Nombre / título', key: 'title' },
-                      { label: 'Ciudad', key: 'city' },
-                      { label: 'País', key: 'country' },
+                      { label: t('inicio', 'ad_field_title', 'Nombre / título'), key: 'title' },
+                      { label: t('artista', 'city_label', 'Ciudad'), key: 'city' },
+                      { label: t('artista', 'country_label', 'País'), key: 'country' },
                       { label: 'Instagram', key: 'instagram' },
                       { label: 'WhatsApp', key: 'whatsapp' },
-                      { label: 'Sitio web', key: 'website' },
+                      { label: t('inicio', 'ad_field_website', 'Sitio web'), key: 'website' },
                     ].map(f => (
                       <div key={f.key}>
                         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{f.label}</p>
@@ -1932,7 +1932,7 @@ export default function Home() {
                     <button onClick={saveAdEdit} disabled={savingAdEdit}
                       className="self-end px-5 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
                       style={{ background: '#efff42', color: '#000' }}>
-                      {savingAdEdit ? 'Guardando...' : 'Guardar'}
+                      {savingAdEdit ? t('ingresar', 'sending', 'Enviando...') : t('inicio', 'save_btn', 'Guardar')}
                     </button>
                   </div>
                 )}
