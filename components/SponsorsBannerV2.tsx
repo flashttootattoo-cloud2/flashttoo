@@ -311,9 +311,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               {convView ? t('inicio', 'events_title', 'Eventos') : t('inicio', 'insumos_title', 'Insumos')}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, position: 'relative' }}>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <div />
-              </div>
+              <div />
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => setShowInfo(v => !v)} style={{
                   width: 32, height: 32, borderRadius: '50%',

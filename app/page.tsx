@@ -358,7 +358,6 @@ export default function Home() {
 
   // Initial load + refetch on filter change
   const filterKey = `${country}|${city}|${activeStyles.join(',')}`
-  const isFirstLoad = useRef(true)
   useEffect(() => {
     const timer = setTimeout(() => {
       loadGenRef.current++
@@ -370,7 +369,6 @@ export default function Home() {
       setLoading(true)
       loadArtistsPage(0, false, { country, city, styles: activeStyles })
         .then(() => setLoading(false))
-      isFirstLoad.current = false
     }, 300)
     return () => clearTimeout(timer)
   }, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -486,7 +484,6 @@ export default function Home() {
   type Block =
     | { kind: 'single'; item: FI; fi: number }
     | { kind: 'featured'; big: FI; s1: FI; s2: FI; fi: number; rightAlign: boolean }
-    | { kind: 'content'; card: ContentCard; fi: number; rightAlign: boolean }
   const blocks: Block[] = []
   for (let fi = 0; fi < feedItems.length; ) {
     const cur = feedItems[fi]
@@ -498,8 +495,6 @@ export default function Home() {
       fi++
     }
   }
-
-  const finalBlocks = blocks
 
   const openModal = useCallback((artist: Artist) => {
     setSelected(artist)
@@ -941,7 +936,7 @@ export default function Home() {
               const activeCards = isActiveSearch ? [] : shuffledContentCards
               const nodes: React.ReactNode[] = []
               let cardIdx = 0
-              finalBlocks.forEach((block, i) => {
+              blocks.forEach((block, i) => {
                 if (block.kind === 'featured') {
                   const big = block.big as { type: 'artist'; data: Artist }
                   nodes.push(
@@ -1508,7 +1503,7 @@ export default function Home() {
 
       {/* ── TÉRMINOS / PRIVACIDAD FULLSCREEN (migración) ─────── */}
       {migrateDoc && (
-        <div className="fixed inset-0 z-90 flex flex-col" style={{ background: '#000', zIndex: 200 }}>
+        <div className="fixed inset-0 flex flex-col" style={{ background: '#000', zIndex: 200 }}>
           <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <button onClick={() => setMigrateDoc(null)} style={{ color: 'rgba(255,255,255,0.4)', fontSize: 20, lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer' }}>←</button>
             <p className="text-sm font-bold text-white">

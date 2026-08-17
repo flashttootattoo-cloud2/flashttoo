@@ -19,7 +19,7 @@ function genKey() {
 
 
 export default function AgregarPage() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
 
   const [authParams, setAuthParams] = useState({ userId: '', authEmail: '' })
   const [isAuthFlow, setIsAuthFlow] = useState(false)
@@ -520,7 +520,7 @@ export default function AgregarPage() {
                     <div>
                       <p className="text-sm font-medium text-white">{v.city}, {v.country}</p>
                       <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
-                        {new Date(v.from + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })} – {new Date(v.to + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {new Date(v.from + 'T12:00:00').toLocaleDateString(language, { day: 'numeric', month: 'short' })} – {new Date(v.to + 'T12:00:00').toLocaleDateString(language, { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
                     <button type="button" onClick={() => setVisits(prev => prev.filter((_, idx) => idx !== i))}

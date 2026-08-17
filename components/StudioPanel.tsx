@@ -40,7 +40,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
   authEmail?: string
   adminPass?: string
 }) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const authMode = Boolean(accessToken)
 
   const [studio, setStudio] = useState<Studio | null>(null)
@@ -520,7 +520,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={f.flyer_url} alt="" style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover' }} />
                         <p style={{ flex: 1, fontSize: 13, fontWeight: 700, color: '#000' }}>
-                          {new Date(f.date + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {new Date(f.date + 'T12:00:00').toLocaleDateString(language, { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
                         <button onClick={() => removeFlashDay(f.id)}
                           style={{ background: 'none', border: 'none', color: 'rgba(0,0,0,0.35)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>×</button>
