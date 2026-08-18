@@ -527,7 +527,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                       </div>
                     ))}
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: flashDays.length ? 8 : 0 }}>
+                    {flashDays.length === 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <input type="date" value={fdDate} onChange={e => setFdDate(e.target.value)} required
                         style={{ width: '100%', padding: '10px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.12)', color: fdDate ? '#000' : 'rgba(0,0,0,0.35)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                       <label style={{ display: 'block', cursor: 'pointer' }}>
@@ -546,7 +546,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                         style={{ width: '100%', padding: '10px', borderRadius: 12, background: '#000', color: '#efff42', fontWeight: 800, fontSize: 13, border: 'none', cursor: 'pointer', opacity: (addingFd || !fdFile || !fdDate) ? 0.3 : 1 }}>
                         {addingFd ? t('estudio', 'publishing', 'Publicando...') : t('estudio', 'publish_flash_day', 'Publicar Flash Day')}
                       </button>
-                    </div>
+                    </div>}
                   </div>
 
                   {saveError && <p style={{ color: 'rgba(160,0,0,0.8)', fontSize: 12 }}>{saveError}</p>}
