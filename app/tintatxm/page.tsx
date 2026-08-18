@@ -4282,7 +4282,8 @@ export default function AdminPage() {
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', backdropFilter: 'blur(4px)' }}>
             <div
               onClick={e => e.stopPropagation()}
-              style={{ width: '100%', maxWidth: 390, height: '100dvh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '20px 16px 32px' }}>
+              style={{ width: '100%', maxWidth: 390, height: '100dvh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '20px 16px 32px' }}>
 
               {/* Misma card que el perfil público */}
               <div style={{ background: '#111', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 100px rgba(0,0,0,0.9)', overflow: 'hidden' }}>
@@ -4394,6 +4395,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
+            </div>
             </div>
           </div>
         )
