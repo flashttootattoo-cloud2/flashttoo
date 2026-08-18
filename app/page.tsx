@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
-import Image from 'next/image'
 import { supabase, type Artist, type Studio } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
 import ArtistAuthModal from '@/components/ArtistAuthModal'
@@ -1238,7 +1237,8 @@ export default function Home() {
                       <button key={i} onClick={() => openFullscreen(src, photos)}
                         className="relative rounded-xl overflow-hidden"
                         style={{ paddingBottom: '100%', background: '#111' }}>
-                        <Image src={src} alt="" fill sizes="33vw" className="object-cover" />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                       </button>
                     ))}
                   </div>
