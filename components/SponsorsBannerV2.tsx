@@ -15,6 +15,7 @@ type Sponsor = {
 
 type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null; country: string | null }
 type FlashDay = { id: string; studio_slug: string; studio_name: string; flyer_url: string; date: string }
+type GalleryPhoto = { artist_id: string; artist_name: string; artist_photo: string; photo_url: string; artist_instagram: string | null; artist_city: string | null; artist_country: string | null; artist_styles: string[] | null; photo_styles: string[] | null }
 
 function norm(s: string) {
   return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -97,6 +98,17 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const [gridPage, setGridPage] = useState(1)
   const GRID_PAGE_SIZE = 30
   const [convView, setConvView] = useState(!showInsumos)
+  const [showGallery, setShowGallery] = useState(false)
+  const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([])
+  const [galleryLoaded, setGalleryLoaded] = useState(false)
+  const [selectedPhoto, setSelectedPhoto] = useState<GalleryPhoto | null>(null)
+  const [galleryDisplayCount, setGalleryDisplayCount] = useState(20)
+  const galleryContainerRef = useRef<HTMLDivElement>(null)
+  const gallerySentinelRef = useRef<HTMLDivElement>(null)
+  const [detailDisplayCount, setDetailDisplayCount] = useState(20)
+  const [activeStyleFilter, setActiveStyleFilter] = useState<string | null>(null)
+  const detailContainerRef = useRef<HTMLDivElement>(null)
+  const detailSentinelRef = useRef<HTMLDivElement>(null)
   const [convCountrySearch, setConvCountrySearch] = useState('')
   const [gridBgImage, setGridBgImage] = useState<string | null>(null)
   const [bioExpanded, setBioExpanded] = useState(false)
@@ -216,13 +228,67 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     const onPop = () => {
       if (skipPopsRef.current > 0) { skipPopsRef.current--; return }
       histDepthRef.current = Math.max(0, histDepthRef.current - 1)
-      if (selectedId) setSelectedId(null)
-      else if (showInfo) setShowInfo(false)
-      else if (expanded) setExpanded(false)
+      if (selectedPhoto) { setSelectedPhoto(null); return }
+      if (showGallery) { setShowGallery(false); return }
+      if (selectedId) { setSelectedId(null); return }
+      if (showInfo) { setShowInfo(false); return }
+      if (expanded) { setExpanded(false); return }
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
-  }, [selectedId, showInfo, expanded])
+  }, [selectedPhoto, showGallery, selectedId, showInfo, expanded])
+
+  useEffect(() => {
+    document.body.style.overflow = showGallery ? 'hidden' : ''
+    if (showGallery) {
+      history.pushState({ sv2: 'gallery' }, '')
+      histDepthRef.current++
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [showGallery])
+
+  useEffect(() => {
+    if (!showGallery || selectedPhoto) return
+    const container = galleryContainerRef.current
+    const sentinel = gallerySentinelRef.current
+    if (!container || !sentinel) return
+    const observer = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) setGalleryDisplayCount(c => c + 20) },
+      { root: container, threshold: 0 }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [showGallery, selectedPhoto, galleryPhotos.length])
+
+  useEffect(() => {
+    if (!selectedPhoto) return
+    setDetailDisplayCount(20)
+    setActiveStyleFilter(null)
+    history.pushState({ sv2: 'gallery-detail' }, '')
+    histDepthRef.current++
+    requestAnimationFrame(() => { detailContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' }) })
+    const container = detailContainerRef.current
+    const sentinel = detailSentinelRef.current
+    if (!container || !sentinel) return
+    const observer = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) setDetailDisplayCount(c => c + 20) },
+      { root: container, threshold: 0 }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [selectedPhoto])
+
+  useEffect(() => {
+    setGalleryLoaded(true)
+    fetch('/api/gallery').then(r => r.json()).then(d => {
+      const photos = d.photos ?? []
+      setGalleryPhotos(photos)
+      photos.slice(0, 20).forEach((p: GalleryPhoto) => { const img = new window.Image(); img.src = p.photo_url })
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const loadGallery = () => { /* precargado al montar */ }
 
   const openSponsor = (id: string) => {
     history.pushState({ sv2: 'detail' }, '')
@@ -233,6 +299,29 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   }
 
   const closeDetail = () => history.back()  // consume el estado → popstate → setSelectedId(null)
+
+  const closeGallery = () => {
+    const depth = (selectedPhoto ? 1 : 0) + (showGallery ? 1 : 0)
+    setSelectedPhoto(null)
+    setShowGallery(false)
+    if (depth > 0) {
+      skipPopsRef.current += depth
+      history.go(-depth)
+      histDepthRef.current = Math.max(0, histDepthRef.current - depth)
+    }
+  }
+
+  const openArtistFromGallery = (slug: string) => {
+    if (selectedPhoto) {
+      // Cerrar solo el detalle, mantener galería abierta
+      setSelectedPhoto(null)
+      skipPopsRef.current++
+      history.go(-1)
+      histDepthRef.current = Math.max(0, histDepthRef.current - 1)
+    }
+    // La galería queda abierta debajo del modal del artista
+    setTimeout(() => window.dispatchEvent(new CustomEvent('open-artist', { detail: slug })), selectedPhoto ? 150 : 0)
+  }
 
   const closeAll = () => {
     const depth = histDepthRef.current
@@ -739,7 +828,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           onMouseUp={endDrag}
           onMouseLeave={endDrag}
           style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: showGallery ? 65 : 40,
             padding: '0 20px',
             userSelect: 'none', touchAction: 'pan-x', cursor: 'grab',
           }}>
@@ -761,15 +850,19 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       )}
 
       {/* Botones flotantes */}
-      <div style={{ position: 'fixed', bottom: showInsumos ? 70 : 20, left: 0, right: 0, zIndex: 41, pointerEvents: 'none', padding: '0 20px' }}>
+      <div style={{ position: 'fixed', bottom: showInsumos ? 70 : 20, left: 0, right: 0, zIndex: showGallery ? 65 : 41, pointerEvents: 'none', padding: '0 20px' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 8px', display: 'flex', justifyContent: showInsumos ? 'stretch' : 'center', gap: 8, pointerEvents: 'auto' }}>
           {showInsumos && (
-            <button onClick={() => { setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}
+            <button onClick={() => { setSelectedPhoto(null); setShowGallery(false); setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}
               style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
               {t('inicio', 'insumos_btn', 'Insumos')}
             </button>
           )}
-          <button onClick={() => { setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}
+          <button onClick={() => { if (showGallery) { closeGallery() } else { loadGallery(); setGalleryDisplayCount(20); setShowGallery(true) } }}
+            style={{ flex: 1, padding: '7px 0', background: showGallery ? 'rgba(239,255,66,0.15)' : 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: `1px solid ${showGallery ? 'rgba(239,255,66,0.35)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
+            {t('inicio', 'gallery_btn', 'Galería')}
+          </button>
+          <button onClick={() => { setSelectedPhoto(null); setShowGallery(false); setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}
             style={{ flex: showInsumos ? 1 : 'unset', width: showInsumos ? undefined : 160, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
             {t('inicio', 'events_btn', 'Eventos')}
           </button>
@@ -777,6 +870,124 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       </div>
 
       {/* Modal de soporte */}
+      {/* Galería overlay */}
+      {showGallery && (
+        <div ref={galleryContainerRef} style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#000', overflowY: 'auto' }}>
+          {/* Header */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 28, opacity: 0.9, flex: '0 0 auto' }} />
+            <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', pointerEvents: 'none' }}>{t('inicio', 'gallery_btn', 'Galería')}</span>
+            <button onClick={closeGallery}
+              style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 18, cursor: 'pointer', flexShrink: 0 }}>
+              ×
+            </button>
+          </div>
+          {/* Grid 2 columnas */}
+          {galleryPhotos.length === 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
+              <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>{t('galeria', 'loading', 'Cargando...')}</p>
+            </div>
+          ) : (
+            <div style={{ columns: 2, columnGap: 8, padding: '8px 20px 120px' }}>
+              {galleryPhotos.slice(0, galleryDisplayCount).map((p, i) => (
+                <div key={i} style={{ breakInside: 'avoid', marginBottom: 6 }} onClick={() => setSelectedPhoto(p)}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', borderRadius: 10, display: 'block', cursor: 'pointer' }} />
+                  <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.artist_photo} alt="" loading="lazy" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.artist_name}</span>
+                  </button>
+                </div>
+              ))}
+              <div ref={gallerySentinelRef} style={{ height: 1, breakInside: 'avoid' }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Detalle de foto */}
+      {selectedPhoto && (
+        <div ref={detailContainerRef} style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#000', overflowY: 'auto' }}>
+          {/* Header */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 28, opacity: 0.9, flex: '0 0 auto' }} />
+            <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', pointerEvents: 'none' }}>{t('inicio', 'gallery_btn', 'Galería')}</span>
+            <button onClick={() => history.back()} style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 16, cursor: 'pointer', flexShrink: 0 }}>←</button>
+          </div>
+          {/* Foto grande + info artista conectados */}
+          <div style={{ margin: '12px 20px 0', borderRadius: 14, overflow: 'hidden' }}>
+            {/* Foto con etiquetas encima */}
+            <div style={{ position: 'relative' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={selectedPhoto.photo_url} alt="" style={{ width: '100%', display: 'block' }} />
+              {selectedPhoto.photo_styles && selectedPhoto.photo_styles.length > 0 && (
+                <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {selectedPhoto.photo_styles.map((s, i) => {
+                    const active = activeStyleFilter === s
+                    return (
+                      <button key={i} onClick={() => setActiveStyleFilter(active ? null : s)}
+                        style={{ background: active ? '#efff42' : 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', border: `1px solid ${active ? '#efff42' : 'rgba(239,255,66,0.5)'}`, borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: active ? '#000' : '#efff42', letterSpacing: '0.04em', cursor: 'pointer' }}>
+                        {s}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          {/* Info artista */}
+          <div style={{ background: '#efff42', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={selectedPhoto.artist_photo} alt="" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(0,0,0,0.12)' }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 15, fontWeight: 800, color: '#000', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedPhoto.artist_name}</p>
+              {(selectedPhoto.artist_city || selectedPhoto.artist_country) && (
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.5)', margin: '3px 0 0' }}>
+                  {[selectedPhoto.artist_city, selectedPhoto.artist_country].filter(Boolean).join(', ')}
+                </p>
+              )}
+            </div>
+            <button onClick={() => { const slug = selectedPhoto.artist_instagram ? selectedPhoto.artist_instagram.replace('@', '') : selectedPhoto.artist_id; openArtistFromGallery(slug) }}
+              style={{ flexShrink: 0, padding: '8px 16px', background: '#000', borderRadius: 10, color: '#efff42', fontWeight: 800, fontSize: 12, border: 'none', cursor: 'pointer', letterSpacing: '0.03em' }}>
+              {t('galeria', 'ver_artista', 'Ver artista')}
+            </button>
+          </div>
+          </div>
+          {/* Más fotos relacionadas */}
+          {(() => {
+            const rest = galleryPhotos.filter(p => p.photo_url !== selectedPhoto.photo_url)
+            const selStyles = selectedPhoto.artist_styles ?? []
+            const related = rest.filter(p => selStyles.length > 0 && (p.artist_styles ?? []).some(s => selStyles.includes(s)))
+            const others  = rest.filter(p => !related.includes(p))
+            const allOrdered = [...related, ...others]
+            const ordered = activeStyleFilter
+              ? allOrdered.filter(p => (p.artist_styles ?? []).includes(activeStyleFilter))
+              : allOrdered
+            if (ordered.length === 0) return null
+            return (
+              <div style={{ padding: '16px 20px 120px' }}>
+                <div style={{ columns: 2, columnGap: 8 }}>
+                  {ordered.slice(0, detailDisplayCount).map((p, i) => (
+                    <div key={i} style={{ breakInside: 'avoid', marginBottom: 8 }} onClick={() => setSelectedPhoto(p)}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', borderRadius: 10, display: 'block', cursor: 'pointer' }} />
+                      <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.artist_photo} alt="" loading="lazy" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.artist_name}</span>
+                      </button>
+                    </div>
+                  ))}
+                  <div ref={detailSentinelRef} style={{ height: 1, breakInside: 'avoid' }} />
+                </div>
+              </div>
+            )
+          })()}
+        </div>
+      )}
+
       {showInfo && (
         <div onClick={() => setShowInfo(false)}
           style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 0 40px' }}>

@@ -555,6 +555,28 @@ export default function Home() {
     }
   }, [artists, loading, openModal])
 
+  // Evento disparado desde la galería para abrir un artista sin navegar
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail
+      if (!id) return
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+      const artist = isUuid
+        ? artists.find(a => a.id === id)
+        : artists.find(a => a.instagram?.replace('@', '') === id)
+      if (artist) {
+        openModal(artist)
+      } else {
+        const query = isUuid
+          ? supabase.from('artists').select('*').eq('id', id).single()
+          : supabase.from('artists').select('*').ilike('instagram', id).single()
+        query.then(({ data }) => { if (data) openModal(data as Artist) })
+      }
+    }
+    window.addEventListener('open-artist', handler)
+    return () => window.removeEventListener('open-artist', handler)
+  }, [artists, openModal])
+
   const toggleLike = useCallback(() => {
     if (!selected) return
     if (liked) {
@@ -1184,7 +1206,7 @@ export default function Home() {
       {/* ── MODAL ──────────────────────────────────────────────── */}
       {selected && (
         <div className="fixed inset-0 overflow-y-auto"
-          style={{ zIndex: 65, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(20px)', animation: 'fadeInYellow 0.22s ease' }}
+          style={{ zIndex: 80, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(20px)', animation: 'fadeInYellow 0.22s ease' }}
           onClick={closeModal}>
 
           <div className="flex justify-center items-start min-h-full pb-64 sm:px-4 sm:pt-6">
@@ -1450,6 +1472,9 @@ export default function Home() {
                   <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 12, lineHeight: 1.6 }}>
                     {t('artista', 'migrate_sent_desc', 'Te enviamos un link a')} <strong>{migrateEmail}</strong>.<br />
                     {t('artista', 'migrate_sent_desc2', 'Hacé click en el link para activar tu nuevo acceso.')}
+                  </p>
+                  <p style={{ color: 'rgba(0,0,0,0.4)', fontSize: 11, marginTop: 8, lineHeight: 1.5 }}>
+                    {t('ingresar', 'registered_spam', 'Revisá también la carpeta de spam.')}
                   </p>
                 </div>
               )}

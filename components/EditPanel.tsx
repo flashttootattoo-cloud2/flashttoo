@@ -72,6 +72,12 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     artist.gallery_photo_2 ?? null,
     artist.gallery_photo_3 ?? null,
   ])
+  const [galleryPhotoStyles, setGalleryPhotoStyles] = useState<string[][]>([
+    (artist as Record<string, unknown>).gallery_photo_1_styles as string[] ?? [],
+    (artist as Record<string, unknown>).gallery_photo_2_styles as string[] ?? [],
+    (artist as Record<string, unknown>).gallery_photo_3_styles as string[] ?? [],
+  ])
+  const [galleryStylesOpen, setGalleryStylesOpen] = useState<number | null>(null)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   useEffect(() => {
     fetch('/api/features').then(r => r.json()).then(d => setGalleryEnabled(!!d.artist_gallery)).catch(() => {})
@@ -157,6 +163,13 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
 
   const toggleStyle = (s: string) =>
     setStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
+
+  const toggleGalleryStyle = (photoIdx: number, s: string) =>
+    setGalleryPhotoStyles(prev => {
+      const cur = prev[photoIdx]
+      const next = cur.includes(s) ? cur.filter(x => x !== s) : cur.length >= 3 ? cur : [...cur, s]
+      const updated = [...prev]; updated[photoIdx] = next; return updated
+    })
 
   const deleteProfile = async () => {
     setDeleting(true); setDeleteError('')
@@ -280,6 +293,9 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
           gallery_photo_1: galleryUrls[0],
           gallery_photo_2: galleryUrls[1],
           gallery_photo_3: galleryUrls[2],
+          gallery_photo_1_styles: galleryPhotoStyles[0],
+          gallery_photo_2_styles: galleryPhotoStyles[1],
+          gallery_photo_3_styles: galleryPhotoStyles[2],
         }),
       })
       const d = await res.json()
@@ -563,34 +579,69 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     {[0, 1, 2].map(i => (
-                      <div key={i} className="relative" style={{ paddingBottom: '100%' }}>
-                        <div className="absolute inset-0 rounded-xl overflow-hidden"
-                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          {galleryPreviews[i] ? (
-                            <>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={galleryPreviews[i]!} alt="" className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => clearGallerySlot(i)}
-                                className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center z-10"
-                                style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 14, lineHeight: 1 }}>
-                                ×
-                              </button>
-                              <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 flex items-end justify-center pb-2"
-                                style={{ background: 'rgba(0,0,0,0.4)' }}>
-                                <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">{t('editar', 'change', 'cambiar')}</span>
+                      <div key={i} className="flex flex-col gap-1">
+                        {/* Foto */}
+                        <div className="relative" style={{ paddingBottom: '100%' }}>
+                          <div className="absolute inset-0 rounded-xl overflow-hidden"
+                            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            {galleryPreviews[i] ? (
+                              <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={galleryPreviews[i]!} alt="" className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => clearGallerySlot(i)}
+                                  className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center z-10"
+                                  style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 14, lineHeight: 1 }}>
+                                  ×
+                                </button>
+                                <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 flex items-end justify-center pb-2"
+                                  style={{ background: 'rgba(0,0,0,0.4)' }}>
+                                  <span className="text-xs text-white bg-black/50 px-2 py-1 rounded-full">{t('editar', 'change', 'cambiar')}</span>
+                                  <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
+                                </label>
+                              </>
+                            ) : (
+                              <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-1">
+                                <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.15)' }}>+</span>
+                                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>{t('editar', 'photo_n', 'foto')} {i + 1}</span>
                                 <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
                               </label>
-                            </>
-                          ) : (
-                            <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-1">
-                              <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.15)' }}>+</span>
-                              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>{t('editar', 'photo_n', 'foto')} {i + 1}</span>
-                              <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
-                            </label>
-                          )}
+                            )}
+                          </div>
                         </div>
+                        {/* Etiquetas de estilo — solo si hay foto */}
+                        {galleryPreviews[i] && (
+                          <div className="relative">
+                            <button type="button"
+                              onClick={() => setGalleryStylesOpen(galleryStylesOpen === i ? null : i)}
+                              className="w-full text-left px-2 py-1 rounded-lg text-xs"
+                              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: galleryPhotoStyles[i].length ? '#efff42' : 'rgba(255,255,255,0.2)', minHeight: 28 }}>
+                              {galleryPhotoStyles[i].length === 0
+                                ? t('agregar', 'gallery_add_style', '+ estilo')
+                                : galleryPhotoStyles[i].join(', ')}
+                            </button>
+                            {galleryStylesOpen === i && (
+                              <div className="rounded-xl mt-1 overflow-y-auto"
+                                style={{ position: 'absolute', left: 0, right: 0, zIndex: 10, background: '#141414', border: '1px solid rgba(255,255,255,0.1)', maxHeight: 200, minWidth: 180 }}>
+                                <div className="flex flex-col">
+                                  {allStyles.map((s: string) => {
+                                    const on = galleryPhotoStyles[i].includes(s)
+                                    const disabled = !on && galleryPhotoStyles[i].length >= 3
+                                    return (
+                                      <button key={s} type="button"
+                                        onClick={() => { if (!disabled) toggleGalleryStyle(i, s) }}
+                                        className="flex items-center justify-between px-3 py-2 text-xs text-left"
+                                        style={{ background: on ? 'rgba(239,255,66,0.1)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)', color: disabled ? 'rgba(255,255,255,0.2)' : on ? '#efff42' : 'rgba(255,255,255,0.55)', fontWeight: on ? 700 : 400, cursor: disabled ? 'not-allowed' : 'pointer' }}>
+                                        {s} {on && <span style={{ color: '#efff42' }}>✓</span>}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
     edit_key: null,
     verification_word: null,
     status: 'active',
+    migrated_at: new Date().toISOString(),
   }).eq('id', artist_id)
 
   if (updateError) {

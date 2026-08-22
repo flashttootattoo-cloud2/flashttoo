@@ -19,7 +19,7 @@ type Artist = {
   gallery_photo_1: string | null; gallery_photo_2: string | null; gallery_photo_3: string | null
   profile_views: number; instagram_clicks: number; whatsapp_clicks: number; likes: number
   edit_key: string; visible: boolean; created_at: string; status: string
-  pending_reason: string | null
+  pending_reason: string | null; migrated_at: string | null
 }
 
 function fmtN(n: number): string {
@@ -539,6 +539,11 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
                 {a.auth_email && (
                   <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full mt-1" style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
                     ✉ {a.auth_email}
+                  </span>
+                )}
+                {a.migrated_at && (Date.now() - new Date(a.migrated_at).getTime() < 30 * 24 * 60 * 60 * 1000) && (
+                  <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full mt-1 ml-1" style={{ background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}>
+                    ✓ migró
                   </span>
                 )}
                 {isDupe(a) && <p className="text-xs font-bold" style={{ color: '#f87171' }}>⚠ duplicado</p>}
@@ -1182,6 +1187,7 @@ export default function AdminPage() {
     { key: 'ingresar',   label: 'Ingresar — Modal de login y registro' },
     { key: 'activar',    label: 'Activar — Página de activación de perfil' },
     { key: 'password',   label: 'Password — Página de nueva contraseña' },
+    { key: 'galeria',    label: 'Galería — Overlay de fotos' },
   ]
 
   const openLang = async (code: string) => {
@@ -1856,7 +1862,17 @@ export default function AdminPage() {
               </>
             ) : (
               <>
-                <ArtistGrid artists={artists.filter(a => a.status !== 'pending')} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
+                <ArtistGrid artists={[...artists.filter(a => a.status !== 'pending')].sort((a, b) => {
+                  const aM = a.migrated_at ? new Date(a.migrated_at).getTime() : 0
+                  const bM = b.migrated_at ? new Date(b.migrated_at).getTime() : 0
+                  const MONTH = 30 * 24 * 60 * 60 * 1000
+                  const aRecent = aM > Date.now() - MONTH
+                  const bRecent = bM > Date.now() - MONTH
+                  if (aRecent && !bRecent) return -1
+                  if (!aRecent && bRecent) return 1
+                  if (aRecent && bRecent) return bM - aM
+                  return 0
+                })} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
                 {artists.length < artistsTotal && (
                   <button
                     onClick={loadMoreArtists}
