@@ -879,7 +879,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       {/* Modal de soporte */}
       {/* Galería overlay */}
       {showGallery && (
-        <div ref={galleryContainerRef} style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#000', overflowY: 'auto' }}>
+        <div ref={galleryContainerRef} style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#000', overflowY: 'auto', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {/* Header */}
           <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -918,7 +918,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
 
       {/* Detalle de foto */}
       {selectedPhoto && (
-        <div ref={detailContainerRef} style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#000', overflowY: 'auto' }}>
+        <div ref={detailContainerRef} style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#000', overflowY: 'auto', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {/* Header */}
           <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
