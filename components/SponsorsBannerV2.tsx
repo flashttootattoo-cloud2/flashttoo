@@ -901,11 +901,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 <div key={p.photo_url} style={{ breakInside: 'avoid', marginBottom: 6 }} onClick={() => setSelectedPhoto(p)}>
                   <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', aspectRatio: '3/4' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
+                  <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
                   </div>
                   <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.artist_photo} alt="" loading="lazy" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                    <img src={p.artist_photo} alt="" loading="lazy" decoding="async" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                     <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.artist_name}</span>
                   </button>
                 </div>
@@ -982,11 +982,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     <div key={p.photo_url} style={{ breakInside: 'avoid', marginBottom: 8 }} onClick={() => setSelectedPhoto(p)}>
                       <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', aspectRatio: '3/4' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
+                      <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
                       </div>
                       <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={p.artist_photo} alt="" loading="lazy" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        <img src={p.artist_photo} alt="" loading="lazy" decoding="async" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                         <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.artist_name}</span>
                       </button>
                     </div>
