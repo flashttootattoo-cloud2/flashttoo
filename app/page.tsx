@@ -550,7 +550,7 @@ export default function Home() {
     } else {
       const query = isUuid
         ? supabase.from('artists').select('*').eq('id', id).single()
-        : supabase.from('artists').select('*').ilike('instagram', id).single()
+        : supabase.from('artists').select('*').ilike('instagram', `%${id}`).single()
       query.then(({ data }) => { if (data) openModal(data as Artist) })
     }
   }, [artists, loading, openModal])
@@ -569,7 +569,7 @@ export default function Home() {
       } else {
         const query = isUuid
           ? supabase.from('artists').select('*').eq('id', id).single()
-          : supabase.from('artists').select('*').ilike('instagram', id).single()
+          : supabase.from('artists').select('*').ilike('instagram', `%${id}`).single()
         query.then(({ data }) => { if (data) openModal(data as Artist) })
       }
     }
