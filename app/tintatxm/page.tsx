@@ -538,7 +538,7 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
                 )}
                 {a.auth_email && (
                   <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full mt-1" style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
-                    registro x mail
+                    ✉ {a.auth_email}
                   </span>
                 )}
                 {isDupe(a) && <p className="text-xs font-bold" style={{ color: '#f87171' }}>⚠ duplicado</p>}
@@ -1930,7 +1930,7 @@ export default function AdminPage() {
                                 <p className="text-sm font-bold text-white truncate">{a.name}</p>
                                 {a.auth_email && (
                                   <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
-                                    registro x mail
+                                    ✉ {a.auth_email}
                                   </span>
                                 )}
                                 {a.pending_reason?.startsWith('ig_change') && (
