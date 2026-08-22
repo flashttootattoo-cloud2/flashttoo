@@ -227,6 +227,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   useEffect(() => {
     const onPop = () => {
       if (skipPopsRef.current > 0) { skipPopsRef.current--; return }
+      // Si el modal de artista está abierto encima de la galería, page.tsx lo maneja
+      if ((window as Window & { __artistAboveGallery?: boolean }).__artistAboveGallery) {
+        ;(window as Window & { __artistAboveGallery?: boolean }).__artistAboveGallery = false
+        return
+      }
       histDepthRef.current = Math.max(0, histDepthRef.current - 1)
       if (selectedPhoto) { setSelectedPhoto(null); return }
       if (showGallery) { setShowGallery(false); return }
@@ -301,6 +306,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const closeDetail = () => history.back()  // consume el estado → popstate → setSelectedId(null)
 
   const closeGallery = () => {
+    ;(window as Window & { __artistAboveGallery?: boolean }).__artistAboveGallery = false
     const depth = (selectedPhoto ? 1 : 0) + (showGallery ? 1 : 0)
     setSelectedPhoto(null)
     setShowGallery(false)
@@ -320,6 +326,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       histDepthRef.current = Math.max(0, histDepthRef.current - 1)
     }
     // La galería queda abierta debajo del modal del artista
+    ;(window as Window & { __artistAboveGallery?: boolean }).__artistAboveGallery = true
     setTimeout(() => window.dispatchEvent(new CustomEvent('open-artist', { detail: slug })), selectedPhoto ? 150 : 0)
   }
 
@@ -892,8 +899,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             <div style={{ columns: 2, columnGap: 8, padding: '8px 20px 120px' }}>
               {galleryPhotos.slice(0, galleryDisplayCount).map((p, i) => (
                 <div key={i} style={{ breakInside: 'avoid', marginBottom: 6 }} onClick={() => setSelectedPhoto(p)}>
+                  <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', borderRadius: 10, display: 'block', cursor: 'pointer' }} />
+                  <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', display: 'block', cursor: 'pointer' }} />
+                  </div>
                   <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={p.artist_photo} alt="" loading="lazy" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
@@ -971,8 +980,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 <div style={{ columns: 2, columnGap: 8 }}>
                   {ordered.slice(0, detailDisplayCount).map((p, i) => (
                     <div key={i} style={{ breakInside: 'avoid', marginBottom: 8 }} onClick={() => setSelectedPhoto(p)}>
+                      <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', borderRadius: 10, display: 'block', cursor: 'pointer' }} />
+                      <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', display: 'block', cursor: 'pointer' }} />
+                      </div>
                       <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={p.artist_photo} alt="" loading="lazy" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
