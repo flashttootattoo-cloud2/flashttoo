@@ -898,10 +898,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           ) : (
             <div style={{ columns: 2, columnGap: 8, padding: '8px 20px 120px' }}>
               {galleryPhotos.slice(0, galleryDisplayCount).map((p, i) => (
-                <div key={i} style={{ breakInside: 'avoid', marginBottom: 6 }} onClick={() => setSelectedPhoto(p)}>
-                  <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }}>
+                <div key={p.photo_url} style={{ breakInside: 'avoid', marginBottom: 6 }} onClick={() => setSelectedPhoto(p)}>
+                  <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', aspectRatio: '3/4' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', display: 'block', cursor: 'pointer' }} />
+                  <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
                   </div>
                   <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -979,10 +979,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               <div style={{ padding: '16px 20px 120px' }}>
                 <div style={{ columns: 2, columnGap: 8 }}>
                   {ordered.slice(0, detailDisplayCount).map((p, i) => (
-                    <div key={i} style={{ breakInside: 'avoid', marginBottom: 8 }} onClick={() => setSelectedPhoto(p)}>
-                      <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }}>
+                    <div key={p.photo_url} style={{ breakInside: 'avoid', marginBottom: 8 }} onClick={() => setSelectedPhoto(p)}>
+                      <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', aspectRatio: '3/4' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', display: 'block', cursor: 'pointer' }} />
+                      <img src={p.photo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
                       </div>
                       <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
