@@ -108,6 +108,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const [detailDisplayCount, setDetailDisplayCount] = useState(20)
   const [activeStyleFilter, setActiveStyleFilter] = useState<string | null>(null)
   const [loadingArtistSlug, setLoadingArtistSlug] = useState<string | null>(null)
+  const [sharePhotoCopied, setSharePhotoCopied] = useState(false)
   const detailContainerRef = useRef<HTMLDivElement>(null)
   const detailSentinelRef = useRef<HTMLDivElement>(null)
   const [convCountrySearch, setConvCountrySearch] = useState('')
@@ -969,6 +970,20 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             <div style={{ position: 'relative' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={selectedPhoto.photo_url} alt="" style={{ width: '100%', display: 'block' }} />
+              {/* Botón compartir foto */}
+              <button onClick={async () => {
+                const slug = selectedPhoto.artist_instagram ? selectedPhoto.artist_instagram.replace('@','') : selectedPhoto.artist_id
+                const url = `${window.location.origin}/?artista=${slug}`
+                if (navigator.share) {
+                  try { await navigator.share({ title: selectedPhoto.artist_name, text: `Mirá este trabajo de ${selectedPhoto.artist_name} en Flashttoo`, url }) } catch {}
+                } else {
+                  await navigator.clipboard.writeText(url).catch(() => {})
+                  setSharePhotoCopied(true)
+                  setTimeout(() => setSharePhotoCopied(false), 2000)
+                }
+              }} style={{ position: 'absolute', top: 10, right: 10, width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 15, color: sharePhotoCopied ? '#efff42' : '#fff' }}>
+                {sharePhotoCopied ? '✓' : '↗'}
+              </button>
               {selectedPhoto.photo_styles && selectedPhoto.photo_styles.length > 0 && (
                 <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {selectedPhoto.photo_styles.map((s, i) => {
