@@ -124,6 +124,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const dragRef       = useRef({ on: false, startX: 0, startPos: 0, moved: false })
   const histDepthRef  = useRef(0)  // cuántos estados pushState tiene el overlay
   const skipPopsRef   = useRef(0)  // popstate a ignorar tras history.go(-n)
+  const photoStackRef = useRef<GalleryPhoto[]>([])  // historial de fotos visitadas
 
   // Fetch una sola vez — mezcla aleatoria fija en este montaje
   useEffect(() => {
@@ -233,7 +234,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         return
       }
       histDepthRef.current = Math.max(0, histDepthRef.current - 1)
-      if (selectedPhoto) { setSelectedPhoto(null); return }
+      if (selectedPhoto) {
+        const prev = photoStackRef.current.pop()
+        setSelectedPhoto(prev ?? null)
+        return
+      }
       if (showGallery) { setShowGallery(false); return }
       if (selectedId) { setSelectedId(null); return }
       if (showInfo) { setShowInfo(false); return }
@@ -305,9 +310,15 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
 
   const closeDetail = () => history.back()  // consume el estado → popstate → setSelectedId(null)
 
+  const navigateToPhoto = (p: GalleryPhoto) => {
+    if (selectedPhoto) photoStackRef.current.push(selectedPhoto)
+    setSelectedPhoto(p)
+  }
+
   const closeGallery = () => {
     ;(window as Window & { __artistAboveGallery?: boolean }).__artistAboveGallery = false
-    const depth = (selectedPhoto ? 1 : 0) + (showGallery ? 1 : 0)
+    const depth = (selectedPhoto ? 1 + photoStackRef.current.length : 0) + (showGallery ? 1 : 0)
+    photoStackRef.current = []
     setSelectedPhoto(null)
     setShowGallery(false)
     if (depth > 0) {
@@ -835,7 +846,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           onMouseUp={endDrag}
           onMouseLeave={endDrag}
           style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: showGallery ? 65 : 40,
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: selectedPhoto ? 75 : showGallery ? 65 : 40,
             padding: '0 20px',
             userSelect: 'none', touchAction: 'pan-x', cursor: 'grab',
           }}>
@@ -857,7 +868,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       )}
 
       {/* Botones flotantes */}
-      <div style={{ position: 'fixed', bottom: showInsumos ? 70 : 20, left: 0, right: 0, zIndex: showGallery ? 65 : 41, pointerEvents: 'none', padding: '0 20px' }}>
+      <div style={{ position: 'fixed', bottom: showInsumos ? 70 : 20, left: 0, right: 0, zIndex: selectedPhoto ? 75 : showGallery ? 65 : 41, pointerEvents: 'none', padding: '0 20px' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 8px', display: 'flex', justifyContent: showInsumos ? 'stretch' : 'center', gap: 8, pointerEvents: 'auto' }}>
           {showInsumos && (
             <button onClick={() => { setSelectedPhoto(null); setShowGallery(false); setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}
@@ -900,7 +911,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               const photos = galleryPhotos.slice(0, galleryDisplayCount)
               const renderCard = (p: typeof photos[0]) => (
                 <div key={p.photo_url}>
-                  <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', minHeight: 80 }} onClick={() => setSelectedPhoto(p)}>
+                  <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', minHeight: 80 }} onClick={() => navigateToPhoto(p)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: 'auto', display: 'block', cursor: 'pointer' }} />
                   </div>
@@ -991,9 +1002,9 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             const photos = ordered.slice(0, detailDisplayCount)
             const renderCard = (p: typeof photos[0]) => (
               <div key={p.photo_url}>
-                <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }} onClick={() => setSelectedPhoto(p)}>
+                <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', minHeight: 80 }} onClick={() => navigateToPhoto(p)}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: 'auto', aspectRatio: '3/4', display: 'block', cursor: 'pointer' }} />
+                <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: 'auto', display: 'block', cursor: 'pointer' }} />
                 </div>
                 <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1005,10 +1016,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             return (
               <div style={{ padding: '16px 20px 120px' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 22 }}>
                     {photos.filter((_, i) => i % 2 === 0).map(renderCard)}
                   </div>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 22 }}>
                     {photos.filter((_, i) => i % 2 === 1).map(renderCard)}
                   </div>
                 </div>
