@@ -896,25 +896,35 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>{t('galeria', 'loading', 'Cargando...')}</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '8px 20px 120px' }}>
-              {galleryPhotos.slice(0, galleryDisplayCount).map((p, i) => {
-                const ratio = ['3/4','2/3','4/5','3/4','3/5','4/5'][i % 6]
-                return (
-                  <div key={p.photo_url} onClick={() => setSelectedPhoto(p)}>
-                    <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', aspectRatio: ratio }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
-                    </div>
-                    <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.artist_photo} alt="" loading="lazy" decoding="async" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.artist_name}</span>
-                    </button>
+            (() => {
+              const photos = galleryPhotos.slice(0, galleryDisplayCount)
+              const renderCard = (p: typeof photos[0]) => (
+                <div key={p.photo_url}>
+                  <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }} onClick={() => setSelectedPhoto(p)}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: 'auto', aspectRatio: '3/4', display: 'block', cursor: 'pointer' }} />
                   </div>
-                )
-              })}
-              <div ref={gallerySentinelRef} style={{ height: 1, gridColumn: 'span 2' }} />
-            </div>
+                  <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.artist_photo} alt="" loading="lazy" decoding="async" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.artist_name}</span>
+                  </button>
+                </div>
+              )
+              return (
+                <div style={{ padding: '8px 20px 120px' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {photos.filter((_, i) => i % 2 === 0).map(renderCard)}
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {photos.filter((_, i) => i % 2 === 1).map(renderCard)}
+                    </div>
+                  </div>
+                  <div ref={gallerySentinelRef} style={{ height: 1 }} />
+                </div>
+              )
+            })()
           )}
         </div>
       )}
@@ -978,27 +988,31 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               ? allOrdered.filter(p => (p.artist_styles ?? []).includes(activeStyleFilter))
               : allOrdered
             if (ordered.length === 0) return null
+            const photos = ordered.slice(0, detailDisplayCount)
+            const renderCard = (p: typeof photos[0]) => (
+              <div key={p.photo_url}>
+                <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }} onClick={() => setSelectedPhoto(p)}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: 'auto', aspectRatio: '3/4', display: 'block', cursor: 'pointer' }} />
+                </div>
+                <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.artist_photo} alt="" loading="lazy" decoding="async" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.artist_name}</span>
+                </button>
+              </div>
+            )
             return (
               <div style={{ padding: '16px 20px 120px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {ordered.slice(0, detailDisplayCount).map((p, i) => {
-                    const ratio = ['3/4','2/3','4/5','3/4','3/5','4/5'][i % 6]
-                    return (
-                      <div key={p.photo_url} onClick={() => setSelectedPhoto(p)}>
-                        <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', aspectRatio: ratio }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
-                        </div>
-                        <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={p.artist_photo} alt="" loading="lazy" decoding="async" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.artist_name}</span>
-                        </button>
-                      </div>
-                    )
-                  })}
-                  <div ref={detailSentinelRef} style={{ height: 1, gridColumn: 'span 2' }} />
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {photos.filter((_, i) => i % 2 === 0).map(renderCard)}
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {photos.filter((_, i) => i % 2 === 1).map(renderCard)}
+                  </div>
                 </div>
+                <div ref={detailSentinelRef} style={{ height: 1 }} />
               </div>
             )
           })()}
