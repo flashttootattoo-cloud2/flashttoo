@@ -22,6 +22,7 @@ export async function GET() {
     .from('artists')
     .select('id, name, photo_url, gallery_photo_1, gallery_photo_2, gallery_photo_3, gallery_photo_1_styles, gallery_photo_2_styles, gallery_photo_3_styles, instagram, city, country, styles')
     .eq('visible', true)
+    .eq('status', 'active')
 
   if (!data) return NextResponse.json({ photos: [] })
 
