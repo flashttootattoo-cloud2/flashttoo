@@ -32,7 +32,9 @@ export async function GET() {
       const url = a[key as keyof typeof a] as string | null
       const photoStyles = Array.isArray((a as Record<string, unknown>)[`${key}_styles`]) && ((a as Record<string, unknown>)[`${key}_styles`] as string[]).length > 0 ? (a as Record<string, unknown>)[`${key}_styles`] as string[] : null
       const effectiveStyles = photoStyles ?? (Array.isArray(a.styles) ? a.styles : null)
-      if (url) photos.push({ artist_id: a.id, artist_name: a.name, artist_photo: a.photo_url, photo_url: url, artist_instagram: a.instagram ?? null, artist_city: a.city ?? null, artist_country: a.country ?? null, artist_styles: effectiveStyles, photo_styles: photoStyles })
+      const igRaw = a.instagram ?? null
+      const isEmail = igRaw ? /^[^@]+@[^@]+\.[^@]+$/.test(igRaw) : false
+      if (url) photos.push({ artist_id: a.id, artist_name: a.name, artist_photo: a.photo_url, photo_url: url, artist_instagram: isEmail ? null : igRaw, artist_city: a.city ?? null, artist_country: a.country ?? null, artist_styles: effectiveStyles, photo_styles: photoStyles })
     }
   }
 
