@@ -549,8 +549,8 @@ export default function Home() {
       openModal(artist)
     } else {
       const query = isUuid
-        ? supabase.from('artists').select('*').eq('id', id).single()
-        : supabase.from('artists').select('*').ilike('instagram', `%${id}`).single()
+        ? supabase.from('artists').select('*').eq('id', id).maybeSingle()
+        : supabase.from('artists').select('*').or(`instagram.ilike.${id},instagram.ilike.@${id}`).maybeSingle()
       query.then(({ data }) => { if (data) openModal(data as Artist) })
     }
   }, [artists, loading, openModal])
@@ -568,8 +568,8 @@ export default function Home() {
         openModal(artist)
       } else {
         const query = isUuid
-          ? supabase.from('artists').select('*').eq('id', id).single()
-          : supabase.from('artists').select('*').ilike('instagram', `%${id}`).single()
+          ? supabase.from('artists').select('*').eq('id', id).maybeSingle()
+          : supabase.from('artists').select('*').or(`instagram.ilike.${id},instagram.ilike.@${id}`).maybeSingle()
         query.then(({ data }) => { if (data) openModal(data as Artist) })
       }
     }
