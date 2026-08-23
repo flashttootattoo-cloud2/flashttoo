@@ -937,7 +937,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 <div key={p.photo_url}>
                   <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', minHeight: 80 }} onClick={() => navigateToPhoto(p)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: 'auto', display: 'block', cursor: 'pointer' }} />
+                  <img src={p.photo_url} alt="" loading="lazy" decoding="async" onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1' }} style={{ width: '100%', height: 'auto', display: 'block', cursor: 'pointer', opacity: 0, transition: 'opacity 0.3s' }} />
                   </div>
                   <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1044,7 +1044,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               <div key={p.photo_url}>
                 <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', minHeight: 80 }} onClick={() => navigateToPhoto(p)}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: 'auto', display: 'block', cursor: 'pointer' }} />
+                <img src={p.photo_url} alt="" loading="lazy" decoding="async" onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1' }} style={{ width: '100%', height: 'auto', display: 'block', cursor: 'pointer', opacity: 0, transition: 'opacity 0.3s' }} />
                 </div>
                 <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
