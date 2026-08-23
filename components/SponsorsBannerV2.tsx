@@ -914,10 +914,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               return (
                 <div style={{ padding: '8px 20px 120px' }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 22 }}>
                       {photos.filter((_, i) => i % 2 === 0).map(renderCard)}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 22 }}>
                       {photos.filter((_, i) => i % 2 === 1).map(renderCard)}
                     </div>
                   </div>
