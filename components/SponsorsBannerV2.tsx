@@ -125,7 +125,8 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const dragRef       = useRef({ on: false, startX: 0, startPos: 0, moved: false })
   const histDepthRef  = useRef(0)  // cuántos estados pushState tiene el overlay
   const skipPopsRef   = useRef(0)  // popstate a ignorar tras history.go(-n)
-  const photoStackRef = useRef<GalleryPhoto[]>([])  // historial de fotos visitadas
+  const photoStackRef    = useRef<GalleryPhoto[]>([])  // historial de fotos visitadas
+  const navigatingBackRef = useRef(false)  // evita push en useEffect al volver atrás
   // Refs espejo para que el handler de popstate siempre lea valores actuales (sin closure obsoleto)
   const selectedPhotoRef = useRef<GalleryPhoto | null>(null)
   const showGalleryRef   = useRef(false)
@@ -249,6 +250,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       histDepthRef.current = Math.max(0, histDepthRef.current - 1)
       if (selectedPhotoRef.current) {
         const prev = photoStackRef.current.pop()
+        if (prev) navigatingBackRef.current = true  // volver atrás no debe pushear nuevo estado
         setSelectedPhoto(prev ?? null)
         return
       }
@@ -287,8 +289,12 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     if (!selectedPhoto) return
     setDetailDisplayCount(20)
     setActiveStyleFilter(null)
-    history.pushState({ sv2: 'gallery-detail' }, '')
-    histDepthRef.current++
+    if (navigatingBackRef.current) {
+      navigatingBackRef.current = false  // vinimos del popstate, el estado ya existe en historial
+    } else {
+      history.pushState({ sv2: 'gallery-detail' }, '')
+      histDepthRef.current++
+    }
     requestAnimationFrame(() => { detailContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' }) })
     const container = detailContainerRef.current
     const sentinel = detailSentinelRef.current
