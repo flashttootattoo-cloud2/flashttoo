@@ -981,7 +981,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                   setSharePhotoCopied(true)
                   setTimeout(() => setSharePhotoCopied(false), 2000)
                 }
-              }} style={{ position: 'absolute', top: 10, right: 10, width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 15, color: sharePhotoCopied ? '#efff42' : '#fff' }}>
+              }} style={{ position: 'absolute', top: 10, right: 10, width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 15, color: '#efff42' }}>
                 {sharePhotoCopied ? '✓' : '↗'}
               </button>
               {selectedPhoto.photo_styles && selectedPhoto.photo_styles.length > 0 && (
