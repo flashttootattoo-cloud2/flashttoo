@@ -107,6 +107,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const gallerySentinelRef = useRef<HTMLDivElement>(null)
   const [detailDisplayCount, setDetailDisplayCount] = useState(20)
   const [activeStyleFilter, setActiveStyleFilter] = useState<string | null>(null)
+  const [loadingArtistSlug, setLoadingArtistSlug] = useState<string | null>(null)
   const detailContainerRef = useRef<HTMLDivElement>(null)
   const detailSentinelRef = useRef<HTMLDivElement>(null)
   const [convCountrySearch, setConvCountrySearch] = useState('')
@@ -329,16 +330,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   }
 
   const openArtistFromGallery = (slug: string) => {
-    if (selectedPhoto) {
-      // Cerrar solo el detalle, mantener galería abierta
-      setSelectedPhoto(null)
-      skipPopsRef.current++
-      history.go(-1)
-      histDepthRef.current = Math.max(0, histDepthRef.current - 1)
-    }
-    // La galería queda abierta debajo del modal del artista
     ;(window as Window & { __artistAboveGallery?: boolean }).__artistAboveGallery = true
-    setTimeout(() => window.dispatchEvent(new CustomEvent('open-artist', { detail: slug })), selectedPhoto ? 150 : 0)
+    setLoadingArtistSlug(slug)
+    window.dispatchEvent(new CustomEvent('open-artist', { detail: slug }))
+    setTimeout(() => setLoadingArtistSlug(null), 2000)
   }
 
   const closeAll = () => {
@@ -982,10 +977,12 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 </p>
               )}
             </div>
-            <button onClick={() => { const slug = selectedPhoto.artist_instagram ? selectedPhoto.artist_instagram.replace('@', '') : selectedPhoto.artist_id; openArtistFromGallery(slug) }}
-              style={{ flexShrink: 0, padding: '8px 16px', background: '#000', borderRadius: 10, color: '#efff42', fontWeight: 800, fontSize: 12, border: 'none', cursor: 'pointer', letterSpacing: '0.03em' }}>
-              {t('galeria', 'ver_artista', 'Ver artista')}
+            {(() => { const slug = selectedPhoto.artist_instagram ? selectedPhoto.artist_instagram.replace('@', '') : selectedPhoto.artist_id; return (
+            <button onClick={() => openArtistFromGallery(slug)}
+              style={{ flexShrink: 0, padding: '8px 16px', background: '#000', borderRadius: 10, color: '#efff42', fontWeight: 800, fontSize: 12, border: 'none', cursor: loadingArtistSlug === slug ? 'default' : 'pointer', letterSpacing: '0.03em', opacity: loadingArtistSlug === slug ? 0.6 : 1 }}>
+              {loadingArtistSlug === slug ? '...' : t('galeria', 'ver_artista', 'Ver artista')}
             </button>
+            )})()}
           </div>
           </div>
           {/* Más fotos relacionadas */}
