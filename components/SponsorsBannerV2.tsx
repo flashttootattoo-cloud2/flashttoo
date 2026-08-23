@@ -294,7 +294,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     fetch('/api/gallery').then(r => r.json()).then(d => {
       const photos = d.photos ?? []
       setGalleryPhotos(photos)
-      photos.slice(0, 20).forEach((p: GalleryPhoto) => { const img = new window.Image(); img.src = p.photo_url })
+      photos.slice(0, 6).forEach((p: GalleryPhoto) => { const img = new window.Image(); img.src = p.photo_url })
     }).catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
