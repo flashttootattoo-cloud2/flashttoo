@@ -881,7 +881,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       {showGallery && (
         <div ref={galleryContainerRef} style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#000', overflowY: 'auto', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {/* Header */}
-          <div style={{ position: 'sticky', top: 0, zIndex: 1, background: '#0d0d0d', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(0,0,0,0.78)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 28, opacity: 0.9, flex: '0 0 auto' }} />
             <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', pointerEvents: 'none' }}>{t('inicio', 'gallery_btn', 'Galería')}</span>
@@ -933,7 +933,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       {selectedPhoto && (
         <div ref={detailContainerRef} style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#000', overflowY: 'auto', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {/* Header */}
-          <div style={{ position: 'sticky', top: 0, zIndex: 1, background: '#0d0d0d', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(0,0,0,0.78)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 28, opacity: 0.9, flex: '0 0 auto' }} />
             <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', pointerEvents: 'none' }}>{t('inicio', 'gallery_btn', 'Galería')}</span>
