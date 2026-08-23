@@ -126,6 +126,19 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const histDepthRef  = useRef(0)  // cuántos estados pushState tiene el overlay
   const skipPopsRef   = useRef(0)  // popstate a ignorar tras history.go(-n)
   const photoStackRef = useRef<GalleryPhoto[]>([])  // historial de fotos visitadas
+  // Refs espejo para que el handler de popstate siempre lea valores actuales (sin closure obsoleto)
+  const selectedPhotoRef = useRef<GalleryPhoto | null>(null)
+  const showGalleryRef   = useRef(false)
+  const selectedIdRef    = useRef<string | null>(null)
+  const showInfoRef      = useRef(false)
+  const expandedRef      = useRef(false)
+
+  // Sincronizar refs espejo con estado actual en cada render
+  selectedPhotoRef.current = selectedPhoto
+  showGalleryRef.current   = showGallery
+  selectedIdRef.current    = selectedId
+  showInfoRef.current      = showInfo
+  expandedRef.current      = expanded
 
   // Fetch una sola vez — mezcla aleatoria fija en este montaje
   useEffect(() => {
@@ -225,29 +238,28 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showInfo])
 
-  // Botón físico atrás del celular
+  // Botón físico atrás del celular — deps vacíos, usa refs para evitar closure obsoleto
   useEffect(() => {
     const onPop = () => {
       if (skipPopsRef.current > 0) { skipPopsRef.current--; return }
-      // Si el modal de artista está abierto encima de la galería, page.tsx lo maneja
       if ((window as Window & { __artistAboveGallery?: boolean }).__artistAboveGallery) {
         ;(window as Window & { __artistAboveGallery?: boolean }).__artistAboveGallery = false
         return
       }
       histDepthRef.current = Math.max(0, histDepthRef.current - 1)
-      if (selectedPhoto) {
+      if (selectedPhotoRef.current) {
         const prev = photoStackRef.current.pop()
         setSelectedPhoto(prev ?? null)
         return
       }
-      if (showGallery) { setShowGallery(false); return }
-      if (selectedId) { setSelectedId(null); return }
-      if (showInfo) { setShowInfo(false); return }
-      if (expanded) { setExpanded(false); return }
+      if (showGalleryRef.current) { setShowGallery(false); return }
+      if (selectedIdRef.current)  { setSelectedId(null);   return }
+      if (showInfoRef.current)    { setShowInfo(false);    return }
+      if (expandedRef.current)    { setExpanded(false);    return }
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
-  }, [selectedPhoto, showGallery, selectedId, showInfo, expanded])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     document.body.style.overflow = showGallery ? 'hidden' : ''
