@@ -900,9 +900,9 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               const photos = galleryPhotos.slice(0, galleryDisplayCount)
               const renderCard = (p: typeof photos[0]) => (
                 <div key={p.photo_url}>
-                  <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }} onClick={() => setSelectedPhoto(p)}>
+                  <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', minHeight: 80 }} onClick={() => setSelectedPhoto(p)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: 'auto', aspectRatio: '3/4', display: 'block', cursor: 'pointer' }} />
+                  <img src={p.photo_url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: 'auto', display: 'block', cursor: 'pointer' }} />
                   </div>
                   <button onClick={e => { e.stopPropagation(); const slug = p.artist_instagram ? p.artist_instagram.replace('@', '') : p.artist_id; openArtistFromGallery(slug) }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px 2px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
