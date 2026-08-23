@@ -566,11 +566,15 @@ export default function Home() {
         : artists.find(a => a.instagram?.replace('@', '') === id)
       if (artist) {
         openModal(artist)
+        window.dispatchEvent(new CustomEvent('artist-opened'))
       } else {
         const query = isUuid
           ? supabase.from('artists').select('*').eq('id', id).maybeSingle()
           : supabase.from('artists').select('*').or(`instagram.ilike.${id},instagram.ilike.@${id}`).maybeSingle()
-        query.then(({ data }) => { if (data) openModal(data as Artist) })
+        query.then(({ data }) => {
+          if (data) openModal(data as Artist)
+          window.dispatchEvent(new CustomEvent('artist-opened'))
+        })
       }
     }
     window.addEventListener('open-artist', handler)

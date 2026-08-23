@@ -321,6 +321,12 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const loadGallery = () => { /* precargado al montar */ }
 
   const openSponsor = (id: string) => {
+    if (showGalleryRef.current) {
+      setShowGallery(false)
+      setSelectedPhoto(null)
+      photoStackRef.current = []
+      histDepthRef.current = 0
+    }
     history.pushState({ sv2: 'detail' }, '')
     histDepthRef.current++
     setBioExpanded(false)
@@ -352,7 +358,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     ;(window as Window & { __artistAboveGallery?: boolean }).__artistAboveGallery = true
     setLoadingArtistSlug(slug)
     window.dispatchEvent(new CustomEvent('open-artist', { detail: slug }))
-    setTimeout(() => setLoadingArtistSlug(null), 2000)
+    const onOpened = () => {
+      setLoadingArtistSlug(null)
+      window.removeEventListener('artist-opened', onOpened)
+    }
+    window.addEventListener('artist-opened', onOpened)
   }
 
   const closeAll = () => {
@@ -908,7 +918,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           {/* Header */}
           <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(0,0,0,0.92)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 28, opacity: 0.9, flex: '0 0 auto' }} />
+            <img src="/Logoprincipal.svg" alt="Flashttoo" onClick={closeGallery} style={{ height: 28, opacity: 0.9, flex: '0 0 auto', cursor: 'pointer' }} />
             <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', pointerEvents: 'none' }}>{t('inicio', 'gallery_btn', 'Galería')}</span>
             <button onClick={closeGallery}
               style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 18, cursor: 'pointer', flexShrink: 0 }}>
