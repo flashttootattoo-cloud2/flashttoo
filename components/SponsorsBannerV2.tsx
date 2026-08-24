@@ -321,12 +321,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const loadGallery = () => { /* precargado al montar */ }
 
   const openSponsor = (id: string) => {
-    if (showGalleryRef.current) {
-      setShowGallery(false)
-      setSelectedPhoto(null)
-      photoStackRef.current = []
-      histDepthRef.current = 0
-    }
+    setShowGallery(false)
+    setSelectedPhoto(null)
+    photoStackRef.current = []
+    histDepthRef.current = 0
     history.pushState({ sv2: 'detail' }, '')
     histDepthRef.current++
     setBioExpanded(false)
