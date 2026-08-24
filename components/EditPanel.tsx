@@ -251,6 +251,15 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
 
   const save = async () => {
     setSaving(true); setSaveError('')
+    // Validar que toda foto de galería (nueva o existente) tenga al menos una etiqueta
+    for (let i = 0; i < 3; i++) {
+      const hasPhoto = galleryPreviews[i] !== null || galleryFiles[i] !== null
+      if (hasPhoto && galleryPhotoStyles[i].length === 0) {
+        setSaveError(t('edit', 'gallery_tag_required', `La foto ${i + 1} de galería necesita al menos una etiqueta de estilo.`))
+        setSaving(false)
+        return
+      }
+    }
     try {
       let photo_url = artist.photo_url
       if (photo) {
