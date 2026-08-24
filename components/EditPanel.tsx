@@ -255,7 +255,8 @@ export default function EditPanel({ artist, onClose, onSaved, onDeleted, prefill
     for (let i = 0; i < 3; i++) {
       const hasPhoto = galleryPreviews[i] !== null || galleryFiles[i] !== null
       if (hasPhoto && galleryPhotoStyles[i].length === 0) {
-        setSaveError(t('edit', 'gallery_tag_required', `La foto ${i + 1} de galería necesita al menos una etiqueta de estilo.`))
+        const msg = t('edit', 'gallery_tag_required', 'La foto {n} de galería necesita al menos una etiqueta de estilo.')
+        setSaveError(msg.replace('{n}', String(i + 1)))
         setSaving(false)
         return
       }
