@@ -32,13 +32,14 @@ function StatItem({ label, value }: { label: string; value: number }) {
   )
 }
 
-export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, authEmail, adminPass }: {
+export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, authEmail, adminPass, showClickCounters = false }: {
   slug: string
   onClose: () => void
   onOpenArtist: (artist: Artist) => void
   accessToken?: string
   authEmail?: string
   adminPass?: string
+  showClickCounters?: boolean
 }) {
   const { t, language } = useTranslation()
   const authMode = Boolean(accessToken)
@@ -338,7 +339,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                       onClick={() => fetch(`/api/studios/${slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'instagram' }) }).catch(() => {})}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
                       <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>Instagram</span>
-                      <span style={{ color: 'rgba(225,48,108,0.38)', fontSize: 16 }}>↗</span>
+                      <span style={{ color: 'rgba(239,255,66,0.38)', fontSize: 16 }}>↗</span>
                     </a>
                   )}
                   {studio.whatsapp && (
@@ -346,7 +347,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                       onClick={() => fetch(`/api/studios/${slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'whatsapp' }) }).catch(() => {})}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
                       <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>WhatsApp</span>
-                      <span style={{ color: 'rgba(37,211,102,0.38)', fontSize: 16 }}>↗</span>
+                      <span style={{ color: 'rgba(239,255,66,0.38)', fontSize: 16 }}>↗</span>
                     </a>
                   )}
                   {studio.website && (
@@ -354,7 +355,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                       onClick={() => fetch(`/api/studios/${slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'website' }) }).catch(() => {})}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
                       <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>{t('estudio', 'stat_web', 'Web')}</span>
-                      <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                      <span style={{ color: 'rgba(239,255,66,0.38)', fontSize: 16 }}>↗</span>
                     </a>
                   )}
                   <button onClick={shareStudio}
@@ -367,8 +368,8 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                 <div className="flex items-center justify-between">
                   <div className="flex mr-3">
                     <StatItem label={t('estudio', 'stat_views', 'visitas')} value={studio.profile_views ?? 0} />
-                    <StatItem label="Instagram" value={studio.instagram_clicks ?? 0} />
-                    {studio.whatsapp && <StatItem label="WhatsApp" value={studio.whatsapp_clicks ?? 0} />}
+                    {showClickCounters && <StatItem label="Instagram" value={studio.instagram_clicks ?? 0} />}
+                    {showClickCounters && studio.whatsapp && <StatItem label="WhatsApp" value={studio.whatsapp_clicks ?? 0} />}
                     {studio.website  && <StatItem label={t('estudio', 'stat_web', 'Web')} value={studio.website_clicks ?? 0} />}
                   </div>
                   <button onClick={toggleLike} className="flex items-center gap-2 px-4 py-2 rounded-full transition-all"

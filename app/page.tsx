@@ -143,6 +143,7 @@ export default function Home() {
   const [liked, setLiked]             = useState(false)
   const [localLikes, setLocalLikes]   = useState(0)
   const [copied, setCopied]           = useState(false)
+  const [emailCopied, setEmailCopied] = useState(false)
   const [loading, setLoading]         = useState(true)
   const [conventions, setConventions]       = useState<Convention[]>([])
   const [flashDays, setFlashDays]           = useState<{ id: string; studio_slug: string; studio_name: string; flyer_url: string; date: string }[]>([])
@@ -168,6 +169,7 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [studioAuth, setStudioAuth] = useState<{ slug: string; auth_email: string | null; access_token: string } | null>(null)
   const [showContactInfo, setShowContactInfo] = useState(true)
+  const [showClickCounters, setShowClickCounters] = useState(false)
   const [registrationOpen, setRegistrationOpen] = useState(true)
   const [showRegistrationClosed, setShowRegistrationClosed] = useState(false)
   const [totalActiveArtists, setTotalActiveArtists] = useState<number | null>(null)
@@ -314,7 +316,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
-    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_verified_banner !== false) setShowVerifiedBanner(true); if (d.show_contact_info === false) setShowContactInfo(false); if (d.maintenance_mode === true) setMaintenanceMode(true) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_verified_banner !== false) setShowVerifiedBanner(true); if (d.show_contact_info === false) setShowContactInfo(false); if (d.maintenance_mode === true) setMaintenanceMode(true); if (d.show_click_counters === true) setShowClickCounters(true) }).catch(() => {})
     fetch('/api/secret-card').then(r => r.json()).then(d => {
       if (d.card) {
         setSecretCard(d.card)
@@ -1214,9 +1216,9 @@ export default function Home() {
           onClick={closeModal}>
 
           <div className="flex justify-center items-start min-h-full pb-64 sm:px-4 sm:pt-6">
-          <div className="flex flex-col w-full sm:max-w-sm" onClick={e => e.stopPropagation()}>
+          <div className="flex flex-col w-full sm:max-w-sm" style={{ gap: 10 }} onClick={e => e.stopPropagation()}>
           <div className="relative w-full overflow-hidden"
-            style={{ background: '#111', borderRadius: editOpen ? '0 0 0 0' : '0 0 20px 20px', border: '1px solid rgba(255,255,255,0.08)', borderBottom: editOpen ? 'none' : '1px solid rgba(255,255,255,0.08)', boxShadow: editOpen ? 'none' : '0 40px 100px rgba(0,0,0,0.9)' }}>
+            style={{ background: '#111', borderRadius: '0 0 20px 20px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
 
             <div className="relative w-full" style={{ paddingBottom: '115%' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1271,80 +1273,13 @@ export default function Home() {
                 )
               })()}
 
-              {(() => {
-                const today = new Date().toISOString().slice(0, 10)
-                const upcoming = (selected.visits || []).filter(v => v.to >= today).sort((a, b) => a.from.localeCompare(b.from))
-                if (!upcoming.length) return null
-                return (
-                  <div style={{ marginBottom: 16 }}>
-                    <p style={{ fontSize: 10, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 8 }}>{t('artista', 'upcoming_dates', 'Próximas fechas')}</p>
-                    <div className="flex flex-col gap-2">
-                      {upcoming.map((v, i) => (
-                        <div key={i} style={{ background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.12)', borderRadius: 10, padding: '10px 14px' }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: '#efff42', marginBottom: 2 }}>{v.city}, {v.country}</p>
-                          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-                            {new Date(v.from + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })} – {new Date(v.to + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })()}
-
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 16 }} />
-
-              <div className="flex flex-col gap-2">
-                {selected.instagram && (
-                  <a href={`https://instagram.com/${selected.instagram.replace('@', '')}`}
-                    target="_blank" rel="noopener noreferrer"
-                    onClick={() => trackClick(selected.id, 'instagram')}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>Instagram</p>
-                    <span style={{ color: 'rgba(225,48,108,0.38)', fontSize: 16 }}>↗</span>
-                  </a>
-                )}
-                {showContactInfo && selected.whatsapp && (
-                  <a href={`https://wa.me/${selected.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${selected.name}, te encontré en Flashttoo 👋`)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    onClick={() => trackClick(selected.id, 'whatsapp')}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>WhatsApp</p>
-                    <span style={{ color: 'rgba(37,211,102,0.38)', fontSize: 16 }}>↗</span>
-                  </a>
-                )}
-                {selected.email && (
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(selected.email!) }}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>Email</p>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(239,255,66,0.38)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
-                  </button>
-                )}
-                <button onClick={shareArtist}
-                  className="flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full"
-                  style={{ background: copied ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}` }}>
-                  <p style={{ fontSize: 13, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>{copied ? '¡Copiado!' : t('inicio', 'share_btn', 'Compartir perfil')}</p>
-                  {copied ? <span style={{ color: 'rgba(239,255,66,0.5)', fontSize: 14 }}>✓</span> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(239,255,66,0.38)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>}
-                </button>
-              </div>
-
               {/* Stats + Like */}
               <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
                 <div className="flex items-center justify-between">
                   <div className="flex gap-4">
                     <StatItem label={t('artista', 'stat_views', 'visitas')}   value={selected.profile_views ?? 0} />
-                    <StatItem label="Instagram" value={selected.instagram_clicks ?? 0} />
-                    {selected.whatsapp && <StatItem label="WhatsApp" value={selected.whatsapp_clicks ?? 0} />}
+                    {showClickCounters && <StatItem label="Instagram" value={selected.instagram_clicks ?? 0} />}
+                    {showClickCounters && selected.whatsapp && <StatItem label="WhatsApp" value={selected.whatsapp_clicks ?? 0} />}
                   </div>
                   <button onClick={toggleLike}
                     className="flex items-center gap-2 px-4 py-2 rounded-full transition-all"
@@ -1353,8 +1288,6 @@ export default function Home() {
                     <span style={{ fontSize: 12, fontWeight: 700, color: liked ? '#efff42' : 'rgba(255,255,255,0.3)' }}>{fmt(localLikes)}</span>
                   </button>
                 </div>
-
-                {/* Tres puntos — solo para artistas sin auth */}
                 {!selected.auth_email && (
                   <div className="mt-3 flex justify-center">
                     <button
@@ -1370,9 +1303,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Panel amarillo — extensión del modal */}
+          {/* Panel edición — justo debajo del perfil */}
           {editOpen && !selected.auth_email && (
-            <div style={{ background: '#efff42', borderRadius: '0 0 20px 20px', padding: '20px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
+            <div style={{ background: '#efff42', borderRadius: 20, padding: '20px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
 
               {/* Paso 1: ingresar clave */}
               {!migrateMode && (
@@ -1485,6 +1418,94 @@ export default function Home() {
 
             </div>
           )}
+
+          {/* Próximas fechas — card separada */}
+          {(() => {
+            const today = new Date().toISOString().slice(0, 10)
+            const upcoming = (selected.visits || []).filter(v => v.to >= today).sort((a, b) => a.from.localeCompare(b.from))
+            if (!upcoming.length) return null
+            return (
+              <div style={{ background: '#111', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+                <p style={{ fontSize: 10, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 10 }}>{t('artista', 'upcoming_dates', 'Próximas fechas')}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {upcoming.map((v, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12 }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <span style={{ fontSize: 22, fontWeight: 800, color: '#efff42', lineHeight: 1, display: 'block' }}>
+                              {new Date(v.from + 'T12:00:00').getDate()}
+                            </span>
+                            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(239,255,66,0.5)', letterSpacing: '0.06em', display: 'block', marginTop: 2 }}>
+                              {new Date(v.from + 'T12:00:00').toLocaleDateString('es-AR', { month: 'short' })}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>hasta</span>
+                          <div style={{ textAlign: 'center' }}>
+                            <span style={{ fontSize: 22, fontWeight: 800, color: '#efff42', lineHeight: 1, display: 'block' }}>
+                              {new Date(v.to + 'T12:00:00').getDate()}
+                            </span>
+                            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(239,255,66,0.5)', letterSpacing: '0.06em', display: 'block', marginTop: 2 }}>
+                              {new Date(v.to + 'T12:00:00').toLocaleDateString('es-AR', { month: 'short' })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>{v.city}</p>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(239,255,66,0.72)', marginTop: 3 }}>{v.country}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Contacto — botones separados */}
+          <div style={{ background: '#111', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', padding: '20px 20px 20px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 4 }}>Contacto</p>
+            <p style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.2, marginBottom: 16 }}>{selected.name}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {selected.instagram && (
+                <a href={`https://instagram.com/${selected.instagram.replace('@', '')}`}
+                  target="_blank" rel="noopener noreferrer"
+                  onClick={() => trackClick(selected.id, 'instagram')}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>Instagram</span>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>↗</span>
+                </a>
+              )}
+              {showContactInfo && selected.whatsapp && (
+                <a href={`https://wa.me/${selected.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${selected.name}, te encontré en Flashttoo 👋`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  onClick={() => trackClick(selected.id, 'whatsapp')}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>WhatsApp</span>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>↗</span>
+                </a>
+              )}
+              {selected.email && (
+                <button onClick={() => { navigator.clipboard.writeText(selected.email!); setEmailCopied(true); setTimeout(() => setEmailCopied(false), 2000) }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', width: '100%', cursor: 'pointer' }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: emailCopied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)' }}>{emailCopied ? '¡Mail copiado!' : 'Email'}</span>
+                  {emailCopied
+                    ? <span style={{ fontSize: 13, color: 'rgba(239,255,66,0.4)' }}>✓</span>
+                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+                  }
+                </button>
+              )}
+              <button onClick={shareArtist}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: copied ? 'rgba(239,255,66,0.07)' : 'rgba(255,255,255,0.05)', border: `1px solid ${copied ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}`, width: '100%', cursor: 'pointer' }}>
+                <span style={{ fontSize: 14, fontWeight: 500, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)' }}>{copied ? '¡Copiado!' : 'Compartir perfil'}</span>
+                {copied
+                  ? <span style={{ fontSize: 13, color: 'rgba(239,255,66,0.4)' }}>✓</span>
+                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                }
+              </button>
+            </div>
+          </div>
+
           {/* Aviso perfil desactivado — cuando cerró el panel sin migrar */}
           {migrateMode && !editOpen && !migrateSent && (
             <div style={{ background: '#efff42', borderRadius: 16, padding: '16px 20px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', marginTop: 4 }}>
@@ -1998,6 +2019,7 @@ export default function Home() {
           onOpenArtist={(artist) => openModal(artist)}
           accessToken={studioAuth?.access_token}
           authEmail={studioAuth?.auth_email ?? undefined}
+          showClickCounters={showClickCounters}
         />
       )}
 

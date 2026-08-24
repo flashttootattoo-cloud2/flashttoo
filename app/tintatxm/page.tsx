@@ -1113,6 +1113,8 @@ export default function AdminPage() {
   const [savingVerifiedBanner, setSavingVerifiedBanner] = useState(false)
   const [showContactInfo, setShowContactInfo]           = useState(true)
   const [savingContactInfo, setSavingContactInfo]       = useState(false)
+  const [showClickCounters, setShowClickCounters]       = useState(false)
+  const [savingClickCounters, setSavingClickCounters]   = useState(false)
   const [registrationOpen, setRegistrationOpen]         = useState(true)
   const [savingRegistration, setSavingRegistration]     = useState(false)
   const [verifyIG, setVerifyIG]                         = useState('')
@@ -1347,6 +1349,7 @@ export default function AdminPage() {
         setMaintenanceMode(cfg.value.settings?.maintenance_mode === true)
         setShowVerifiedBanner(cfg.value.settings?.show_verified_banner !== false)
         setShowContactInfo(cfg.value.settings?.show_contact_info !== false)
+        setShowClickCounters(cfg.value.settings?.show_click_counters === true)
         setRegistrationOpen(cfg.value.settings?.registration_open !== false)
         setVerifyIG(cfg.value.settings?.verification_instagram || '')
         setVerifyWA(cfg.value.settings?.verification_whatsapp || '')
@@ -1488,6 +1491,17 @@ export default function AdminPage() {
     })
     setShowContactInfo(val)
     setSavingContactInfo(false)
+  }
+
+  const toggleClickCounters = async (val: boolean) => {
+    setSavingClickCounters(true)
+    await fetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'show_click_counters', value: val }),
+    })
+    setShowClickCounters(val)
+    setSavingClickCounters(false)
   }
 
   const toggleVerifiedBanner = async (val: boolean) => {
@@ -2211,6 +2225,35 @@ export default function AdminPage() {
               </div>
               <p className="text-xs mt-3 font-bold" style={{ color: showContactInfo ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
                 {showContactInfo ? 'Activado — se muestran WhatsApp y mail' : 'Desactivado — solo se muestra Instagram'}
+              </p>
+            </div>
+
+            {/* Contadores de clicks */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Contadores de clicks</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                    Muestra los contadores de Instagram y WhatsApp en los perfiles de tatuadores y estudios.
+                  </p>
+                </div>
+                <button
+                  onClick={() => toggleClickCounters(!showClickCounters)}
+                  disabled={savingClickCounters}
+                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                  style={{ width: 48, height: 28, background: showClickCounters ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', top: 4,
+                    left: showClickCounters ? 24 : 4,
+                    width: 20, height: 20,
+                    borderRadius: '50%',
+                    background: showClickCounters ? '#000' : 'rgba(255,255,255,0.4)',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              <p className="text-xs mt-3 font-bold" style={{ color: showClickCounters ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                {showClickCounters ? 'Activado — se muestran los contadores de IG y WA' : 'Desactivado — solo se muestra visitas'}
               </p>
             </div>
 
