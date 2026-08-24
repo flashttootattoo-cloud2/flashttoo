@@ -1304,7 +1304,7 @@ export default function Home() {
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>Instagram</p>
-                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                    <span style={{ color: 'rgba(225,48,108,0.38)', fontSize: 16 }}>↗</span>
                   </a>
                 )}
                 {showContactInfo && selected.whatsapp && (
@@ -1316,7 +1316,7 @@ export default function Home() {
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>WhatsApp</p>
-                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                    <span style={{ color: 'rgba(37,211,102,0.38)', fontSize: 16 }}>↗</span>
                   </a>
                 )}
                 {selected.email && (
@@ -1327,14 +1327,14 @@ export default function Home() {
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}>
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>Email</p>
-                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>⎘</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(239,255,66,0.38)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
                   </button>
                 )}
                 <button onClick={shareArtist}
                   className="flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full"
                   style={{ background: copied ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}` }}>
                   <p style={{ fontSize: 13, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>{copied ? '¡Copiado!' : t('inicio', 'share_btn', 'Compartir perfil')}</p>
-                  <span style={{ color: copied ? 'rgba(239,255,66,0.5)' : 'rgba(255,255,255,0.2)', fontSize: 16 }}>{copied ? '✓' : '↑'}</span>
+                  {copied ? <span style={{ color: 'rgba(239,255,66,0.5)', fontSize: 14 }}>✓</span> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(239,255,66,0.38)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>}
                 </button>
               </div>
 

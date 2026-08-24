@@ -338,7 +338,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                       onClick={() => fetch(`/api/studios/${slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'instagram' }) }).catch(() => {})}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
                       <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>Instagram</span>
-                      <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                      <span style={{ color: 'rgba(225,48,108,0.38)', fontSize: 16 }}>↗</span>
                     </a>
                   )}
                   {studio.whatsapp && (
@@ -346,7 +346,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                       onClick={() => fetch(`/api/studios/${slug}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'whatsapp' }) }).catch(() => {})}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
                       <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>WhatsApp</span>
-                      <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>↗</span>
+                      <span style={{ color: 'rgba(37,211,102,0.38)', fontSize: 16 }}>↗</span>
                     </a>
                   )}
                   {studio.website && (
@@ -360,7 +360,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                   <button onClick={shareStudio}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: copied ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}`, width: '100%', cursor: 'pointer' }}>
                     <span style={{ fontSize: 13, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>{copied ? '¡Copiado!' : t('estudio', 'share_btn', 'Compartir perfil')}</span>
-                    <span style={{ color: copied ? 'rgba(239,255,66,0.5)' : 'rgba(255,255,255,0.2)', fontSize: 16 }}>{copied ? '✓' : '↑'}</span>
+                    {copied ? <span style={{ color: 'rgba(239,255,66,0.5)', fontSize: 14 }}>✓</span> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(239,255,66,0.38)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>}
                   </button>
                 </div>
               <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14, paddingBottom: 20 }}>
