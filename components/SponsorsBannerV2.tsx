@@ -414,7 +414,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     <>
       {/* Grilla de logos */}
       <div style={{
-        position: 'fixed', inset: 0, zIndex: 60,
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: convView ? 66 : 0, zIndex: 60,
         background: '#0a0a0a',
         transform: expanded ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -889,23 +889,46 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         </div>
       )}
 
-      {/* Botones flotantes */}
-      <div style={{ position: 'fixed', bottom: showInsumos ? 70 : 20, left: 0, right: 0, zIndex: selectedPhoto ? 75 : showGallery ? 65 : 41, pointerEvents: 'none', padding: '0 20px' }}>
-        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 8px', display: 'flex', justifyContent: showInsumos ? 'stretch' : 'center', gap: 8, pointerEvents: 'auto' }}>
-          {showInsumos && (
-            <button onClick={() => { setSelectedPhoto(null); setShowGallery(false); setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}
-              style={{ flex: 1, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
-              {t('inicio', 'insumos_btn', 'Insumos')}
+      {/* Botones flotantes — Glass Pill */}
+      <style>{`.ftpill{display:flex;align-items:center;justify-content:center;gap:0;height:44px;min-width:44px;padding:0 12px;border-radius:999px;border:none;cursor:pointer;font-size:10.5px;font-weight:700;letter-spacing:0.06em;white-space:nowrap;overflow:hidden;transition:background .22s,color .22s,gap .26s,padding .26s;-webkit-tap-highlight-color:transparent}.ftpill svg{flex-shrink:0;transition:transform .22s}.ftpill.fton svg{transform:scale(1.15)}.ftpill-lbl{max-width:0;overflow:hidden;opacity:0;transition:max-width .28s ease,opacity .2s}.ftpill.fton .ftpill-lbl{max-width:76px;opacity:1}.ftpill.fton{gap:7px;padding:0 16px 0 12px}`}</style>
+      <div style={{ position: 'fixed', bottom: 76, left: 0, right: 0, zIndex: selectedPhoto ? 75 : (showGallery || expanded) ? 65 : 41, pointerEvents: 'none', display: selectedId ? 'none' : 'flex', justifyContent: 'center', padding: '0 20px' }}>
+        <div style={{ maxWidth: '80rem', width: '100%', display: 'flex', justifyContent: 'center', pointerEvents: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(12,12,12,0.62)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 999, padding: 5, boxShadow: '0 4px 28px rgba(0,0,0,0.5)' }}>
+            {/* Home */}
+            <button className={`ftpill${!expanded && !showGallery ? ' fton' : ''}`}
+              style={{ background: !expanded && !showGallery ? 'rgba(239,255,66,0.13)' : 'transparent', color: !expanded && !showGallery ? '#efff42' : 'rgba(255,255,255,0.35)' }}
+              onClick={() => { setExpanded(false); setShowGallery(false); setSelectedPhoto(null); photoStackRef.current = []; histDepthRef.current = 0 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg>
+              <span className="ftpill-lbl">Home</span>
             </button>
-          )}
-          <button onClick={() => { if (showGallery) { closeGallery() } else { loadGallery(); setGalleryDisplayCount(20); setShowGallery(true) } }}
-            style={{ flex: 1, padding: '7px 0', background: showGallery ? 'rgba(239,255,66,0.15)' : 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: `1px solid ${showGallery ? 'rgba(239,255,66,0.35)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
-            {t('inicio', 'gallery_btn', 'Galería')}
-          </button>
-          <button onClick={() => { setSelectedPhoto(null); setShowGallery(false); setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}
-            style={{ flex: showInsumos ? 1 : 'unset', width: showInsumos ? undefined : 160, padding: '7px 0', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(239,255,66,0.7)', fontWeight: 700, fontSize: 11, cursor: 'pointer', letterSpacing: '0.05em' }}>
-            {t('inicio', 'events_btn', 'Eventos')}
-          </button>
+            {/* Galería */}
+            <button className={`ftpill${showGallery ? ' fton' : ''}`}
+              style={{ background: showGallery ? 'rgba(239,255,66,0.13)' : 'transparent', color: showGallery ? '#efff42' : 'rgba(255,255,255,0.35)' }}
+              onClick={() => { if (showGallery) { closeGallery() } else { loadGallery(); setGalleryDisplayCount(20); setShowGallery(true) } }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="10" rx="1"/><rect x="14" y="3" width="7" height="6" rx="1"/><rect x="14" y="13" width="7" height="8" rx="1"/><rect x="3" y="17" width="7" height="4" rx="1"/></svg>
+              <span className="ftpill-lbl">{t('inicio', 'gallery_btn', 'Galería')}</span>
+            </button>
+            {/* Insumos — tarrito de tinta */}
+            {showInsumos && (
+              <button className={`ftpill${expanded && !convView && !showGallery ? ' fton' : ''}`}
+                style={{ background: expanded && !convView && !showGallery ? 'rgba(239,255,66,0.13)' : 'transparent', color: expanded && !convView && !showGallery ? '#efff42' : 'rgba(255,255,255,0.35)' }}
+                onClick={() => { setSelectedPhoto(null); setShowGallery(false); photoStackRef.current = []; histDepthRef.current = 0; setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="8" y="2" width="8" height="4" rx="1"/>
+                  <path d="M6 6h12v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6z"/>
+                  <line x1="6" y1="12" x2="18" y2="12"/>
+                </svg>
+                <span className="ftpill-lbl">{t('inicio', 'insumos_btn', 'Insumos')}</span>
+              </button>
+            )}
+            {/* Eventos */}
+            <button className={`ftpill${expanded && convView && !showGallery ? ' fton' : ''}`}
+              style={{ background: expanded && convView && !showGallery ? 'rgba(239,255,66,0.13)' : 'transparent', color: expanded && convView && !showGallery ? '#efff42' : 'rgba(255,255,255,0.35)' }}
+              onClick={() => { setSelectedPhoto(null); setShowGallery(false); photoStackRef.current = []; histDepthRef.current = 0; setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span className="ftpill-lbl">{t('inicio', 'events_btn', 'Eventos')}</span>
+            </button>
+          </div>
         </div>
       </div>
 
