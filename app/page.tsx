@@ -1464,7 +1464,7 @@ export default function Home() {
 
           {/* Contacto — botones separados */}
           <div style={{ background: '#111', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', padding: '20px 20px 20px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 4 }}>Contacto</p>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 4 }}>{t('artista', 'contact_label', 'Contacto')}</p>
             <p style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.2, marginBottom: 16 }}>{selected.name}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {selected.instagram && (
