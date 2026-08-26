@@ -911,6 +911,19 @@ export default function Home() {
                     )}
                     <button
                       onClick={async () => {
+                        setArtistMenuOpen(false)
+                        let a = artists.find(x => x.id === loggedArtist.id)
+                        if (!a) {
+                          const { data } = await supabase.from('artists').select('*').eq('id', loggedArtist.id).single()
+                          if (data) { a = data; setArtists(prev => [...prev, data]) }
+                        }
+                        if (a) setSelected(a)
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('artist_menu', 'view_profile', 'Ver mi perfil')}
+                    </button>
+                    <button
+                      onClick={async () => {
                         if (!loggedArtist.flashbook_alias) return
                         const url = `${window.location.origin}/flash/${loggedArtist.flashbook_alias}`
                         await navigator.clipboard.writeText(url).catch(() => {})
