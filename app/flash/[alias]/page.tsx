@@ -255,7 +255,7 @@ export default function FlashbookPage() {
             <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 20, opacity: 0.5 }} />
           </a>
           <button
-            onClick={() => window.history.length > 1 ? window.history.back() : (window.location.href = '/')}
+            onClick={() => { window.location.href = '/' }}
             style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', pointerEvents: 'auto' }}>
             ×
           </button>
