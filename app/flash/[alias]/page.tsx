@@ -392,15 +392,11 @@ export default function FlashbookPage() {
           ref={modalRef}
           onClick={() => { if (!gesturing) { setExpanded(false) } }}
           style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          {/* Imagen */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block', transform: `translate(${imgPanX}px, ${imgPanY}px) scale(${imgScale})`, transition: gesturing ? 'none' : 'transform 0.35s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center', touchAction: 'none' }} />
-
-          {/* Marca de agua — logo + nombre del artista */}
-          <div style={{ position: 'absolute', bottom: 60, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, pointerEvents: 'none' }}>
+          {/* Imagen + firma — el transform se aplica al wrapper para que la firma se mueva con la foto */}
+          <div style={{ position: 'relative', display: 'inline-block', transform: `translate(${imgPanX}px, ${imgPanY}px) scale(${imgScale})`, transition: gesturing ? 'none' : 'transform 0.35s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center', touchAction: 'none' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 16, opacity: 0.45 }} />
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em' }}>{artist.name}</p>
+            <img src={cur.photo_url} alt="" style={{ maxWidth: '100vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block' }} />
+            <p style={{ position: 'absolute', top: 10, right: 14, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.06em', pointerEvents: 'none', textShadow: '0 1px 6px rgba(0,0,0,0.9)', userSelect: 'none' }}>{artist.name}</p>
           </div>
 
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 8 }}>{tx.close}</p>
