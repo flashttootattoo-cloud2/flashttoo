@@ -1100,8 +1100,7 @@ export default function AdminPage() {
   const [savingShowInsumos, setSavingShowInsumos]       = useState(false)
   const [maintenanceMode, setMaintenanceMode]           = useState(false)
   const [savingMaintenance, setSavingMaintenance]       = useState(false)
-  const [showVerifiedBanner, setShowVerifiedBanner]     = useState(true)
-  const [savingVerifiedBanner, setSavingVerifiedBanner] = useState(false)
+
   const [showContactInfo, setShowContactInfo]           = useState(true)
   const [savingContactInfo, setSavingContactInfo]       = useState(false)
   const [showClickCounters, setShowClickCounters]       = useState(false)
@@ -1340,7 +1339,7 @@ export default function AdminPage() {
         setEventsCountryFilter(cfg.value.settings?.events_country_filter === true)
         setShowInsumos(cfg.value.settings?.show_insumos !== false)
         setMaintenanceMode(cfg.value.settings?.maintenance_mode === true)
-        setShowVerifiedBanner(cfg.value.settings?.show_verified_banner !== false)
+
         setShowContactInfo(cfg.value.settings?.show_contact_info !== false)
         setShowClickCounters(cfg.value.settings?.show_click_counters === true)
         setRegistrationOpen(cfg.value.settings?.registration_open !== false)
@@ -1510,16 +1509,6 @@ export default function AdminPage() {
     setSavingClickCounters(false)
   }
 
-  const toggleVerifiedBanner = async (val: boolean) => {
-    setSavingVerifiedBanner(true)
-    await fetch('/api/admin/settings', {
-      method: 'PATCH',
-      headers: { ...H(pass), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'show_verified_banner', value: val }),
-    })
-    setShowVerifiedBanner(val)
-    setSavingVerifiedBanner(false)
-  }
 
   const toggleShowInsumos = async (val: boolean) => {
     setSavingShowInsumos(true)
@@ -2198,35 +2187,6 @@ export default function AdminPage() {
               </div>
               <p className="text-xs mt-3 font-bold" style={{ color: showInsumos ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
                 {showInsumos ? 'Activado — se ven Insumos y Eventos' : 'Desactivado — solo se ve Eventos'}
-              </p>
-            </div>
-
-            {/* Aviso verificados */}
-            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-white">Aviso &quot;Perfiles verificados&quot;</p>
-                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
-                    Muestra el texto ✶ verificados vía Instagram ✶ entre los filtros y la grilla.
-                  </p>
-                </div>
-                <button
-                  onClick={() => toggleVerifiedBanner(!showVerifiedBanner)}
-                  disabled={savingVerifiedBanner}
-                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
-                  style={{ width: 48, height: 28, background: showVerifiedBanner ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
-                  <span style={{
-                    position: 'absolute', top: 4,
-                    left: showVerifiedBanner ? 24 : 4,
-                    width: 20, height: 20,
-                    borderRadius: '50%',
-                    background: showVerifiedBanner ? '#000' : 'rgba(255,255,255,0.4)',
-                    transition: 'left 0.2s',
-                  }} />
-                </button>
-              </div>
-              <p className="text-xs mt-3 font-bold" style={{ color: showVerifiedBanner ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
-                {showVerifiedBanner ? 'Activado — se muestra el aviso' : 'Desactivado — el aviso está oculto'}
               </p>
             </div>
 
