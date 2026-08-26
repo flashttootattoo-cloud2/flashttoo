@@ -20,6 +20,7 @@ type Artist = {
   profile_views: number; instagram_clicks: number; whatsapp_clicks: number; likes: number
   edit_key: string; visible: boolean; created_at: string; status: string
   pending_reason: string | null; migrated_at: string | null
+  flash_alias: string | null
 }
 
 function fmtN(n: number): string {
@@ -477,12 +478,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
 }
 
 
-function buildMsg(a: Artist) {
-  return `Hola ${a.name}! Te agregamos a Flashttoo, nuestro buscador de tatuadores. Si querés editar a tu gusto y completar tu perfil, tu clave es: ${a.edit_key}. Es gratuito y sin compromiso. Si no querés estar, podes usá tu clave para eliminarte.`
-}
-
 function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void; onUpdateKey: (id: string, key: string) => void }) {
-  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [editingKey, setEditingKey] = useState<{ id: string; value: string } | null>(null)
   const [savingKey, setSavingKey] = useState(false)
   const [marked, setMarked] = useState<Set<string>>(() => {
@@ -496,12 +492,6 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
   const igCount: Record<string, number> = {}
   artists.forEach(a => { if (a.instagram) { const k = a.instagram.toLowerCase(); igCount[k] = (igCount[k] || 0) + 1 } })
   const isDupe = (a: Artist) => !!a.instagram && (igCount[a.instagram.toLowerCase()] || 0) > 1
-
-  const copyMsg = (a: Artist) => {
-    navigator.clipboard.writeText(buildMsg(a))
-    setCopiedId(a.id)
-    setTimeout(() => setCopiedId(null), 2000)
-  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -603,15 +593,13 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
                   {a.edit_key}
                 </button>
               )}
-              <button onClick={() => copyMsg(a)}
-                className="text-xs px-2.5 py-1 rounded-lg shrink-0 transition-colors"
-                style={{
-                  background: copiedId === a.id ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${copiedId === a.id ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.1)'}`,
-                  color: copiedId === a.id ? '#4ade80' : 'rgba(255,255,255,0.35)',
-                }}>
-                {copiedId === a.id ? '✓ copiado' : 'copiar mensaje'}
-              </button>
+              {a.flash_alias && (
+                <a href={`/flash/${a.flash_alias}`} target="_blank" rel="noopener noreferrer"
+                  className="text-xs px-2.5 py-1 rounded-lg shrink-0"
+                  style={{ background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', color: '#efff42', textDecoration: 'none' }}>
+                  ver flashbook
+                </a>
+              )}
             </div>
           </div>
         </div>
