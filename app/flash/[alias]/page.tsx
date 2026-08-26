@@ -68,31 +68,38 @@ export default function FlashbookPage() {
 
   const [pinchScale, setPinchScale] = useState(1)
   const [isPinching, setIsPinching] = useState(false)
-  const pinchStartDist = useRef(0)
+  const modalRef = useRef<HTMLDivElement>(null)
 
-  const getPinchDist = (t: React.TouchList) => {
-    const dx = t[0].clientX - t[1].clientX
-    const dy = t[0].clientY - t[1].clientY
-    return Math.sqrt(dx * dx + dy * dy)
-  }
-  const onPinchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      pinchStartDist.current = getPinchDist(e.touches)
-      setIsPinching(true)
+  useEffect(() => {
+    if (!expanded) return
+    const el = modalRef.current
+    if (!el) return
+    let startDist = 0
+    const dist = (t: TouchList) => {
+      const dx = t[0].clientX - t[1].clientX
+      const dy = t[0].clientY - t[1].clientY
+      return Math.sqrt(dx * dx + dy * dy)
     }
-  }
-  const onPinchMove = (e: React.TouchEvent) => {
-    if (e.touches.length !== 2) return
-    e.preventDefault()
-    const scale = Math.min(Math.max(getPinchDist(e.touches) / pinchStartDist.current, 0.8), 5)
-    setPinchScale(scale)
-  }
-  const onPinchEnd = (e: React.TouchEvent) => {
-    if (e.touches.length < 2) {
-      setIsPinching(false)
-      setPinchScale(1)
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) { startDist = dist(e.touches); setIsPinching(true) }
     }
-  }
+    const onMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return
+      e.preventDefault()
+      setPinchScale(Math.min(Math.max(dist(e.touches) / startDist, 0.8), 5))
+    }
+    const onEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) { setIsPinching(false); setPinchScale(1) }
+    }
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd)
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+    }
+  }, [expanded])
 
   useEffect(() => {
     try {
@@ -334,10 +341,8 @@ export default function FlashbookPage() {
       {/* Modal fullscreen */}
       {expanded && cur && (
         <div
+          ref={modalRef}
           onClick={() => { if (!isPinching) { setExpanded(false); setPinchScale(1) } }}
-          onTouchStart={onPinchStart}
-          onTouchMove={onPinchMove}
-          onTouchEnd={onPinchEnd}
           style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block', transform: `scale(${pinchScale})`, transition: isPinching ? 'none' : 'transform 0.4s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center' }} />
