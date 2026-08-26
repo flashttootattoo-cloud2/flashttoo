@@ -66,29 +66,29 @@ export default function FlashbookPage() {
   const [expanded, setExpanded] = useState(false)
   const [lang, setLang] = useState<Lang>('es')
 
-  const [pinchScale, setPinchScale]   = useState(1)
-  const [isPinching, setIsPinching]   = useState(false)
+  const [pinchScale, setPinchScale] = useState(1)
+  const isPinchingRef  = useRef(false)
   const pinchStartDist = useRef(0)
 
-  function getPinchDist(t: TouchList) {
+  const getPinchDist = (t: React.TouchList) => {
     const dx = t[0].clientX - t[1].clientX
     const dy = t[0].clientY - t[1].clientY
     return Math.sqrt(dx * dx + dy * dy)
   }
-  function onPinchStart(e: React.TouchEvent) {
+  const onPinchStart = (e: React.TouchEvent) => {
     if (e.touches.length !== 2) return
     pinchStartDist.current = getPinchDist(e.touches)
-    setIsPinching(true)
+    isPinchingRef.current = true
   }
-  function onPinchMove(e: React.TouchEvent) {
-    if (e.touches.length !== 2 || !isPinching) return
+  const onPinchMove = (e: React.TouchEvent) => {
+    if (e.touches.length !== 2 || !isPinchingRef.current) return
     e.stopPropagation()
     const scale = Math.min(Math.max(getPinchDist(e.touches) / pinchStartDist.current, 0.8), 5)
     setPinchScale(scale)
   }
-  function onPinchEnd() {
-    if (!isPinching) return
-    setIsPinching(false)
+  const onPinchEnd = () => {
+    if (!isPinchingRef.current) return
+    isPinchingRef.current = false
     setPinchScale(1)
   }
 
@@ -332,13 +332,13 @@ export default function FlashbookPage() {
       {/* Modal fullscreen */}
       {expanded && cur && (
         <div
-          onClick={() => { if (!isPinching) { setExpanded(false); setPinchScale(1) } }}
+          onClick={() => { if (!isPinchingRef.current) { setExpanded(false); setPinchScale(1) } }}
           onTouchStart={onPinchStart}
           onTouchMove={onPinchMove}
           onTouchEnd={onPinchEnd}
           style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block', transform: `scale(${pinchScale})`, transition: isPinching ? 'none' : 'transform 0.4s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center' }} />
+          <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block', transform: `scale(${pinchScale})`, transition: isPinchingRef.current ? 'none' : 'transform 0.4s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center' }} />
           {cur.medidas && <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, marginTop: 16 }}>{cur.medidas}</p>}
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 8 }}>{tx.close}</p>
           <button onClick={() => setExpanded(false)}
