@@ -3,6 +3,43 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 
+const TEXTS = {
+  es: {
+    not_found:      'Este Flashbook no existe',
+    not_found_desc: 'El link puede haber cambiado.\nPedíselo al tatuador.',
+    go_to:          'Ir a Flashttoo →',
+    coming_soon:    'Próximamente',
+    swipe_hint:     'deslizá para ver más · tocá para ampliar',
+    available:      (n: number) => `${n} flash tattoo${n !== 1 ? 's' : ''} disponible${n !== 1 ? 's' : ''}`,
+    reserve:        (n: number) => `Pedir reserva del #${n}`,
+    close:          'Tocá para cerrar',
+    wa_msg:         (name: string, n: number) => `Hola ${name}! Me interesa reservar el diseño #${n} de tu Flashbook.`,
+  },
+  en: {
+    not_found:      "This Flashbook doesn't exist",
+    not_found_desc: 'The link may have changed.\nAsk the artist for it.',
+    go_to:          'Go to Flashttoo →',
+    coming_soon:    'Coming soon',
+    swipe_hint:     'swipe to see more · tap to zoom',
+    available:      (n: number) => `${n} flash tattoo${n !== 1 ? 's' : ''} available`,
+    reserve:        (n: number) => `Reserve #${n}`,
+    close:          'Tap to close',
+    wa_msg:         (name: string, n: number) => `Hi ${name}! I'm interested in reserving design #${n} from your Flashbook.`,
+  },
+  pt: {
+    not_found:      'Este Flashbook não existe',
+    not_found_desc: 'O link pode ter mudado.\nPeça ao tatuador.',
+    go_to:          'Ir para Flashttoo →',
+    coming_soon:    'Em breve',
+    swipe_hint:     'deslize para ver mais · toque para ampliar',
+    available:      (n: number) => `${n} flash tattoo${n !== 1 ? 's' : ''} disponíve${n !== 1 ? 'is' : 'l'}`,
+    reserve:        (n: number) => `Reservar o #${n}`,
+    close:          'Toque para fechar',
+    wa_msg:         (name: string, n: number) => `Olá ${name}! Tenho interesse em reservar o design #${n} do seu Flashbook.`,
+  },
+}
+type Lang = keyof typeof TEXTS
+
 type Design = { id: string; photo_url: string; medidas: string | null; position: number }
 type ArtistInfo = {
   id: string; name: string; photo_url: string | null
@@ -27,6 +64,16 @@ export default function FlashbookPage() {
   const [dragX, setDragX]       = useState(0)
   const [dragging, setDragging] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [lang, setLang] = useState<Lang>('es')
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('flashttoo_lang') as Lang | null
+      if (saved && saved in TEXTS) setLang(saved)
+    } catch {}
+  }, [])
+
+  const tx = TEXTS[lang]
 
   const heroRef    = useRef<HTMLDivElement>(null)
   const [containerW, setContainerW] = useState(360)
@@ -105,9 +152,9 @@ export default function FlashbookPage() {
         <circle cx="42" cy="26" r="3.5" fill="#000" />
         <path d="M20 44 Q32 34 44 44" stroke="#000" strokeWidth="3" strokeLinecap="round" fill="none" />
       </svg>
-      <p style={{ color: '#fff', fontWeight: 700, fontSize: 16, textAlign: 'center' }}>Este Flashbook no existe</p>
-      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, textAlign: 'center', lineHeight: 1.6 }}>El link puede haber cambiado.<br />Pedíselo al tatuador.</p>
-      <a href="/" style={{ color: '#efff42', fontSize: 13, textDecoration: 'none', fontWeight: 600 }}>Ir a Flashttoo →</a>
+      <p style={{ color: '#fff', fontWeight: 700, fontSize: 16, textAlign: 'center' }}>{tx.not_found}</p>
+      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, textAlign: 'center', lineHeight: 1.6 }}>{tx.not_found_desc.split('\n').map((l, i) => <span key={i}>{l}{i === 0 && <br />}</span>)}</p>
+      <a href="/" style={{ color: '#efff42', fontSize: 13, textDecoration: 'none', fontWeight: 600 }}>{tx.go_to}</a>
       <div style={{ position: 'absolute', bottom: 28, display: 'flex', justifyContent: 'center', width: '100%' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 22, opacity: 0.25 }} />
@@ -174,7 +221,7 @@ export default function FlashbookPage() {
 
         {/* ── PEEK TRACK ── */}
         {total === 0 ? (
-          <p style={{ position: 'absolute', bottom: 60, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 14, zIndex: 10, pointerEvents: 'none' }}>Próximamente</p>
+          <p style={{ position: 'absolute', bottom: 60, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 14, zIndex: 10, pointerEvents: 'none' }}>{tx.coming_soon}</p>
         ) : (
           <>
             {/* Cartas */}
@@ -234,7 +281,7 @@ export default function FlashbookPage() {
                     <div key={i} style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 3, background: i === idx ? '#efff42' : 'rgba(255,255,255,0.3)', transition: 'all 0.25s' }} />
                   ))}
                 </div>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em' }}>deslizá para ver más · tocá para ampliar</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em' }}>{tx.swipe_hint}</p>
               </div>
             )}
           </>
@@ -243,14 +290,14 @@ export default function FlashbookPage() {
         {/* Reservar — fijado abajo */}
         {total > 0 && artist.flashbook_whatsapp && cur && (
           <div style={{ position: 'absolute', bottom: 28, left: 0, right: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em', pointerEvents: 'none' }}>{total} flash tattoo{total !== 1 ? 's' : ''} disponible{total !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em', pointerEvents: 'none' }}>{tx.available(total)}</p>
             <a
-              href={`https://wa.me/${artist.flashbook_whatsapp}?text=${encodeURIComponent(`Hola ${artist.name}! Me interesa reservar el diseño #${idx + 1} de tu Flashbook.`)}`}
+              href={`https://wa.me/${artist.flashbook_whatsapp}?text=${encodeURIComponent(tx.wa_msg(artist.name, idx + 1))}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={e => { if (wasDrag.current) e.preventDefault() }}
               style={{ padding: '13px 40px', background: '#efff42', borderRadius: 12, color: '#000', fontSize: 14, fontWeight: 800, textDecoration: 'none', display: 'inline-block' }}>
-              Pedir reserva del #{idx + 1}
+              {tx.reserve(idx + 1)}
             </a>
           </div>
         )}
@@ -264,7 +311,7 @@ export default function FlashbookPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block' }} />
           {cur.medidas && <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, marginTop: 16 }}>{cur.medidas}</p>}
-          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 8 }}>Tocá para cerrar</p>
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 8 }}>{tx.close}</p>
           <button onClick={() => setExpanded(false)}
             style={{ position: 'absolute', top: 20, right: 20, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             ×
