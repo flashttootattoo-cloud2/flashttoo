@@ -188,8 +188,7 @@ export default function FlashbookPage() {
   }, [cardWidths])
 
   const activeW   = cardWidths[idx] ?? cardW
-  const sideOff   = (containerW - activeW) / 2
-  const trackX    = -offsets[idx] + dragX
+  const trackX    = Math.round(containerW / 2 - (offsets[idx] ?? 0) - activeW / 2) + dragX
   const dotsTopPx = 18 + Math.round(cardH / 2) + 18
 
   function advance(dir: 'left' | 'right') {
@@ -309,7 +308,7 @@ export default function FlashbookPage() {
             {/* Cartas */}
             <div style={{
               position: 'absolute',
-              left: sideOff,
+              left: 0,
               top: `calc(50% + 18px)`,
               transform: `translateY(-50%) translateX(${trackX}px)`,
               transition: dragging ? 'none' : 'transform 0.38s cubic-bezier(0.22,1,0.36,1)',
@@ -348,10 +347,9 @@ export default function FlashbookPage() {
                     }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={d.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: isLandscape ? 'contain' : 'cover', display: 'block', pointerEvents: 'none' }} />
-                    {/* Número + medidas */}
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)', padding: '28px 16px 14px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                    {/* Número */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)', padding: '28px 16px 14px' }}>
                       <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em' }}>#{i + 1}</p>
-                      {d.medidas && <p style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{d.medidas}</p>}
                     </div>
                   </div>
                 )
@@ -396,7 +394,7 @@ export default function FlashbookPage() {
           style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block', transform: `translate(${imgPanX}px, ${imgPanY}px) scale(${imgScale})`, transition: gesturing ? 'none' : 'transform 0.35s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center', touchAction: 'none' }} />
-          {cur.medidas && <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, marginTop: 16 }}>{cur.medidas}</p>}
+
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 8 }}>{tx.close}</p>
           <button onClick={() => setExpanded(false)}
             style={{ position: 'absolute', top: 20, right: 20, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

@@ -393,15 +393,6 @@ export default function FlashbookEditPage() {
                     {deleting === d.id ? '·' : '×'}
                   </button>
                 </div>
-                <div style={{ padding: '8px 10px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <input
-                    value={medidasMap[d.id] ?? ''}
-                    onChange={e => setMedidasMap(prev => ({ ...prev, [d.id]: e.target.value }))}
-                    placeholder="Medidas"
-                    style={{ flex: 1, background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontSize: 12, padding: '4px 0', outline: 'none', minWidth: 0 }}
-                  />
-                  {savingMedidas[d.id] && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>...</span>}
-                </div>
               </div>
             ))}
 
