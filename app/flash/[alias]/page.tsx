@@ -243,7 +243,7 @@ export default function FlashbookPage() {
         {/* Reservar — fijado abajo */}
         {total > 0 && artist.flashbook_whatsapp && cur && (
           <div style={{ position: 'absolute', bottom: 28, left: 0, right: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em', pointerEvents: 'none' }}>{total} diseño{total !== 1 ? 's' : ''} disponible{total !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em', pointerEvents: 'none' }}>{total} flash tattoo{total !== 1 ? 's' : ''} disponible{total !== 1 ? 's' : ''}</p>
             <a
               href={`https://wa.me/${artist.flashbook_whatsapp}?text=${encodeURIComponent(`Hola ${artist.name}! Me interesa reservar el diseño #${idx + 1} de tu Flashbook.`)}`}
               target="_blank"

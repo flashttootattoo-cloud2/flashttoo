@@ -1489,7 +1489,7 @@ export default function Home() {
               <div style={{ height: 3, background: '#000' }} />
               <div style={{ padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Flashbook</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#efff42' }}>{flashPreview.count} diseño{flashPreview.count !== 1 ? 's' : ''}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#efff42' }}>{flashPreview.count} flash tattoo{flashPreview.count !== 1 ? 's' : ''}</span>
               </div>
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, padding: 2 }}>
@@ -1505,7 +1505,7 @@ export default function Home() {
                     <rect x="3" y="11" width="18" height="11" rx="2"/>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                   </svg>
-                  <p style={{ fontSize: 13, fontWeight: 800, color: '#efff42', textAlign: 'center', lineHeight: 1.4 }}>{flashPreview.count} diseño{flashPreview.count !== 1 ? 's' : ''} disponible{flashPreview.count !== 1 ? 's' : ''}</p>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: '#efff42', textAlign: 'center', lineHeight: 1.4 }}>{flashPreview.count} flash tattoo{flashPreview.count !== 1 ? 's' : ''} disponible{flashPreview.count !== 1 ? 's' : ''}</p>
                   <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 1.4 }}>Pedile el link al artista para verlos</p>
                   {flashPreview.whatsapp && (
                     <a
