@@ -393,9 +393,9 @@ export default function FlashbookPage() {
           onClick={() => { if (!gesturing) { setExpanded(false) } }}
           style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {/* Imagen + firma — el transform se aplica al wrapper para que la firma se mueva con la foto */}
-          <div style={{ position: 'relative', display: 'inline-block', transform: `translate(${imgPanX}px, ${imgPanY}px) scale(${imgScale})`, transition: gesturing ? 'none' : 'transform 0.35s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center', touchAction: 'none' }}>
+          <div style={{ position: 'relative', display: 'inline-block', borderRadius: 16, overflow: 'hidden', transform: `translate(${imgPanX}px, ${imgPanY}px) scale(${imgScale})`, transition: gesturing ? 'none' : 'transform 0.35s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center', touchAction: 'none' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={cur.photo_url} alt="" style={{ maxWidth: '100vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block' }} />
+            <img src={cur.photo_url} alt="" style={{ maxWidth: '92vw', maxHeight: '88vh', display: 'block' }} />
             <p style={{ position: 'absolute', top: 10, right: 14, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.06em', pointerEvents: 'none', textShadow: '0 1px 6px rgba(0,0,0,0.9)', userSelect: 'none' }}>{artist.name}</p>
           </div>
 
