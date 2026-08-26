@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   if (artist) {
     if (artist.status === 'pending') return NextResponse.json({ error: 'Tu perfil está pendiente de aprobación' }, { status: 403 })
     if (artist.status !== 'active') return NextResponse.json({ error: 'Tu perfil no está activo' }, { status: 403 })
-    return NextResponse.json({ type: 'artist', artist, access_token })
+    return NextResponse.json({ type: 'artist', artist, access_token, refresh_token: data.session?.refresh_token })
   }
 
   // Check studios
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (studio) {
-    return NextResponse.json({ type: 'studio', studio, access_token })
+    return NextResponse.json({ type: 'studio', studio, access_token, refresh_token: data.session?.refresh_token })
   }
 
   return NextResponse.json({ error: 'No encontramos un perfil vinculado a este mail' }, { status: 404 })

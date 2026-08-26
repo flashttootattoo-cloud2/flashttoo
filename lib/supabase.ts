@@ -33,6 +33,7 @@ export type Studio = {
 export type Artist = {
   id: string
   name: string
+  slug: string
   city: string
   country: string
   styles: string[]
@@ -55,4 +56,5 @@ export type Artist = {
   pending_reason?: string | null
   auth_email?: string | null
   show_email?: boolean | null
+  flashbook_alias?: string | null
 }

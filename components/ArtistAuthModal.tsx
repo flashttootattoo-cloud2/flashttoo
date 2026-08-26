@@ -9,8 +9,8 @@ type StudioSession = { slug: string; name: string; auth_email: string | null }
 
 type Props = {
   onClose: () => void
-  onLoggedIn: (artist: { id: string; name: string; photo_url: string; edit_key: string; auth_email?: string | null; access_token?: string }) => void
-  onStudioLoggedIn?: (studio: StudioSession, access_token: string) => void
+  onLoggedIn: (artist: { id: string; name: string; photo_url: string; edit_key: string; auth_email?: string | null; access_token?: string; refresh_token?: string }) => void
+  onStudioLoggedIn?: (studio: StudioSession, access_token: string, refresh_token?: string) => void
 }
 
 export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn }: Props) {
@@ -61,10 +61,10 @@ export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn 
     setLoading(false)
     if (!r.ok) { setError(d.error); return }
     if (d.type === 'studio') {
-      onStudioLoggedIn?.(d.studio, d.access_token)
+      onStudioLoggedIn?.(d.studio, d.access_token, d.refresh_token)
       return
     }
-    onLoggedIn({ ...d.artist, access_token: d.access_token })
+    onLoggedIn({ ...d.artist, access_token: d.access_token, refresh_token: d.refresh_token })
   }
 
   const handleForgot = async () => {
@@ -125,7 +125,7 @@ export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn 
             <button onClick={() => { reset(); setView('login') }}
               className="w-full py-3 rounded-xl text-sm font-bold"
               style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
-              {t('ingresar', 'edit_btn', 'Editar mi perfil')}
+              {t('ingresar', 'edit_btn', 'Iniciar sesión')}
             </button>
           </div>
         )}
@@ -172,7 +172,7 @@ export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn 
         {/* LOGIN */}
         {view === 'login' && (
           <div className="flex flex-col gap-3">
-            <p className="text-sm font-bold text-white mb-1">{t('ingresar', 'login_title', 'Editar mi perfil')}</p>
+            <p className="text-sm font-bold text-white mb-1">{t('ingresar', 'login_title', 'Iniciar sesión')}</p>
             <input
               type="email" placeholder={t('ingresar', 'email_placeholder', 'Tu email')} value={email}
               onChange={e => setEmail(e.target.value)}

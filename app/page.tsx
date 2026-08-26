@@ -156,6 +156,9 @@ export default function Home() {
   const [brokenPhotoIds, setBrokenPhotoIds] = useState<Set<string>>(new Set())
   const markPhotoBroken = (id: string) =>
     setBrokenPhotoIds(prev => prev.has(id) ? prev : new Set(prev).add(id))
+
+  // Flashbook preview en perfil
+  const [flashPreview, setFlashPreview] = useState<{ count: number; photos: string[]; whatsapp: string | null } | null>(null)
   const shuffledContentCards = useMemo(
     () => [...contentCards].filter(c => c.active).sort(() => Math.random() - 0.5),
     [contentCards]
@@ -170,6 +173,13 @@ export default function Home() {
   const [studioAuth, setStudioAuth] = useState<{ slug: string; auth_email: string | null; access_token: string } | null>(null)
   const [showContactInfo, setShowContactInfo] = useState(true)
   const [showClickCounters, setShowClickCounters] = useState(false)
+  const [loggedArtist, setLoggedArtist] = useState<{ id: string; name: string; photo_url: string | null; slug: string; access_token: string; flashbook_alias: string | null } | null>(null)
+  const [artistMenuOpen, setArtistMenuOpen] = useState(false)
+  const [loggedStudio, setLoggedStudio] = useState<{ slug: string; name: string; access_token: string; refresh_token?: string } | null>(null)
+  const [studioMenuOpen, setStudioMenuOpen] = useState(false)
+  const studioMenuRef = useRef<HTMLDivElement>(null)
+  const [flashLinkCopied, setFlashLinkCopied] = useState(false)
+  const artistMenuRef = useRef<HTMLDivElement>(null)
   const [registrationOpen, setRegistrationOpen] = useState(true)
   const [showRegistrationClosed, setShowRegistrationClosed] = useState(false)
   const [totalActiveArtists, setTotalActiveArtists] = useState<number | null>(null)
@@ -183,6 +193,7 @@ export default function Home() {
   const [secretCard, setSecretCard] = useState<{ image_url: string; back_image_url?: string; artist_name: string; city: string; link: string; caption: string; number?: string } | null>(null)
   const [showSecretCard, setShowSecretCard] = useState(false)
   const logoTapsRef = useRef<number[]>([])
+  const editPanelRef = useRef<HTMLDivElement>(null)
   const openFullscreen = (src: string, photos?: string[]) => {
     const list = photos ?? [src]
     const idx  = list.indexOf(src)
@@ -252,9 +263,22 @@ export default function Home() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem('flashttoo_artist_session')
+      if (saved) setLoggedArtist(JSON.parse(saved))
+    } catch {}
+    try {
+      const savedStudio = localStorage.getItem('flashttoo_studio_session')
+      if (savedStudio) setLoggedStudio(JSON.parse(savedStudio))
+    } catch {}
+  }, [])
+
+  useEffect(() => {
     const h = (e: MouseEvent) => {
       if (stylesRef.current && !stylesRef.current.contains(e.target as Node)) setStylesOpen(false)
       if (langRef.current && !langRef.current.contains(e.target as Node)) { setLangOpen(false); setMenuLangOpen(false) }
+      if (artistMenuRef.current && !artistMenuRef.current.contains(e.target as Node)) setArtistMenuOpen(false)
+      if (studioMenuRef.current && !studioMenuRef.current.contains(e.target as Node)) setStudioMenuOpen(false)
     }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
@@ -583,6 +607,23 @@ export default function Home() {
     return () => window.removeEventListener('open-artist', handler)
   }, [artists, openModal])
 
+  // Cargar preview del Flashbook cuando se abre un perfil con alias
+  useEffect(() => {
+    setFlashPreview(null)
+    if (!selected?.flashbook_alias) return
+    fetch(`/api/flash/preview?artist_id=${selected.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.count > 0) setFlashPreview(d) })
+      .catch(() => {})
+  }, [selected?.id])
+
+  useEffect(() => {
+    if (!editOpen) return
+    const el = editPanelRef.current
+    if (!el) return
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80)
+  }, [editOpen])
+
   const toggleLike = useCallback(() => {
     if (!selected) return
     if (liked) {
@@ -777,12 +818,151 @@ export default function Home() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/Logoprincipal.svg" alt="Flashttoo" className="h-7 shrink-0" onClick={handleLogoTap} style={{ cursor: 'default' }} />
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => { if (registrationOpen) { setShowAuthModal(true) } else { setShowRegistrationClosed(true) } }}
-              className="text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
-              style={{ background: '#efff42', color: '#000' }}>
-              {t('inicio', 'add_artist', 'Ingresar')}
-            </button>
+            {/* Studio session button */}
+            {loggedStudio && (
+              <div ref={studioMenuRef} className="relative">
+                <button
+                  onClick={() => setStudioMenuOpen(v => !v)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 4px', borderRadius: 20, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                    {loggedStudio.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loggedStudio.name.split(' ')[0]}</span>
+                </button>
+                {studioMenuOpen && (
+                  <div className="absolute right-0 mt-2 rounded-xl z-50"
+                    style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.9)', minWidth: 200, overflow: 'hidden' }}>
+                    <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#efff42' }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>{loggedStudio.name}</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        setStudioMenuOpen(false)
+                        let token = loggedStudio.access_token
+                        if (loggedStudio.refresh_token) {
+                          try {
+                            const r = await fetch('/api/auth/refresh', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ refresh_token: loggedStudio.refresh_token }),
+                            })
+                            if (r.ok) {
+                              const d = await r.json()
+                              token = d.access_token
+                              const updated = { ...loggedStudio, access_token: d.access_token, refresh_token: d.refresh_token }
+                              setLoggedStudio(updated)
+                              try { localStorage.setItem('flashttoo_studio_session', JSON.stringify(updated)) } catch {}
+                            }
+                          } catch {}
+                        }
+                        setStudioAuth({ slug: loggedStudio.slug, auth_email: null, access_token: token })
+                        openStudio(loggedStudio.slug, true)
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('artist_menu', 'edit_profile', 'Editar perfil')}
+                    </button>
+                    <button
+                      onClick={() => {
+                        try { localStorage.removeItem('flashttoo_studio_session') } catch {}
+                        setLoggedStudio(null)
+                        setStudioMenuOpen(false)
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', color: 'rgba(255,100,100,0.7)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('artist_menu', 'logout', 'Cerrar sesión')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Artist session avatar or Ingresar button */}
+            {!loggedStudio && loggedArtist ? (
+              <div ref={artistMenuRef} className="relative">
+                <button
+                  onClick={() => setArtistMenuOpen(v => !v)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 4px', borderRadius: 20, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+                  {loggedArtist.photo_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={loggedArtist.photo_url} alt={loggedArtist.name}
+                      style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#efff42', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#000', flexShrink: 0 }}>
+                      {initialsOf(loggedArtist.name)}
+                    </div>
+                  )}
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loggedArtist.name.split(' ')[0]}</span>
+                </button>
+                {artistMenuOpen && (
+                  <div className="absolute right-0 mt-2 rounded-xl z-50"
+                    style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.9)', minWidth: 200, overflow: 'hidden' }}>
+                    {/* Name header */}
+                    <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#efff42' }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>{loggedArtist.name}</p>
+                    </div>
+                    {loggedArtist.flashbook_alias ? (
+                      <a href={`/flash/${loggedArtist.flashbook_alias}`}
+                        onClick={() => setArtistMenuOpen(false)}
+                        style={{ display: 'block', padding: '12px 16px', textDecoration: 'none', color: '#efff42', fontSize: 13, fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        {t('artist_menu', 'view_flashbook', 'Ver mi Flashbook')}
+                      </a>
+                    ) : (
+                      <div style={{ display: 'block', padding: '12px 16px', color: 'rgba(255,255,255,0.25)', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        {t('artist_menu', 'view_flashbook', 'Ver mi Flashbook')}
+                      </div>
+                    )}
+                    <button
+                      onClick={async () => {
+                        if (!loggedArtist.flashbook_alias) return
+                        const url = `${window.location.origin}/flash/${loggedArtist.flashbook_alias}`
+                        await navigator.clipboard.writeText(url).catch(() => {})
+                        setFlashLinkCopied(true)
+                        setTimeout(() => setFlashLinkCopied(false), 2000)
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: !loggedArtist.flashbook_alias ? 'rgba(255,255,255,0.25)' : flashLinkCopied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.75)', fontSize: 13, cursor: loggedArtist.flashbook_alias ? 'pointer' : 'default', textAlign: 'left' }}>
+                      {flashLinkCopied ? t('artist_menu', 'link_copied', '¡Link copiado!') : t('artist_menu', 'copy_link', 'Copiar link del Flashbook')}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setArtistMenuOpen(false)
+                        let a = artists.find(x => x.id === loggedArtist.id)
+                        if (!a) {
+                          const { data } = await supabase.from('artists').select('*').eq('id', loggedArtist.id).single()
+                          if (data) { a = data; setArtists(prev => [...prev, data]) }
+                        }
+                        if (a) {
+                          setSelected(a)
+                          setAuthAccessToken(loggedArtist.access_token)
+                          setEditing(true)
+                        }
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('artist_menu', 'edit_profile', 'Editar perfil')}
+                    </button>
+                    <a href="/flash/edit"
+                      onClick={() => setArtistMenuOpen(false)}
+                      style={{ display: 'block', padding: '12px 16px', textDecoration: 'none', color: 'rgba(255,255,255,0.75)', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      {t('artist_menu', 'edit_flashbook', 'Editar Flashbook')}
+                    </a>
+                    <button
+                      onClick={() => {
+                        try { localStorage.removeItem('flashttoo_artist_session') } catch {}
+                        setLoggedArtist(null)
+                        setArtistMenuOpen(false)
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', color: 'rgba(255,100,100,0.7)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('artist_menu', 'logout', 'Cerrar sesión')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : !loggedStudio ? (
+              <button
+                onClick={() => { if (registrationOpen) { setShowAuthModal(true) } else { setShowRegistrationClosed(true) } }}
+                className="text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
+                style={{ background: '#efff42', color: '#000' }}>
+                {t('inicio', 'add_artist', 'Ingresar')}
+              </button>
+            ) : null}
             {/* Menú tres puntos */}
             <div ref={langRef} className="relative">
               <button
@@ -1217,8 +1397,8 @@ export default function Home() {
 
           <div className="flex justify-center items-start min-h-full pb-64 sm:px-4 sm:pt-6">
           <div className="flex flex-col w-full sm:max-w-sm" style={{ gap: 10 }} onClick={e => e.stopPropagation()}>
-          <div className="relative w-full overflow-hidden"
-            style={{ background: '#111', borderRadius: '0 0 20px 20px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
+          <div style={{ background: '#111', borderRadius: '0 0 20px 20px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+          <div className="relative w-full overflow-hidden">
 
             <div className="relative w-full" style={{ paddingBottom: '115%' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1303,9 +1483,138 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Flashbook preview */}
+          {flashPreview && flashPreview.count > 0 && (
+            <>
+              <div style={{ height: 3, background: '#000' }} />
+              <div style={{ padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Flashbook</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#efff42' }}>{flashPreview.count} diseño{flashPreview.count !== 1 ? 's' : ''}</span>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, padding: 2 }}>
+                  {flashPreview.photos.slice(0, 3).map((url, i) => (
+                    <div key={i} style={{ aspectRatio: '1', overflow: 'hidden', borderRadius: 8 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(4px)', transform: 'scale(1.05)', display: 'block' }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '0 12px' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: '#efff42', textAlign: 'center', lineHeight: 1.4 }}>{flashPreview.count} diseño{flashPreview.count !== 1 ? 's' : ''} disponible{flashPreview.count !== 1 ? 's' : ''}</p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 1.4 }}>Pedile el link al artista para verlos</p>
+                  {flashPreview.whatsapp && (
+                    <a
+                      href={`https://wa.me/${flashPreview.whatsapp}?text=${encodeURIComponent(`Hola ${selected?.name}! Vi tu perfil en Flashttoo y me gustaría ver tu Flashbook.`)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{ fontSize: 11, fontWeight: 800, color: '#000', background: '#efff42', padding: '7px 16px', borderRadius: 20, textDecoration: 'none', display: 'inline-block' }}>
+                      Pedir por WhatsApp
+                    </a>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Próximas fechas */}
+          {(() => {
+            const today = new Date().toISOString().slice(0, 10)
+            const upcoming = (selected.visits || []).filter(v => v.to >= today).sort((a, b) => a.from.localeCompare(b.from))
+            if (!upcoming.length) return null
+            return (
+              <>
+                <div style={{ height: 3, background: '#000' }} />
+                <div style={{ padding: 16 }}>
+                  <p style={{ fontSize: 10, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 10 }}>{t('artista', 'upcoming_dates', 'Próximas fechas')}</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {upcoming.map((v, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12 }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ textAlign: 'center' }}>
+                              <span style={{ fontSize: 22, fontWeight: 800, color: '#efff42', lineHeight: 1, display: 'block' }}>
+                                {new Date(v.from + 'T12:00:00').getDate()}
+                              </span>
+                              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(239,255,66,0.5)', letterSpacing: '0.06em', display: 'block', marginTop: 2 }}>
+                                {new Date(v.from + 'T12:00:00').toLocaleDateString('es-AR', { month: 'short' })}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>hasta</span>
+                            <div style={{ textAlign: 'center' }}>
+                              <span style={{ fontSize: 22, fontWeight: 800, color: '#efff42', lineHeight: 1, display: 'block' }}>
+                                {new Date(v.to + 'T12:00:00').getDate()}
+                              </span>
+                              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(239,255,66,0.5)', letterSpacing: '0.06em', display: 'block', marginTop: 2 }}>
+                                {new Date(v.to + 'T12:00:00').toLocaleDateString('es-AR', { month: 'short' })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>{v.city}</p>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(239,255,66,0.72)', marginTop: 3 }}>{v.country}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )
+          })()}
+
+          {/* Contacto */}
+          <div style={{ height: 3, background: '#000' }} />
+          <div style={{ padding: 16 }}>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 12 }}>{t('artista', 'contact_label', 'Contacto')}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {selected.instagram && (
+                <a href={`https://instagram.com/${selected.instagram.replace('@', '')}`}
+                  target="_blank" rel="noopener noreferrer"
+                  onClick={() => trackClick(selected.id, 'instagram')}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>Instagram</span>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>↗</span>
+                </a>
+              )}
+              {showContactInfo && selected.whatsapp && (
+                <a href={`https://wa.me/${selected.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${selected.name}, te encontré en Flashttoo 👋`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  onClick={() => trackClick(selected.id, 'whatsapp')}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>WhatsApp</span>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>↗</span>
+                </a>
+              )}
+              {selected.email && (
+                <button onClick={() => { navigator.clipboard.writeText(selected.email!); setEmailCopied(true); setTimeout(() => setEmailCopied(false), 2000) }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', width: '100%', cursor: 'pointer' }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: emailCopied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)' }}>{emailCopied ? '¡Mail copiado!' : 'Email'}</span>
+                  {emailCopied
+                    ? <span style={{ fontSize: 13, color: 'rgba(239,255,66,0.4)' }}>✓</span>
+                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+                  }
+                </button>
+              )}
+              <button onClick={shareArtist}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: copied ? 'rgba(239,255,66,0.07)' : 'rgba(255,255,255,0.05)', border: `1px solid ${copied ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}`, width: '100%', cursor: 'pointer' }}>
+                <span style={{ fontSize: 14, fontWeight: 500, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)' }}>{copied ? '¡Copiado!' : 'Compartir perfil'}</span>
+                {copied
+                  ? <span style={{ fontSize: 13, color: 'rgba(239,255,66,0.4)' }}>✓</span>
+                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                }
+              </button>
+            </div>
+          </div>
+          </div>{/* end unified card */}
+
           {/* Panel edición — justo debajo del perfil */}
           {editOpen && !selected.auth_email && (
-            <div style={{ background: '#efff42', borderRadius: 20, padding: '20px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
+            <div ref={editPanelRef} style={{ background: '#efff42', borderRadius: 20, padding: '20px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
 
               {/* Paso 1: ingresar clave */}
               {!migrateMode && (
@@ -1419,93 +1728,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Próximas fechas — card separada */}
-          {(() => {
-            const today = new Date().toISOString().slice(0, 10)
-            const upcoming = (selected.visits || []).filter(v => v.to >= today).sort((a, b) => a.from.localeCompare(b.from))
-            if (!upcoming.length) return null
-            return (
-              <div style={{ background: '#111', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
-                <p style={{ fontSize: 10, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 10 }}>{t('artista', 'upcoming_dates', 'Próximas fechas')}</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {upcoming.map((v, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12 }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <span style={{ fontSize: 22, fontWeight: 800, color: '#efff42', lineHeight: 1, display: 'block' }}>
-                              {new Date(v.from + 'T12:00:00').getDate()}
-                            </span>
-                            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(239,255,66,0.5)', letterSpacing: '0.06em', display: 'block', marginTop: 2 }}>
-                              {new Date(v.from + 'T12:00:00').toLocaleDateString('es-AR', { month: 'short' })}
-                            </span>
-                          </div>
-                          <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>hasta</span>
-                          <div style={{ textAlign: 'center' }}>
-                            <span style={{ fontSize: 22, fontWeight: 800, color: '#efff42', lineHeight: 1, display: 'block' }}>
-                              {new Date(v.to + 'T12:00:00').getDate()}
-                            </span>
-                            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(239,255,66,0.5)', letterSpacing: '0.06em', display: 'block', marginTop: 2 }}>
-                              {new Date(v.to + 'T12:00:00').toLocaleDateString('es-AR', { month: 'short' })}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>{v.city}</p>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(239,255,66,0.72)', marginTop: 3 }}>{v.country}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })()}
-
-          {/* Contacto — botones separados */}
-          <div style={{ background: '#111', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', padding: '20px 20px 20px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 4 }}>{t('artista', 'contact_label', 'Contacto')}</p>
-            <p style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.2, marginBottom: 16 }}>{selected.name}</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {selected.instagram && (
-                <a href={`https://instagram.com/${selected.instagram.replace('@', '')}`}
-                  target="_blank" rel="noopener noreferrer"
-                  onClick={() => trackClick(selected.id, 'instagram')}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>Instagram</span>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>↗</span>
-                </a>
-              )}
-              {showContactInfo && selected.whatsapp && (
-                <a href={`https://wa.me/${selected.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${selected.name}, te encontré en Flashttoo 👋`)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  onClick={() => trackClick(selected.id, 'whatsapp')}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>WhatsApp</span>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>↗</span>
-                </a>
-              )}
-              {selected.email && (
-                <button onClick={() => { navigator.clipboard.writeText(selected.email!); setEmailCopied(true); setTimeout(() => setEmailCopied(false), 2000) }}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', width: '100%', cursor: 'pointer' }}>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: emailCopied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)' }}>{emailCopied ? '¡Mail copiado!' : 'Email'}</span>
-                  {emailCopied
-                    ? <span style={{ fontSize: 13, color: 'rgba(239,255,66,0.4)' }}>✓</span>
-                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
-                  }
-                </button>
-              )}
-              <button onClick={shareArtist}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: copied ? 'rgba(239,255,66,0.07)' : 'rgba(255,255,255,0.05)', border: `1px solid ${copied ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}`, width: '100%', cursor: 'pointer' }}>
-                <span style={{ fontSize: 14, fontWeight: 500, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)' }}>{copied ? '¡Copiado!' : 'Compartir perfil'}</span>
-                {copied
-                  ? <span style={{ fontSize: 13, color: 'rgba(239,255,66,0.4)' }}>✓</span>
-                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                }
-              </button>
-            </div>
-          </div>
-
           {/* Aviso perfil desactivado — cuando cerró el panel sin migrar */}
           {migrateMode && !editOpen && !migrateSent && (
             <div style={{ background: '#efff42', borderRadius: 16, padding: '16px 20px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', marginTop: 4 }}>
@@ -1570,9 +1792,12 @@ export default function Home() {
       {showAuthModal && (
         <ArtistAuthModal
           onClose={() => setShowAuthModal(false)}
-          onStudioLoggedIn={(studio, access_token) => {
+          onStudioLoggedIn={(studio, access_token, refresh_token) => {
             setShowAuthModal(false)
             setStudioAuth({ slug: studio.slug, auth_email: studio.auth_email, access_token })
+            const ss = { slug: studio.slug, name: studio.name, access_token, refresh_token: refresh_token ?? '' }
+            try { localStorage.setItem('flashttoo_studio_session', JSON.stringify(ss)) } catch {}
+            setLoggedStudio(ss)
             openStudio(studio.slug, true)
           }}
           onLoggedIn={async (artist) => {
@@ -1583,14 +1808,18 @@ export default function Home() {
               if (data) { a = data; setArtists(prev => [...prev, data]) }
             }
             if (a) {
-              setSelected(a)
-              if (artist.auth_email && artist.access_token) {
-                setAuthAccessToken(artist.access_token)
-                setEditing(true)
-              } else if (artist.edit_key) {
-                setEditKeyVerified(artist.edit_key)
-                setEditing(true)
+              const session = {
+                id: a.id,
+                name: a.name,
+                photo_url: a.photo_url ?? null,
+                slug: a.slug,
+                access_token: artist.access_token ?? '',
+                refresh_token: artist.refresh_token ?? '',
+                flashbook_alias: a.flashbook_alias ?? null,
               }
+              try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(session)) } catch {}
+              setLoggedArtist(session)
+              setArtistMenuOpen(true)
             }
           }}
         />
