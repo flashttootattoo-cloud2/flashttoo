@@ -392,8 +392,16 @@ export default function FlashbookPage() {
           ref={modalRef}
           onClick={() => { if (!gesturing) { setExpanded(false) } }}
           style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Imagen */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block', transform: `translate(${imgPanX}px, ${imgPanY}px) scale(${imgScale})`, transition: gesturing ? 'none' : 'transform 0.35s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center', touchAction: 'none' }} />
+
+          {/* Marca de agua — logo + nombre del artista */}
+          <div style={{ position: 'absolute', bottom: 60, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, pointerEvents: 'none' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 16, opacity: 0.45 }} />
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em' }}>{artist.name}</p>
+          </div>
 
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 8 }}>{tx.close}</p>
           <button onClick={() => setExpanded(false)}
