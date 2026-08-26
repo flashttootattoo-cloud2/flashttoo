@@ -264,7 +264,19 @@ export default function Home() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('flashttoo_artist_session')
-      if (saved) setLoggedArtist(JSON.parse(saved))
+      if (saved) {
+        const session = JSON.parse(saved)
+        setLoggedArtist(session)
+        // Refresh alias from DB — can be stale when changed on another device
+        supabase.from('artists').select('flashbook_alias').eq('id', session.id).single()
+          .then(({ data }) => {
+            if (data && data.flashbook_alias !== session.flashbook_alias) {
+              const updated = { ...session, flashbook_alias: data.flashbook_alias ?? null }
+              setLoggedArtist(updated)
+              try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(updated)) } catch {}
+            }
+          }).catch(() => {})
+      }
     } catch {}
     try {
       const savedStudio = localStorage.getItem('flashttoo_studio_session')
