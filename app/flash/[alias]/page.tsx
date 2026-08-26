@@ -67,7 +67,7 @@ export default function FlashbookPage() {
   const [lang, setLang] = useState<Lang>('es')
 
   const [pinchScale, setPinchScale] = useState(1)
-  const isPinchingRef  = useRef(false)
+  const [isPinching, setIsPinching] = useState(false)
   const pinchStartDist = useRef(0)
 
   const getPinchDist = (t: React.TouchList) => {
@@ -76,20 +76,22 @@ export default function FlashbookPage() {
     return Math.sqrt(dx * dx + dy * dy)
   }
   const onPinchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 2) return
-    pinchStartDist.current = getPinchDist(e.touches)
-    isPinchingRef.current = true
+    if (e.touches.length === 2) {
+      pinchStartDist.current = getPinchDist(e.touches)
+      setIsPinching(true)
+    }
   }
   const onPinchMove = (e: React.TouchEvent) => {
-    if (e.touches.length !== 2 || !isPinchingRef.current) return
-    e.stopPropagation()
+    if (e.touches.length !== 2) return
+    e.preventDefault()
     const scale = Math.min(Math.max(getPinchDist(e.touches) / pinchStartDist.current, 0.8), 5)
     setPinchScale(scale)
   }
-  const onPinchEnd = () => {
-    if (!isPinchingRef.current) return
-    isPinchingRef.current = false
-    setPinchScale(1)
+  const onPinchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      setIsPinching(false)
+      setPinchScale(1)
+    }
   }
 
   useEffect(() => {
@@ -332,13 +334,13 @@ export default function FlashbookPage() {
       {/* Modal fullscreen */}
       {expanded && cur && (
         <div
-          onClick={() => { if (!isPinchingRef.current) { setExpanded(false); setPinchScale(1) } }}
+          onClick={() => { if (!isPinching) { setExpanded(false); setPinchScale(1) } }}
           onTouchStart={onPinchStart}
           onTouchMove={onPinchMove}
           onTouchEnd={onPinchEnd}
           style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block', transform: `scale(${pinchScale})`, transition: isPinchingRef.current ? 'none' : 'transform 0.4s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center' }} />
+          <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block', transform: `scale(${pinchScale})`, transition: isPinching ? 'none' : 'transform 0.4s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center' }} />
           {cur.medidas && <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, marginTop: 16 }}>{cur.medidas}</p>}
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 8 }}>{tx.close}</p>
           <button onClick={() => setExpanded(false)}
