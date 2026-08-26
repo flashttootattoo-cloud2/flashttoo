@@ -337,7 +337,7 @@ export default function FlashbookPage() {
                       borderRadius: 20,
                       overflow: 'hidden',
                       position: 'relative',
-                      background: isLandscape ? '#000' : 'transparent',
+                      background: isLandscape ? '#111' : '#f8f8f8',
                       transform: isActive ? 'scale(1)' : 'scale(0.87)',
                       opacity: isActive ? 1 : 0.4,
                       filter: isActive ? 'none' : 'blur(1.5px)',
