@@ -1506,15 +1506,17 @@ export default function Home() {
                     <rect x="3" y="11" width="18" height="11" rx="2"/>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                   </svg>
-                  <p style={{ fontSize: 13, fontWeight: 800, color: '#efff42', textAlign: 'center', lineHeight: 1.4 }}>{flashPreview.count} flash tattoo{flashPreview.count !== 1 ? 's' : ''} disponible{flashPreview.count !== 1 ? 's' : ''}</p>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 1.4 }}>Pedile el link al artista para verlos</p>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: '#efff42', textAlign: 'center', lineHeight: 1.4 }}>
+                    {flashPreview.count} {flashPreview.count !== 1 ? t('flashbook_preview', 'available_many', 'flash tattoos disponibles') : t('flashbook_preview', 'available_one', 'flash tattoo disponible')}
+                  </p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 1.4 }}>{t('flashbook_preview', 'ask_link', 'Pedile el link al artista para verlos')}</p>
                   {flashPreview.whatsapp && (
                     <a
-                      href={`https://wa.me/${flashPreview.whatsapp}?text=${encodeURIComponent(`Hola ${selected?.name}! Vi tu perfil en Flashttoo y me gustaría ver tu Flashbook.`)}`}
+                      href={`https://wa.me/${flashPreview.whatsapp}?text=${encodeURIComponent(t('flashbook_preview', 'wa_msg', 'Hola {name}! Vi tu perfil en Flashttoo y me gustaría ver tu Flashbook.').replace('{name}', selected?.name ?? ''))}`}
                       target="_blank" rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()}
                       style={{ fontSize: 11, fontWeight: 800, color: '#000', background: '#efff42', padding: '7px 16px', borderRadius: 20, textDecoration: 'none', display: 'inline-block' }}>
-                      Pedir por WhatsApp
+                      {t('flashbook_preview', 'ask_wa', 'Pedir por WhatsApp')}
                     </a>
                   )}
                 </div>
