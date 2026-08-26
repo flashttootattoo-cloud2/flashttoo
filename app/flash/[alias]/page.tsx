@@ -311,8 +311,11 @@ export default function FlashbookPage() {
                       boxShadow: isActive ? '0 24px 64px rgba(0,0,0,0.85)' : '0 6px 18px rgba(0,0,0,0.5)',
                       cursor: 'pointer',
                     }}>
+                    {/* Fondo desenfocado para rellenar sin negro */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={d.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />
+                    <img src={d.photo_url} alt="" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(18px) brightness(0.45)', transform: 'scale(1.1)', pointerEvents: 'none' }} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={d.photo_url} alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', display: 'block', pointerEvents: 'none' }} />
                     {/* Número */}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)', padding: '28px 16px 14px' }}>
                       <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em' }}>#{i + 1}</p>
