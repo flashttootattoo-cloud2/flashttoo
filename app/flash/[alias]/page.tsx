@@ -138,8 +138,8 @@ export default function FlashbookPage() {
 
   function advance(dir: 'left' | 'right') {
     setIdx(prev => dir === 'left'
-      ? (prev + 1) % designs.length
-      : (prev - 1 + designs.length) % designs.length)
+      ? Math.min(prev + 1, designs.length - 1)
+      : Math.max(prev - 1, 0))
     setDragX(0)
   }
 
