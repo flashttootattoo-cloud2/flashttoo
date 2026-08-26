@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 
 const TEXTS = {
@@ -144,23 +144,6 @@ export default function FlashbookPage() {
     if (heroRef.current) setContainerW(heroRef.current.offsetWidth)
   }, [artist])
 
-  // Detectar orientación de cada imagen
-  const [ratios, setRatios] = useState<Record<string, number>>({})
-  useEffect(() => {
-    if (!designs.length) return
-    const map: Record<string, number> = {}
-    let done = 0
-    designs.forEach(d => {
-      const img = new window.Image()
-      const finish = () => {
-        if (img.naturalWidth && img.naturalHeight) map[d.id] = img.naturalWidth / img.naturalHeight
-        if (++done === designs.length) setRatios({ ...map })
-      }
-      img.onload = finish; img.onerror = finish
-      img.src = d.photo_url
-    })
-  }, [designs])
-
   // Fondo rotativo con fotos de galería
   useEffect(() => {
     if (!artist) return
@@ -171,24 +154,9 @@ export default function FlashbookPage() {
   }, [artist])
 
   // Peek layout values
-  const cardW  = Math.min(Math.round(containerW * 0.86), 340)
-  const cardH  = Math.round(cardW * 4 / 3)
-
-  const cardWidths = useMemo(() => designs.map(d => {
-    const r = ratios[d.id]
-    if (!r || r < 1.2) return cardW  // retrato o cuadrado → ancho estándar
-    return Math.min(Math.round(cardH * r), Math.round(containerW * 0.92))
-  }), [designs, ratios, cardW, cardH, containerW])
-
-  const offsets = useMemo(() => {
-    const result: number[] = []
-    let sum = 0
-    for (const w of cardWidths) { result.push(sum); sum += w + GAP }
-    return result
-  }, [cardWidths])
-
-  const activeW   = cardWidths[idx] ?? cardW
-  const trackX    = Math.round(containerW / 2 - (offsets[idx] ?? 0) - activeW / 2) + dragX
+  const cardW     = Math.min(Math.round(containerW * 0.86), 340)
+  const cardH     = Math.round(cardW * 4 / 3)
+  const trackX    = Math.round(containerW / 2 - idx * (cardW + GAP) - cardW / 2) + dragX
   const dotsTopPx = 18 + Math.round(cardH / 2) + 18
 
   function advance(dir: 'left' | 'right') {
@@ -319,9 +287,7 @@ export default function FlashbookPage() {
               willChange: 'transform',
             }}>
               {designs.map((d, i) => {
-                const isActive   = i === idx
-                const cw         = cardWidths[i] ?? cardW
-                const isLandscape = (ratios[d.id] ?? 0) >= 1.2
+                const isActive = i === idx
                 return (
                   <div
                     key={d.id}
@@ -331,13 +297,13 @@ export default function FlashbookPage() {
                       else setIdx(i)
                     }}
                     style={{
-                      width: cw,
+                      width: cardW,
                       height: cardH,
                       flexShrink: 0,
                       borderRadius: 20,
                       overflow: 'hidden',
                       position: 'relative',
-                      background: isLandscape ? '#111' : '#f8f8f8',
+                      background: '#111',
                       transform: isActive ? 'scale(1)' : 'scale(0.87)',
                       opacity: isActive ? 1 : 0.4,
                       filter: isActive ? 'none' : 'blur(1.5px)',
@@ -346,7 +312,7 @@ export default function FlashbookPage() {
                       cursor: 'pointer',
                     }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={d.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: isLandscape ? 'contain' : 'cover', display: 'block', pointerEvents: 'none' }} />
+                    <img src={d.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />
                     {/* Número */}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)', padding: '28px 16px 14px' }}>
                       <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em' }}>#{i + 1}</p>
