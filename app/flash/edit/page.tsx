@@ -49,6 +49,7 @@ export default function FlashbookEditPage() {
 
   // Upload
   const [uploading, setUploading] = useState(false)
+  const [flashLimit, setFlashLimit] = useState(10)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Medidas per design (local edits)
@@ -66,6 +67,13 @@ export default function FlashbookEditPage() {
     setToast(msg)
     setTimeout(() => setToast(''), 2500)
   }
+
+  // Load flash limit from features
+  useEffect(() => {
+    fetch('/api/features').then(r => r.json()).then(d => {
+      if (typeof d.flash_limit === 'number') setFlashLimit(d.flash_limit)
+    }).catch(() => {})
+  }, [])
 
   // Load session from localStorage
   useEffect(() => {
@@ -176,7 +184,7 @@ export default function FlashbookEditPage() {
 
   async function uploadDesign(file: File) {
     if (!session || session === 'loading') return
-    if (designs.length >= 10) { showToast('Límite de 10 diseños alcanzado'); return }
+    if (designs.length >= flashLimit) { showToast(`Límite de ${flashLimit} diseños alcanzado`); return }
     setUploading(true)
     const fd = new FormData()
     fd.append('file', file)

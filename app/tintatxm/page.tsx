@@ -1085,6 +1085,9 @@ export default function AdminPage() {
   const [deleting, setDeleting]   = useState<string | null>(null)
   const [visits, setVisits]       = useState<DayVisit[]>([])
   const [installs, setInstalls]   = useState<InstallStats>({ days: [], byPlatform: { ios: 0, android: 0, other: 0 }, total: 0 })
+  const [flashLimit, setFlashLimit]     = useState(10)
+  const [flashLimitInput, setFlashLimitInput] = useState('10')
+  const [savingFlashLimit, setSavingFlashLimit] = useState(false)
   const [moderation, setModeration] = useState(false)
   const [savingMod, setSavingMod]   = useState(false)
   const [showCount, setShowCount]   = useState(false)
@@ -1329,6 +1332,8 @@ export default function AdminPage() {
       if (stu.status === 'fulfilled') setAdminStudios(stu.value.studios || [])
       if (ibg.status === 'fulfilled') setInsumoBgImages(ibg.value.urls || [])
       if (cfg.status === 'fulfilled') {
+        const fl = typeof cfg.value.settings?.flash_limit === 'number' ? cfg.value.settings.flash_limit : 10
+        setFlashLimit(fl); setFlashLimitInput(String(fl))
         setModeration(cfg.value.settings?.moderation === true)
         setShowCount(cfg.value.settings?.show_count === true)
         setGalleryEnabled(cfg.value.settings?.artist_gallery_enabled === true)
@@ -1446,6 +1451,19 @@ export default function AdminPage() {
     } finally {
       setLoadingMoreArtists(false)
     }
+  }
+
+  const saveFlashLimit = async () => {
+    const val = parseInt(flashLimitInput, 10)
+    if (isNaN(val) || val < 1 || val > 100) return
+    setSavingFlashLimit(true)
+    await fetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'flash_limit', value: val }),
+    })
+    setFlashLimit(val)
+    setSavingFlashLimit(false)
   }
 
   const toggleModeration = async (val: boolean) => {
@@ -2041,6 +2059,31 @@ export default function AdminPage() {
 
           // ── CONFIG ───────────────────────────────────────────────────────────
           <div className="max-w-sm flex flex-col gap-6">
+
+            {/* Límite de flash designs */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-sm font-bold text-white mb-1">Límite de flash tattoos por artista</p>
+              <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                Máximo de diseños que cada artista puede subir a su Flashbook. Actualmente: <span style={{ color: '#efff42', fontWeight: 700 }}>{flashLimit}</span>
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number" min={1} max={100}
+                  value={flashLimitInput}
+                  onChange={e => setFlashLimitInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveFlashLimit()}
+                  className="rounded-lg px-3 py-2 text-sm font-bold text-white"
+                  style={{ width: 80, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', outline: 'none' }}
+                />
+                <button
+                  onClick={saveFlashLimit}
+                  disabled={savingFlashLimit || parseInt(flashLimitInput, 10) === flashLimit}
+                  className="px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-40"
+                  style={{ background: '#efff42', color: '#000' }}>
+                  {savingFlashLimit ? 'Guardando…' : 'Guardar'}
+                </button>
+              </div>
+            </div>
 
             {/* Moderación */}
             <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
