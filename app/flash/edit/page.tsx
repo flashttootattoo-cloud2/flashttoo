@@ -377,7 +377,7 @@ export default function FlashbookEditPage() {
 
         {/* Diseños */}
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>
-          {t('flashbook_edit', 'designs_label', 'Diseños')} · {designs.length}/10
+          {t('flashbook_edit', 'designs_label', 'Diseños')} · {designs.length}/{flashLimit}
         </p>
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginBottom: 12, lineHeight: 1.5 }}>
           {t('flashbook_edit', 'designs_desc', 'Podés subir diseños sueltos o hojas de flash con varios motivos. Cada imagen tiene un número — cuando alguien reserva, te dice el número para que sepas cuál es.')}
@@ -405,7 +405,7 @@ export default function FlashbookEditPage() {
             ))}
 
             {/* Botón agregar */}
-            {designs.length < 10 && (
+            {designs.length < flashLimit && (
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
