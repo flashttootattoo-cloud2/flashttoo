@@ -20,7 +20,7 @@ type Artist = {
   profile_views: number; instagram_clicks: number; whatsapp_clicks: number; likes: number
   edit_key: string; visible: boolean; created_at: string; status: string
   pending_reason: string | null; migrated_at: string | null
-  flash_alias: string | null
+  flashbook_alias: string | null
 }
 
 function fmtN(n: number): string {
@@ -593,8 +593,8 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
                   {a.edit_key}
                 </button>
               )}
-              {a.flash_alias && (
-                <a href={`/flash/${a.flash_alias}`} target="_blank" rel="noopener noreferrer"
+              {a.flashbook_alias && (
+                <a href={`/flash/${a.flashbook_alias}`} target="_blank" rel="noopener noreferrer"
                   className="text-xs px-2.5 py-1 rounded-lg shrink-0"
                   style={{ background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', color: '#efff42', textDecoration: 'none' }}>
                   ver flashbook
