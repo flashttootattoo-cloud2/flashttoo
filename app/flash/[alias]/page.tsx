@@ -66,38 +66,84 @@ export default function FlashbookPage() {
   const [expanded, setExpanded] = useState(false)
   const [lang, setLang] = useState<Lang>('es')
 
-  const [pinchScale, setPinchScale] = useState(1)
-  const [isPinching, setIsPinching] = useState(false)
+  const [imgScale, setImgScale] = useState(1)
+  const [imgPanX, setImgPanX]   = useState(0)
+  const [imgPanY, setImgPanY]   = useState(0)
+  const [gesturing, setGesturing] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
+  const gs = useRef({ scale: 1, panX: 0, panY: 0, startDist: 0, midX: 0, midY: 0, dragging: false, lastX: 0, lastY: 0 })
 
   useEffect(() => {
-    if (!expanded) return
+    if (!expanded) {
+      // reset on close
+      gs.current = { scale: 1, panX: 0, panY: 0, startDist: 0, midX: 0, midY: 0, dragging: false, lastX: 0, lastY: 0 }
+      setImgScale(1); setImgPanX(0); setImgPanY(0); setGesturing(false)
+      return
+    }
     const el = modalRef.current
     if (!el) return
-    let startDist = 0
-    const dist = (t: TouchList) => {
-      const dx = t[0].clientX - t[1].clientX
-      const dy = t[0].clientY - t[1].clientY
-      return Math.sqrt(dx * dx + dy * dy)
-    }
+
+    const getDist = (t: TouchList) => Math.sqrt((t[0].clientX - t[1].clientX) ** 2 + (t[0].clientY - t[1].clientY) ** 2)
+    const getMid  = (t: TouchList) => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 })
+    const getCenter = () => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } }
+
     const onStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) { startDist = dist(e.touches); setIsPinching(true) }
+      if (e.touches.length === 2) {
+        gs.current.startDist = getDist(e.touches)
+        const m = getMid(e.touches); gs.current.midX = m.x; gs.current.midY = m.y
+        gs.current.dragging = false
+        setGesturing(true)
+      } else if (e.touches.length === 1 && gs.current.scale > 1) {
+        gs.current.dragging = true
+        gs.current.lastX = e.touches[0].clientX
+        gs.current.lastY = e.touches[0].clientY
+      }
     }
     const onMove = (e: TouchEvent) => {
-      if (e.touches.length !== 2) return
       e.preventDefault()
-      setPinchScale(Math.min(Math.max(dist(e.touches) / startDist, 0.8), 5))
+      if (e.touches.length === 2) {
+        const newDist = getDist(e.touches)
+        const f = newDist / gs.current.startDist
+        const newScale = Math.min(Math.max(gs.current.scale * f, 1), 5)
+        const c = getCenter()
+        const sf = newScale / gs.current.scale
+        const newPanX = (gs.current.midX - c.x) * (1 - sf) + gs.current.panX * sf
+        const newPanY = (gs.current.midY - c.y) * (1 - sf) + gs.current.panY * sf
+        gs.current.startDist = newDist
+        gs.current.scale = newScale; gs.current.panX = newPanX; gs.current.panY = newPanY
+        const m = getMid(e.touches); gs.current.midX = m.x; gs.current.midY = m.y
+        setImgScale(newScale); setImgPanX(newPanX); setImgPanY(newPanY)
+      } else if (e.touches.length === 1 && gs.current.dragging && gs.current.scale > 1) {
+        const dx = e.touches[0].clientX - gs.current.lastX
+        const dy = e.touches[0].clientY - gs.current.lastY
+        gs.current.lastX = e.touches[0].clientX; gs.current.lastY = e.touches[0].clientY
+        gs.current.panX += dx; gs.current.panY += dy
+        setImgPanX(gs.current.panX); setImgPanY(gs.current.panY)
+      }
     }
     const onEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) { setIsPinching(false); setPinchScale(1) }
+      if (e.touches.length === 1) {
+        // pinch ended, one finger stays — switch to pan
+        gs.current.dragging = gs.current.scale > 1
+        gs.current.lastX = e.touches[0].clientX; gs.current.lastY = e.touches[0].clientY
+        setGesturing(false)
+      } else if (e.touches.length === 0) {
+        gs.current.dragging = false
+        setGesturing(false)
+        if (gs.current.scale <= 1) {
+          gs.current.scale = 1; gs.current.panX = 0; gs.current.panY = 0
+          setImgScale(1); setImgPanX(0); setImgPanY(0)
+        }
+      }
     }
+
     el.addEventListener('touchstart', onStart, { passive: true })
-    el.addEventListener('touchmove', onMove, { passive: false })
-    el.addEventListener('touchend', onEnd)
+    el.addEventListener('touchmove',  onMove,  { passive: false })
+    el.addEventListener('touchend',   onEnd)
     return () => {
       el.removeEventListener('touchstart', onStart)
-      el.removeEventListener('touchmove', onMove)
-      el.removeEventListener('touchend', onEnd)
+      el.removeEventListener('touchmove',  onMove)
+      el.removeEventListener('touchend',   onEnd)
     }
   }, [expanded])
 
@@ -342,10 +388,10 @@ export default function FlashbookPage() {
       {expanded && cur && (
         <div
           ref={modalRef}
-          onClick={() => { if (!isPinching) { setExpanded(false); setPinchScale(1) } }}
+          onClick={() => { if (!gesturing && imgScale <= 1) { setExpanded(false) } }}
           style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block', transform: `scale(${pinchScale})`, transition: isPinching ? 'none' : 'transform 0.4s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center' }} />
+          <img src={cur.photo_url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 16, display: 'block', transform: `translate(${imgPanX}px, ${imgPanY}px) scale(${imgScale})`, transition: gesturing ? 'none' : 'transform 0.35s cubic-bezier(0.22,1,0.36,1)', transformOrigin: 'center center', touchAction: 'none' }} />
           {cur.medidas && <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, marginTop: 16 }}>{cur.medidas}</p>}
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 8 }}>{tx.close}</p>
           <button onClick={() => setExpanded(false)}
