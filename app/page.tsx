@@ -167,7 +167,6 @@ export default function Home() {
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [eventsCountryFilter, setEventsCountryFilter] = useState(false)
   const [showInsumos, setShowInsumos] = useState(true)
-  const [showVerifiedBanner, setShowVerifiedBanner] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [studioAuth, setStudioAuth] = useState<{ slug: string; auth_email: string | null; access_token: string } | null>(null)
@@ -340,7 +339,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
-    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_verified_banner !== false) setShowVerifiedBanner(true); if (d.show_contact_info === false) setShowContactInfo(false); if (d.maintenance_mode === true) setMaintenanceMode(true); if (d.show_click_counters === true) setShowClickCounters(true) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_contact_info === false) setShowContactInfo(false); if (d.maintenance_mode === true) setMaintenanceMode(true); if (d.show_click_counters === true) setShowClickCounters(true) }).catch(() => {})
     fetch('/api/secret-card').then(r => r.json()).then(d => {
       if (d.card) {
         setSecretCard(d.card)
@@ -1108,17 +1107,6 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-5 pt-4 pb-1">
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.15)', letterSpacing: '0.05em' }}>
             {totalActiveArtists} {totalActiveArtists !== 1 ? t('inicio', 'count_plural', 'tatuadores') : t('inicio', 'count_singular', 'tatuador')}
-          </p>
-        </div>
-      )}
-
-      {/* ── VERIFIED BANNER ────────────────────────────────────── */}
-      {showVerifiedBanner && (
-        <div className="max-w-7xl mx-auto px-5 pt-3 pb-1">
-          <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' }}>
-            <span style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 6, color: '#efff42' }}>✶</span>
-            {t('inicio', 'verified_msg', 'Todos los perfiles fueron verificados vía Instagram')}
-            <span style={{ fontSize: 16, verticalAlign: 'middle', marginLeft: 6, color: '#efff42' }}>✶</span>
           </p>
         </div>
       )}
