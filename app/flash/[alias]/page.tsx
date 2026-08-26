@@ -120,7 +120,7 @@ export default function FlashbookPage() {
   const cur      = designs[idx]
 
   return (
-    <main style={{ background: '#0a0a0a', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <main style={{ background: '#0a0a0a', minHeight: '100vh', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
 
       {/* ── HERO ── */}
       <div
@@ -132,7 +132,7 @@ export default function FlashbookPage() {
         onTouchStart={e => onStart(e.touches[0].clientX)}
         onTouchMove={e => { e.preventDefault(); onMove(e.touches[0].clientX) }}
         onTouchEnd={onEnd}
-        style={{ position: 'relative', width: '100%', maxWidth: 540, margin: '0 auto', minHeight: '100vh', cursor: dragging ? 'grabbing' : 'default', userSelect: 'none' }}>
+        style={{ position: 'relative', width: '100%', maxWidth: 540, margin: '0 auto', minHeight: '100vh', overflow: 'hidden', cursor: dragging ? 'grabbing' : 'default', userSelect: 'none' }}>
 
         {/* Fondos rotativos — fotos de galería */}
         {(() => {
