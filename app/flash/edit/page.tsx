@@ -58,6 +58,11 @@ export default function FlashbookEditPage() {
   const [savingMedidas, setSavingMedidas] = useState<Record<string, boolean>>({})
   const [savingAll, setSavingAll] = useState(false)
 
+  // Collapsible sections
+  const [pitchOpen, setPitchOpen] = useState(false)
+  const [aliasOpen, setAliasOpen] = useState(false)
+  const [waOpen, setWaOpen] = useState(false)
+
   // Deleting
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -299,80 +304,124 @@ export default function FlashbookEditPage() {
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 16px' }}>
 
         {/* Qué es el Flashbook */}
-        <div style={{ marginBottom: 20, padding: '18px 18px', background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.12)', borderRadius: 16 }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: '#efff42', marginBottom: 10 }}>{t('flashbook_edit', 'pitch_title', 'Tu catálogo privado de diseños disponibles')}</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[
-              t('flashbook_edit', 'pitch_1', 'Tenés un link único que solo vos controlás. Lo compartís por donde quieras — Instagram, WhatsApp, stories — cuando quieras.'),
-              t('flashbook_edit', 'pitch_2', 'El link no aparece en tu perfil público. Para evitar que te copien tu arte, solo te lo pueden solicitar.'),
-              t('flashbook_edit', 'pitch_3', 'Todos tus diseños disponibles en un solo lugar, listos para mostrar.'),
-            ].map((text, i) => (
-              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: '#efff42', flexShrink: 0, marginTop: 2, minWidth: 14 }}>{i + 1} —</span>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>{text}</p>
-              </div>
-            ))}
-          </div>
+        <div style={{ marginBottom: 20 }}>
+          <button
+            type="button"
+            onClick={() => setPitchOpen(v => !v)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 18px', borderRadius: 16, border: `1px solid rgba(239,255,66,${pitchOpen ? 0.25 : 0.14})`,
+              background: pitchOpen ? 'linear-gradient(135deg, rgba(239,255,66,0.16), rgba(239,255,66,0.04))' : 'linear-gradient(135deg, rgba(239,255,66,0.08), rgba(239,255,66,0.015))',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 800, color: pitchOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>{t('flashbook_edit', 'pitch_title', 'Tu catálogo privado de diseños disponibles')}</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginLeft: 8, flexShrink: 0 }}>{pitchOpen ? '▲' : '▼'}</span>
+          </button>
+          {pitchOpen && (
+            <div style={{ marginTop: 8, padding: '14px 18px', background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.12)', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                t('flashbook_edit', 'pitch_1', 'Tenés un link único que solo vos controlás. Lo compartís por donde quieras — Instagram, WhatsApp, stories — cuando quieras.'),
+                t('flashbook_edit', 'pitch_2', 'El link no aparece en tu perfil público. Para evitar que te copien tu arte, solo te lo pueden solicitar.'),
+                t('flashbook_edit', 'pitch_3', 'Todos tus diseños disponibles en un solo lugar, listos para mostrar.'),
+              ].map((text, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: '#efff42', flexShrink: 0, marginTop: 2, minWidth: 14 }}>{i + 1} —</span>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>{text}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Sección alias */}
-        <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '18px 18px', marginBottom: 20 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 10 }}>
-            {t('flashbook_edit', 'link_label', 'Link del Flashbook')}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>flashttoo.com/flash/</span>
-            <input
-              value={aliasInput}
-              onChange={e => onAliasInput(e.target.value)}
-              placeholder="mi-alias"
-              style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: `1px solid ${aliasAvailable === false ? 'rgba(255,80,80,0.4)' : aliasAvailable === true && aliasChanged ? 'rgba(100,220,100,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', minWidth: 0 }}
-            />
-            {canSaveAlias && (
-              <button
-                onClick={saveAlias}
-                disabled={aliasSaving}
-                style={{ background: '#efff42', color: '#000', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-                {aliasSaving ? '...' : t('flashbook_edit', 'save_btn', 'Guardar')}
-              </button>
-            )}
-          </div>
-          {aliasChecking && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>{t('flashbook_edit', 'checking', 'Verificando...')}</p>}
-          {!aliasChecking && aliasAvailable === false && <p style={{ fontSize: 11, color: 'rgba(255,100,100,0.7)', marginTop: 6 }}>{t('flashbook_edit', 'alias_taken', 'Ese alias ya está en uso')}</p>}
-          {!aliasChecking && aliasAvailable === true && aliasChanged && <p style={{ fontSize: 11, color: 'rgba(100,220,100,0.7)', marginTop: 6 }}>{t('flashbook_edit', 'alias_available', 'Disponible ✓')}</p>}
-          {alias && (
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 8 }}>
-              {t('flashbook_edit', 'alias_warning', 'Cambiar el alias invalida todos los links anteriores.')}
-            </p>
+        <div style={{ marginBottom: 20 }}>
+          <button
+            type="button"
+            onClick={() => setAliasOpen(v => !v)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 18px', borderRadius: 16, border: `1px solid rgba(239,255,66,${aliasOpen ? 0.25 : 0.14})`,
+              background: aliasOpen ? 'linear-gradient(135deg, rgba(239,255,66,0.16), rgba(239,255,66,0.04))' : 'linear-gradient(135deg, rgba(239,255,66,0.08), rgba(239,255,66,0.015))',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 800, color: aliasOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>{t('flashbook_edit', 'link_label', 'Link del Flashbook')}</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginLeft: 8, flexShrink: 0 }}>{aliasOpen ? '▲' : '▼'}</span>
+          </button>
+          {aliasOpen && (
+            <div style={{ marginTop: 8, background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '14px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>flashttoo.com/flash/</span>
+                <input
+                  value={aliasInput}
+                  onChange={e => onAliasInput(e.target.value)}
+                  placeholder="mi-alias"
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: `1px solid ${aliasAvailable === false ? 'rgba(255,80,80,0.4)' : aliasAvailable === true && aliasChanged ? 'rgba(100,220,100,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', minWidth: 0 }}
+                />
+                {canSaveAlias && (
+                  <button
+                    onClick={saveAlias}
+                    disabled={aliasSaving}
+                    style={{ background: '#efff42', color: '#000', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                    {aliasSaving ? '...' : t('flashbook_edit', 'save_btn', 'Guardar')}
+                  </button>
+                )}
+              </div>
+              {aliasChecking && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>{t('flashbook_edit', 'checking', 'Verificando...')}</p>}
+              {!aliasChecking && aliasAvailable === false && <p style={{ fontSize: 11, color: 'rgba(255,100,100,0.7)', marginTop: 6 }}>{t('flashbook_edit', 'alias_taken', 'Ese alias ya está en uso')}</p>}
+              {!aliasChecking && aliasAvailable === true && aliasChanged && <p style={{ fontSize: 11, color: 'rgba(100,220,100,0.7)', marginTop: 6 }}>{t('flashbook_edit', 'alias_available', 'Disponible ✓')}</p>}
+              {alias && (
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 8 }}>
+                  {t('flashbook_edit', 'alias_warning', 'Cambiar el alias invalida todos los links anteriores.')}
+                </p>
+              )}
+            </div>
           )}
         </div>
 
         {/* WhatsApp para reservas */}
-        <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '18px 18px', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>{t('flashbook_edit', 'wa_label', 'WhatsApp para reservas')}</p>
-            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.18)', letterSpacing: '0.04em' }}>{t('flashbook_edit', 'optional', 'opcional')}</p>
-          </div>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginBottom: 10, lineHeight: 1.5 }}>
-            {t('flashbook_edit', 'wa_desc', 'Si lo configurás, tus clientes van a poder reservar diseños directo por WhatsApp.')}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
-              value={waInput}
-              onChange={e => { setWaInput(e.target.value.replace(/\D/g, '')); setWaSaved(false) }}
-              placeholder="5491112345678"
-              style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', minWidth: 0 }}
-            />
-            <button
-              onClick={saveWA}
-              disabled={waSaving}
-              style={{ background: waSaved ? 'rgba(100,220,100,0.2)' : '#efff42', color: waSaved ? 'rgba(100,220,100,0.9)' : '#000', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: waSaving ? 'default' : 'pointer', flexShrink: 0 }}>
-              {waSaving ? '...' : waSaved ? '✓' : 'Guardar'}
-            </button>
-          </div>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)', marginTop: 8 }}>
-            Código de país + código de área + número. Ejemplo Argentina: <span style={{ color: 'rgba(255,255,255,0.35)' }}>54 9 11 1234 5678</span>
-          </p>
+        <div style={{ marginBottom: 20 }}>
+          <button
+            type="button"
+            onClick={() => setWaOpen(v => !v)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 18px', borderRadius: 16, border: `1px solid rgba(239,255,66,${waOpen ? 0.25 : 0.14})`,
+              background: waOpen ? 'linear-gradient(135deg, rgba(239,255,66,0.16), rgba(239,255,66,0.04))' : 'linear-gradient(135deg, rgba(239,255,66,0.08), rgba(239,255,66,0.015))',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 800, color: waOpen ? '#efff42' : 'rgba(239,255,66,0.6)' }}>
+              {t('flashbook_edit', 'wa_label', 'WhatsApp para reservas')}
+              <span style={{ fontSize: 10, fontWeight: 400, color: waOpen ? 'rgba(239,255,66,0.5)' : 'rgba(239,255,66,0.3)', marginLeft: 6 }}>{t('flashbook_edit', 'optional', 'opcional')}</span>
+            </span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginLeft: 8, flexShrink: 0 }}>{waOpen ? '▲' : '▼'}</span>
+          </button>
+          {waOpen && (
+            <div style={{ marginTop: 8, background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '14px 18px' }}>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginBottom: 10, lineHeight: 1.5 }}>
+                {t('flashbook_edit', 'wa_desc', 'Si lo configurás, tus clientes van a poder reservar diseños directo por WhatsApp.')}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  value={waInput}
+                  onChange={e => { setWaInput(e.target.value.replace(/\D/g, '')); setWaSaved(false) }}
+                  placeholder="5491112345678"
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 13, outline: 'none', minWidth: 0 }}
+                />
+                <button
+                  onClick={saveWA}
+                  disabled={waSaving}
+                  style={{ background: waSaved ? 'rgba(100,220,100,0.2)' : '#efff42', color: waSaved ? 'rgba(100,220,100,0.9)' : '#000', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: waSaving ? 'default' : 'pointer', flexShrink: 0 }}>
+                  {waSaving ? '...' : waSaved ? '✓' : 'Guardar'}
+                </button>
+              </div>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)', marginTop: 8 }}>
+                Código de país + código de área + número. Ejemplo Argentina: <span style={{ color: 'rgba(255,255,255,0.35)' }}>54 9 11 1234 5678</span>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Diseños */}
