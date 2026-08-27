@@ -16,6 +16,7 @@ const TEXTS = {
     wa_msg:         (name: string, n: number) => `Hola ${name}! Me interesa reservar el diseño #${n} de tu Flashbook.`,
     labels_hint:    (letters: string, count: number) => `Diseño${count > 1 ? 's' : ''} seleccionado${count > 1 ? 's' : ''}: ${letters}`,
     wa_design:      (letters: string, count: number) => ` Diseño${count > 1 ? 's' : ''}: ${letters}.`,
+    tap_hint:       'Tocá las letras para elegir el diseño que querés',
   },
   en: {
     not_found:      "This Flashbook doesn't exist",
@@ -29,6 +30,7 @@ const TEXTS = {
     wa_msg:         (name: string, n: number) => `Hi ${name}! I'm interested in reserving design #${n} from your Flashbook.`,
     labels_hint:    (letters: string, count: number) => `Selected design${count > 1 ? 's' : ''}: ${letters}`,
     wa_design:      (letters: string, count: number) => ` Design${count > 1 ? 's' : ''}: ${letters}.`,
+    tap_hint:       'Tap the letters to choose the design you want',
   },
   pt: {
     not_found:      'Este Flashbook não existe',
@@ -42,6 +44,7 @@ const TEXTS = {
     wa_msg:         (name: string, n: number) => `Olá ${name}! Tenho interesse em reservar o design #${n} do seu Flashbook.`,
     labels_hint:    (letters: string, count: number) => `Desenho${count > 1 ? 's' : ''} selecionado${count > 1 ? 's' : ''}: ${letters}`,
     wa_design:      (letters: string, count: number) => ` Desenho${count > 1 ? 's' : ''}: ${letters}.`,
+    tap_hint:       'Toque as letras para escolher o desenho que quer',
   },
 }
 type Lang = keyof typeof TEXTS
@@ -384,9 +387,11 @@ export default function FlashbookPage() {
         {/* Reservar — fijado abajo */}
         {total > 0 && artist.flashbook_whatsapp && cur && (
           <div style={{ position: 'absolute', bottom: 28, left: 0, right: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em', pointerEvents: 'none' }}>{tx.available(total)}</p>
+            {(cur?.labels ?? []).length > 0 && selectedLabels.size === 0 && (
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.02em', pointerEvents: 'none', textAlign: 'center', padding: '0 24px' }}>{tx.tap_hint}</p>
+            )}
             {selectedLabels.size > 0 && (
-              <p style={{ fontSize: 11, color: 'rgba(239,255,66,0.6)', pointerEvents: 'none' }}>
+              <p style={{ fontSize: 11, color: 'rgba(239,255,66,0.7)', pointerEvents: 'none' }}>
                 {tx.labels_hint(Array.from(selectedLabels).sort().join(', '), selectedLabels.size)}
               </p>
             )}
