@@ -18,11 +18,16 @@ async function verifyDesign(access_token: string, design_id: string): Promise<bo
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { access_token, medidas } = await req.json()
+  const body = await req.json()
+  const { access_token, medidas, labels } = body
   if (!await verifyDesign(access_token, id)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
-  const { error } = await sb().from('flash_designs').update({ medidas: medidas || null }).eq('id', id)
+  const updates: Record<string, unknown> = {}
+  if (medidas !== undefined) updates.medidas = medidas || null
+  if (labels !== undefined) updates.labels = labels
+  if (Object.keys(updates).length === 0) return NextResponse.json({ ok: true })
+  const { error } = await sb().from('flash_designs').update(updates).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

@@ -40,7 +40,8 @@ const TEXTS = {
 }
 type Lang = keyof typeof TEXTS
 
-type Design = { id: string; photo_url: string; medidas: string | null; position: number }
+type Label  = { id: string; letter: string; x: number; y: number; tattooed: boolean }
+type Design = { id: string; photo_url: string; medidas: string | null; position: number; labels: Label[] }
 type ArtistInfo = {
   id: string; name: string; photo_url: string | null
   city: string | null; country: string | null
@@ -66,12 +67,16 @@ export default function FlashbookPage() {
   const [expanded, setExpanded] = useState(false)
   const [lang, setLang] = useState<Lang>('es')
 
+  const [selectedLabels, setSelectedLabels] = useState<Set<string>>(new Set())
+
   const [imgScale, setImgScale] = useState(1)
   const [imgPanX, setImgPanX]   = useState(0)
   const [imgPanY, setImgPanY]   = useState(0)
   const [gesturing, setGesturing] = useState(false)
   const modalRef   = useRef<HTMLDivElement>(null)
   const gStart     = useRef({ dist: 0, midX: 0, midY: 0 })
+
+  useEffect(() => { setSelectedLabels(new Set()) }, [idx])
 
   useEffect(() => {
     if (!expanded) {
@@ -317,6 +322,40 @@ export default function FlashbookPage() {
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)', padding: '28px 16px 14px' }}>
                       <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em' }}>#{i + 1}</p>
                     </div>
+                    {/* Etiquetas de diseños — solo en carta activa */}
+                    {isActive && (d.labels ?? []).map(label => {
+                      const tattooed = label.tattooed
+                      const selected = !tattooed && selectedLabels.has(label.letter)
+                      return (
+                        <div
+                          key={label.id}
+                          onClick={e => {
+                            e.stopPropagation()
+                            if (tattooed || wasDrag.current) return
+                            setSelectedLabels(prev => {
+                              const next = new Set(prev)
+                              if (next.has(label.letter)) next.delete(label.letter)
+                              else next.add(label.letter)
+                              return next
+                            })
+                          }}
+                          style={{
+                            position: 'absolute',
+                            left: `${label.x}%`, top: `${label.y}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: 32, height: 32, borderRadius: '50%',
+                            background: tattooed ? 'rgba(180,30,30,0.88)' : selected ? 'rgba(239,255,66,0.95)' : 'rgba(0,0,0,0.72)',
+                            border: `2px solid ${tattooed ? 'rgba(255,70,70,0.9)' : selected ? '#efff42' : 'rgba(255,255,255,0.6)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 13, fontWeight: 800,
+                            color: selected ? '#000' : '#fff',
+                            cursor: tattooed ? 'default' : 'pointer',
+                            zIndex: 20, userSelect: 'none',
+                          }}>
+                          {tattooed ? '×' : label.letter}
+                        </div>
+                      )
+                    })}
                   </div>
                 )
               })}
@@ -338,15 +377,23 @@ export default function FlashbookPage() {
 
         {/* Reservar — fijado abajo */}
         {total > 0 && artist.flashbook_whatsapp && cur && (
-          <div style={{ position: 'absolute', bottom: 28, left: 0, right: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <div style={{ position: 'absolute', bottom: 28, left: 0, right: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em', pointerEvents: 'none' }}>{tx.available(total)}</p>
+            {selectedLabels.size > 0 && (
+              <p style={{ fontSize: 11, color: 'rgba(239,255,66,0.6)', pointerEvents: 'none' }}>
+                Diseño{selectedLabels.size > 1 ? 's' : ''} seleccionado{selectedLabels.size > 1 ? 's' : ''}: {Array.from(selectedLabels).sort().join(', ')}
+              </p>
+            )}
             <a
-              href={`https://wa.me/${artist.flashbook_whatsapp}?text=${encodeURIComponent(tx.wa_msg(artist.name, idx + 1))}`}
+              href={`https://wa.me/${artist.flashbook_whatsapp}?text=${encodeURIComponent(
+                tx.wa_msg(artist.name, idx + 1) +
+                (selectedLabels.size > 0 ? ` Diseño${selectedLabels.size > 1 ? 's' : ''}: ${Array.from(selectedLabels).sort().join(', ')}.` : '')
+              )}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={e => { if (wasDrag.current) e.preventDefault() }}
               style={{ padding: '13px 40px', background: '#efff42', borderRadius: 12, color: '#000', fontSize: 14, fontWeight: 800, textDecoration: 'none', display: 'inline-block' }}>
-              {tx.reserve(idx + 1)}
+              {tx.reserve(idx + 1)}{selectedLabels.size > 0 ? ` — ${Array.from(selectedLabels).sort().join(', ')}` : ''}
             </a>
           </div>
         )}

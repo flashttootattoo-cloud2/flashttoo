@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
   const [designsRes, artistRes] = await Promise.all([
-    sb().from('flash_designs').select('id, photo_url, medidas, position').eq('artist_id', artist_id).order('position'),
+    sb().from('flash_designs').select('id, photo_url, medidas, position, labels').eq('artist_id', artist_id).order('position'),
     sb().from('artists').select('flashbook_alias, flashbook_whatsapp').eq('id', artist_id).single(),
   ])
   return NextResponse.json({

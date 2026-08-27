@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '@/contexts/TranslationContext'
 
-type Design = { id: string; photo_url: string; medidas: string; position: number }
+type Label  = { id: string; letter: string; x: number; y: number; tattooed: boolean }
+type Design = { id: string; photo_url: string; medidas: string; position: number; labels: Label[] }
 type Session = { id: string; name: string; photo_url: string | null; slug: string; access_token: string; refresh_token?: string; flashbook_alias: string | null }
 
 async function tryRefreshSession(s: Session): Promise<Session | null> {
@@ -57,6 +58,13 @@ export default function FlashbookEditPage() {
   const [medidasOriginal, setMedidasOriginal] = useState<Record<string, string>>({})
   const [savingMedidas, setSavingMedidas] = useState<Record<string, boolean>>({})
   const [savingAll, setSavingAll] = useState(false)
+
+  // Label editor
+  const [labelEditing, setLabelEditing] = useState<string | null>(null)
+  const [labelsDraft, setLabelsDraft]   = useState<Label[]>([])
+  const [savingLabels, setSavingLabels] = useState(false)
+  const imgContainerRef = useRef<HTMLDivElement | null>(null)
+  const draggingLabel   = useRef<{ id: string; startX: number; startY: number; moved: boolean } | null>(null)
 
   // Collapsible sections
   const [pitchOpen, setPitchOpen] = useState(false)
@@ -269,7 +277,43 @@ export default function FlashbookEditPage() {
   const aliasChanged = aliasInput !== alias && aliasInput.length > 0
   const canSaveAlias = aliasChanged && aliasAvailable === true && !aliasChecking && !aliasSaving
 
+  // Label helpers
+  const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  function nextLetter(labels: Label[]) {
+    const used = new Set(labels.map(l => l.letter))
+    for (const c of LETTERS) if (!used.has(c)) return c
+    return null
+  }
+  function uid() { return Math.random().toString(36).slice(2, 8) }
+
+  function openLabelEditor(designId: string) {
+    const d = designs.find(x => x.id === designId)
+    setLabelsDraft(d?.labels ?? [])
+    setLabelEditing(designId)
+  }
+
+  async function saveLabels() {
+    if (!session || session === 'loading' || !labelEditing) return
+    setSavingLabels(true)
+    try {
+      const r = await fetch(`/api/flash/designs/${labelEditing}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: (session as Session).access_token, labels: labelsDraft }),
+      })
+      if (!r.ok) { showToast('Error al guardar etiquetas'); return }
+      setDesigns(prev => prev.map(d => d.id === labelEditing ? { ...d, labels: labelsDraft } : d))
+      setLabelEditing(null)
+      showToast('Etiquetas guardadas ✓')
+    } catch {
+      showToast('Error al guardar')
+    } finally {
+      setSavingLabels(false)
+    }
+  }
+
   return (
+    <>
     <main style={{ background: '#000', minHeight: '100vh', paddingBottom: 80 }}>
 
       {/* Toast */}
@@ -450,6 +494,11 @@ export default function FlashbookEditPage() {
                     {deleting === d.id ? '·' : '×'}
                   </button>
                 </div>
+                <button
+                  onClick={() => openLabelEditor(d.id)}
+                  style={{ width: '100%', padding: '7px 10px', background: 'none', border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)', color: (d.labels ?? []).length > 0 ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.25)', fontSize: 11, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+                  {(d.labels ?? []).length > 0 ? `${(d.labels ?? []).length} etiqueta${(d.labels ?? []).length !== 1 ? 's' : ''} ✎` : '+ Etiquetar'}
+                </button>
               </div>
             ))}
 
@@ -514,5 +563,118 @@ export default function FlashbookEditPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </main>
+
+    {/* ── LABEL EDITOR OVERLAY ── */}
+    {labelEditing && (() => {
+      const design = designs.find(d => d.id === labelEditing)
+      if (!design) return null
+      const next = nextLetter(labelsDraft)
+      return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: '#0a0a0a', display: 'flex', flexDirection: 'column' }}>
+
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+            <button onClick={() => setLabelEditing(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer', padding: 0 }}>Cancelar</button>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Etiquetar diseños</p>
+            <button onClick={saveLabels} disabled={savingLabels} style={{ background: '#efff42', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 800, cursor: savingLabels ? 'default' : 'pointer', color: '#000' }}>
+              {savingLabels ? '...' : 'Guardar'}
+            </button>
+          </div>
+
+          {/* Image with draggable labels */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', overflow: 'hidden' }}>
+            <div
+              ref={imgContainerRef}
+              style={{ position: 'relative', width: '100%', maxWidth: 320, aspectRatio: '3/4', borderRadius: 16, overflow: 'hidden', touchAction: 'none', flexShrink: 0 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={design.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none', userSelect: 'none' }} />
+
+              {labelsDraft.map(label => (
+                <div
+                  key={label.id}
+                  onPointerDown={e => {
+                    e.stopPropagation()
+                    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+                    draggingLabel.current = { id: label.id, startX: e.clientX, startY: e.clientY, moved: false }
+                  }}
+                  onPointerMove={e => {
+                    const drag = draggingLabel.current
+                    if (!drag || drag.id !== label.id || !imgContainerRef.current) return
+                    if (Math.abs(e.clientX - drag.startX) > 4 || Math.abs(e.clientY - drag.startY) > 4) drag.moved = true
+                    const rect = imgContainerRef.current.getBoundingClientRect()
+                    const x = Math.max(8, Math.min(92, (e.clientX - rect.left) / rect.width * 100))
+                    const y = Math.max(8, Math.min(92, (e.clientY - rect.top) / rect.height * 100))
+                    const lid = label.id
+                    setLabelsDraft(prev => prev.map(l => l.id === lid ? { ...l, x, y } : l))
+                  }}
+                  onPointerUp={() => {
+                    const drag = draggingLabel.current
+                    if (!drag || drag.id !== label.id) return
+                    if (!drag.moved) {
+                      const lid = label.id
+                      setLabelsDraft(prev => prev.map(l => l.id === lid ? { ...l, tattooed: !l.tattooed } : l))
+                    }
+                    draggingLabel.current = null
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: `${label.x}%`, top: `${label.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: label.tattooed ? 'rgba(200,40,40,0.9)' : 'rgba(0,0,0,0.75)',
+                    border: `2px solid ${label.tattooed ? 'rgba(255,80,80,0.9)' : 'rgba(255,255,255,0.7)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 800, color: '#fff',
+                    cursor: 'grab', touchAction: 'none', userSelect: 'none', zIndex: 10,
+                  }}>
+                  {label.tattooed ? '×' : label.letter}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{ padding: '0 18px 28px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Instrucción */}
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>
+              Arrastrá las etiquetas · tocá para marcar como tatuado
+            </p>
+
+            {/* Agregar letra */}
+            {next && (
+              <button
+                onClick={() => setLabelsDraft(prev => [...prev, { id: uid(), letter: next, x: 50, y: 50, tattooed: false }])}
+                style={{ width: '100%', padding: '13px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.22)', borderRadius: 12, color: '#efff42', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                + Agregar etiqueta {next}
+              </button>
+            )}
+
+            {/* Lista de etiquetas */}
+            {labelsDraft.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
+                {labelsDraft.map(label => (
+                  <div key={label.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: label.tattooed ? 'rgba(200,40,40,0.8)' : 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                      {label.tattooed ? '×' : label.letter}
+                    </div>
+                    <button
+                      onClick={() => { const lid = label.id; setLabelsDraft(prev => prev.map(l => l.id === lid ? { ...l, tattooed: !l.tattooed } : l)) }}
+                      style={{ flex: 1, background: 'none', border: 'none', textAlign: 'left', color: label.tattooed ? 'rgba(220,80,80,0.8)' : 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', padding: 0 }}>
+                      {label.tattooed ? 'Tatuado — no disponible' : 'Disponible'}
+                    </button>
+                    <button
+                      onClick={() => { const lid = label.id; setLabelsDraft(prev => prev.filter(l => l.id !== lid)) }}
+                      style={{ background: 'none', border: 'none', color: 'rgba(255,80,80,0.5)', fontSize: 18, cursor: 'pointer', padding: '2px 6px', lineHeight: 1 }}>
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    })()}
+  </>
   )
 }

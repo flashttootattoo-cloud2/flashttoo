@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ ali
 
   const { data: designs } = await sb()
     .from('flash_designs')
-    .select('id, photo_url, medidas, position')
+    .select('id, photo_url, medidas, position, labels')
     .eq('artist_id', artist.id)
     .order('position')
 
