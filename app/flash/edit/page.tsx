@@ -479,11 +479,11 @@ export default function FlashbookEditPage() {
         {loadingDesigns ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>{t('flashbook_edit', 'loading', 'Cargando...')}</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'start' }}>
 
             {designs.map((d, i) => (
-              <div key={d.id} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}>
-                <div style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', borderRadius: '12px 12px 0 0' }}>
+              <div key={d.id} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ position: 'relative', aspectRatio: '1' }}>
                   <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 1, background: 'rgba(0,0,0,0.6)', borderRadius: 6, padding: '2px 7px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>#{i + 1}</div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={d.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
