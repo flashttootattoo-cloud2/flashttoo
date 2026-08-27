@@ -14,6 +14,8 @@ const TEXTS = {
     reserve:        (n: number) => `Pedir reserva del #${n}`,
     close:          'Tocá para cerrar',
     wa_msg:         (name: string, n: number) => `Hola ${name}! Me interesa reservar el diseño #${n} de tu Flashbook.`,
+    labels_hint:    (letters: string, count: number) => `Diseño${count > 1 ? 's' : ''} seleccionado${count > 1 ? 's' : ''}: ${letters}`,
+    wa_design:      (letters: string, count: number) => ` Diseño${count > 1 ? 's' : ''}: ${letters}.`,
   },
   en: {
     not_found:      "This Flashbook doesn't exist",
@@ -25,6 +27,8 @@ const TEXTS = {
     reserve:        (n: number) => `Reserve #${n}`,
     close:          'Tap to close',
     wa_msg:         (name: string, n: number) => `Hi ${name}! I'm interested in reserving design #${n} from your Flashbook.`,
+    labels_hint:    (letters: string, count: number) => `Selected design${count > 1 ? 's' : ''}: ${letters}`,
+    wa_design:      (letters: string, count: number) => ` Design${count > 1 ? 's' : ''}: ${letters}.`,
   },
   pt: {
     not_found:      'Este Flashbook não existe',
@@ -36,6 +40,8 @@ const TEXTS = {
     reserve:        (n: number) => `Reservar o #${n}`,
     close:          'Toque para fechar',
     wa_msg:         (name: string, n: number) => `Olá ${name}! Tenho interesse em reservar o design #${n} do seu Flashbook.`,
+    labels_hint:    (letters: string, count: number) => `Desenho${count > 1 ? 's' : ''} selecionado${count > 1 ? 's' : ''}: ${letters}`,
+    wa_design:      (letters: string, count: number) => ` Desenho${count > 1 ? 's' : ''}: ${letters}.`,
   },
 }
 type Lang = keyof typeof TEXTS
@@ -381,13 +387,13 @@ export default function FlashbookPage() {
             <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em', pointerEvents: 'none' }}>{tx.available(total)}</p>
             {selectedLabels.size > 0 && (
               <p style={{ fontSize: 11, color: 'rgba(239,255,66,0.6)', pointerEvents: 'none' }}>
-                Diseño{selectedLabels.size > 1 ? 's' : ''} seleccionado{selectedLabels.size > 1 ? 's' : ''}: {Array.from(selectedLabels).sort().join(', ')}
+                {tx.labels_hint(Array.from(selectedLabels).sort().join(', '), selectedLabels.size)}
               </p>
             )}
             <a
               href={`https://wa.me/${artist.flashbook_whatsapp}?text=${encodeURIComponent(
                 tx.wa_msg(artist.name, idx + 1) +
-                (selectedLabels.size > 0 ? ` Diseño${selectedLabels.size > 1 ? 's' : ''}: ${Array.from(selectedLabels).sort().join(', ')}.` : '')
+                (selectedLabels.size > 0 ? tx.wa_design(Array.from(selectedLabels).sort().join(', '), selectedLabels.size) : '')
               )}`}
               target="_blank"
               rel="noopener noreferrer"

@@ -301,12 +301,12 @@ export default function FlashbookEditPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: (session as Session).access_token, labels: labelsDraft }),
       })
-      if (!r.ok) { showToast('Error al guardar etiquetas'); return }
+      if (!r.ok) { showToast(t('flashbook_edit', 'label_err_save', 'Error al guardar etiquetas')); return }
       setDesigns(prev => prev.map(d => d.id === labelEditing ? { ...d, labels: labelsDraft } : d))
       setLabelEditing(null)
-      showToast('Etiquetas guardadas ✓')
+      showToast(t('flashbook_edit', 'label_saved_ok', 'Etiquetas guardadas ✓'))
     } catch {
-      showToast('Error al guardar')
+      showToast(t('flashbook_edit', 'label_err', 'Error al guardar'))
     } finally {
       setSavingLabels(false)
     }
@@ -497,7 +497,9 @@ export default function FlashbookEditPage() {
                 <button
                   onClick={() => openLabelEditor(d.id)}
                   style={{ width: '100%', padding: '7px 10px', background: 'none', border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)', color: (d.labels ?? []).length > 0 ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.25)', fontSize: 11, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
-                  {(d.labels ?? []).length > 0 ? `${(d.labels ?? []).length} etiqueta${(d.labels ?? []).length !== 1 ? 's' : ''} ✎` : '+ Etiquetar'}
+                  {(d.labels ?? []).length > 0
+                    ? `${(d.labels ?? []).length} ${(d.labels ?? []).length !== 1 ? t('flashbook_edit', 'label_count_many', 'etiquetas') : t('flashbook_edit', 'label_count_one', 'etiqueta')} ✎`
+                    : t('flashbook_edit', 'label_tag_btn', '+ Etiquetar')}
                 </button>
               </div>
             ))}
@@ -574,8 +576,8 @@ export default function FlashbookEditPage() {
 
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            <button onClick={() => setLabelEditing(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer', padding: 0 }}>Cancelar</button>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Etiquetar diseños</p>
+            <button onClick={() => setLabelEditing(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer', padding: 0 }}>{t('flashbook_edit', 'label_cancel', 'Cancelar')}</button>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{t('flashbook_edit', 'label_title', 'Etiquetar diseños')}</p>
             <button onClick={saveLabels} disabled={savingLabels} style={{ background: '#efff42', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 800, cursor: savingLabels ? 'default' : 'pointer', color: '#000' }}>
               {savingLabels ? '...' : 'Guardar'}
             </button>
@@ -637,7 +639,7 @@ export default function FlashbookEditPage() {
           <div style={{ padding: '0 18px 28px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {/* Instrucción */}
             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>
-              Arrastrá las etiquetas · tocá para marcar como tatuado
+              {t('flashbook_edit', 'label_hint', 'Arrastrá las etiquetas · tocá para marcar como tatuado')}
             </p>
 
             {/* Agregar letra */}
@@ -645,7 +647,7 @@ export default function FlashbookEditPage() {
               <button
                 onClick={() => setLabelsDraft(prev => [...prev, { id: uid(), letter: next, x: 50, y: 50, tattooed: false }])}
                 style={{ width: '100%', padding: '13px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.22)', borderRadius: 12, color: '#efff42', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                + Agregar etiqueta {next}
+                {t('flashbook_edit', 'label_add_btn', '+ Agregar etiqueta')} {next}
               </button>
             )}
 
@@ -660,7 +662,7 @@ export default function FlashbookEditPage() {
                     <button
                       onClick={() => { const lid = label.id; setLabelsDraft(prev => prev.map(l => l.id === lid ? { ...l, tattooed: !l.tattooed } : l)) }}
                       style={{ flex: 1, background: 'none', border: 'none', textAlign: 'left', color: label.tattooed ? 'rgba(220,80,80,0.8)' : 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', padding: 0 }}>
-                      {label.tattooed ? 'Tatuado — no disponible' : 'Disponible'}
+                      {label.tattooed ? t('flashbook_edit', 'label_status_tattooed', 'Tatuado — no disponible') : t('flashbook_edit', 'label_status_ok', 'Disponible')}
                     </button>
                     <button
                       onClick={() => { const lid = label.id; setLabelsDraft(prev => prev.filter(l => l.id !== lid)) }}
