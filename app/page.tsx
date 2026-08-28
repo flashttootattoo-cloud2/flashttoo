@@ -1501,7 +1501,7 @@ export default function Home() {
                       <button key={`phrase-${phrase.id}-${i}`}
                         onClick={openPhrase}
                         className="relative overflow-hidden"
-                        style={{ gridColumn: '1 / span 2', borderRadius: 12, border: '2px solid #efff42', cursor: 'pointer', background: '#111' }}>
+                        style={{ gridColumn: '1 / span 2', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', borderLeft: '3px solid #efff42', cursor: 'pointer', background: '#111' }}>
                         <div style={{ paddingBottom: '66.5%' }} />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={phrase.image_url} alt="Frase" className="absolute inset-0 w-full h-full object-cover" />
