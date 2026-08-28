@@ -1058,7 +1058,7 @@ export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [pin, setPin]         = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios' | 'idiomas'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios' | 'idiomas' | 'frases'>('artistas')
   const [artists, setArtists]       = useState<Artist[]>([])
   const [artistsTotal, setArtistsTotal] = useState(0)
   const [artistsOffset, setArtistsOffset] = useState(0)
@@ -1241,6 +1241,20 @@ export default function AdminPage() {
   type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number; auth_email?: string | null; studio_artists?: AdminStudioArtist[] }
   const [adminStudios, setAdminStudios]       = useState<AdminStudio[]>([])
   const [loadingStudios, setLoadingStudios]   = useState(false)
+
+  // Frases
+  type AdminPhrase = { id: string; image_url: string; description: string | null; language_code: string; active: boolean; created_at: string; comment_count?: number }
+  type AdminPhraseComment = { id: string; artist_name: string | null; guest_name: string | null; guest_emoji: string | null; content: string; created_at: string }
+  const [adminPhrases, setAdminPhrases]       = useState<AdminPhrase[]>([])
+  const [loadingPhrases, setLoadingPhrases]   = useState(false)
+  const [phraseForm, setPhraseForm]           = useState({ description: '', language_code: 'es' })
+  const [phraseImage, setPhraseImage]         = useState<File | null>(null)
+  const [phrasePreview, setPhrasePreview]     = useState<string | null>(null)
+  const [savingPhrase, setSavingPhrase]       = useState(false)
+  const [phraseError, setPhraseError]         = useState('')
+  const [expandedPhraseId, setExpandedPhraseId] = useState<string | null>(null)
+  const [phraseComments, setPhraseCommentsAdmin] = useState<Record<string, AdminPhraseComment[]>>({})
+  const [loadingPhraseComments, setLoadingPhraseComments] = useState<string | null>(null)
   const [studioSearch, setStudioSearch]       = useState('')
   const [studioExpiryEdits, setStudioExpiryEdits] = useState<Record<string, string>>({})
   const [studioExpirySaving, setStudioExpirySaving] = useState<Record<string, boolean>>({})
@@ -1790,6 +1804,7 @@ export default function AdminPage() {
               { key: 'estudios',     label: `Estudios (${adminStudios.length})` },
               { key: 'agregar',      label: '+ Agregar' },
               { key: 'idiomas',      label: 'Idiomas' },
+              { key: 'frases',       label: 'Frases' },
             ] as const
             const current = tabs.find(t => t.key === tab)
             return (
@@ -3982,6 +3997,197 @@ export default function AdminPage() {
                 })}
               </div>
             )}
+
+          </div>
+
+        ) : tab === 'frases' ? (
+
+          // ── FRASES ──────────────────────────────────────────────────────────
+          <div className="flex flex-col gap-6">
+
+            {/* Formulario nueva frase */}
+            <div className="rounded-xl p-5 flex flex-col gap-4"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>NUEVA FRASE</p>
+
+              {/* Preview imagen */}
+              <label className="cursor-pointer block">
+                <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Imagen</p>
+                {phrasePreview ? (
+                  <div className="relative rounded-xl overflow-hidden" style={{ paddingBottom: '60%' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={phrasePreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>cambiar imagen</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl flex items-center justify-center"
+                    style={{ height: 120, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.15)' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>subir imagen</span>
+                  </div>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={e => {
+                  const f = e.target.files?.[0] ?? null
+                  setPhraseImage(f)
+                  setPhrasePreview(f ? URL.createObjectURL(f) : null)
+                }} />
+              </label>
+
+              {/* Descripción */}
+              <div>
+                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Descripción (opcional)</p>
+                <textarea value={phraseForm.description}
+                  onChange={e => setPhraseForm(f => ({ ...f, description: e.target.value }))}
+                  rows={2} placeholder="Texto que acompaña la imagen..."
+                  className={iCls} style={{ resize: 'none' }} />
+              </div>
+
+              {/* Idioma */}
+              <div>
+                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Idioma</p>
+                <select value={phraseForm.language_code}
+                  onChange={e => setPhraseForm(f => ({ ...f, language_code: e.target.value }))}
+                  className={iCls}>
+                  <option value="es">Español</option>
+                  <option value="en">English</option>
+                  <option value="pt">Português</option>
+                </select>
+              </div>
+
+              {phraseError && <p style={{ fontSize: 12, color: '#f87171' }}>{phraseError}</p>}
+
+              <button
+                disabled={savingPhrase || !phraseImage}
+                onClick={async () => {
+                  if (!phraseImage) return
+                  setSavingPhrase(true); setPhraseError('')
+                  try {
+                    const fd = new FormData()
+                    fd.append('image', phraseImage)
+                    fd.append('description', phraseForm.description)
+                    fd.append('language_code', phraseForm.language_code)
+                    const r = await fetch('/api/phrases', { method: 'POST', headers: { 'x-admin-pass': pass }, body: fd })
+                    const d = await r.json()
+                    if (!r.ok) throw new Error(d.error || 'Error')
+                    setAdminPhrases(prev => [d.phrase, ...prev])
+                    setPhraseForm({ description: '', language_code: 'es' })
+                    setPhraseImage(null); setPhrasePreview(null)
+                  } catch (err: unknown) {
+                    setPhraseError(err instanceof Error ? err.message : 'Error')
+                  } finally {
+                    setSavingPhrase(false)
+                  }
+                }}
+                className="py-3 rounded-xl text-sm font-bold transition-opacity"
+                style={{ background: '#efff42', color: '#000', opacity: (savingPhrase || !phraseImage) ? 0.4 : 1 }}>
+                {savingPhrase ? 'Subiendo...' : 'Publicar frase'}
+              </button>
+            </div>
+
+            {/* Lista de frases */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em' }}>
+                  FRASES PUBLICADAS ({adminPhrases.length})
+                </p>
+                <button
+                  onClick={async () => {
+                    setLoadingPhrases(true)
+                    try {
+                      const r = await fetch('/api/admin/phrases', { headers: { 'x-admin-pass': pass } })
+                      const d = await r.json()
+                      if (Array.isArray(d.phrases)) setAdminPhrases(d.phrases)
+                    } finally { setLoadingPhrases(false) }
+                  }}
+                  style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  {loadingPhrases ? 'cargando...' : '↻ actualizar'}
+                </button>
+              </div>
+
+              {adminPhrases.map(ph => (
+                <div key={ph.id} className="rounded-xl overflow-hidden"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  {/* Imagen */}
+                  <div className="relative" style={{ paddingBottom: '56%' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={ph.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      <span style={{ fontSize: 9, fontWeight: 700, background: '#efff42', color: '#000', padding: '2px 7px', borderRadius: 10, letterSpacing: '0.08em' }}>
+                        {ph.language_code.toUpperCase()}
+                      </span>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!confirm('¿Eliminar esta frase y todos sus comentarios?')) return
+                        await fetch(`/api/phrases/${ph.id}`, { method: 'DELETE', headers: { 'x-admin-pass': pass } })
+                        setAdminPhrases(prev => prev.filter(p => p.id !== ph.id))
+                      }}
+                      className="absolute top-2 right-2"
+                      style={{ background: 'rgba(255,50,50,0.7)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 8, cursor: 'pointer' }}>
+                      Eliminar
+                    </button>
+                  </div>
+
+                  {/* Info */}
+                  <div style={{ padding: '10px 14px' }}>
+                    {ph.description && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8, lineHeight: 1.5 }}>{ph.description}</p>}
+
+                    {/* Comentarios */}
+                    <button
+                      onClick={async () => {
+                        if (expandedPhraseId === ph.id) { setExpandedPhraseId(null); return }
+                        setExpandedPhraseId(ph.id)
+                        setLoadingPhraseComments(ph.id)
+                        try {
+                          const r = await fetch(`/api/phrases/${ph.id}/comments`)
+                          const d = await r.json()
+                          if (Array.isArray(d.comments)) setPhraseCommentsAdmin(prev => ({ ...prev, [ph.id]: d.comments }))
+                        } finally { setLoadingPhraseComments(null) }
+                      }}
+                      style={{ fontSize: 11, color: 'rgba(239,255,66,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      {expandedPhraseId === ph.id ? '▲ ocultar comentarios' : '▼ ver comentarios'}
+                    </button>
+
+                    {expandedPhraseId === ph.id && (
+                      <div style={{ marginTop: 10 }}>
+                        {loadingPhraseComments === ph.id ? (
+                          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>cargando...</p>
+                        ) : (phraseComments[ph.id] || []).length === 0 ? (
+                          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Sin comentarios</p>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {(phraseComments[ph.id] || []).map(c => (
+                              <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                                <span style={{ fontSize: 18 }}>{c.guest_emoji || '👤'}</span>
+                                <div style={{ flex: 1 }}>
+                                  <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>{c.artist_name || c.guest_name}</p>
+                                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>{c.content}</p>
+                                </div>
+                                <button
+                                  onClick={async () => {
+                                    await fetch(`/api/phrases/${ph.id}/comments/${c.id}`, { method: 'DELETE', headers: { 'x-admin-pass': pass } })
+                                    setPhraseCommentsAdmin(prev => ({ ...prev, [ph.id]: (prev[ph.id] || []).filter(x => x.id !== c.id) }))
+                                  }}
+                                  style={{ fontSize: 10, color: 'rgba(255,80,80,0.5)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {adminPhrases.length === 0 && !loadingPhrases && (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '20px 0' }}>
+                  No hay frases publicadas todavía.
+                </p>
+              )}
+            </div>
 
           </div>
 

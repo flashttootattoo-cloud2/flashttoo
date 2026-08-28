@@ -51,6 +51,19 @@ type ContentCard = {
   id: string; title: string; body: string; active: boolean
 }
 
+type Phrase = {
+  id: string; image_url: string; description: string | null; language_code: string
+  recent_commenters: { id: string; emoji: string | null; photo_url: string | null }[]
+  comment_count: number
+}
+type PhraseComment = {
+  id: string; artist_id: string | null; studio_id: string | null; guest_name: string | null; guest_emoji: string | null
+  content: string; created_at: string
+  artist_name: string | null; artist_photo_url: string | null; artist_slug: string | null
+  studio_name: string | null; studio_slug: string | null; studio_logo_url: string | null
+  parent_id: string | null
+}
+
 type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null; country: string | null }
 
 const AD_INTERVAL = 15
@@ -174,11 +187,26 @@ export default function Home() {
   const [showClickCounters, setShowClickCounters] = useState(false)
   const [loggedArtist, setLoggedArtist] = useState<{ id: string; name: string; photo_url: string | null; slug: string; access_token: string; flashbook_alias: string | null } | null>(null)
   const [artistMenuOpen, setArtistMenuOpen] = useState(false)
-  const [loggedStudio, setLoggedStudio] = useState<{ slug: string; name: string; access_token: string; refresh_token?: string } | null>(null)
+  const [loggedStudio, setLoggedStudio] = useState<{ slug: string; name: string; logo_url: string | null; visible: boolean; access_token: string; refresh_token?: string } | null>(null)
   const [studioMenuOpen, setStudioMenuOpen] = useState(false)
   const studioMenuRef = useRef<HTMLDivElement>(null)
   const [flashLinkCopied, setFlashLinkCopied] = useState(false)
   const artistMenuRef = useRef<HTMLDivElement>(null)
+  const [phrase, setPhrase] = useState<Phrase | null>(null)
+  const [phraseOpen, setPhraseOpen] = useState(false)
+  const [phraseComments, setPhraseComments] = useState<PhraseComment[]>([])
+  const [loadingComments, setLoadingComments] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const [guestName, setGuestName] = useState('')
+  const [guestEmoji, setGuestEmoji] = useState(() => {
+    const emojis = ['😊','🖤','🔥','💉','🌹','⚡','🐉','💀','🌙','✨']
+    return emojis[Math.floor(Math.random() * emojis.length)]
+  })
+  const [submittingComment, setSubmittingComment] = useState(false)
+  const [commentError, setCommentError] = useState('')
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const GUEST_EMOJIS = ['😊','🖤','🔥','💉','🌹','⚡','🐉','💀','🌙','✨']
   const [registrationOpen, setRegistrationOpen] = useState(true)
   const [showRegistrationClosed, setShowRegistrationClosed] = useState(false)
   const [totalActiveArtists, setTotalActiveArtists] = useState<number | null>(null)
@@ -369,6 +397,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch(`/api/content-cards?lang=${language}`).then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
+    fetch(`/api/phrases?lang=${language}`).then(r => r.json()).then(d => { setPhrase(d.phrase ?? null) }).catch(() => {})
   }, [language])
 
   useEffect(() => {
@@ -775,6 +804,7 @@ export default function Home() {
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (phraseOpen) { setPhraseOpen(false); return }
         if (selectedAd) { setSelectedAd(null); return }
         if (selectedContent) { setSelectedContent(null); return }
         if (selected) { closeModalFull(); return }
@@ -790,7 +820,9 @@ export default function Home() {
     const h = () => {
       if (fullscreenRef.current) return
       if (migrateDocRef.current) return
-      if (selectedContent) {
+      if (phraseOpen) {
+        setPhraseOpen(false)
+      } else if (selectedContent) {
         setSelectedContent(null)
       } else if (selected) {
         setSelected(null)
@@ -804,6 +836,87 @@ export default function Home() {
     window.addEventListener('popstate', h)
     return () => window.removeEventListener('popstate', h)
   }, [selected, selectedContent, selectedStudioSlug])
+
+  const loadPhraseComments = useCallback(async (phraseId: string) => {
+    setLoadingComments(true)
+    try {
+      const r = await fetch(`/api/phrases/${phraseId}/comments`)
+      const d = await r.json()
+      if (Array.isArray(d.comments)) setPhraseComments(d.comments)
+    } finally {
+      setLoadingComments(false)
+    }
+  }, [])
+
+  const openPhrase = useCallback(() => {
+    if (!phrase) return
+    setPhraseOpen(true)
+    setReplyingTo(null)
+    setReplyText('')
+    loadPhraseComments(phrase.id)
+    history.pushState({ phrase: true }, '')
+  }, [phrase, loadPhraseComments])
+
+  function getGuestCount(phraseId: string): number {
+    try { return JSON.parse(localStorage.getItem('flashttoo_phrase_comments') || '{}')[phraseId] || 0 } catch { return 0 }
+  }
+  function incGuestCount(phraseId: string) {
+    try {
+      const d = JSON.parse(localStorage.getItem('flashttoo_phrase_comments') || '{}')
+      d[phraseId] = (d[phraseId] || 0) + 1
+      localStorage.setItem('flashttoo_phrase_comments', JSON.stringify(d))
+    } catch {}
+  }
+
+  const submitComment = useCallback(async (parentId?: string) => {
+    if (!phrase || submittingComment) return
+    const text = parentId ? replyText.trim() : commentText.trim()
+    if (!text) return
+    const isIdentified = !!(loggedArtist || loggedStudio)
+    if (!isIdentified && getGuestCount(phrase.id) >= 3) return
+    if (!isIdentified && !guestName.trim()) return
+    setSubmittingComment(true)
+    setCommentError('')
+    try {
+      const body: Record<string, string> = { content: text }
+      if (loggedArtist) body.access_token = loggedArtist.access_token
+      else if (loggedStudio) body.access_token = loggedStudio.access_token
+      else { body.guest_name = guestName.trim(); body.guest_emoji = guestEmoji }
+      if (parentId) body.parent_id = parentId
+      let r = await fetch(`/api/phrases/${phrase.id}/comments`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      })
+      if (r.status === 401 && loggedArtist) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) {
+          const updated = { ...loggedArtist, access_token: session.access_token }
+          setLoggedArtist(updated)
+          try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(updated)) } catch {}
+          body.access_token = session.access_token
+          r = await fetch(`/api/phrases/${phrase.id}/comments`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+          })
+        }
+      }
+      const d = await r.json()
+      if (!r.ok) { setCommentError(d.error || 'Error al comentar'); return }
+      if (d.comment) {
+        setPhraseComments(prev => [d.comment, ...prev])
+        if (parentId) { setReplyingTo(null); setReplyText('') }
+        else {
+          setCommentText('')
+          if (!loggedArtist) incGuestCount(phrase.id)
+          setPhrase(prev => prev ? {
+            ...prev,
+            recent_commenters: [{ id: d.comment.id, emoji: d.comment.guest_emoji, photo_url: d.comment.artist_photo_url }, ...prev.recent_commenters].slice(0, 3),
+            comment_count: prev.comment_count + 1
+          } : prev)
+        }
+      }
+    } finally {
+      setSubmittingComment(false)
+    }
+  }, [phrase, commentText, replyText, guestName, guestEmoji, loggedArtist, submittingComment])
 
   const hasFilters = country.trim() || city.trim() || activeStyles.length > 0
 
@@ -835,8 +948,11 @@ export default function Home() {
                 <button
                   onClick={() => setStudioMenuOpen(v => !v)}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 4px', borderRadius: 20, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-                    {loggedStudio.name.slice(0, 2).toUpperCase()}
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#efff42', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#000', flexShrink: 0 }}>
+                    {loggedStudio.logo_url
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      ? <img src={loggedStudio.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : loggedStudio.name.slice(0, 2).toUpperCase()}
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loggedStudio.name.split(' ')[0]}</span>
                 </button>
@@ -845,7 +961,17 @@ export default function Home() {
                     style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.9)', minWidth: 200, overflow: 'hidden' }}>
                     <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#efff42' }}>
                       <p style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>{loggedStudio.name}</p>
+                      {!loggedStudio.visible && (
+                        <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', marginTop: 2 }}>Perfil en revisión</p>
+                      )}
                     </div>
+                    {/* Ver perfil */}
+                    <button
+                      onClick={() => { setStudioMenuOpen(false); openStudio(loggedStudio.slug) }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      Ver perfil
+                    </button>
+                    {/* Editar perfil */}
                     <button
                       onClick={async () => {
                         setStudioMenuOpen(false)
@@ -1156,6 +1282,7 @@ export default function Home() {
               const activeCards = isActiveSearch ? [] : shuffledContentCards
               const nodes: React.ReactNode[] = []
               let cardIdx = 0
+              let phraseShown = false
               blocks.forEach((block, i) => {
                 if (block.kind === 'featured') {
                   const big = block.big as { type: 'artist'; data: Artist }
@@ -1367,28 +1494,88 @@ export default function Home() {
                     )
                   }
                 }
-                if ((i + 1) % CHUNK === 0 && cardIdx < activeCards.length) {
-                  const card = activeCards[cardIdx++]
-                  nodes.push(
-                    <button key={`cc-${card.id}-${i}`}
-                      onClick={() => { setSelectedContent(card); window.history.pushState({}, '', '/') }}
-                      className="text-left relative overflow-hidden"
-                      style={{ gridColumn: '1 / span 2', borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
-                      <div style={{ paddingBottom: '66.5%' }} />
-                      <div className="absolute inset-0" style={{
-                        background: 'rgba(239,255,66,0.03)',
-                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                        padding: '14px 16px 12px',
-                      }}>
-                        <div>
-                          <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 6, textTransform: 'uppercase' }}>Flashttoo</div>
-                          <p className="text-white font-bold" style={{ fontSize: 14, lineHeight: 1.3 }}>{card.title}</p>
-                          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4, lineHeight: 1.5 }}>{card.body.slice(0, 100)}{card.body.length > 100 ? '…' : ''}</p>
+                if ((i + 1) % CHUNK === 0) {
+                  if (phrase && !isActiveSearch && !phraseShown) {
+                    phraseShown = true
+                    nodes.push(
+                      <button key={`phrase-${phrase.id}-${i}`}
+                        onClick={openPhrase}
+                        className="relative overflow-hidden"
+                        style={{ gridColumn: '1 / span 2', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', background: '#111' }}>
+                        <div style={{ paddingBottom: '66.5%' }} />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={phrase.image_url} alt="Frase" className="absolute inset-0 w-full h-full object-cover" />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)' }} />
+                        <div className="absolute bottom-2 left-3 flex items-center" style={{ gap: 6 }}>
+                          {phrase.recent_commenters.length > 0 && (
+                            <div style={{ display: 'flex' }}>
+                              {phrase.recent_commenters.slice(0, 3).map((c, ci) => (
+                                <div key={c.id} style={{
+                                  width: 22, height: 22, borderRadius: '50%',
+                                  border: '2px solid rgba(0,0,0,0.7)',
+                                  marginLeft: ci > 0 ? -7 : 0,
+                                  background: '#222',
+                                  overflow: 'hidden',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: 11, flexShrink: 0,
+                                  animation: 'phraseFloat 2.4s ease-in-out infinite',
+                                  animationDelay: `${ci * 0.3}s`,
+                                }}>
+                                  {c.photo_url
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    ? <img src={c.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : <span>{c.emoji || '💬'}</span>
+                                  }
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {phrase.comment_count > 3 && (
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 600, letterSpacing: '0.02em' }}>
+                              +{phrase.comment_count - 3}
+                            </span>
+                          )}
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: 3,
+                            background: 'rgba(0,0,0,0.55)', borderRadius: 20,
+                            padding: '3px 8px',
+                          }}>
+                            {[0, 0.22, 0.44].map((delay, di) => (
+                              <span key={di} style={{
+                                width: 4, height: 4, borderRadius: '50%',
+                                background: 'rgba(255,255,255,0.85)',
+                                display: 'inline-block',
+                                animation: 'typingDot 1.2s ease-in-out infinite',
+                                animationDelay: `${delay}s`,
+                              }} />
+                            ))}
+                          </div>
                         </div>
-                        <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', textAlign: 'right' }}>{t('global', 'card_read_more', 'leer más →')}</p>
-                      </div>
-                    </button>
-                  )
+                      </button>
+                    )
+                  } else if (cardIdx < activeCards.length) {
+                    const card = activeCards[cardIdx++]
+                    nodes.push(
+                      <button key={`cc-${card.id}-${i}`}
+                        onClick={() => { setSelectedContent(card); window.history.pushState({}, '', '/') }}
+                        className="text-left relative overflow-hidden"
+                        style={{ gridColumn: '1 / span 2', borderRadius: 12, border: '1px solid rgba(239,255,66,0.12)', cursor: 'pointer' }}>
+                        <div style={{ paddingBottom: '66.5%' }} />
+                        <div className="absolute inset-0" style={{
+                          background: 'rgba(239,255,66,0.03)',
+                          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                          padding: '14px 16px 12px',
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(239,255,66,0.4)', letterSpacing: '0.18em', marginBottom: 6, textTransform: 'uppercase' }}>Flashttoo</div>
+                            <p className="text-white font-bold" style={{ fontSize: 14, lineHeight: 1.3 }}>{card.title}</p>
+                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4, lineHeight: 1.5 }}>{card.body.slice(0, 100)}{card.body.length > 100 ? '…' : ''}</p>
+                          </div>
+                          <p style={{ fontSize: 10, color: 'rgba(239,255,66,0.35)', textAlign: 'right' }}>{t('global', 'card_read_more', 'leer más →')}</p>
+                        </div>
+                      </button>
+                    )
+                  }
                 }
               })
               return nodes
@@ -1810,10 +1997,10 @@ export default function Home() {
           onStudioLoggedIn={(studio, access_token, refresh_token) => {
             setShowAuthModal(false)
             setStudioAuth({ slug: studio.slug, auth_email: studio.auth_email, access_token })
-            const ss = { slug: studio.slug, name: studio.name, access_token, refresh_token: refresh_token ?? '' }
+            const ss = { slug: studio.slug, name: studio.name, logo_url: studio.logo_url ?? null, visible: studio.visible ?? false, access_token, refresh_token: refresh_token ?? '' }
             try { localStorage.setItem('flashttoo_studio_session', JSON.stringify(ss)) } catch {}
             setLoggedStudio(ss)
-            openStudio(studio.slug, true)
+            setStudioMenuOpen(true)
           }}
           onLoggedIn={async (artist) => {
             setShowAuthModal(false)
@@ -2269,6 +2456,235 @@ export default function Home() {
 
       {!selectedStudioSlug && <ConventionModal conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} />}
       <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} />
+
+      {/* ── MODAL FRASE ─────────────────────────────────────────── */}
+      {phraseOpen && phrase && (
+        <div className="fixed inset-0 overflow-y-auto" style={{ zIndex: 80, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)' }}
+          onClick={e => { if (e.target === e.currentTarget) { setPhraseOpen(false); history.back() } }}>
+          <div className="flex justify-center items-start min-h-full pb-40" onClick={e => e.stopPropagation()}>
+            <div className="w-full" style={{ maxWidth: 480 }}>
+
+              {/* Imagen + Descripción superpuesta */}
+              <div className="relative w-full" style={{ background: '#111' }}>
+                <div style={{ paddingBottom: '66.5%', position: 'relative' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={phrase.image_url} alt="Frase" className="absolute inset-0 w-full h-full object-cover" />
+                  <button onClick={() => { setPhraseOpen(false); history.back() }}
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 18, zIndex: 2 }}>
+                    ×
+                  </button>
+                </div>
+                {phrase.description && (
+                  <div style={{
+                    background: '#FFE600',
+                    borderRadius: '0 0 18px 18px',
+                    padding: '20px 18px 16px',
+                    marginTop: -16,
+                    position: 'relative',
+                    zIndex: 1,
+                  }}>
+                    <p style={{ fontSize: 14, color: '#111', lineHeight: 1.65, margin: 0, fontWeight: 500 }}>{phrase.description}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Comentarios */}
+              <div style={{ padding: '12px 0 0' }}>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', padding: '0 16px 10px' }}>
+                  {phraseComments.length > 0 ? `${phraseComments.length} comentario${phraseComments.length !== 1 ? 's' : ''}` : 'Sin comentarios aún'}
+                </p>
+                {loadingComments ? (
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', padding: '0 16px 12px' }}>cargando...</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {phraseComments.filter(c => !c.parent_id).map(c => {
+                      const replies = phraseComments.filter(r => r.parent_id === c.id)
+                      return (
+                        <div key={c.id}>
+                          {/* comentario principal */}
+                          <div style={{ display: 'flex', gap: 10, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            {c.artist_slug ? (
+                              <a href={`/?artista=${c.artist_slug}`} style={{ width: 32, height: 32, borderRadius: '50%', background: '#222', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, textDecoration: 'none' }}>
+                                {c.artist_photo_url
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  ? <img src={c.artist_photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  : <span style={{ fontSize: 11, fontWeight: 800, color: '#000' }}>{c.artist_name?.slice(0,2).toUpperCase()}</span>}
+                              </a>
+                            ) : c.studio_slug ? (
+                              <a href={`/?estudio=${c.studio_slug}`} style={{ width: 32, height: 32, borderRadius: '50%', background: '#efff42', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#000', textDecoration: 'none' }}>
+                                {c.studio_logo_url
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  ? <img src={c.studio_logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  : c.studio_name?.slice(0,2).toUpperCase()}
+                              </a>
+                            ) : (
+                              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#222', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                                <span>{c.guest_emoji || '😊'}</span>
+                              </div>
+                            )}
+                            <div style={{ flex: 1 }}>
+                              <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 3 }}>
+                                {c.artist_slug
+                                  ? <a href={`/?artista=${c.artist_slug}`} style={{ color: '#FFE600', textDecoration: 'none' }}>{c.artist_name}</a>
+                                  : c.studio_slug
+                                  ? <a href={`/?estudio=${c.studio_slug}`} style={{ color: '#efff42', textDecoration: 'none' }}>{c.studio_name}</a>
+                                  : <span style={{ color: 'rgba(255,255,255,0.7)' }}>{c.guest_name}</span>}
+                              </p>
+                              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5, marginBottom: 4 }}>{c.content}</p>
+                              <button onClick={() => setReplyingTo(replyingTo === c.id ? null : c.id)}
+                                style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, letterSpacing: '0.05em' }}>
+                                {replyingTo === c.id ? 'cancelar' : 'responder'}
+                              </button>
+                            </div>
+                          </div>
+                          {/* respuestas */}
+                          {replies.map(r => (
+                            <div key={r.id} style={{ display: 'flex', gap: 10, padding: '8px 16px 8px 58px', borderBottom: '1px solid rgba(255,255,255,0.03)', background: 'rgba(255,255,255,0.025)' }}>
+                              {r.artist_slug ? (
+                                <a href={`/?artista=${r.artist_slug}`} style={{ width: 24, height: 24, borderRadius: '50%', background: '#222', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, textDecoration: 'none' }}>
+                                  {r.artist_photo_url
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    ? <img src={r.artist_photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : <span style={{ fontSize: 9, fontWeight: 800, color: '#000' }}>{r.artist_name?.slice(0,2).toUpperCase()}</span>}
+                                </a>
+                              ) : r.studio_slug ? (
+                                <a href={`/?estudio=${r.studio_slug}`} style={{ width: 24, height: 24, borderRadius: '50%', background: '#efff42', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#000', textDecoration: 'none' }}>
+                                  {r.studio_logo_url
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    ? <img src={r.studio_logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : r.studio_name?.slice(0,2).toUpperCase()}
+                                </a>
+                              ) : (
+                                <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#222', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>
+                                  <span>{r.guest_emoji || '😊'}</span>
+                                </div>
+                              )}
+                              <div style={{ flex: 1 }}>
+                                <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 2 }}>
+                                  {r.artist_slug
+                                    ? <a href={`/?artista=${r.artist_slug}`} style={{ color: '#FFE600', textDecoration: 'none' }}>{r.artist_name}</a>
+                                    : r.studio_slug
+                                    ? <a href={`/?estudio=${r.studio_slug}`} style={{ color: '#efff42', textDecoration: 'none' }}>{r.studio_name}</a>
+                                    : <span style={{ color: 'rgba(255,255,255,0.5)' }}>{r.guest_name}</span>}
+                                </p>
+                                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{r.content}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Formulario sticky */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: '#0a0a0a', position: 'sticky', bottom: 0 }}>
+                {/* banner "respondiendo a" */}
+                {replyingTo && (() => {
+                  const parent = phraseComments.find(c => c.id === replyingTo)
+                  const name = parent?.artist_name || parent?.guest_name || ''
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: 'rgba(255,230,0,0.08)', borderBottom: '1px solid rgba(255,230,0,0.15)' }}>
+                      <span style={{ fontSize: 11, color: 'rgba(255,230,0,0.8)', letterSpacing: '0.03em' }}>↩ Respondiendo a <strong>{name}</strong></span>
+                      <button onClick={() => { setReplyingTo(null); setReplyText('') }}
+                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+                    </div>
+                  )
+                })()}
+                <div style={{ padding: '12px 16px' }}>
+                  {loggedStudio && !loggedStudio.visible ? (
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>Tu perfil está en revisión. Podrás comentar cuando esté activo.</p>
+                  ) : !loggedArtist && !loggedStudio && getGuestCount(phrase.id) >= 3 ? (
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>Alcanzaste el límite de comentarios</p>
+                  ) : (
+                    <>
+                      {!loggedArtist && !loggedStudio && !replyingTo && (
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                            {GUEST_EMOJIS.map(e => (
+                              <button key={e} onClick={() => setGuestEmoji(e)}
+                                style={{ width: 32, height: 32, borderRadius: '50%', background: guestEmoji === e ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.05)', border: guestEmoji === e ? '1px solid rgba(239,255,66,0.5)' : '1px solid transparent', fontSize: 16, cursor: 'pointer' }}>
+                                {e}
+                              </button>
+                            ))}
+                          </div>
+                          <input
+                            value={guestName}
+                            onChange={e => setGuestName(e.target.value)}
+                            placeholder="Tu nombre"
+                            style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none', marginBottom: 8 }}
+                          />
+                        </div>
+                      )}
+                      {!loggedArtist && !loggedStudio && replyingTo && (
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                            {GUEST_EMOJIS.map(e => (
+                              <button key={e} onClick={() => setGuestEmoji(e)}
+                                style={{ width: 30, height: 30, borderRadius: '50%', background: guestEmoji === e ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.05)', border: guestEmoji === e ? '1px solid rgba(239,255,66,0.5)' : '1px solid transparent', fontSize: 15, cursor: 'pointer' }}>
+                                {e}
+                              </button>
+                            ))}
+                          </div>
+                          <input
+                            value={guestName}
+                            onChange={e => setGuestName(e.target.value)}
+                            placeholder="Tu nombre"
+                            style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: `1px solid ${guestName.trim() ? 'rgba(255,255,255,0.08)' : 'rgba(255,230,0,0.3)'}`, borderRadius: 8, padding: '7px 12px', color: '#fff', fontSize: 12, outline: 'none' }}
+                          />
+                        </div>
+                      )}
+                      {loggedArtist && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#222', overflow: 'hidden', flexShrink: 0 }}>
+                            {loggedArtist.photo_url
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              ? <img src={loggedArtist.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#000', background: '#efff42' }}>{initialsOf(loggedArtist.name)}</div>
+                            }
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{loggedArtist.name.split(' ')[0]}</span>
+                        </div>
+                      )}
+                      {loggedStudio && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#efff42', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#000' }}>
+                            {loggedStudio.logo_url
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              ? <img src={loggedStudio.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              : loggedStudio.name.slice(0,2).toUpperCase()}
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{loggedStudio.name.split(' ')[0]}</span>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <textarea
+                          value={replyingTo ? replyText : commentText}
+                          onChange={e => replyingTo ? setReplyText(e.target.value) : (setCommentText(e.target.value), setCommentError(''))}
+                          placeholder={replyingTo && !loggedArtist && !loggedStudio && !guestName.trim() ? 'Primero poné tu nombre' : (replyingTo ? 'Tu respuesta…' : 'Escribí un comentario...')}
+                          disabled={!!(replyingTo && !loggedArtist && !loggedStudio && !guestName.trim())}
+                          rows={2}
+                          style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none', resize: 'none', opacity: (replyingTo && !loggedArtist && !loggedStudio && !guestName.trim()) ? 0.4 : 1 }}
+                        />
+                        <button
+                          onClick={() => replyingTo ? submitComment(replyingTo) : submitComment()}
+                          disabled={submittingComment || !(replyingTo ? replyText.trim() : commentText.trim())}
+                          style={{ background: '#efff42', color: '#000', fontWeight: 700, fontSize: 12, padding: '0 14px', borderRadius: 8, border: 'none', cursor: 'pointer', opacity: (!(replyingTo ? replyText.trim() : commentText.trim()) || submittingComment) ? 0.4 : 1 }}>
+                          {submittingComment ? '...' : '→'}
+                        </button>
+                      </div>
+                      {commentError && <p style={{ fontSize: 11, color: '#f87171', marginTop: 6 }}>{commentError}</p>}
+                    </>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Visor fullscreen galería — tira deslizante */}
       {fullscreenImg && (

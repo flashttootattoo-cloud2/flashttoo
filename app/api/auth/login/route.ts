@@ -34,13 +34,13 @@ export async function POST(req: NextRequest) {
 
   // Check studios
   let { data: studio } = await sbAdmin.from('studios')
-    .select('id, name, slug, auth_email, user_id, visible')
+    .select('id, name, slug, auth_email, user_id, visible, logo_url')
     .eq('user_id', data.user.id)
     .single()
 
   if (!studio) {
     const { data: byEmail } = await sbAdmin.from('studios')
-      .select('id, name, slug, auth_email, user_id, visible')
+      .select('id, name, slug, auth_email, user_id, visible, logo_url')
       .eq('auth_email', email.toLowerCase())
       .single()
     studio = byEmail

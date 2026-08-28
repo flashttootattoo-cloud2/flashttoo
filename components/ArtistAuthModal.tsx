@@ -5,7 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext'
 
 type View = 'menu' | 'login' | 'register' | 'registered' | 'forgot' | 'forgot_sent' | 'terms' | 'privacy'
 
-type StudioSession = { slug: string; name: string; auth_email: string | null }
+type StudioSession = { slug: string; name: string; auth_email: string | null; logo_url: string | null; visible: boolean }
 
 type Props = {
   onClose: () => void
