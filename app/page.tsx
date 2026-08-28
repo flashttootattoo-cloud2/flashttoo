@@ -962,7 +962,7 @@ export default function Home() {
                     <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#efff42' }}>
                       <p style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>{loggedStudio.name}</p>
                       {!loggedStudio.visible && (
-                        <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', marginTop: 2 }}>Perfil en revisión</p>
+                        <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', marginTop: 2 }}>{t('phrases', 'studio_review_short', 'Perfil en revisión')}</p>
                       )}
                     </div>
                     {/* Ver perfil */}
@@ -2492,10 +2492,10 @@ export default function Home() {
               {/* Comentarios */}
               <div style={{ padding: '12px 0 0' }}>
                 <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', padding: '0 16px 10px' }}>
-                  {phraseComments.length > 0 ? `${phraseComments.length} comentario${phraseComments.length !== 1 ? 's' : ''}` : 'Sin comentarios aún'}
+                  {phraseComments.length > 0 ? `${phraseComments.length} ${phraseComments.length !== 1 ? t('phrases', 'comments_plural', 'comentarios') : t('phrases', 'comments_singular', 'comentario')}` : t('phrases', 'no_comments', 'Sin comentarios aún')}
                 </p>
                 {loadingComments ? (
-                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', padding: '0 16px 12px' }}>cargando...</p>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', padding: '0 16px 12px' }}>{t('phrases', 'loading', 'cargando...')}</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {phraseComments.filter(c => !c.parent_id).map(c => {
@@ -2534,7 +2534,7 @@ export default function Home() {
                               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5, marginBottom: 4 }}>{c.content}</p>
                               <button onClick={() => setReplyingTo(replyingTo === c.id ? null : c.id)}
                                 style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, letterSpacing: '0.05em' }}>
-                                {replyingTo === c.id ? 'cancelar' : 'responder'}
+                                {replyingTo === c.id ? t('phrases', 'cancel', 'cancelar') : t('phrases', 'reply', 'responder')}
                               </button>
                             </div>
                           </div>
@@ -2587,7 +2587,7 @@ export default function Home() {
                   const name = parent?.artist_name || parent?.guest_name || ''
                   return (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: 'rgba(255,230,0,0.08)', borderBottom: '1px solid rgba(255,230,0,0.15)' }}>
-                      <span style={{ fontSize: 11, color: 'rgba(255,230,0,0.8)', letterSpacing: '0.03em' }}>↩ Respondiendo a <strong>{name}</strong></span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,230,0,0.8)', letterSpacing: '0.03em' }}>↩ {t('phrases', 'replying_to', 'Respondiendo a')} <strong>{name}</strong></span>
                       <button onClick={() => { setReplyingTo(null); setReplyText('') }}
                         style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
                     </div>
@@ -2595,9 +2595,9 @@ export default function Home() {
                 })()}
                 <div style={{ padding: '12px 16px' }}>
                   {loggedStudio && !loggedStudio.visible ? (
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>Tu perfil está en revisión. Podrás comentar cuando esté activo.</p>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>{t('phrases', 'studio_review', 'Tu perfil está en revisión. Podrás comentar cuando esté activo.')}</p>
                   ) : !loggedArtist && !loggedStudio && getGuestCount(phrase.id) >= 3 ? (
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>Alcanzaste el límite de comentarios</p>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>{t('phrases', 'limit_reached', 'Alcanzaste el límite de comentarios')}</p>
                   ) : (
                     <>
                       {!loggedArtist && !loggedStudio && !replyingTo && (
@@ -2613,7 +2613,7 @@ export default function Home() {
                           <input
                             value={guestName}
                             onChange={e => setGuestName(e.target.value)}
-                            placeholder="Tu nombre"
+                            placeholder={t('phrases', 'guest_name', 'Tu nombre')}
                             style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none', marginBottom: 8 }}
                           />
                         </div>
@@ -2631,7 +2631,7 @@ export default function Home() {
                           <input
                             value={guestName}
                             onChange={e => setGuestName(e.target.value)}
-                            placeholder="Tu nombre"
+                            placeholder={t('phrases', 'guest_name', 'Tu nombre')}
                             style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: `1px solid ${guestName.trim() ? 'rgba(255,255,255,0.08)' : 'rgba(255,230,0,0.3)'}`, borderRadius: 8, padding: '7px 12px', color: '#fff', fontSize: 12, outline: 'none' }}
                           />
                         </div>
@@ -2663,7 +2663,7 @@ export default function Home() {
                         <textarea
                           value={replyingTo ? replyText : commentText}
                           onChange={e => replyingTo ? setReplyText(e.target.value) : (setCommentText(e.target.value), setCommentError(''))}
-                          placeholder={replyingTo && !loggedArtist && !loggedStudio && !guestName.trim() ? 'Primero poné tu nombre' : (replyingTo ? 'Tu respuesta…' : 'Escribí un comentario...')}
+                          placeholder={replyingTo && !loggedArtist && !loggedStudio && !guestName.trim() ? t('phrases', 'name_first', 'Primero poné tu nombre') : (replyingTo ? t('phrases', 'reply_placeholder', 'Tu respuesta…') : t('phrases', 'comment_placeholder', 'Escribí un comentario...'))}
                           disabled={!!(replyingTo && !loggedArtist && !loggedStudio && !guestName.trim())}
                           rows={2}
                           style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none', resize: 'none', opacity: (replyingTo && !loggedArtist && !loggedStudio && !guestName.trim()) ? 0.4 : 1 }}
