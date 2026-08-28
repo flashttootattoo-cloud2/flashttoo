@@ -2477,7 +2477,7 @@ export default function Home() {
                 </div>
                 {phrase.description && (
                   <div style={{
-                    background: '#FFE600',
+                    background: '#efff42',
                     borderRadius: '0 0 18px 18px',
                     padding: '20px 18px 16px',
                     marginTop: -16,
@@ -2526,7 +2526,7 @@ export default function Home() {
                             <div style={{ flex: 1 }}>
                               <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 3 }}>
                                 {c.artist_slug
-                                  ? <a href={`/?artista=${c.artist_slug}`} style={{ color: '#FFE600', textDecoration: 'none' }}>{c.artist_name}</a>
+                                  ? <a href={`/?artista=${c.artist_slug}`} style={{ color: '#efff42', textDecoration: 'none' }}>{c.artist_name}</a>
                                   : c.studio_slug
                                   ? <a href={`/?estudio=${c.studio_slug}`} style={{ color: '#efff42', textDecoration: 'none' }}>{c.studio_name}</a>
                                   : <span style={{ color: 'rgba(255,255,255,0.7)' }}>{c.guest_name}</span>}
@@ -2563,7 +2563,7 @@ export default function Home() {
                               <div style={{ flex: 1 }}>
                                 <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 2 }}>
                                   {r.artist_slug
-                                    ? <a href={`/?artista=${r.artist_slug}`} style={{ color: '#FFE600', textDecoration: 'none' }}>{r.artist_name}</a>
+                                    ? <a href={`/?artista=${r.artist_slug}`} style={{ color: '#efff42', textDecoration: 'none' }}>{r.artist_name}</a>
                                     : r.studio_slug
                                     ? <a href={`/?estudio=${r.studio_slug}`} style={{ color: '#efff42', textDecoration: 'none' }}>{r.studio_name}</a>
                                     : <span style={{ color: 'rgba(255,255,255,0.5)' }}>{r.guest_name}</span>}
