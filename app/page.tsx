@@ -835,14 +835,21 @@ export default function Home() {
 
   phraseOpenRef.current = phraseOpen
 
+  // Boton atras nativo para cerrar el modal de frase
+  useEffect(() => {
+    if (!phraseOpen) return
+    const h = () => { setPhraseOpen(false) }
+    window.addEventListener('popstate', h)
+    return () => window.removeEventListener('popstate', h)
+  }, [phraseOpen])
+
   // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
   useEffect(() => {
     const h = () => {
       if (fullscreenRef.current) return
       if (migrateDocRef.current) return
-      if (phraseOpenRef.current) {
-        setPhraseOpen(false)
-      } else if (selectedContent) {
+      if (phraseOpenRef.current) return
+      if (selectedContent) {
         setSelectedContent(null)
       } else if (selected) {
         setSelected(null)
