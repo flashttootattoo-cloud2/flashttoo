@@ -2714,10 +2714,10 @@ export default function Home() {
                         <textarea
                           value={replyingTo ? replyText : commentText}
                           onChange={e => replyingTo ? setReplyText(e.target.value) : (setCommentText(e.target.value), setCommentError(''))}
-                          placeholder={replyingTo && !loggedArtist && !loggedStudio && !guestName.trim() ? t('phrases', 'name_first', 'Primero poné tu nombre') : (replyingTo ? t('phrases', 'reply_placeholder', 'Tu respuesta…') : t('phrases', 'comment_placeholder', 'Escribí un comentario...'))}
-                          disabled={!!(replyingTo && !loggedArtist && !loggedStudio && !guestName.trim())}
+                          placeholder={!loggedArtist && !loggedStudio && !guestName.trim() ? t('phrases', 'name_first', 'Primero poné tu nombre') : (replyingTo ? t('phrases', 'reply_placeholder', 'Tu respuesta…') : t('phrases', 'comment_placeholder', 'Escribí un comentario...'))}
+                          disabled={!!(!loggedArtist && !loggedStudio && !guestName.trim())}
                           rows={2}
-                          style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none', resize: 'none', opacity: (replyingTo && !loggedArtist && !loggedStudio && !guestName.trim()) ? 0.4 : 1 }}
+                          style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none', resize: 'none', opacity: (!loggedArtist && !loggedStudio && !guestName.trim()) ? 0.4 : 1 }}
                         />
                         <button
                           onClick={() => replyingTo ? submitComment(replyingTo) : submitComment()}
