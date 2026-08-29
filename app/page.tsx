@@ -845,10 +845,10 @@ export default function Home() {
     return () => {
       window.removeEventListener('popstate', h)
       if (window.location.search.includes('modal=frase')) {
-        history.replaceState({}, '', '/')
+        router.replace('/')
       }
     }
-  }, [phraseOpen])
+  }, [phraseOpen, router])
 
   // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
   useEffect(() => {
@@ -890,8 +890,8 @@ export default function Home() {
     setReplyingTo(null)
     setReplyText('')
     loadPhraseComments(p.id)
-    history.pushState({ phrase: true }, '', '/?modal=frase')
-  }, [phrase, loadPhraseComments])
+    router.push('/?modal=frase', { scroll: false })
+  }, [phrase, loadPhraseComments, router])
 
   function getGuestCount(phraseId: string): number {
     try { return JSON.parse(localStorage.getItem('flashttoo_phrase_comments') || '{}')[phraseId] || 0 } catch { return 0 }
@@ -2497,7 +2497,7 @@ export default function Home() {
       {/* ── MODAL FRASE ─────────────────────────────────────────── */}
       {phraseOpen && phrase && (
         <div className="fixed inset-0 overflow-y-auto" style={{ zIndex: 80, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)' }}
-          onClick={e => { if (e.target === e.currentTarget) { setPhraseOpen(false); history.back() } }}>
+          onClick={e => { if (e.target === e.currentTarget) { setPhraseOpen(false); router.back() } }}>
           <div className="flex justify-center items-start min-h-full pb-40" onClick={e => e.stopPropagation()}>
             <div className="w-full" style={{ maxWidth: 480 }}>
 
@@ -2506,7 +2506,7 @@ export default function Home() {
                 <div style={{ paddingBottom: '66.5%', position: 'relative' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={phrase.image_url} alt="Frase" className="absolute inset-0 w-full h-full object-cover" />
-                  <button onClick={() => { setPhraseOpen(false); history.back() }}
+                  <button onClick={() => { setPhraseOpen(false); router.back() }}
                     className="absolute top-4 left-4 w-8 h-8 rounded-full flex items-center justify-center"
                     style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 1, paddingRight: 1, zIndex: 2 }}>
                     ←
