@@ -18,8 +18,15 @@ export async function GET(req: NextRequest) {
     .select('id, image_url, description, language_code')
     .eq('language_code', lang)
     .eq('active', true)
-    .order('created_at', { ascending: false })
     .limit(10)
+
+  // Mezclar aleatoriamente
+  if (phrases) {
+    for (let i = phrases.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [phrases[i], phrases[j]] = [phrases[j], phrases[i]]
+    }
+  }
 
   if (!phrases || phrases.length === 0) return NextResponse.json({ phrases: [] })
 
