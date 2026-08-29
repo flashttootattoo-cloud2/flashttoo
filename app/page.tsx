@@ -840,7 +840,13 @@ export default function Home() {
     if (!phraseOpen) return
     const h = () => { setPhraseOpen(false) }
     window.addEventListener('popstate', h)
-    return () => window.removeEventListener('popstate', h)
+    return () => {
+      window.removeEventListener('popstate', h)
+      // Limpiar la URL cuando el modal se cierra por cualquier via
+      if (window.location.search.includes('frase')) {
+        history.replaceState({}, '', '/')
+      }
+    }
   }, [phraseOpen])
 
   // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
@@ -883,7 +889,7 @@ export default function Home() {
     setReplyingTo(null)
     setReplyText('')
     loadPhraseComments(p.id)
-    history.pushState({ phrase: true }, '')
+    history.pushState({ phrase: true }, '', `/?frase=${p.id}`)
   }, [phrase, loadPhraseComments])
 
   function getGuestCount(phraseId: string): number {
