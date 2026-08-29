@@ -844,8 +844,8 @@ export default function Home() {
     window.addEventListener('popstate', h)
     return () => {
       window.removeEventListener('popstate', h)
-      if (window.location.hash === '#frase') {
-        history.replaceState({}, '', window.location.pathname + window.location.search)
+      if (window.location.search.includes('modal=frase')) {
+        history.replaceState({}, '', '/')
       }
     }
   }, [phraseOpen])
@@ -890,7 +890,7 @@ export default function Home() {
     setReplyingTo(null)
     setReplyText('')
     loadPhraseComments(p.id)
-    history.pushState({ phrase: true }, '', `${window.location.pathname}${window.location.search}#frase`)
+    history.pushState({ phrase: true }, '', '/?modal=frase')
   }, [phrase, loadPhraseComments])
 
   function getGuestCount(phraseId: string): number {
