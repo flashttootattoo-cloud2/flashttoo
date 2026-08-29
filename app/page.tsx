@@ -192,6 +192,7 @@ export default function Home() {
   const studioMenuRef = useRef<HTMLDivElement>(null)
   const [flashLinkCopied, setFlashLinkCopied] = useState(false)
   const artistMenuRef = useRef<HTMLDivElement>(null)
+  const [phrases, setPhrases] = useState<Phrase[]>([])
   const [phrase, setPhrase] = useState<Phrase | null>(null)
   const [phraseOpen, setPhraseOpen] = useState(false)
   const [phraseComments, setPhraseComments] = useState<PhraseComment[]>([])
@@ -397,7 +398,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch(`/api/content-cards?lang=${language}`).then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
-    fetch(`/api/phrases?lang=${language}`).then(r => r.json()).then(d => { setPhrase(d.phrase ?? null) }).catch(() => {})
+    fetch(`/api/phrases?lang=${language}`).then(r => r.json()).then(d => { const list = d.phrases ?? []; setPhrases(list); setPhrase(list[0] ?? null) }).catch(() => {})
   }, [language])
 
   useEffect(() => {
@@ -835,7 +836,7 @@ export default function Home() {
     }
     window.addEventListener('popstate', h)
     return () => window.removeEventListener('popstate', h)
-  }, [selected, selectedContent, selectedStudioSlug])
+  }, [phraseOpen, selected, selectedContent, selectedStudioSlug])
 
   const loadPhraseComments = useCallback(async (phraseId: string) => {
     setLoadingComments(true)
@@ -848,12 +849,14 @@ export default function Home() {
     }
   }, [])
 
-  const openPhrase = useCallback(() => {
-    if (!phrase) return
+  const openPhrase = useCallback((target?: Phrase) => {
+    const p = target ?? phrase
+    if (!p) return
+    setPhrase(p)
     setPhraseOpen(true)
     setReplyingTo(null)
     setReplyText('')
-    loadPhraseComments(phrase.id)
+    loadPhraseComments(p.id)
     history.pushState({ phrase: true }, '')
   }, [phrase, loadPhraseComments])
 
@@ -1282,7 +1285,7 @@ export default function Home() {
               const activeCards = isActiveSearch ? [] : shuffledContentCards
               const nodes: React.ReactNode[] = []
               let cardIdx = 0
-              let phraseShown = false
+              let phraseIdx = 0
               blocks.forEach((block, i) => {
                 if (block.kind === 'featured') {
                   const big = block.big as { type: 'artist'; data: Artist }
@@ -1495,21 +1498,22 @@ export default function Home() {
                   }
                 }
                 if ((i + 1) % CHUNK === 0) {
-                  if (phrase && !isActiveSearch && !phraseShown) {
-                    phraseShown = true
+                  const currentPhrase = !isActiveSearch && phraseIdx < phrases.length ? phrases[phraseIdx] : null
+                  if (currentPhrase) {
+                    phraseIdx++
                     nodes.push(
-                      <button key={`phrase-${phrase.id}-${i}`}
-                        onClick={openPhrase}
+                      <button key={`phrase-${currentPhrase.id}-${i}`}
+                        onClick={() => openPhrase(currentPhrase)}
                         className="relative overflow-hidden"
                         style={{ gridColumn: '1 / span 2', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', borderLeft: '3px solid #efff42', cursor: 'pointer', background: '#111' }}>
                         <div style={{ paddingBottom: '66.5%' }} />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={phrase.image_url} alt="Frase" className="absolute inset-0 w-full h-full object-cover" />
+                        <img src={currentPhrase.image_url} alt="Frase" className="absolute inset-0 w-full h-full object-cover" />
                         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)' }} />
                         <div className="absolute bottom-2 left-3 flex items-center" style={{ gap: 6 }}>
-                          {phrase.recent_commenters.length > 0 && (
+                          {currentPhrase.recent_commenters.length > 0 && (
                             <div style={{ display: 'flex' }}>
-                              {phrase.recent_commenters.slice(0, 3).map((c, ci) => (
+                              {currentPhrase.recent_commenters.slice(0, 3).map((c, ci) => (
                                 <div key={c.id} style={{
                                   width: 22, height: 22, borderRadius: '50%',
                                   border: '2px solid rgba(0,0,0,0.7)',
@@ -1530,9 +1534,9 @@ export default function Home() {
                               ))}
                             </div>
                           )}
-                          {phrase.comment_count > 3 && (
+                          {currentPhrase.comment_count > 3 && (
                             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 600, letterSpacing: '0.02em' }}>
-                              +{phrase.comment_count - 3}
+                              +{currentPhrase.comment_count - 3}
                             </span>
                           )}
                           <div style={{

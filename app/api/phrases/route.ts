@@ -13,38 +13,42 @@ function auth(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const lang = new URL(req.url).searchParams.get('lang') || 'es'
 
-  const { data: phrase } = await sb()
+  const { data: phrases } = await sb()
     .from('phrases')
     .select('id, image_url, description, language_code')
     .eq('language_code', lang)
     .eq('active', true)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(10)
 
-  if (!phrase) return NextResponse.json({ phrase: null })
+  if (!phrases || phrases.length === 0) return NextResponse.json({ phrases: [] })
 
-  const { data: commenters, count: totalComments } = await sb()
+  const phraseIds = phrases.map(p => p.id)
+
+  const { data: allCommenters } = await sb()
     .from('phrase_comments')
-    .select('id, guest_emoji, artist_id', { count: 'exact' })
-    .eq('phrase_id', phrase.id)
+    .select('id, phrase_id, guest_emoji, artist_id')
+    .in('phrase_id', phraseIds)
     .order('created_at', { ascending: false })
-    .limit(3)
 
-  const artistIds = (commenters || []).filter(c => c.artist_id).map(c => c.artist_id as string)
+  const artistIds = (allCommenters || []).filter(c => c.artist_id).map(c => c.artist_id as string)
   const artistPhotos: Record<string, string | null> = {}
   if (artistIds.length > 0) {
     const { data: artists } = await sb().from('artists').select('id, photo_url').in('id', artistIds)
     ;(artists || []).forEach((a: { id: string; photo_url: string | null }) => { artistPhotos[a.id] = a.photo_url })
   }
 
-  const recent_commenters = (commenters || []).map(c => ({
-    id: c.id,
-    emoji: c.guest_emoji as string | null,
-    photo_url: c.artist_id ? (artistPhotos[c.artist_id] ?? null) : null,
-  }))
+  const enriched = phrases.map(phrase => {
+    const commenters = (allCommenters || []).filter(c => c.phrase_id === phrase.id)
+    const recent_commenters = commenters.slice(0, 3).map(c => ({
+      id: c.id,
+      emoji: c.guest_emoji as string | null,
+      photo_url: c.artist_id ? (artistPhotos[c.artist_id] ?? null) : null,
+    }))
+    return { ...phrase, recent_commenters, comment_count: commenters.length }
+  })
 
-  return NextResponse.json({ phrase: { ...phrase, recent_commenters, comment_count: totalComments ?? 0 } })
+  return NextResponse.json({ phrases: enriched })
 }
 
 export async function POST(req: NextRequest) {
