@@ -836,15 +836,15 @@ export default function Home() {
   phraseOpenRef.current = phraseOpen
 
   // Boton atras nativo para cerrar el modal de frase
+  // capture:true para correr ANTES del listener de Next.js router
   useEffect(() => {
     if (!phraseOpen) return
     const h = () => { setPhraseOpen(false) }
-    window.addEventListener('popstate', h)
-    window.addEventListener('hashchange', h)
+    window.addEventListener('popstate', h, { capture: true })
+    window.addEventListener('hashchange', h, { capture: true })
     return () => {
-      window.removeEventListener('popstate', h)
-      window.removeEventListener('hashchange', h)
-      // Limpiar el hash cuando el modal se cierra por la flecha
+      window.removeEventListener('popstate', h, { capture: true })
+      window.removeEventListener('hashchange', h, { capture: true })
       if (window.location.hash === '#frase') {
         history.replaceState({}, '', window.location.pathname + window.location.search)
       }
