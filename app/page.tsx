@@ -403,15 +403,13 @@ export default function Home() {
       const list = d.phrases ?? []
       setPhrases(list)
       if (phraseDeepLink) {
+        history.replaceState({}, '', '/')
         const target = list.find((p: Phrase) => p.id === phraseDeepLink)
         if (target) { openPhrase(target); return }
-        // si no está en la lista del idioma actual, buscarlo directo
-        fetch(`/api/phrases/${phraseDeepLink}/comments`).then(() => {
-          fetch(`/api/phrases?lang=es`).then(r => r.json()).then(d2 => {
-            const all = d2.phrases ?? []
-            const t2 = all.find((p: Phrase) => p.id === phraseDeepLink)
-            if (t2) openPhrase(t2)
-          })
+        fetch(`/api/phrases?lang=es`).then(r => r.json()).then(d2 => {
+          const all = d2.phrases ?? []
+          const t2 = all.find((p: Phrase) => p.id === phraseDeepLink)
+          if (t2) openPhrase(t2)
         }).catch(() => {})
       } else {
         setPhrase(list[0] ?? null)
