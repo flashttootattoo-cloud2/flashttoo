@@ -195,6 +195,7 @@ export default function Home() {
   const [phrases, setPhrases] = useState<Phrase[]>([])
   const [phrase, setPhrase] = useState<Phrase | null>(null)
   const [phraseOpen, setPhraseOpen] = useState(false)
+  const phraseOpenRef = useRef(false)
   const [phraseComments, setPhraseComments] = useState<PhraseComment[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
   const [commentText, setCommentText] = useState('')
@@ -832,12 +833,14 @@ export default function Home() {
     return () => window.removeEventListener('keydown', h)
   }, [closeModalFull, closeStudio, selected, selectedContent, selectedAd, selectedStudioSlug])
 
+  phraseOpenRef.current = phraseOpen
+
   // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
   useEffect(() => {
     const h = () => {
       if (fullscreenRef.current) return
       if (migrateDocRef.current) return
-      if (phraseOpen) {
+      if (phraseOpenRef.current) {
         setPhraseOpen(false)
       } else if (selectedContent) {
         setSelectedContent(null)
@@ -852,7 +855,7 @@ export default function Home() {
     }
     window.addEventListener('popstate', h)
     return () => window.removeEventListener('popstate', h)
-  }, [phraseOpen, selected, selectedContent, selectedStudioSlug])
+  }, [selected, selectedContent, selectedStudioSlug])
 
   const loadPhraseComments = useCallback(async (phraseId: string) => {
     setLoadingComments(true)
