@@ -398,7 +398,25 @@ export default function Home() {
 
   useEffect(() => {
     fetch(`/api/content-cards?lang=${language}`).then(r => r.json()).then(d => { if (Array.isArray(d.cards)) setContentCards(d.cards) }).catch(() => {})
-    fetch(`/api/phrases?lang=${language}`).then(r => r.json()).then(d => { const list = d.phrases ?? []; setPhrases(list); setPhrase(list[0] ?? null) }).catch(() => {})
+    const phraseDeepLink = new URLSearchParams(window.location.search).get('frase')
+    fetch(`/api/phrases?lang=${language}`).then(r => r.json()).then(d => {
+      const list = d.phrases ?? []
+      setPhrases(list)
+      if (phraseDeepLink) {
+        const target = list.find((p: Phrase) => p.id === phraseDeepLink)
+        if (target) { openPhrase(target); return }
+        // si no está en la lista del idioma actual, buscarlo directo
+        fetch(`/api/phrases/${phraseDeepLink}/comments`).then(() => {
+          fetch(`/api/phrases?lang=es`).then(r => r.json()).then(d2 => {
+            const all = d2.phrases ?? []
+            const t2 = all.find((p: Phrase) => p.id === phraseDeepLink)
+            if (t2) openPhrase(t2)
+          })
+        }).catch(() => {})
+      } else {
+        setPhrase(list[0] ?? null)
+      }
+    }).catch(() => {})
   }, [language])
 
   useEffect(() => {
@@ -1811,7 +1829,7 @@ export default function Home() {
                 <span style={{ fontSize: 14, fontWeight: 500, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)' }}>{copied ? '¡Copiado!' : 'Compartir perfil'}</span>
                 {copied
                   ? <span style={{ fontSize: 13, color: 'rgba(239,255,66,0.4)' }}>✓</span>
-                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 }
               </button>
             </div>
@@ -2475,7 +2493,7 @@ export default function Home() {
                   <img src={phrase.image_url} alt="Frase" className="absolute inset-0 w-full h-full object-cover" />
                   <button onClick={() => { setPhraseOpen(false); history.back() }}
                     className="absolute top-4 left-4 w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 20, lineHeight: 1, zIndex: 2 }}>
+                    style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 1, paddingRight: 1, zIndex: 2 }}>
                     ←
                   </button>
                   <button onClick={() => {
