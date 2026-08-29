@@ -2475,8 +2475,10 @@ export default function Home() {
                   <img src={phrase.image_url} alt="Frase" className="absolute inset-0 w-full h-full object-cover" />
                   <button onClick={() => { setPhraseOpen(false); history.back() }}
                     className="absolute top-4 left-4 w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 18, zIndex: 2 }}>
-                    ×
+                    style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', zIndex: 2 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6"/>
+                    </svg>
                   </button>
                   <button onClick={() => {
                     const url = `${window.location.origin}/?frase=${phrase.id}`
