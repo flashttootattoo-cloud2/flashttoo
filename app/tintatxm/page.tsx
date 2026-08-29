@@ -1145,6 +1145,8 @@ export default function AdminPage() {
   const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', bio: '', instagram: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
+  const [sponsorV2ProfileLogo, setSponsorV2ProfileLogo] = useState<File | null>(null)
+  const [sponsorV2ProfileLogoPreview, setSponsorV2ProfileLogoPreview] = useState<string | null>(null)
   const [savingSponsorsV2, setSavingSponsorsV2] = useState(false)
   const [sponsorV2Error, setSponsorV2Error]   = useState('')
   const [editingV2, setEditingV2]             = useState<string | null>(null)
@@ -1226,6 +1228,9 @@ export default function AdminPage() {
   const [editV2BgFile, setEditV2BgFile]         = useState<File | null>(null)
   const [editV2BgPreview, setEditV2BgPreview]   = useState<string | null>(null)
   const [editV2BgClear, setEditV2BgClear]       = useState(false)
+  const [editV2ProfileLogoFile, setEditV2ProfileLogoFile] = useState<File | null>(null)
+  const [editV2ProfileLogoPreview, setEditV2ProfileLogoPreview] = useState<string | null>(null)
+  const [editV2ProfileLogoClear, setEditV2ProfileLogoClear] = useState(false)
   const [conventions, setConventions]         = useState<Convention[]>([])
   const [convForm, setConvForm]               = useState({ name: '', link: '', expires_at: '', country: '' })
   const [convImage, setConvImage]             = useState<File | null>(null)
@@ -2911,6 +2916,7 @@ export default function AdminPage() {
                 try {
                   const fd = new FormData()
                   fd.append('logo', sponsorV2Logo)
+                  if (sponsorV2ProfileLogo) fd.append('detail_logo', sponsorV2ProfileLogo)
                   fd.append('name', sponsorV2Form.name.trim())
                   fd.append('description', sponsorV2Form.category.trim())
                   fd.append('bio', sponsorV2Form.bio.trim())
@@ -2931,6 +2937,7 @@ export default function AdminPage() {
                   setSponsorsV2(prev => [d.sponsor, ...prev])
                   setSponsorV2Form({ name: '', category: '', bio: '', instagram: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
                   setSponsorV2Logo(null); setSponsorV2LogoPreview(null)
+                  setSponsorV2ProfileLogo(null); setSponsorV2ProfileLogoPreview(null)
                 } catch (err: unknown) {
                   setSponsorV2Error(err instanceof Error ? err.message : 'Error')
                 } finally { setSavingSponsorsV2(false) }
@@ -2960,6 +2967,31 @@ export default function AdminPage() {
                       const file = e.target.files?.[0]; if (!file) return
                       setSponsorV2Logo(file)
                       setSponsorV2LogoPreview(URL.createObjectURL(file))
+                    }} />
+                </div>
+              </label>
+
+              {/* Logo de perfil (grilla) */}
+              <label className="cursor-pointer block">
+                <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo de perfil <span style={{ color: 'rgba(255,255,255,0.2)' }}>(opcional · reemplaza al logo en la grilla)</span></p>
+                <div className="flex items-center gap-3">
+                  {sponsorV2ProfileLogoPreview ? (
+                    <div className="rounded-lg overflow-hidden flex items-center justify-center"
+                      style={{ width: 100, height: 40, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={sponsorV2ProfileLogoPreview} alt="" style={{ maxHeight: 32, maxWidth: 90, objectFit: 'contain' }} />
+                    </div>
+                  ) : (
+                    <div className="rounded-lg flex items-center justify-center text-xs"
+                      style={{ width: 100, height: 40, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
+                      sin logo
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0]; if (!file) return
+                      setSponsorV2ProfileLogo(file)
+                      setSponsorV2ProfileLogoPreview(URL.createObjectURL(file))
                     }} />
                 </div>
               </label>
@@ -3156,6 +3188,7 @@ export default function AdminPage() {
                         onClick={() => {
                           setEditingV2(sp.id)
                           setEditV2BgFile(null); setEditV2BgPreview(null); setEditV2BgClear(false)
+                          setEditV2ProfileLogoFile(null); setEditV2ProfileLogoPreview(null); setEditV2ProfileLogoClear(false)
                           setEditV2Form({
                             name: sp.name,
                             category: sp.description || '',
@@ -3231,6 +3264,40 @@ export default function AdminPage() {
                               </button>
                             )}
                           </div>
+                        </div>
+                      </div>
+
+                      {/* Logo de perfil (grilla) */}
+                      <div>
+                        <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo de perfil <span style={{ color: 'rgba(255,255,255,0.2)', textTransform: 'none' }}>(reemplaza al logo en la grilla)</span></p>
+                        <div className="flex items-center gap-3">
+                          <label className="cursor-pointer">
+                            {(editV2ProfileLogoPreview || (sp.detail_logo_url && !editV2ProfileLogoClear)) ? (
+                              <div className="rounded-lg overflow-hidden flex items-center justify-center" style={{ width: 100, height: 40, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={editV2ProfileLogoPreview || sp.detail_logo_url!} alt="" style={{ maxHeight: 32, maxWidth: 90, objectFit: 'contain' }} />
+                                {editV2ProfileLogoPreview && <span className="absolute inset-0 flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(239,255,66,0.15)', color: '#efff42' }}>nueva</span>}
+                              </div>
+                            ) : (
+                              <div className="rounded-lg flex items-center justify-center text-xs" style={{ width: 100, height: 40, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
+                                sin logo
+                              </div>
+                            )}
+                            <input type="file" accept="image/*" className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0]; if (!file) return
+                                setEditV2ProfileLogoFile(file)
+                                setEditV2ProfileLogoPreview(URL.createObjectURL(file))
+                                setEditV2ProfileLogoClear(false)
+                              }} />
+                          </label>
+                          {(editV2ProfileLogoPreview || (sp.detail_logo_url && !editV2ProfileLogoClear)) && (
+                            <button type="button"
+                              onClick={() => { setEditV2ProfileLogoFile(null); setEditV2ProfileLogoPreview(null); setEditV2ProfileLogoClear(true) }}
+                              className="text-xs" style={{ color: 'rgba(255,80,80,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                              Borrar logo
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -3365,24 +3432,25 @@ export default function AdminPage() {
                               logo_bg_color: editV2Form.logo_bg_color || null,
                             }
                             let r: Response
-                            if (editV2BgFile) {
+                            if (editV2BgFile || editV2ProfileLogoFile) {
                               const fd = new FormData()
-                              fd.append('bg_image', editV2BgFile)
+                              if (editV2BgFile) fd.append('bg_image', editV2BgFile)
+                              if (editV2ProfileLogoFile) fd.append('detail_logo', editV2ProfileLogoFile)
                               for (const [k, v] of Object.entries(jsonBase)) fd.append(k, v === null ? '' : String(v))
                               r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'PATCH', headers: H(pass), body: fd })
                             } else {
+                              const jsonFull = editV2BgClear ? { ...jsonBase, bg_image_url: null } : jsonBase
                               r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
                                 method: 'PATCH',
                                 headers: { ...H(pass), 'Content-Type': 'application/json' },
-                                body: JSON.stringify(editV2BgClear ? { ...jsonBase, bg_image_url: null } : jsonBase),
+                                body: JSON.stringify(editV2ProfileLogoClear ? { ...jsonFull, detail_logo_url: null } : jsonFull),
                               })
                             }
                             const d = await r.json()
                             if (d.sponsor) setSponsorsV2(prev => prev.map(s => s.id === sp.id ? d.sponsor : s))
                             setEditingV2(null)
-                            setEditV2BgFile(null)
-                            setEditV2BgPreview(null)
-                            setEditV2BgClear(false)
+                            setEditV2BgFile(null); setEditV2BgPreview(null); setEditV2BgClear(false)
+                            setEditV2ProfileLogoFile(null); setEditV2ProfileLogoPreview(null); setEditV2ProfileLogoClear(false)
                             setSavingEditV2(false)
                           }}
                           className="px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-40"

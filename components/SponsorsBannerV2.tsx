@@ -496,7 +496,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                       {/* Logo centrado */}
                       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 20px 16px' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={s.logo_url} alt={s.name} style={{
+                        <img src={s.detail_logo_url || s.logo_url} alt={s.name} style={{
                           height: s.grid_logo_scale || 90, maxWidth: '100%', width: 'auto',
                           objectFit: 'contain', display: 'block',
                           filter: s.keep_color ? 'none' : 'brightness(0) invert(1)',
