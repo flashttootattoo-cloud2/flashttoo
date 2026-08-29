@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase, type Artist, type Studio } from '@/lib/supabase'
 import EditPanel from '@/components/EditPanel'
 import ArtistAuthModal from '@/components/ArtistAuthModal'
@@ -116,6 +117,7 @@ export default function Home() {
   const [city, setCity]           = useState(() => { try { return sessionStorage.getItem('s_city')    || '' } catch { return '' } })
   const [activeStyles, setStyles] = useState<string[]>(() => { try { return JSON.parse(sessionStorage.getItem('s_styles') || '[]') } catch { return [] } })
   const [stylesOpen, setStylesOpen] = useState(false)
+  const router = useRouter()
   const stylesRef = useRef<HTMLDivElement>(null)
   const deepLinkHandled = useRef(false)
   const [selected, setSelected]   = useState<Artist | null>(null)
@@ -836,20 +838,21 @@ export default function Home() {
   phraseOpenRef.current = phraseOpen
 
   // Boton atras nativo para cerrar el modal de frase
-  // capture:true para correr ANTES del listener de Next.js router
   useEffect(() => {
     if (!phraseOpen) return
-    const h = () => { setPhraseOpen(false) }
+    const h = (e: PopStateEvent) => {
+      e.stopImmediatePropagation()  // bloquea el router de Next.js
+      setPhraseOpen(false)
+      router.replace('/')           // re-sincroniza el router al home
+    }
     window.addEventListener('popstate', h, { capture: true })
-    window.addEventListener('hashchange', h, { capture: true })
     return () => {
       window.removeEventListener('popstate', h, { capture: true })
-      window.removeEventListener('hashchange', h, { capture: true })
       if (window.location.hash === '#frase') {
         history.replaceState({}, '', window.location.pathname + window.location.search)
       }
     }
-  }, [phraseOpen])
+  }, [phraseOpen, router])
 
   // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
   useEffect(() => {
