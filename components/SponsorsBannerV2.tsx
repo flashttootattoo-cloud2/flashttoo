@@ -20,6 +20,9 @@ type GalleryPhoto = { artist_id: string; artist_name: string; artist_photo: stri
 function norm(s: string) {
   return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
+function slugify(s: string) {
+  return norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
 
 const COUNTRY_FLAGS: Record<string, string> = {
   argentina: '🇦🇷', brasil: '🇧🇷', brazil: '🇧🇷',
@@ -161,11 +164,12 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           if (s.bg_image_url){ const i = new Image(); i.src = s.bg_image_url }
         })
         bgImagesRef.current.forEach(url => { const i = new Image(); i.src = url })
-        // Abrir perfil directo si la URL trae ?insumo=<id>
+        // Abrir perfil directo si la URL trae ?insumo=<id o slug>
         const insumoId = new URLSearchParams(window.location.search).get('insumo')
-        if (insumoId && all.find(s => s.id === insumoId)) {
+        const insumoMatch = insumoId && (all.find(s => s.id === insumoId) || all.find(s => slugify(s.name) === insumoId))
+        if (insumoMatch) {
           history.replaceState(null, '', window.location.pathname)
-          setSelectedId(insumoId)
+          setSelectedId(insumoMatch.id)
           history.pushState({ sv2: 'detail' }, '')
           histDepthRef.current = 1
         }
@@ -813,7 +817,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     )}
                     <button
                       onClick={() => {
-                        const url = `${window.location.origin}${window.location.pathname}?insumo=${sel.id}`
+                        const url = `${window.location.origin}${window.location.pathname}?insumo=${sel.name ? slugify(sel.name) : sel.id}`
                         if (navigator.share) {
                           navigator.share({ title: sel.name ?? '', url }).catch(() => {})
                         } else {
