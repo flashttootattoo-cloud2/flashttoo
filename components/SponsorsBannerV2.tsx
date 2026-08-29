@@ -821,6 +821,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         }
                       }}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, fontSize: 14, fontWeight: 600, cursor: 'pointer', width: '100%' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                       {t('insumos', 'share_btn', 'Compartir perfil')}
                     </button>
                     {sel.whatsapp && (
@@ -1013,7 +1014,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                   setTimeout(() => setSharePhotoCopied(false), 2000)
                 }
               }} style={{ position: 'absolute', top: 10, right: 10, width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 15, color: '#efff42' }}>
-                {sharePhotoCopied ? '✓' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>}
+                {sharePhotoCopied ? '✓' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>}
               </button>
               {selectedPhoto.photo_styles && selectedPhoto.photo_styles.length > 0 && (
                 <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>

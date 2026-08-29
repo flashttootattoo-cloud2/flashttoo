@@ -1811,7 +1811,7 @@ export default function Home() {
                 <span style={{ fontSize: 14, fontWeight: 500, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)' }}>{copied ? '¡Copiado!' : 'Compartir perfil'}</span>
                 {copied
                   ? <span style={{ fontSize: 13, color: 'rgba(239,255,66,0.4)' }}>✓</span>
-                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 }
               </button>
             </div>
@@ -2489,9 +2489,8 @@ export default function Home() {
                     className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
                     style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(239,255,66,0.3)', zIndex: 2 }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/>
-                      <polyline points="16 6 12 2 8 6"/>
-                      <line x1="12" y1="2" x2="12" y2="15"/>
+                      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                     </svg>
                   </button>
                 </div>

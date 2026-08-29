@@ -361,7 +361,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                   <button onClick={shareStudio}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, background: copied ? 'rgba(239,255,66,0.06)' : 'rgba(255,255,255,0.04)', border: `1px solid ${copied ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}`, width: '100%', cursor: 'pointer' }}>
                     <span style={{ fontSize: 13, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>{copied ? '¡Copiado!' : t('estudio', 'share_btn', 'Compartir perfil')}</span>
-                    {copied ? <span style={{ color: 'rgba(239,255,66,0.5)', fontSize: 14 }}>✓</span> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(239,255,66,0.38)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>}
+                    {copied ? <span style={{ color: 'rgba(239,255,66,0.5)', fontSize: 14 }}>✓</span> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>}
                   </button>
                 </div>
               <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14, paddingBottom: 20 }}>
