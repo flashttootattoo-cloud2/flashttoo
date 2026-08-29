@@ -840,19 +840,15 @@ export default function Home() {
   // Boton atras nativo para cerrar el modal de frase
   useEffect(() => {
     if (!phraseOpen) return
-    const h = (e: PopStateEvent) => {
-      e.stopImmediatePropagation()  // bloquea el router de Next.js
-      setPhraseOpen(false)
-      router.replace('/')           // re-sincroniza el router al home
-    }
-    window.addEventListener('popstate', h, { capture: true })
+    const h = () => { setPhraseOpen(false) }
+    window.addEventListener('popstate', h)
     return () => {
-      window.removeEventListener('popstate', h, { capture: true })
+      window.removeEventListener('popstate', h)
       if (window.location.hash === '#frase') {
         history.replaceState({}, '', window.location.pathname + window.location.search)
       }
     }
-  }, [phraseOpen, router])
+  }, [phraseOpen])
 
   // Botón atrás del celular: cierra el modal sin tocar el historial (el browser ya lo hizo)
   useEffect(() => {
