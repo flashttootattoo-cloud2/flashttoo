@@ -2474,23 +2474,24 @@ export default function Home() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={phrase.image_url} alt="Frase" className="absolute inset-0 w-full h-full object-cover" />
                   <button onClick={() => { setPhraseOpen(false); history.back() }}
-                    className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
+                    className="absolute top-4 left-4 w-8 h-8 rounded-full flex items-center justify-center"
                     style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 18, zIndex: 2 }}>
                     ×
                   </button>
                   <button onClick={() => {
                     const url = `${window.location.origin}/?frase=${phrase.id}`
                     if (navigator.share) {
-                      navigator.share({ url })
+                      navigator.share({ url }).catch(() => {})
                     } else {
-                      navigator.clipboard.writeText(url).then(() => alert('Link copiado'))
+                      navigator.clipboard.writeText(url)
                     }
                   }}
-                    className="absolute top-4 left-4 w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 15, zIndex: 2 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(239,255,66,0.3)', zIndex: 2 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/>
+                      <polyline points="16 6 12 2 8 6"/>
+                      <line x1="12" y1="2" x2="12" y2="15"/>
                     </svg>
                   </button>
                 </div>
