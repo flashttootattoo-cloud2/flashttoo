@@ -862,9 +862,6 @@ export default function Home() {
     window.addEventListener('popstate', h)
     return () => {
       window.removeEventListener('popstate', h)
-      if (window.location.hash === '#frase') {
-        history.replaceState({}, '', '/')
-      }
     }
   }, [phraseOpen])
 
@@ -908,7 +905,7 @@ export default function Home() {
     setReplyingTo(null)
     setReplyText('')
     loadPhraseComments(p.id)
-    window.location.hash = 'frase'
+    history.pushState({ phraseOpen: true }, '', '/')
   }, [phrase, loadPhraseComments])
 
   // Evento disparado desde cultura para abrir un artículo
