@@ -4342,7 +4342,10 @@ export default function AdminPage() {
                     onClick={() => { setExpandedPhraseId(prev => prev === ph.id ? null : ph.id); setEditPhraseId(null) }}
                     style={{ position: 'relative', paddingBottom: '100%', background: '#111', border: expandedPhraseId === ph.id ? '2px solid #efff42' : '2px solid transparent', borderRadius: 6, overflow: 'hidden', cursor: 'pointer' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={ph.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={ph.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: ph.active ? 1 : 0.35 }} />
+                    {!ph.active && (
+                      <div style={{ position: 'absolute', top: 3, left: 3, fontSize: 8, fontWeight: 800, background: 'rgba(0,0,0,0.75)', color: 'rgba(255,200,80,0.9)', padding: '1px 5px', borderRadius: 4, letterSpacing: '0.06em' }}>BORRADOR</div>
+                    )}
                     {(ph.tags ?? []).length > 0 && (
                       <div style={{ position: 'absolute', bottom: 3, left: 3, width: 6, height: 6, borderRadius: '50%', background: '#efff42' }} />
                     )}
@@ -4381,6 +4384,19 @@ export default function AdminPage() {
                           style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: editPhraseId === ph.id ? '#efff42' : 'rgba(255,255,255,0.07)', color: editPhraseId === ph.id ? '#000' : 'rgba(255,255,255,0.6)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
                           {editPhraseId === ph.id ? 'Cerrar editor' : 'Editar'}
                         </button>
+                        <button type="button"
+                          onClick={async () => {
+                            const next = !ph.active
+                            await fetch(`/api/phrases/${ph.id}`, { method: 'PATCH', headers: { 'x-admin-pass': pass, 'Content-Type': 'application/json' }, body: JSON.stringify({ active: next }) })
+                            setAdminPhrases(prev => prev.map(p => p.id === ph.id ? { ...p, active: next } : p))
+                          }}
+                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: ph.active ? 'rgba(74,222,128,0.1)' : 'rgba(255,200,80,0.1)', color: ph.active ? '#4ade80' : 'rgba(255,200,80,0.8)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                          {ph.active ? '● Publicado' : '○ Borrador'}
+                        </button>
+                        <a href={`/articulo/${ph.id}`} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: 'none', borderRadius: 6, cursor: 'pointer', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                          Preview ↗
+                        </a>
                         <button type="button"
                           onClick={async () => {
                             if (expandedPhraseId === ph.id && phraseComments[ph.id]) return

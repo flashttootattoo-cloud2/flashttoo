@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await sb()
     .from('phrases')
-    .insert({ image_url, description, language_code: lang, tags, active: true })
+    .insert({ image_url, description, language_code: lang, tags, active: false })
     .select()
     .single()
 
