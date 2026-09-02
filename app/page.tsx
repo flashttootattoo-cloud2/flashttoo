@@ -2536,10 +2536,19 @@ export default function Home() {
       <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} />
 
       {/* ── MODAL FRASE ─────────────────────────────────────────── */}
+      {phraseOpen && phrase && !!phrase.tags?.length && (
+        <div style={{ position: 'fixed', top: 0, left: 'max(0px, calc(50% - 40rem))', right: 'max(0px, calc(50% - 40rem))', zIndex: 85, background: 'rgba(10,10,10,0.97)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/Logoprincipal.svg" alt="Flashttoo" onClick={() => history.back()} style={{ height: 28, opacity: 0.9, flexShrink: 0, cursor: 'pointer' }} />
+          <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', pointerEvents: 'none' }}>cultura</span>
+          <div style={{ width: 32, height: 32, flexShrink: 0 }} />
+        </div>
+      )}
+
       {phraseOpen && phrase && (
         <div className="fixed inset-0 overflow-y-auto" style={{ zIndex: 80, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)' }}
           onClick={e => { if (e.target === e.currentTarget) { setPhraseOpen(false) } }}>
-          <div className="flex justify-center items-start min-h-full pb-40" onClick={e => e.stopPropagation()}>
+          <div className="flex justify-center items-start min-h-full pb-40" style={{ paddingTop: phrase.tags?.length ? 57 : 0 }} onClick={e => e.stopPropagation()}>
             <div className="w-full" style={{ maxWidth: 480 }}>
 
               {/* Imagen + Descripción superpuesta */}
