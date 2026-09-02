@@ -54,7 +54,7 @@ export default async function ArticuloPage({ params }: { params: Promise<{ id: s
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-      <script dangerouslySetInnerHTML={{ __html: `window.location.replace('/?frase=${id}')` }} />
+      <script dangerouslySetInnerHTML={{ __html: `history.replaceState(null,'','/');window.location.href='/?frase=${id}'` }} />
       <style>{`body{background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}`}</style>
       <noscript><meta httpEquiv="refresh" content={`0; url=/?frase=${id}`} /></noscript>
       <a href={`/?frase=${id}`} style={{ color: '#efff42', fontSize: 14 }}>Ir a Flashttoo →</a>
