@@ -3306,6 +3306,11 @@ export default function AdminPage() {
                         style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)' }}>
                         editar
                       </button>
+                      <a href={`/proveedor/${sp.id}`} target="_blank" rel="noopener noreferrer"
+                        className="text-xs px-3 py-1 rounded-full"
+                        style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>
+                        preview ↗
+                      </a>
                       <button
                         onClick={async () => {
                           if (!confirm('¿Borrar esta marca?')) return
