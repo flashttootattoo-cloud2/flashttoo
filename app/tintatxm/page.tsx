@@ -1180,6 +1180,7 @@ export default function AdminPage() {
     { key: 'editar',     label: 'Editar — Panel de edición tatuador' },
     { key: 'estudio',    label: 'Estudio — Panel del estudio' },
     { key: 'eventos',    label: 'Eventos — Flash days y convenciones' },
+    { key: 'cultura',    label: 'Cultura — Artículos y contenido' },
     { key: 'insumos',    label: 'Insumos — Proveedores' },
     { key: 'ingresar',   label: 'Ingresar — Modal de login y registro' },
     { key: 'activar',    label: 'Activar — Página de activación de perfil' },
