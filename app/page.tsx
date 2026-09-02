@@ -418,6 +418,8 @@ export default function Home() {
       const list = d.phrases ?? []
       setPhrases(list)
       if (phraseDeepLink) {
+        history.replaceState({}, '', '/')
+        history.pushState({}, '', '/')
         const target = list.find((p: Phrase) => p.id === phraseDeepLink)
         if (target) { openPhrase(target); return }
         fetch(`/api/phrases/${phraseDeepLink}`).then(r => r.json()).then(d2 => {
