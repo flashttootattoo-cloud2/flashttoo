@@ -11,14 +11,22 @@ function auth(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const lang = new URL(req.url).searchParams.get('lang') || 'es'
+  const url = new URL(req.url)
+  const lang = url.searchParams.get('lang') || 'es'
+  const tag  = url.searchParams.get('tag')
 
-  const { data: phrases } = await sb()
+  let query = sb()
     .from('phrases')
-    .select('id, image_url, description, language_code')
+    .select('id, image_url, description, language_code, created_at, tags')
     .eq('language_code', lang)
     .eq('active', true)
-    .limit(10)
+  if (tag) {
+    query = query.contains('tags', [tag])
+  } else {
+    // Excluir contenido de cultura (frases con tags)
+    query = query.or('tags.is.null,tags.eq.{}')
+  }
+  const { data: phrases } = await query.limit(tag ? 50 : 10)
 
   // Mezclar aleatoriamente
   if (phrases) {
@@ -67,13 +75,15 @@ export async function POST(req: NextRequest) {
 
   const lang = (fd.get('language_code') as string | null) || 'es'
   const description = (fd.get('description') as string | null)?.trim() || null
+  const tagsRaw = (fd.get('tags') as string | null) || ''
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []
 
   const ext = image.name.split('.').pop() || 'jpg'
   const image_url = await uploadFile(image, `phrases/${crypto.randomUUID()}.${ext}`)
 
   const { data, error } = await sb()
     .from('phrases')
-    .insert({ image_url, description, language_code: lang, active: true })
+    .insert({ image_url, description, language_code: lang, tags, active: true })
     .select()
     .single()
 

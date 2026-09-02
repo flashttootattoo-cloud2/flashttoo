@@ -102,6 +102,12 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const GRID_PAGE_SIZE = 30
   const [convView, setConvView] = useState(!showInsumos)
   const [showGallery, setShowGallery] = useState(false)
+  const [showCultura, setShowCultura] = useState(false)
+  const [culturaArticles, setCulturaArticles] = useState<{ id: string; image_url: string; description: string; created_at: string; tags?: string[]; comment_count: number; recent_commenters: { id: string; emoji: string | null; photo_url: string | null }[] }[]>([])
+  const [culturaLoaded, setCulturaLoaded] = useState(false)
+  const [culturaTag, setCulturaTag] = useState<string | null>(null)
+  const [culturaAvailableTags, setCulturaAvailableTags] = useState<string[]>([])
+  const culturaLangRef = useRef<string>('')
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([])
   const [galleryLoaded, setGalleryLoaded] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<GalleryPhoto | null>(null)
@@ -896,28 +902,53 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
 
       {/* Botones flotantes — Glass Pill */}
       <style>{`.ftpill{display:flex;align-items:center;justify-content:center;gap:0;height:44px;min-width:44px;padding:0 12px;border-radius:999px;border:none;cursor:pointer;font-size:10.5px;font-weight:700;letter-spacing:0.06em;white-space:nowrap;overflow:hidden;transition:background .22s,color .22s,gap .26s,padding .26s;-webkit-tap-highlight-color:transparent}.ftpill svg{flex-shrink:0;transition:transform .22s}.ftpill.fton svg{transform:scale(1.15)}.ftpill-lbl{max-width:0;overflow:hidden;opacity:0;transition:max-width .28s ease,opacity .2s}.ftpill.fton .ftpill-lbl{max-width:76px;opacity:1}.ftpill.fton{gap:7px;padding:0 16px 0 12px}`}</style>
-      <div style={{ position: 'fixed', bottom: 76, left: 0, right: 0, zIndex: selectedPhoto ? 75 : (showGallery || expanded) ? 65 : 41, pointerEvents: 'none', display: selectedId ? 'none' : 'flex', justifyContent: 'center', padding: '0 20px' }}>
+      <div style={{ position: 'fixed', bottom: 76, left: 0, right: 0, zIndex: selectedPhoto ? 75 : (showGallery || expanded) ? 65 : showCultura ? 41 : 41, pointerEvents: 'none', display: selectedId ? 'none' : 'flex', justifyContent: 'center', padding: '0 20px' }}>
         <div style={{ maxWidth: '80rem', width: '100%', display: 'flex', justifyContent: 'center', pointerEvents: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(12,12,12,0.62)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 999, padding: 5, boxShadow: '0 4px 28px rgba(0,0,0,0.5)' }}>
             {/* Home */}
-            <button className={`ftpill${!expanded && !showGallery ? ' fton' : ''}`}
-              style={{ background: !expanded && !showGallery ? 'rgba(239,255,66,0.13)' : 'transparent', color: !expanded && !showGallery ? '#efff42' : 'rgba(255,255,255,0.35)' }}
-              onClick={() => { setExpanded(false); setShowGallery(false); setSelectedPhoto(null); photoStackRef.current = []; histDepthRef.current = 0 }}>
+            <button className={`ftpill${!expanded && !showGallery && !showCultura ? ' fton' : ''}`}
+              style={{ background: !expanded && !showGallery && !showCultura ? 'rgba(239,255,66,0.13)' : 'transparent', color: !expanded && !showGallery && !showCultura ? '#efff42' : 'rgba(255,255,255,0.35)' }}
+              onClick={() => { setExpanded(false); setShowGallery(false); setShowCultura(false); setSelectedPhoto(null); photoStackRef.current = []; histDepthRef.current = 0 }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg>
               <span className="ftpill-lbl">Home</span>
             </button>
             {/* Galería */}
             <button className={`ftpill${showGallery ? ' fton' : ''}`}
               style={{ background: showGallery ? 'rgba(239,255,66,0.13)' : 'transparent', color: showGallery ? '#efff42' : 'rgba(255,255,255,0.35)' }}
-              onClick={() => { if (showGallery) { closeGallery() } else { loadGallery(); setGalleryDisplayCount(20); setShowGallery(true) } }}>
+              onClick={() => { setShowCultura(false); if (showGallery) { closeGallery() } else { loadGallery(); setGalleryDisplayCount(20); setShowGallery(true) } }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="10" rx="1"/><rect x="14" y="3" width="7" height="6" rx="1"/><rect x="14" y="13" width="7" height="8" rx="1"/><rect x="3" y="17" width="7" height="4" rx="1"/></svg>
               <span className="ftpill-lbl">{t('inicio', 'gallery_btn', 'Galería')}</span>
             </button>
+            {/* cultura. */}
+            <button className={`ftpill${showCultura ? ' fton' : ''}`}
+              style={{ background: showCultura ? 'rgba(239,255,66,0.13)' : 'transparent', color: showCultura ? '#efff42' : 'rgba(255,255,255,0.35)' }}
+              onClick={() => {
+                if (showCultura) { setShowCultura(false); return }
+                setSelectedPhoto(null); setShowGallery(false); setExpanded(false); photoStackRef.current = []; histDepthRef.current = 0
+                setShowCultura(true)
+                if (!culturaLoaded || culturaLangRef.current !== language) {
+                  culturaLangRef.current = language
+                  setCulturaLoaded(false)
+                  const qs = `/api/cultura?lang=${language}${culturaTag ? `&tag=${culturaTag}` : ''}`
+                  fetch(qs).then(r => r.json()).then(d => {
+                    const arts = d.articles ?? []
+                    setCulturaArticles(arts)
+                    setCulturaLoaded(true)
+                    if (!culturaTag) {
+                      const tags = [...new Set<string>(arts.flatMap((a: { tags?: string[] }) => a.tags ?? []))]
+                      setCulturaAvailableTags(tags)
+                    }
+                  }).catch(() => {})
+                }
+              }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+              <span className="ftpill-lbl">{t('cultura', 'nav_btn', 'cultura')}</span>
+            </button>
             {/* Insumos — tarrito de tinta */}
             {showInsumos && (
-              <button className={`ftpill${expanded && !convView && !showGallery ? ' fton' : ''}`}
-                style={{ background: expanded && !convView && !showGallery ? 'rgba(239,255,66,0.13)' : 'transparent', color: expanded && !convView && !showGallery ? '#efff42' : 'rgba(255,255,255,0.35)' }}
-                onClick={() => { setSelectedPhoto(null); setShowGallery(false); photoStackRef.current = []; histDepthRef.current = 0; setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}>
+              <button className={`ftpill${expanded && !convView && !showGallery && !showCultura ? ' fton' : ''}`}
+                style={{ background: expanded && !convView && !showGallery && !showCultura ? 'rgba(239,255,66,0.13)' : 'transparent', color: expanded && !convView && !showGallery && !showCultura ? '#efff42' : 'rgba(255,255,255,0.35)' }}
+                onClick={() => { setSelectedPhoto(null); setShowGallery(false); setShowCultura(false); photoStackRef.current = []; histDepthRef.current = 0; setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="8" y="2" width="8" height="4" rx="1"/>
                   <path d="M6 6h12v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6z"/>
@@ -927,9 +958,9 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               </button>
             )}
             {/* Eventos */}
-            <button className={`ftpill${expanded && convView && !showGallery ? ' fton' : ''}`}
-              style={{ background: expanded && convView && !showGallery ? 'rgba(239,255,66,0.13)' : 'transparent', color: expanded && convView && !showGallery ? '#efff42' : 'rgba(255,255,255,0.35)' }}
-              onClick={() => { setSelectedPhoto(null); setShowGallery(false); photoStackRef.current = []; histDepthRef.current = 0; setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}>
+            <button className={`ftpill${expanded && convView && !showGallery && !showCultura ? ' fton' : ''}`}
+              style={{ background: expanded && convView && !showGallery && !showCultura ? 'rgba(239,255,66,0.13)' : 'transparent', color: expanded && convView && !showGallery && !showCultura ? '#efff42' : 'rgba(255,255,255,0.35)' }}
+              onClick={() => { setSelectedPhoto(null); setShowGallery(false); setShowCultura(false); photoStackRef.current = []; histDepthRef.current = 0; setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               <span className="ftpill-lbl">{t('inicio', 'events_btn', 'Eventos')}</span>
             </button>
@@ -1093,6 +1124,140 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               </div>
             )
           })()}
+        </div>
+      )}
+
+      {/* cultura. overlay */}
+      {showCultura && (
+        <div style={{ position: 'fixed', top: 0, bottom: 0, left: 'max(0px, calc(50% - 40rem))', right: 'max(0px, calc(50% - 40rem))', zIndex: 39, background: '#0a0a0a', overflowY: 'auto', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
+          {/* Header */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/Logoprincipal.svg" alt="Flashttoo" onClick={() => setShowCultura(false)} style={{ height: 28, opacity: 0.9, flex: '0 0 auto', cursor: 'pointer' }} />
+            <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', pointerEvents: 'none' }}>{t('cultura', 'nav_btn', 'cultura')}</span>
+            <button onClick={() => setShowCultura(false)} style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 18, cursor: 'pointer', flexShrink: 0 }}>×</button>
+          </div>
+          {/* Tags scroll */}
+          {culturaAvailableTags.length > 0 && (() => {
+            const TAG_LABELS: Record<string, Record<string, string>> = {
+              tatuaje:     { es:'tatuaje',     en:'tattoo',      pt:'tatuagem' },
+              técnica:     { es:'técnica',     en:'technique',   pt:'técnica' },
+              cultura:     { es:'cultura',     en:'culture',     pt:'cultura' },
+              arte:        { es:'arte',        en:'art',         pt:'arte' },
+              diseño:      { es:'diseño',      en:'design',      pt:'design' },
+              cuidados:    { es:'cuidados',    en:'aftercare',   pt:'cuidados' },
+              minimalista: { es:'minimalista', en:'minimalist',  pt:'minimalista' },
+              color:       { es:'color',       en:'color',       pt:'cor' },
+              tradicional: { es:'tradicional', en:'traditional', pt:'tradicional' },
+              blackwork:   { es:'blackwork',   en:'blackwork',   pt:'blackwork' },
+              realismo:    { es:'realismo',    en:'realism',     pt:'realismo' },
+              geometría:   { es:'geometría',   en:'geometry',    pt:'geometria' },
+              lettering:   { es:'lettering',   en:'lettering',   pt:'lettering' },
+              historia:    { es:'historia',    en:'history',     pt:'história' },
+              inspiración: { es:'inspiración', en:'inspiration', pt:'inspiração' },
+              guía:        { es:'guía',        en:'guide',       pt:'guia' },
+            }
+            const tagLabel = (tag: string) => TAG_LABELS[tag]?.[language] ?? tag
+            const selectTag = (tag: string | null) => {
+              const next = culturaTag === tag ? null : tag
+              setCulturaTag(next)
+              setCulturaLoaded(false)
+              const qs = `/api/cultura?lang=${language}${next ? `&tag=${next}` : ''}`
+              fetch(qs).then(r => r.json()).then(d => {
+                const arts = d.articles ?? []
+                setCulturaArticles(arts)
+                setCulturaLoaded(true)
+                if (!next) {
+                  const tags = [...new Set<string>(arts.flatMap((a: { tags?: string[] }) => a.tags ?? []))]
+                  setCulturaAvailableTags(tags)
+                }
+              }).catch(() => {})
+            }
+            return (
+              <div
+                style={{ overflowX: 'auto', display: 'flex', gap: 0, padding: '10px 16px', scrollbarWidth: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'grab', userSelect: 'none' }}
+                onWheel={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).scrollLeft += e.deltaY }}
+                onMouseDown={e => { const el = e.currentTarget; const startX = e.pageX - el.offsetLeft; const sl = el.scrollLeft; const onMove = (ev: MouseEvent) => { el.scrollLeft = sl - (ev.pageX - el.offsetLeft - startX) }; const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp) }}>
+                <style>{`.ctag::-webkit-scrollbar{display:none}`}</style>
+                {[null, ...culturaAvailableTags].map(tag => {
+                  const active = culturaTag === tag
+                  const label = tag ? tagLabel(tag) : t('cultura', 'tag_all', 'Todo')
+                  return (
+                    <button key={label} onClick={() => selectTag(tag)}
+                      style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 14px 8px', fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#efff42' : 'rgba(255,255,255,0.4)', borderBottom: active ? '2px solid #efff42' : '2px solid transparent', transition: 'color .18s,border-color .18s', whiteSpace: 'nowrap' }}>
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })()}
+          {/* Article list */}
+          <div style={{ padding: '16px 16px 120px' }}>
+            {!culturaLoaded ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
+                <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>{t('cultura', 'loading', 'Cargando...')}</p>
+              </div>
+            ) : culturaArticles.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
+                <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>{t('cultura', 'empty', 'Todavía no hay contenido.')}</p>
+              </div>
+            ) : (
+              <><style>{`@keyframes culturaFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}@keyframes culturaDot{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}`}</style>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {culturaArticles.map(article => {
+                  const h1Line = article.description?.split('\n').find(l => l.startsWith('# '))
+                  const title = h1Line ? h1Line.slice(2) : article.description?.split('\n').find(l => l.trim()) ?? ''
+                  const words = article.description?.split(/\s+/).length ?? 0
+                  const mins = Math.max(1, Math.round(words / 200))
+                  const date = new Date(article.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
+                  return (
+                    <button key={article.id}
+                      onClick={() => { window.dispatchEvent(new CustomEvent('open-phrase', { detail: article.id })) }}
+                      style={{ position: 'relative', width: '100%', borderRadius: 14, overflow: 'hidden', padding: 0, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.07)', background: '#111', display: 'block' }}>
+                      {/* Imagen */}
+                      <div style={{ paddingBottom: '56%', position: 'relative' }}>
+                        {article.image_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={article.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )}
+                        {/* Gradiente */}
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }} />
+                        {/* Título */}
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px 36px' }}>
+                          <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.3, textAlign: 'left', letterSpacing: '-0.01em' }}>{title}</p>
+                        </div>
+                        {/* Comentaristas + typing */}
+                        <div style={{ position: 'absolute', bottom: 10, left: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {article.recent_commenters.length > 0 && (
+                            <div style={{ display: 'flex' }}>
+                              {article.recent_commenters.slice(0, 3).map((c, ci) => (
+                                <div key={c.id} style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid rgba(0,0,0,0.7)', marginLeft: ci > 0 ? -7 : 0, background: '#222', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0, animation: 'culturaFloat 2.4s ease-in-out infinite', animationDelay: `${ci * 0.3}s` }}>
+                                  {c.photo_url
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    ? <img src={c.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : <span>{c.emoji || '💬'}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {article.comment_count > 3 && (
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>+{article.comment_count - 3}</span>
+                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(0,0,0,0.55)', borderRadius: 20, padding: '3px 8px' }}>
+                            {[0, 0.22, 0.44].map((delay, di) => (
+                              <span key={di} style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.85)', display: 'inline-block', animation: 'culturaDot 1.2s ease-in-out infinite', animationDelay: `${delay}s` }} />
+                            ))}
+                          </div>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>{date} · {mins} {t('cultura', 'min_read', 'min')}</span>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div></>
+            )}
+          </div>
         </div>
       )}
 

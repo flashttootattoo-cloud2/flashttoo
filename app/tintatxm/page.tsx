@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 import StudioPanel from '@/components/StudioPanel'
+import { renderPhraseContent } from '@/components/PhraseContent'
+import { useTranslation } from '@/contexts/TranslationContext'
 
 type DayVisit = { date: string; count: number }
 type Visit = { from: string; to: string; city: string; country: string }
@@ -1055,6 +1057,7 @@ function StatsPanel({ artists, visits, installs, studios, searchStats, appEventC
 }
 
 export default function AdminPage() {
+  const { t, language } = useTranslation()
   const [pass, setPass]       = useState('')
   const [pin, setPin]         = useState('')
   const [auth, setAuth]       = useState(false)
@@ -1248,11 +1251,104 @@ export default function AdminPage() {
   const [loadingStudios, setLoadingStudios]   = useState(false)
 
   // Frases
-  type AdminPhrase = { id: string; image_url: string; description: string | null; language_code: string; active: boolean; created_at: string; comment_count?: number }
+  type AdminPhrase = { id: string; image_url: string; description: string | null; language_code: string; active: boolean; created_at: string; comment_count?: number; tags?: string[] }
   type AdminPhraseComment = { id: string; artist_name: string | null; guest_name: string | null; guest_emoji: string | null; content: string; created_at: string }
   const [adminPhrases, setAdminPhrases]       = useState<AdminPhrase[]>([])
   const [loadingPhrases, setLoadingPhrases]   = useState(false)
+  const PHRASE_TAGS = ['tatuaje','técnica','cultura','arte','diseño','cuidados','minimalista','color','tradicional','blackwork','realismo','geometría','lettering','historia','inspiración','guía']
+  const TAG_LABELS: Record<string, Record<string, string>> = {
+    tatuaje:     { es: 'tatuaje',     en: 'tattoo',      pt: 'tatuagem' },
+    técnica:     { es: 'técnica',     en: 'technique',   pt: 'técnica' },
+    cultura:     { es: 'cultura',     en: 'culture',     pt: 'cultura' },
+    arte:        { es: 'arte',        en: 'art',         pt: 'arte' },
+    diseño:      { es: 'diseño',      en: 'design',      pt: 'design' },
+    cuidados:    { es: 'cuidados',    en: 'aftercare',   pt: 'cuidados' },
+    minimalista: { es: 'minimalista', en: 'minimalist',  pt: 'minimalista' },
+    color:       { es: 'color',       en: 'color',       pt: 'cor' },
+    tradicional: { es: 'tradicional', en: 'traditional', pt: 'tradicional' },
+    blackwork:   { es: 'blackwork',   en: 'blackwork',   pt: 'blackwork' },
+    realismo:    { es: 'realismo',    en: 'realism',     pt: 'realismo' },
+    geometría:   { es: 'geometría',   en: 'geometry',    pt: 'geometria' },
+    lettering:   { es: 'lettering',   en: 'lettering',   pt: 'lettering' },
+    historia:    { es: 'historia',    en: 'history',     pt: 'história' },
+    inspiración: { es: 'inspiración', en: 'inspiration', pt: 'inspiração' },
+    guía:        { es: 'guía',        en: 'guide',       pt: 'guia' },
+  }
+  const tagLabel = (tag: string) => TAG_LABELS[tag]?.[language] ?? tag
   const [phraseForm, setPhraseForm]           = useState({ description: '', language_code: 'es' })
+  const [phraseTags, setPhraseTags]           = useState<string[]>([])
+  const [editPhraseTags, setEditPhraseTags]   = useState<string[]>([])
+  const [newTagInput, setNewTagInput]         = useState('')
+  const [editNewTagInput, setEditNewTagInput] = useState('')
+  const [extraPhraseTags, setExtraPhraseTags]         = useState<string[]>([])
+  const [editExtraPhraseTags, setEditExtraPhraseTags] = useState<string[]>([])
+  const phraseDescRef = useRef<HTMLTextAreaElement>(null)
+  function insertPhrasePrefix(prefix: string) {
+    const ta = phraseDescRef.current; if (!ta) return
+    const start = ta.selectionStart
+    const lineStart = ta.value.lastIndexOf('\n', start - 1) + 1
+    const newVal = ta.value.slice(0, lineStart) + prefix + ta.value.slice(lineStart)
+    setPhraseForm(f => ({ ...f, description: newVal }))
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(lineStart + prefix.length, lineStart + prefix.length) }, 0)
+  }
+  function insertPhraseText(text: string) {
+    const ta = phraseDescRef.current; if (!ta) return
+    const start = ta.selectionStart, end = ta.selectionEnd
+    const newVal = ta.value.slice(0, start) + text + ta.value.slice(end)
+    setPhraseForm(f => ({ ...f, description: newVal }))
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(start + text.length, start + text.length) }, 0)
+  }
+  function wrapPhraseText(before: string, after: string) {
+    const ta = phraseDescRef.current; if (!ta) return
+    const start = ta.selectionStart, end = ta.selectionEnd
+    const sel = ta.value.slice(start, end) || 'texto'
+    const newVal = ta.value.slice(0, start) + before + sel + after + ta.value.slice(end)
+    setPhraseForm(f => ({ ...f, description: newVal }))
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(start + before.length, start + before.length + sel.length) }, 0)
+  }
+  // Edit phrase
+  const [editPhraseId, setEditPhraseId]       = useState<string | null>(null)
+  const [editPhraseDesc, setEditPhraseDesc]   = useState('')
+  const [editPhraseLang, setEditPhraseLang]   = useState('es')
+  const [savingEditPhrase, setSavingEditPhrase] = useState(false)
+  const editPhraseDescRef  = useRef<HTMLTextAreaElement>(null)
+  const phraseImgInputRef  = useRef<HTMLInputElement>(null)
+  const editImgInputRef    = useRef<HTMLInputElement>(null)
+  const [uploadingImg, setUploadingImg] = useState(false)
+
+  async function uploadContentImg(file: File, insertFn: (text: string) => void) {
+    setUploadingImg(true)
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const r = await fetch('/api/admin/upload-image', { method: 'POST', headers: { 'x-admin-pass': pass }, body: fd })
+      const d = await r.json()
+      if (d.url) insertFn(`[img:${d.url}]`)
+    } finally { setUploadingImg(false) }
+  }
+
+  function insertEditPrefix(prefix: string) {
+    const ta = editPhraseDescRef.current; if (!ta) return
+    const start = ta.selectionStart
+    const lineStart = ta.value.lastIndexOf('\n', start - 1) + 1
+    const newVal = ta.value.slice(0, lineStart) + prefix + ta.value.slice(lineStart)
+    setEditPhraseDesc(newVal)
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(lineStart + prefix.length, lineStart + prefix.length) }, 0)
+  }
+  function insertEditText(text: string) {
+    const ta = editPhraseDescRef.current; if (!ta) return
+    const start = ta.selectionStart, end = ta.selectionEnd
+    const newVal = ta.value.slice(0, start) + text + ta.value.slice(end)
+    setEditPhraseDesc(newVal)
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(start + text.length, start + text.length) }, 0)
+  }
+  function wrapEditText(before: string, after: string) {
+    const ta = editPhraseDescRef.current; if (!ta) return
+    const start = ta.selectionStart, end = ta.selectionEnd
+    const sel = ta.value.slice(start, end) || 'texto'
+    const newVal = ta.value.slice(0, start) + before + sel + after + ta.value.slice(end)
+    setEditPhraseDesc(newVal)
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(start + before.length, start + before.length + sel.length) }, 0)
+  }
   const [phraseImage, setPhraseImage]         = useState<File | null>(null)
   const [phrasePreview, setPhrasePreview]     = useState<string | null>(null)
   const [savingPhrase, setSavingPhrase]       = useState(false)
@@ -4102,13 +4198,77 @@ export default function AdminPage() {
                 }} />
               </label>
 
-              {/* Descripción */}
+              {/* Editor de contenido */}
               <div>
-                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Descripción (opcional)</p>
-                <textarea value={phraseForm.description}
-                  onChange={e => setPhraseForm(f => ({ ...f, description: e.target.value }))}
-                  rows={2} placeholder="Texto que acompaña la imagen..."
-                  className={iCls} style={{ resize: 'none' }} />
+                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contenido (opcional)</p>
+                <div style={{ display: 'flex', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'H1', title: 'Título  →  # ', fn: () => insertPhrasePrefix('# ') },
+                    { label: 'H2', title: 'Subtítulo  →  ## ', fn: () => insertPhrasePrefix('## ') },
+                    { label: 'B',  title: 'Negrita  →  **texto**', fn: () => wrapPhraseText('**', '**') },
+                    { label: '==', title: 'Texto amarillo  →  ==texto==', fn: () => wrapPhraseText('==', '==') },
+                    { label: '"',  title: 'Cita destacada  →  > texto', fn: () => insertPhrasePrefix('> ') },
+                    { label: '—',  title: 'Separador', fn: () => insertPhraseText('\n---\n') },
+                    { label: '¶',  title: 'Párrafo nuevo', fn: () => insertPhraseText('\n\n') },
+                  ].map(b => (
+                    <button key={b.label} type="button" title={b.title} onClick={b.fn}
+                      style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 4, color: 'rgba(255,255,255,0.55)', cursor: 'pointer', lineHeight: 1 }}>
+                      {b.label}
+                    </button>
+                  ))}
+                  <button type="button" disabled={uploadingImg} title="Insertar imagen"
+                    onClick={() => phraseImgInputRef.current?.click()}
+                    style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 4, color: uploadingImg ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.55)', cursor: 'pointer', lineHeight: 1 }}>
+                    {uploadingImg ? '...' : '📷'}
+                  </button>
+                  <input ref={phraseImgInputRef} type="file" accept="image/*" hidden
+                    onChange={e => {
+                      const file = e.target.files?.[0]; if (!file) return
+                      e.target.value = ''
+                      const ta = phraseDescRef.current
+                      const pos = ta?.selectionStart ?? phraseForm.description.length
+                      uploadContentImg(file, text => {
+                        const cur = phraseForm.description
+                        const newVal = cur.slice(0, pos) + (pos > 0 && cur[pos - 1] !== '\n' ? '\n' : '') + text + '\n' + cur.slice(pos)
+                        setPhraseForm(f => ({ ...f, description: newVal }))
+                      })
+                    }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <textarea ref={phraseDescRef} value={phraseForm.description}
+                    onChange={e => setPhraseForm(f => ({ ...f, description: e.target.value }))}
+                    rows={7} placeholder={'# Título\n## Subtítulo\nPárrafo...\n\n?¿Pregunta?'}
+                    className={iCls} style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: 12, lineHeight: 1.6 }} />
+                  <div style={{ padding: '10px 12px', background: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, minHeight: 80, overflowY: 'auto' }}>
+                    {phraseForm.description
+                      ? renderPhraseContent(phraseForm.description)
+                      : <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 11 }}>Vista previa en tiempo real...</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tags</p>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {[...new Set([...PHRASE_TAGS, ...extraPhraseTags, ...phraseTags])].map(tag => {
+                    const on = phraseTags.includes(tag)
+                    return (
+                      <button key={tag} type="button"
+                        onClick={() => setPhraseTags(prev => on ? prev.filter(t => t !== tag) : [...prev, tag])}
+                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20, border: `1px solid ${on ? 'rgba(239,255,66,0.5)' : 'rgba(255,255,255,0.1)'}`, background: on ? 'rgba(239,255,66,0.12)' : 'transparent', color: on ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
+                        #{tagLabel(tag)}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  <input value={newTagInput} onChange={e => setNewTagInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const t = newTagInput.trim().toLowerCase().replace(/\s+/g,'-'); if (t) { if (!phraseTags.includes(t)) setPhraseTags(prev => [...prev, t]); setExtraPhraseTags(prev => prev.includes(t) ? prev : [...prev, t]) }; setNewTagInput('') } }}
+                    placeholder="nuevo tag..." style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', fontSize: 11, color: '#fff', outline: 'none' }} />
+                  <button type="button" onClick={() => { const t = newTagInput.trim().toLowerCase().replace(/\s+/g,'-'); if (t) { if (!phraseTags.includes(t)) setPhraseTags(prev => [...prev, t]); setExtraPhraseTags(prev => prev.includes(t) ? prev : [...prev, t]) }; setNewTagInput('') }}
+                    style={{ padding: '4px 10px', borderRadius: 8, background: 'rgba(239,255,66,0.15)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>+ agregar</button>
+                </div>
               </div>
 
               {/* Idioma */}
@@ -4135,11 +4295,13 @@ export default function AdminPage() {
                     fd.append('image', phraseImage)
                     fd.append('description', phraseForm.description)
                     fd.append('language_code', phraseForm.language_code)
+                    fd.append('tags', phraseTags.join(','))
                     const r = await fetch('/api/phrases', { method: 'POST', headers: { 'x-admin-pass': pass }, body: fd })
                     const d = await r.json()
                     if (!r.ok) throw new Error(d.error || 'Error')
                     setAdminPhrases(prev => [d.phrase, ...prev])
                     setPhraseForm({ description: '', language_code: 'es' })
+                    setPhraseTags([])
                     setPhraseImage(null); setPhrasePreview(null)
                   } catch (err: unknown) {
                     setPhraseError(err instanceof Error ? err.message : 'Error')
@@ -4173,52 +4335,176 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {adminPhrases.map(ph => (
-                <div key={ph.id} className="rounded-xl overflow-hidden"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  {/* Imagen */}
-                  <div className="relative" style={{ paddingBottom: '56%' }}>
+              {/* Grilla compacta */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
+                {adminPhrases.map(ph => (
+                  <button key={ph.id} type="button"
+                    onClick={() => { setExpandedPhraseId(prev => prev === ph.id ? null : ph.id); setEditPhraseId(null) }}
+                    style={{ position: 'relative', paddingBottom: '100%', background: '#111', border: expandedPhraseId === ph.id ? '2px solid #efff42' : '2px solid transparent', borderRadius: 6, overflow: 'hidden', cursor: 'pointer' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={ph.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    <div className="absolute top-2 left-2 flex gap-1">
-                      <span style={{ fontSize: 9, fontWeight: 700, background: '#efff42', color: '#000', padding: '2px 7px', borderRadius: 10, letterSpacing: '0.08em' }}>
-                        {ph.language_code.toUpperCase()}
-                      </span>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        if (!confirm('¿Eliminar esta frase y todos sus comentarios?')) return
-                        await fetch(`/api/phrases/${ph.id}`, { method: 'DELETE', headers: { 'x-admin-pass': pass } })
-                        setAdminPhrases(prev => prev.filter(p => p.id !== ph.id))
-                      }}
-                      className="absolute top-2 right-2"
-                      style={{ background: 'rgba(255,50,50,0.7)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 8, cursor: 'pointer' }}>
-                      Eliminar
-                    </button>
-                  </div>
+                    <img src={ph.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {(ph.tags ?? []).length > 0 && (
+                      <div style={{ position: 'absolute', bottom: 3, left: 3, width: 6, height: 6, borderRadius: '50%', background: '#efff42' }} />
+                    )}
+                    {(ph.comment_count ?? 0) > 0 && (
+                      <div style={{ position: 'absolute', top: 3, right: 3, fontSize: 8, fontWeight: 800, background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '1px 4px', borderRadius: 8 }}>
+                        {ph.comment_count}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
 
-                  {/* Info */}
-                  <div style={{ padding: '10px 14px' }}>
-                    {ph.description && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8, lineHeight: 1.5 }}>{ph.description}</p>}
+              {/* Panel expandido */}
+              {expandedPhraseId && (() => {
+                const ph = adminPhrases.find(p => p.id === expandedPhraseId)
+                if (!ph) return null
+                return (
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
+                    {/* Portada pequeña + acciones */}
+                    <div style={{ display: 'flex', gap: 10, padding: '10px 12px', alignItems: 'center' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={ph.image_url} alt="" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', margin: '0 0 4px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                          {ph.language_code.toUpperCase()} · {new Date(ph.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                        </p>
+                        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                          {(ph.tags ?? []).map(t => (
+                            <span key={t} style={{ fontSize: 9, fontWeight: 700, background: 'rgba(239,255,66,0.12)', color: '#efff42', padding: '1px 6px', borderRadius: 10 }}>#{t}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
+                        <button type="button"
+                          onClick={() => { setEditPhraseId(prev => prev === ph.id ? null : ph.id); setEditPhraseDesc(ph.description || ''); setEditPhraseLang(ph.language_code); setEditPhraseTags((ph as AdminPhrase & { tags?: string[] }).tags || []) }}
+                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: editPhraseId === ph.id ? '#efff42' : 'rgba(255,255,255,0.07)', color: editPhraseId === ph.id ? '#000' : 'rgba(255,255,255,0.6)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                          {editPhraseId === ph.id ? 'Cerrar editor' : 'Editar'}
+                        </button>
+                        <button type="button"
+                          onClick={async () => {
+                            if (expandedPhraseId === ph.id && phraseComments[ph.id]) return
+                            setLoadingPhraseComments(ph.id)
+                            try {
+                              const r = await fetch(`/api/phrases/${ph.id}/comments`)
+                              const d = await r.json()
+                              if (Array.isArray(d.comments)) setPhraseCommentsAdmin(prev => ({ ...prev, [ph.id]: d.comments }))
+                            } finally { setLoadingPhraseComments(null) }
+                          }}
+                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: 'rgba(255,255,255,0.07)', color: 'rgba(239,255,66,0.7)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                          {(ph.comment_count ?? 0) > 0 ? `${ph.comment_count} com.` : 'Ver com.'}
+                        </button>
+                        <button type="button"
+                          onClick={async () => {
+                            if (!confirm('¿Eliminar?')) return
+                            await fetch(`/api/phrases/${ph.id}`, { method: 'DELETE', headers: { 'x-admin-pass': pass } })
+                            setAdminPhrases(prev => prev.filter(p => p.id !== ph.id))
+                            setExpandedPhraseId(null)
+                          }}
+                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: 'rgba(255,50,50,0.15)', color: 'rgba(255,80,80,0.7)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Editor */}
+                    {editPhraseId === ph.id && (
+                      <div style={{ padding: '0 12px 12px' }}>
+                        <div style={{ display: 'flex', gap: 4, marginBottom: 5, flexWrap: 'wrap' }}>
+                          {[
+                            { label: 'H1', fn: () => insertEditPrefix('# ') },
+                            { label: 'H2', fn: () => insertEditPrefix('## ') },
+                            { label: 'B',  fn: () => wrapEditText('**', '**') },
+                            { label: '==', fn: () => wrapEditText('==', '==') },
+                            { label: '"',  fn: () => insertEditPrefix('> ') },
+                            { label: '—',  fn: () => insertEditText('\n---\n') },
+                            { label: '¶',  fn: () => insertEditText('\n\n') },
+                          ].map(b => (
+                            <button key={b.label} type="button" onClick={b.fn}
+                              style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, color: 'rgba(255,255,255,0.5)', cursor: 'pointer', lineHeight: 1 }}>
+                              {b.label}
+                            </button>
+                          ))}
+                          <button type="button" disabled={uploadingImg} onClick={() => editImgInputRef.current?.click()}
+                            style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, color: uploadingImg ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)', cursor: 'pointer', lineHeight: 1 }}>
+                            {uploadingImg ? '...' : '📷'}
+                          </button>
+                          <input ref={editImgInputRef} type="file" accept="image/*" hidden
+                            onChange={e => {
+                              const file = e.target.files?.[0]; if (!file) return
+                              e.target.value = ''
+                              const ta = editPhraseDescRef.current
+                              const pos = ta?.selectionStart ?? editPhraseDesc.length
+                              uploadContentImg(file, text => {
+                                setEditPhraseDesc(cur => cur.slice(0, pos) + (pos > 0 && cur[pos - 1] !== '\n' ? '\n' : '') + text + '\n' + cur.slice(pos))
+                              })
+                            }} />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8 }}>
+                          <textarea ref={editPhraseDescRef} value={editPhraseDesc} onChange={e => setEditPhraseDesc(e.target.value)}
+                            rows={6} placeholder={'# Título\n## Subtítulo\nTexto...'}
+                            className={iCls} style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: 11, lineHeight: 1.6 }} />
+                          <div style={{ padding: '8px 10px', background: '#18181b', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 6, overflowY: 'auto' }}>
+                            {editPhraseDesc ? renderPhraseContent(editPhraseDesc) : <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 11 }}>Vista previa...</span>}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                          {[...new Set([...PHRASE_TAGS, ...editExtraPhraseTags, ...editPhraseTags])].map(tag => {
+                            const on = editPhraseTags.includes(tag)
+                            return (
+                              <button key={tag} type="button"
+                                onClick={() => setEditPhraseTags(prev => on ? prev.filter(t => t !== tag) : [...prev, tag])}
+                                style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 20, border: `1px solid ${on ? 'rgba(239,255,66,0.5)' : 'rgba(255,255,255,0.1)'}`, background: on ? 'rgba(239,255,66,0.12)' : 'transparent', color: on ? '#efff42' : 'rgba(255,255,255,0.3)', cursor: 'pointer' }}>
+                                #{tag}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                          <input value={editNewTagInput} onChange={e => setEditNewTagInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const t = editNewTagInput.trim().toLowerCase().replace(/\s+/g,'-'); if (t) { if (!editPhraseTags.includes(t)) setEditPhraseTags(prev => [...prev, t]); setEditExtraPhraseTags(prev => prev.includes(t) ? prev : [...prev, t]) }; setEditNewTagInput('') } }}
+                            placeholder="nuevo tag..." style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '3px 7px', fontSize: 10, color: '#fff', outline: 'none' }} />
+                          <button type="button" onClick={() => { const t = editNewTagInput.trim().toLowerCase().replace(/\s+/g,'-'); if (t) { if (!editPhraseTags.includes(t)) setEditPhraseTags(prev => [...prev, t]); setEditExtraPhraseTags(prev => prev.includes(t) ? prev : [...prev, t]) }; setEditNewTagInput('') }}
+                            style={{ padding: '3px 8px', borderRadius: 8, background: 'rgba(239,255,66,0.15)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>+ agregar</button>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
+                          <select value={editPhraseLang} onChange={e => setEditPhraseLang(e.target.value)}
+                            className={iCls} style={{ width: 70, padding: '4px 6px', fontSize: 11 }}>
+                            <option value="es">ES</option>
+                            <option value="en">EN</option>
+                            <option value="pt">PT</option>
+                          </select>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button type="button" disabled={savingEditPhrase}
+                            onClick={async () => {
+                              setSavingEditPhrase(true)
+                              try {
+                                const r = await fetch(`/api/phrases/${ph.id}`, {
+                                  method: 'PATCH',
+                                  headers: { 'x-admin-pass': pass, 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ description: editPhraseDesc || null, language_code: editPhraseLang, tags: editPhraseTags }),
+                                })
+                                if (r.ok) {
+                                  setAdminPhrases(prev => prev.map(p => p.id === ph.id ? { ...p, description: editPhraseDesc || null, language_code: editPhraseLang, tags: editPhraseTags } : p))
+                                  setEditPhraseId(null)
+                                }
+                              } finally { setSavingEditPhrase(false) }
+                            }}
+                            style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', background: '#efff42', color: '#000', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                            {savingEditPhrase ? 'Guardando...' : 'Guardar'}
+                          </button>
+                          <button type="button" onClick={() => setEditPhraseId(null)}
+                            style={{ fontSize: 11, padding: '4px 12px', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Comentarios */}
-                    <button
-                      onClick={async () => {
-                        if (expandedPhraseId === ph.id) { setExpandedPhraseId(null); return }
-                        setExpandedPhraseId(ph.id)
-                        setLoadingPhraseComments(ph.id)
-                        try {
-                          const r = await fetch(`/api/phrases/${ph.id}/comments`)
-                          const d = await r.json()
-                          if (Array.isArray(d.comments)) setPhraseCommentsAdmin(prev => ({ ...prev, [ph.id]: d.comments }))
-                        } finally { setLoadingPhraseComments(null) }
-                      }}
-                      style={{ fontSize: 11, color: 'rgba(239,255,66,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                      {expandedPhraseId === ph.id ? '▲ ocultar comentarios' : '▼ ver comentarios'}
-                    </button>
-
-                    {expandedPhraseId === ph.id && (
-                      <div style={{ marginTop: 10 }}>
+                    {phraseComments[ph.id] && (
+                      <div style={{ padding: '0 12px 12px' }}>
                         {loadingPhraseComments === ph.id ? (
                           <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>cargando...</p>
                         ) : (phraseComments[ph.id] || []).length === 0 ? (
@@ -4232,14 +4518,11 @@ export default function AdminPage() {
                                   <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>{c.artist_name || c.guest_name}</p>
                                   <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>{c.content}</p>
                                 </div>
-                                <button
-                                  onClick={async () => {
+                                <button onClick={async () => {
                                     await fetch(`/api/phrases/${ph.id}/comments/${c.id}`, { method: 'DELETE', headers: { 'x-admin-pass': pass } })
                                     setPhraseCommentsAdmin(prev => ({ ...prev, [ph.id]: (prev[ph.id] || []).filter(x => x.id !== c.id) }))
                                   }}
-                                  style={{ fontSize: 10, color: 'rgba(255,80,80,0.5)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
-                                  ✕
-                                </button>
+                                  style={{ fontSize: 10, color: 'rgba(255,80,80,0.5)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>✕</button>
                               </div>
                             ))}
                           </div>
@@ -4247,8 +4530,8 @@ export default function AdminPage() {
                       </div>
                     )}
                   </div>
-                </div>
-              ))}
+                )
+              })()}
 
               {adminPhrases.length === 0 && !loadingPhrases && (
                 <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '20px 0' }}>

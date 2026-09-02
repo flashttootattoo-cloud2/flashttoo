@@ -10,6 +10,7 @@ import ConventionModal from '@/components/ConventionModal'
 import StudioPanel from '@/components/StudioPanel'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 import { useTranslation } from '@/contexts/TranslationContext'
+import { renderPhraseContent } from '@/components/PhraseContent'
 
 function BioText({ text, style }: { text: string; style?: React.CSSProperties }) {
   const parts = text.split(/(@[a-zA-Z0-9_.]{1,30})/g)
@@ -54,8 +55,18 @@ type ContentCard = {
 
 type Phrase = {
   id: string; image_url: string; description: string | null; language_code: string
+  created_at: string; tags?: string[]
   recent_commenters: { id: string; emoji: string | null; photo_url: string | null }[]
   comment_count: number
+}
+const PHRASE_TAGS = ['tatuaje','técnica','cultura','arte','diseño','cuidados','minimalista','color','tradicional','blackwork','realismo','geometría','lettering','historia','inspiración']
+function phraseReadingTime(desc: string | null): number | null {
+  if (!desc) return null
+  const words = desc.replace(/^\[img:[^\]]+\]$/gm, '').replace(/^[#>]+\s*/gm, '').replace(/\*\*|\?/g, '').split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.round(words / 180))
+}
+function formatPhraseDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 type PhraseComment = {
   id: string; artist_id: string | null; studio_id: string | null; guest_name: string | null; guest_emoji: string | null
@@ -195,6 +206,7 @@ export default function Home() {
   const [flashLinkCopied, setFlashLinkCopied] = useState(false)
   const artistMenuRef = useRef<HTMLDivElement>(null)
   const [phrases, setPhrases] = useState<Phrase[]>([])
+  const [activeTag, setActiveTag] = useState<string | null>(null)
   const [phrase, setPhrase] = useState<Phrase | null>(null)
   const [phraseOpen, setPhraseOpen] = useState(false)
   const phraseOpenRef = useRef(false)
@@ -409,16 +421,23 @@ export default function Home() {
         history.replaceState({}, '', '/')
         const target = list.find((p: Phrase) => p.id === phraseDeepLink)
         if (target) { openPhrase(target); return }
-        fetch(`/api/phrases?lang=es`).then(r => r.json()).then(d2 => {
-          const all = d2.phrases ?? []
-          const t2 = all.find((p: Phrase) => p.id === phraseDeepLink)
-          if (t2) openPhrase(t2)
+        fetch(`/api/phrases/${phraseDeepLink}`).then(r => r.json()).then(d2 => {
+          if (d2.phrase) openPhrase(d2.phrase)
         }).catch(() => {})
       } else {
         setPhrase(list[0] ?? null)
       }
     }).catch(() => {})
   }, [language])
+
+  useEffect(() => {
+    if (activeTag === null) return
+    fetch(`/api/phrases?lang=${language}&tag=${encodeURIComponent(activeTag)}`).then(r => r.json()).then(d => {
+      const list = d.phrases ?? []
+      setPhrases(list)
+      setPhrase(list[0] ?? null)
+    }).catch(() => {})
+  }, [activeTag, language])
 
   useEffect(() => {
     const loadAds = async (): Promise<Ad[]> => {
@@ -893,6 +912,21 @@ export default function Home() {
     window.location.hash = 'frase'
   }, [phrase, loadPhraseComments])
 
+  // Evento disparado desde cultura para abrir un artículo
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail
+      if (!id) return
+      const target = phrases.find(p => p.id === id)
+      if (target) { openPhrase(target); return }
+      fetch(`/api/phrases/${id}`).then(r => r.json()).then(d => {
+        if (d.phrase) openPhrase(d.phrase)
+      }).catch(() => {})
+    }
+    window.addEventListener('open-phrase', handler)
+    return () => window.removeEventListener('open-phrase', handler)
+  }, [phrases, openPhrase])
+
   function getGuestCount(phraseId: string): number {
     try { return JSON.parse(localStorage.getItem('flashttoo_phrase_comments') || '{}')[phraseId] || 0 } catch { return 0 }
   }
@@ -1295,6 +1329,15 @@ export default function Home() {
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.15)', letterSpacing: '0.05em' }}>
             {totalActiveArtists} {totalActiveArtists !== 1 ? t('inicio', 'count_plural', 'tatuadores') : t('inicio', 'count_singular', 'tatuador')}
           </p>
+        </div>
+      )}
+
+      {/* Banner filtro por tag */}
+      {activeTag && (
+        <div style={{ padding: '8px 20px', background: 'rgba(239,255,66,0.07)', borderBottom: '1px solid rgba(239,255,66,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, color: '#efff42', fontWeight: 600 }}>#{activeTag}</span>
+          <button onClick={() => { setActiveTag(null); fetch(`/api/phrases?lang=${language}`).then(r => r.json()).then(d => { const list = d.phrases ?? []; setPhrases(list); setPhrase(list[0] ?? null) }).catch(() => {}) }}
+            style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>✕ quitar filtro</button>
         </div>
       )}
 
@@ -2512,7 +2555,7 @@ export default function Home() {
                     ←
                   </button>
                   <button onClick={() => {
-                    const url = `${window.location.origin}/?frase=${phrase.id}`
+                    const url = `${window.location.origin}/articulo/${phrase.id}`
                     if (navigator.share) {
                       navigator.share({ url }).catch(() => {})
                     } else {
@@ -2529,14 +2572,28 @@ export default function Home() {
                 </div>
                 {phrase.description && (
                   <div style={{
-                    background: '#efff42',
-                    borderRadius: '0 0 18px 18px',
-                    padding: '20px 18px 16px',
-                    marginTop: -16,
+                    background: '#18181b',
+                    padding: '18px 20px 20px',
+                    marginTop: -20,
                     position: 'relative',
                     zIndex: 1,
+                    borderTop: '2.5px solid #efff42',
                   }}>
-                    <p style={{ fontSize: 14, color: '#111', lineHeight: 1.65, margin: 0, fontWeight: 500 }}>{phrase.description}</p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', marginBottom: phrase.tags?.length ? 10 : 14 }}>
+                      {formatPhraseDate(phrase.created_at)}
+                      {phraseReadingTime(phrase.description) !== null && ` · ${phraseReadingTime(phrase.description)} min`}
+                    </p>
+                    {phrase.tags && phrase.tags.length > 0 && (
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 14 }}>
+                        {phrase.tags.map(tag => (
+                          <button key={tag} onClick={() => { setPhraseOpen(false); setActiveTag(tag) }}
+                            style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '3px 9px', background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, color: '#efff42', cursor: 'pointer', textTransform: 'lowercase' }}>
+                            #{tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {renderPhraseContent(phrase.description)}
                   </div>
                 )}
               </div>
@@ -2732,6 +2789,32 @@ export default function Home() {
                   )}
                 </div>
               </div>
+
+              {/* Siguiente artículo */}
+              {(() => {
+                const idx = phrases.findIndex(p => p.id === phrase.id)
+                const next = phrases[(idx + 1) % phrases.length]
+                if (!next || next.id === phrase.id) return null
+                return (
+                  <div style={{ padding: '18px 16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 10 }}>{t('phrases', 'next', 'Siguiente')}</p>
+                    <button onClick={() => openPhrase(next)} style={{ width: '100%', display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px', cursor: 'pointer', textAlign: 'left' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={next.image_url} alt="" style={{ width: 52, height: 52, borderRadius: 7, objectFit: 'cover', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {next.description && (() => {
+                          const titleLine = next.description.split('\n').find(l => l.startsWith('# '))
+                          return titleLine
+                            ? <p style={{ fontSize: 13, fontWeight: 700, color: '#f4f4f5', lineHeight: 1.3, marginBottom: 2 }}>{titleLine.slice(2)}</p>
+                            : null
+                        })()}
+                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{formatPhraseDate(next.created_at)}</p>
+                      </div>
+                      <span style={{ color: '#efff42', fontSize: 16, flexShrink: 0 }}>→</span>
+                    </button>
+                  </div>
+                )
+              })()}
 
             </div>
           </div>
