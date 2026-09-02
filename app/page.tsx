@@ -418,7 +418,6 @@ export default function Home() {
       const list = d.phrases ?? []
       setPhrases(list)
       if (phraseDeepLink) {
-        history.replaceState({}, '', '/')
         const target = list.find((p: Phrase) => p.id === phraseDeepLink)
         if (target) { openPhrase(target); return }
         fetch(`/api/phrases/${phraseDeepLink}`).then(r => r.json()).then(d2 => {
@@ -864,7 +863,7 @@ export default function Home() {
     return () => {
       window.removeEventListener('popstate', h)
       if (window.location.hash === '#frase') {
-        history.replaceState({}, '', window.location.pathname + window.location.search)
+        history.replaceState({}, '', '/')
       }
     }
   }, [phraseOpen])

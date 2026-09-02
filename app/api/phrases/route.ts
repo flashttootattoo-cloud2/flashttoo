@@ -22,11 +22,12 @@ export async function GET(req: NextRequest) {
     .eq('active', true)
   if (tag) {
     query = query.contains('tags', [tag])
-  } else {
-    // Excluir contenido de cultura (frases con tags)
-    query = query.or('tags.is.null,tags.eq.{}')
   }
-  const { data: phrases } = await query.limit(tag ? 50 : 10)
+  const { data: allPhrases } = await query.limit(tag ? 50 : 100)
+  // Excluir cultura (frases con tags) del feed principal
+  const phrases = tag
+    ? allPhrases
+    : (allPhrases || []).filter(p => !p.tags || p.tags.length === 0)
 
   // Mezclar aleatoriamente
   if (phrases) {
