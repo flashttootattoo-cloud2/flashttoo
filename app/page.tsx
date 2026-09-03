@@ -2430,9 +2430,7 @@ export default function Home() {
                         const r = await fetch(`/api/studios/${loggedStudio.slug}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access_token: loggedStudio.access_token, flashnews: flashnewsText.trim(), flashnews_at: now }) })
                         if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.status.toString()) }
                       } else if (flashnewsFor === 'artist' && loggedArtist) {
-                        const myArtist = artists.find(x => x.id === loggedArtist.id)
-                        if (!myArtist) throw new Error('artista no encontrado')
-                        const r = await fetch(`/api/artists/${myArtist.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access_token: loggedArtist.access_token, flashnews: flashnewsText.trim(), flashnews_at: now }) })
+                        const r = await fetch(`/api/artists/${loggedArtist.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access_token: loggedArtist.access_token, flashnews: flashnewsText.trim(), flashnews_at: now }) })
                         if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.status.toString()) }
                         setArtists(prev => prev.map(a => a.id === loggedArtist.id ? { ...a, flashnews: flashnewsText.trim(), flashnews_at: now } : a))
                       }
