@@ -67,7 +67,7 @@ export default function AgregarPage() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (stylesRef.current && !stylesRef.current.contains(e.target as Node)) setStylesOpen(false)
-      setGalleryStylesOpen(null)
+      if (!(e.target as Element).closest('[data-gallery-styles]')) setGalleryStylesOpen(null)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -500,9 +500,8 @@ export default function AgregarPage() {
                     </div>
                     {/* Etiquetas de estilo — solo si hay foto */}
                     {galleryPreviews[i] && (
-                      <div className="relative">
+                      <div className="relative" data-gallery-styles>
                         <button type="button"
-                          onMouseDown={e => e.stopPropagation()}
                           onClick={() => setGalleryStylesOpen(galleryStylesOpen === i ? null : i)}
                           className="w-full text-left px-2 py-1 rounded-lg text-xs"
                           style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${galleryPhotoStyles[i].length ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.08)'}`, color: galleryPhotoStyles[i].length ? '#efff42' : 'rgba(255,255,255,0.2)', minHeight: 28 }}>
@@ -512,7 +511,6 @@ export default function AgregarPage() {
                         </button>
                         {galleryStylesOpen === i && (
                           <div className="rounded-xl mt-1 overflow-y-auto"
-                            onMouseDown={e => e.stopPropagation()}
                             style={{ position: 'absolute', left: 0, right: 0, zIndex: 10, background: '#141414', border: '1px solid rgba(255,255,255,0.1)', maxHeight: 200, minWidth: 140 }}>
                             <div className="flex flex-col">
                               {allStyles.map((s: string) => {
