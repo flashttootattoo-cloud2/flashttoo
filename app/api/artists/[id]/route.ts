@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ artist: updated })
   }
 
-  const allowed = ['name', 'city', 'country', 'styles', 'bio', 'instagram', 'whatsapp', 'email', 'show_email', 'interview', 'visits', 'gallery_photo_1', 'gallery_photo_2', 'gallery_photo_3', 'gallery_photo_1_styles', 'gallery_photo_2_styles', 'gallery_photo_3_styles']
+  const allowed = ['name', 'city', 'country', 'styles', 'bio', 'instagram', 'whatsapp', 'email', 'show_email', 'interview', 'visits', 'gallery_photo_1', 'gallery_photo_2', 'gallery_photo_3', 'gallery_photo_1_styles', 'gallery_photo_2_styles', 'gallery_photo_3_styles', 'flashnews', 'flashnews_at']
   const updates: Record<string, unknown> = {}
   for (const k of allowed) { if (k in fields) updates[k] = fields[k] }
 
