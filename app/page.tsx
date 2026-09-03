@@ -2428,17 +2428,17 @@ export default function Home() {
                       const now = new Date().toISOString()
                       if (flashnewsFor === 'studio' && loggedStudio) {
                         const r = await fetch(`/api/studios/${loggedStudio.slug}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access_token: loggedStudio.access_token, flashnews: flashnewsText.trim(), flashnews_at: now }) })
-                        if (!r.ok) throw new Error()
+                        if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.status.toString()) }
                       } else if (flashnewsFor === 'artist' && loggedArtist) {
                         const myArtist = artists.find(x => x.id === loggedArtist.id)
-                        if (!myArtist) throw new Error()
+                        if (!myArtist) throw new Error('artista no encontrado')
                         const r = await fetch(`/api/artists/${myArtist.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access_token: loggedArtist.access_token, flashnews: flashnewsText.trim(), flashnews_at: now }) })
-                        if (!r.ok) throw new Error()
+                        if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.status.toString()) }
                         setArtists(prev => prev.map(a => a.id === loggedArtist.id ? { ...a, flashnews: flashnewsText.trim(), flashnews_at: now } : a))
                       }
                       setShowFlashnewsModal(false)
                       setFlashnewsText('')
-                    } catch { setFlashnewsError('Error al publicar, intentá de nuevo.') } finally { setSavingFlashnews(false) }
+                    } catch (err) { setFlashnewsError('Error: ' + (err instanceof Error ? err.message : 'intentá de nuevo')) } finally { setSavingFlashnews(false) }
                   }}
                   style={{ width: '100%', padding: '13px', borderRadius: 12, background: flashnewsText.trim() ? '#efff42' : 'rgba(255,255,255,0.06)', border: 'none', color: flashnewsText.trim() ? '#000' : 'rgba(255,255,255,0.2)', fontSize: 14, fontWeight: 700, cursor: flashnewsText.trim() ? 'pointer' : 'default', transition: 'all 0.2s' }}>
                   {savingFlashnews ? 'Publicando...' : 'Publicar Flashnews'}
