@@ -220,7 +220,13 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       rafId = requestAnimationFrame(tick)
     }
     rafId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafId)
+    const onVisible = () => { if (!document.hidden) dragRef.current.on = false }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('blur', () => { dragRef.current.on = false })
+    return () => {
+      cancelAnimationFrame(rafId)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [sponsors])
 
   useEffect(() => {
@@ -883,7 +889,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             padding: '0 20px',
             userSelect: 'none', touchAction: 'pan-x', cursor: 'grab',
           }}>
-          <div style={{ maxWidth: '80rem', margin: '0 auto', background: '#000', borderRadius: '14px 14px 0 0', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}>
+          <div style={{ maxWidth: '80rem', margin: '0 auto', background: '#000', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}>
             <div style={{ overflow: 'hidden', padding: '16px 16px 16px' }}>
               <div ref={trackRef} style={{ display: 'flex', willChange: 'transform', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', isolation: 'isolate' }}>
                 <div ref={firstRef} style={{ display: 'flex', gap: bannerGap, paddingRight: bannerGap, flexShrink: 0 }}>

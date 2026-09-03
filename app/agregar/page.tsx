@@ -67,6 +67,7 @@ export default function AgregarPage() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (stylesRef.current && !stylesRef.current.contains(e.target as Node)) setStylesOpen(false)
+      setGalleryStylesOpen(null)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -86,6 +87,8 @@ export default function AgregarPage() {
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [galleryFiles, setGalleryFiles]     = useState<(File | null)[]>([null, null, null])
   const [galleryPreviews, setGalleryPreviews] = useState<(string | null)[]>([null, null, null])
+  const [galleryPhotoStyles, setGalleryPhotoStyles] = useState<string[][]>([[], [], []])
+  const [galleryStylesOpen, setGalleryStylesOpen] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/api/config').then(r => r.json()).then(d => setModeration(!!d.moderation)).catch(() => {})
@@ -149,7 +152,15 @@ export default function AgregarPage() {
   const clearGallerySlot = (index: number) => {
     setGalleryFiles(prev => { const next = [...prev]; next[index] = null; return next })
     setGalleryPreviews(prev => { const next = [...prev]; next[index] = null; return next })
+    setGalleryPhotoStyles(prev => { const next = [...prev]; next[index] = []; return next })
   }
+
+  const toggleGalleryStyle = (index: number, s: string) =>
+    setGalleryPhotoStyles(prev => {
+      const next = [...prev]
+      next[index] = next[index].includes(s) ? next[index].filter(x => x !== s) : [...next[index], s]
+      return next
+    })
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
@@ -160,6 +171,13 @@ export default function AgregarPage() {
     if (!photo) { setError(t('agregar', 'error_photo', 'Agregá una foto')); return }
     if (styles.length === 0) { setError(t('agregar', 'error_styles', 'Elegí al menos un estilo')); return }
     if (!form.instagram.trim()) { setError(t('agregar', 'error_instagram', 'Ingresá tu usuario de Instagram')); return }
+    for (let i = 0; i < 3; i++) {
+      if (galleryPreviews[i] && galleryPhotoStyles[i].length === 0) {
+        const msg = t('edit', 'gallery_tag_required', 'La foto {n} de galería necesita al menos una etiqueta de estilo.')
+        setError(msg.replace('{n}', String(i + 1)))
+        return
+      }
+    }
 
     setLoading(true)
     try {
@@ -213,6 +231,9 @@ export default function AgregarPage() {
         gallery_photo_1: galleryUrls[0],
         gallery_photo_2: galleryUrls[1],
         gallery_photo_3: galleryUrls[2],
+        gallery_photo_1_styles: galleryPhotoStyles[0],
+        gallery_photo_2_styles: galleryPhotoStyles[1],
+        gallery_photo_3_styles: galleryPhotoStyles[2],
         ...(submitUserId ? { user_id: submitUserId, auth_email: submitAuthEmail, tyc_accepted_at: new Date().toISOString() } : {}),
       })
       if (insErr) {
@@ -454,26 +475,60 @@ export default function AgregarPage() {
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {[0, 1, 2].map(i => (
-                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    {galleryPreviews[i] ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={galleryPreviews[i]!} alt={`galería ${i + 1}`} className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => clearGallerySlot(i)}
-                          className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                          style={{ background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.8)' }}>×</button>
-                        <label className="absolute inset-0 cursor-pointer flex items-end justify-center pb-1.5 opacity-0 hover:opacity-100 transition-opacity"
-                          style={{ background: 'rgba(0,0,0,0.4)' }}>
-                          <span className="text-xs text-white">cambiar</span>
+                  <div key={i} className="flex flex-col gap-1">
+                    <div className="relative aspect-square rounded-xl overflow-hidden"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      {galleryPreviews[i] ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={galleryPreviews[i]!} alt={`galería ${i + 1}`} className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => clearGallerySlot(i)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                            style={{ background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.8)' }}>×</button>
+                          <label className="absolute inset-0 cursor-pointer flex items-end justify-center pb-1.5 opacity-0 hover:opacity-100 transition-opacity"
+                            style={{ background: 'rgba(0,0,0,0.4)' }}>
+                            <span className="text-xs text-white">cambiar</span>
+                            <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
+                          </label>
+                        </>
+                      ) : (
+                        <label className="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-white/5 transition-colors">
+                          <span className="text-2xl" style={{ color: 'rgba(255,255,255,0.15)' }}>+</span>
                           <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
                         </label>
-                      </>
-                    ) : (
-                      <label className="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-white/5 transition-colors">
-                        <span className="text-2xl" style={{ color: 'rgba(255,255,255,0.15)' }}>+</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={e => handleGalleryPhoto(i, e)} />
-                      </label>
+                      )}
+                    </div>
+                    {/* Etiquetas de estilo — solo si hay foto */}
+                    {galleryPreviews[i] && (
+                      <div className="relative">
+                        <button type="button"
+                          onClick={() => setGalleryStylesOpen(galleryStylesOpen === i ? null : i)}
+                          className="w-full text-left px-2 py-1 rounded-lg text-xs"
+                          style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${galleryPhotoStyles[i].length ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.08)'}`, color: galleryPhotoStyles[i].length ? '#efff42' : 'rgba(255,255,255,0.2)', minHeight: 28 }}>
+                          {galleryPhotoStyles[i].length === 0
+                            ? t('agregar', 'gallery_add_style', '+ estilo')
+                            : galleryPhotoStyles[i].join(', ')}
+                        </button>
+                        {galleryStylesOpen === i && (
+                          <div className="rounded-xl mt-1 overflow-y-auto"
+                            style={{ position: 'absolute', left: 0, right: 0, zIndex: 10, background: '#141414', border: '1px solid rgba(255,255,255,0.1)', maxHeight: 200, minWidth: 140 }}>
+                            <div className="flex flex-col">
+                              {allStyles.map((s: string) => {
+                                const on = galleryPhotoStyles[i].includes(s)
+                                const disabled = !on && galleryPhotoStyles[i].length >= 3
+                                return (
+                                  <button key={s} type="button"
+                                    onClick={() => { if (!disabled) toggleGalleryStyle(i, s) }}
+                                    className="flex items-center justify-between px-3 py-2 text-xs text-left"
+                                    style={{ background: on ? 'rgba(239,255,66,0.1)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)', color: disabled ? 'rgba(255,255,255,0.2)' : on ? '#efff42' : 'rgba(255,255,255,0.55)', fontWeight: on ? 700 : 400, cursor: disabled ? 'not-allowed' : 'pointer' }}>
+                                    {s} {on && <span style={{ color: '#efff42' }}>✓</span>}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}

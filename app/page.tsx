@@ -203,6 +203,17 @@ export default function Home() {
   const [loggedStudio, setLoggedStudio] = useState<{ slug: string; name: string; logo_url: string | null; visible: boolean; access_token: string; refresh_token?: string } | null>(null)
   const [studioMenuOpen, setStudioMenuOpen] = useState(false)
   const studioMenuRef = useRef<HTMLDivElement>(null)
+  const [showFlashDayModal, setShowFlashDayModal] = useState(false)
+  const [fdFile, setFdFile] = useState<File | null>(null)
+  const [fdPreview, setFdPreview] = useState<string | null>(null)
+  const [fdDate, setFdDate] = useState('')
+  const [addingFd, setAddingFd] = useState(false)
+  const [fdError, setFdError] = useState('')
+  const [studioFlashDays, setStudioFlashDays] = useState<{ id: string; flyer_url: string; date: string }[]>([])
+  const [showHiringModal, setShowHiringModal] = useState(false)
+  const [hiringActive, setHiringActive] = useState(false)
+  const [hiringRole, setHiringRole] = useState<'guest artist' | 'residente'>('guest artist')
+  const [savingHiring, setSavingHiring] = useState(false)
   const [flashLinkCopied, setFlashLinkCopied] = useState(false)
   const artistMenuRef = useRef<HTMLDivElement>(null)
   const [phrases, setPhrases] = useState<Phrase[]>([])
@@ -899,6 +910,62 @@ export default function Home() {
     }
   }, [])
 
+  const handleFdFlyer = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return
+    setFdPreview(URL.createObjectURL(file))
+    const img = new window.Image()
+    img.onload = () => {
+      const MAX = 1200; let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => { if (blob) setFdFile(new File([blob], 'flyer.webp', { type: 'image/webp' })) }, 'image/webp', 0.88)
+    }
+    img.src = URL.createObjectURL(file)
+  }
+
+  const addFlashDay = async () => {
+    if (!fdFile || !fdDate || !loggedStudio) return
+    setAddingFd(true); setFdError('')
+    try {
+      const fd = new FormData()
+      fd.append('file', fdFile)
+      fd.append('path', `flash-day-${loggedStudio.slug}-${Date.now()}.webp`)
+      const up = await fetch('/api/upload', { method: 'POST', body: fd })
+      if (!up.ok) throw new Error('Error al subir flyer')
+      const { url } = await up.json()
+      const r = await fetch(`/api/studios/${loggedStudio.slug}/flash-days`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: loggedStudio.access_token, flyer_url: url, date: fdDate }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Error')
+      setFlashDays(prev => [...prev, { ...d.flashDay, studio_slug: loggedStudio.slug, studio_name: loggedStudio.name }].sort((a, b) => a.date.localeCompare(b.date)))
+      setStudioFlashDays(prev => [...prev, d.flashDay].sort((a: { date: string }, b: { date: string }) => a.date.localeCompare(b.date)))
+      setFdDate(''); setFdFile(null); setFdPreview(null)
+    } catch (e: unknown) {
+      setFdError(e instanceof Error ? e.message : 'Error')
+    } finally { setAddingFd(false) }
+  }
+
+  const removeStudioFlashDay = async (id: string) => {
+    if (!loggedStudio) return
+    const r = await fetch(`/api/studios/${loggedStudio.slug}/flash-days`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: loggedStudio.access_token, id }),
+    })
+    if (r.ok) {
+      setStudioFlashDays(prev => prev.filter(f => f.id !== id))
+      setFlashDays(prev => prev.filter(f => f.id !== id))
+    }
+  }
+
   const openPhrase = useCallback((target?: Phrase) => {
     const p = target ?? phrase
     if (!p) return
@@ -1037,7 +1104,29 @@ export default function Home() {
                     <button
                       onClick={() => { setStudioMenuOpen(false); openStudio(loggedStudio.slug) }}
                       style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                      Ver perfil
+                      {t('estudio', 'view_profile', 'Ver perfil')}
+                    </button>
+                    {/* Convocatoria */}
+                    <button
+                      onClick={() => {
+                        setStudioMenuOpen(false)
+                        fetch(`/api/studios/${loggedStudio.slug}`).then(r => r.json()).then(d => {
+                          setHiringActive(d.studio?.hiring ?? false)
+                          setHiringRole(d.studio?.hiring_role === 'residente' ? 'residente' : 'guest artist')
+                          setShowHiringModal(true)
+                        }).catch(() => setShowHiringModal(true))
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('estudio', 'hiring_title', 'Convocatoria')}
+                    </button>
+                    {/* Flash day */}
+                    <button
+                      onClick={() => {
+                        setStudioMenuOpen(false); setShowFlashDayModal(true)
+                        fetch(`/api/studios/${loggedStudio.slug}/flash-days`).then(r => r.json()).then(d => setStudioFlashDays(d.flashDays ?? [])).catch(() => {})
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('estudio', 'publish_flash_day', 'Publicar Flash Day')}
                     </button>
                     {/* Editar perfil */}
                     <button
@@ -2126,6 +2215,117 @@ export default function Home() {
       )}
 
 {/* ── PANEL DE REPORTE ─────────────────────────────────── */}
+      {showHiringModal && loggedStudio && (
+        <div className="fixed inset-0 flex items-end justify-center z-50" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowHiringModal(false) }}>
+          <div className="w-full rounded-t-2xl p-6 flex flex-col gap-4" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', maxWidth: 480, margin: '0 auto' }}>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-white text-base">{t('estudio', 'hiring_title', 'Convocatoria')}</span>
+              <button onClick={() => setShowHiringModal(false)}
+                style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            </div>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: -8 }}>{t('estudio', 'hiring_desc', 'Mostrá un cartel en el feed avisando que tu estudio busca guest artist o residente.')}</p>
+
+            {/* Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button onClick={() => setHiringActive(v => !v)}
+                style={{ width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', background: hiringActive ? '#efff42' : 'rgba(255,255,255,0.12)', flexShrink: 0 }}>
+                <span style={{ position: 'absolute', top: 3, left: hiringActive ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: hiringActive ? '#000' : 'rgba(255,255,255,0.5)', transition: 'left 0.15s' }} />
+              </button>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.75)' }}>
+                {hiringActive ? t('estudio', 'hiring_active', 'Convocatoria activa') : t('estudio', 'hiring_enable', 'Activar convocatoria')}
+              </span>
+            </div>
+
+            {/* Roles */}
+            {hiringActive && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                {(['guest artist', 'residente'] as const).map(role => (
+                  <button key={role} onClick={() => setHiringRole(role)}
+                    style={{ flex: 1, padding: '10px', borderRadius: 10, border: `2px solid ${hiringRole === role ? '#efff42' : 'rgba(255,255,255,0.1)'}`, background: hiringRole === role ? 'rgba(239,255,66,0.1)' : 'transparent', color: hiringRole === role ? '#efff42' : 'rgba(255,255,255,0.4)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    {role === 'guest artist' ? t('estudio', 'hiring_guest', 'Guest Artist') : t('estudio', 'hiring_resident', 'Residente')}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button onClick={async () => {
+              setSavingHiring(true)
+              await fetch(`/api/studios/${loggedStudio.slug}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ access_token: loggedStudio.access_token, hiring: hiringActive, hiring_role: hiringRole }),
+              })
+              setSavingHiring(false)
+              setShowHiringModal(false)
+            }} disabled={savingHiring}
+              style={{ width: '100%', padding: '13px', borderRadius: 10, background: '#efff42', color: '#000', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer', opacity: savingHiring ? 0.5 : 1 }}>
+              {savingHiring ? t('estudio', 'saving', 'Guardando...') : t('estudio', 'save_btn', 'Guardar')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showFlashDayModal && loggedStudio && (
+        <div className="fixed inset-0 flex items-end justify-center z-50" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowFlashDayModal(false); setFdFile(null); setFdPreview(null); setFdDate(''); setFdError('') } }}>
+          <div className="w-full rounded-t-2xl p-6 flex flex-col gap-4" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', maxWidth: 480, margin: '0 auto' }}>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-white text-base">Flash Day</span>
+              <button onClick={() => { setShowFlashDayModal(false); setFdFile(null); setFdPreview(null); setFdDate(''); setFdError('') }}
+                style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            </div>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: -8 }}>{t('estudio', 'flash_days_desc', 'Subí el flyer y la fecha. Aparece en la sección de Eventos de Flashttoo.')}</p>
+
+            {/* Flash days publicados */}
+            {studioFlashDays.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {studioFlashDays.map(f => (
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: 10 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f.flyer_url} alt="" style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover' }} />
+                    <p style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
+                      {new Date(f.date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                    <button onClick={() => removeStudioFlashDay(f.id)}
+                      style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>×</button>
+                  </div>
+                ))}
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 0' }} />
+              </div>
+            )}
+
+            {/* Formulario — solo si no hay flash days publicados */}
+            {studioFlashDays.length === 0 && (
+              <>
+                <label style={{ cursor: 'pointer' }}>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFdFlyer} />
+                  {fdPreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={fdPreview} alt="" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 10 }} />
+                  ) : (
+                    <div style={{ width: '100%', height: 140, borderRadius: 10, border: '1.5px dashed rgba(255,255,255,0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                      {t('estudio', 'upload_flyer', '+ Subir flyer')}
+                    </div>
+                  )}
+                </label>
+
+                <input type="date" value={fdDate} onChange={e => setFdDate(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: 14, outline: 'none' }} />
+
+                {fdError && <p style={{ fontSize: 12, color: 'rgba(255,100,100,0.8)' }}>{fdError}</p>}
+
+                <button onClick={addFlashDay} disabled={!fdFile || !fdDate || addingFd}
+                  style={{ width: '100%', padding: '13px', borderRadius: 10, background: fdFile && fdDate ? '#efff42' : 'rgba(255,255,255,0.08)', color: fdFile && fdDate ? '#000' : 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 14, border: 'none', cursor: fdFile && fdDate ? 'pointer' : 'default' }}>
+                  {addingFd ? t('estudio', 'publishing', 'Publicando...') : t('estudio', 'publish_flash_day', 'Publicar Flash Day')}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {showReport && (
         <div className="fixed inset-0 z-50 flex items-end justify-center"
           style={{ background: 'rgba(0,0,0,0.7)' }}

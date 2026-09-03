@@ -58,8 +58,6 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
   const [verifying, setVerifying] = useState(false)
 
   const [editForm, setEditForm] = useState({ name: '', description: '', instagram: '', whatsapp: '', website: '' })
-  const [hiring, setHiring] = useState(false)
-  const [hiringRole, setHiringRole] = useState<'guest artist' | 'residente'>('guest artist')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -73,12 +71,6 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
   const [addingArtist, setAddingArtist] = useState(false)
   const [addError, setAddError] = useState('')
 
-  const [flashDays, setFlashDays] = useState<{ id: string; flyer_url: string; date: string }[]>([])
-  const [fdDate, setFdDate] = useState('')
-  const [fdFile, setFdFile] = useState<File | null>(null)
-  const [fdPreview, setFdPreview] = useState<string | null>(null)
-  const [addingFd, setAddingFd] = useState(false)
-  const [fdError, setFdError] = useState('')
 
   useEffect(() => {
     setLoading(true); setNotFound(false); setStudio(null); setArtists([])
@@ -99,10 +91,6 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
     authAutoOpenedRef.current = true
     setEditOpen(true)
     setEditForm({ name: studio.name || '', description: studio.description || '', instagram: studio.instagram || '', whatsapp: studio.whatsapp || '', website: studio.website || '' })
-    setHiring(studio.hiring || false)
-    setHiringRole(studio.hiring_role === 'residente' ? 'residente' : 'guest artist')
-    fetch(`/api/studios/${slug}/flash-days`)
-      .then(r => r.json()).then(d => setFlashDays(d.flashDays ?? [])).catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studio, authMode])
 
@@ -150,68 +138,14 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
     if (r.ok) {
       setKeyVerified(keyInput.trim())
       setEditForm({ name: studio?.name || '', description: studio?.description || '', instagram: studio?.instagram || '', whatsapp: studio?.whatsapp || '', website: studio?.website || '' })
-      setHiring(studio?.hiring || false)
-      setHiringRole(studio?.hiring_role === 'residente' ? 'residente' : 'guest artist')
-      fetch(`/api/studios/${slug}/flash-days`)
-        .then(r => r.json()).then(d => setFlashDays(d.flashDays ?? [])).catch(() => {})
     } else { setKeyError(t('estudio', 'wrong_key', 'Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo')) }
     setVerifying(false)
-  }
-
-  const handleFdFlyer = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return
-    setFdPreview(URL.createObjectURL(file))
-    const img = new window.Image()
-    img.onload = () => {
-      const MAX = 1200; let { width, height } = img
-      if (width > MAX || height > MAX) {
-        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
-        else { width = Math.round(width * MAX / height); height = MAX }
-      }
-      const canvas = document.createElement('canvas')
-      canvas.width = width; canvas.height = height
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-      canvas.toBlob(blob => { if (blob) setFdFile(new File([blob], 'flyer.webp', { type: 'image/webp' })) }, 'image/webp', 0.88)
-    }
-    img.src = URL.createObjectURL(file)
   }
 
   const authKey = () => authMode && accessToken
     ? { access_token: accessToken }
     : { edit_key: keyVerified }
 
-  const addFlashDay = async () => {
-    if (!fdFile || !fdDate) return
-    setAddingFd(true); setFdError('')
-    try {
-      const fd = new FormData()
-      fd.append('file', fdFile)
-      fd.append('path', `flash-day-${slug}-${Date.now()}.webp`)
-      const up = await fetch('/api/upload', { method: 'POST', body: fd })
-      if (!up.ok) throw new Error('Error al subir flyer')
-      const { url } = await up.json()
-      const r = await fetch(`/api/studios/${slug}/flash-days`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...authKey(), flyer_url: url, date: fdDate }),
-      })
-      const d = await r.json()
-      if (!r.ok) throw new Error(d.error || 'Error')
-      setFlashDays(prev => [...prev, d.flashDay].sort((a, b) => a.date.localeCompare(b.date)))
-      setFdDate(''); setFdFile(null); setFdPreview(null)
-    } catch (e: unknown) {
-      setFdError(e instanceof Error ? e.message : 'Error')
-    } finally { setAddingFd(false) }
-  }
-
-  const removeFlashDay = async (id: string) => {
-    const r = await fetch(`/api/studios/${slug}/flash-days`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...authKey(), id }),
-    })
-    if (r.ok) setFlashDays(prev => prev.filter(f => f.id !== id))
-  }
 
   const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
@@ -241,8 +175,6 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
     }
     Object.entries(editForm).forEach(([k, v]) => fd.append(k, v))
     if (logoFile) fd.append('logo', logoFile)
-    fd.append('hiring', String(hiring))
-    fd.append('hiring_role', hiringRole)
     const r = await fetch(`/api/studios/${slug}`, { method: 'PATCH', body: fd })
     const d = await r.json()
     if (!r.ok) { setSaveError(d.error || 'Error al guardar'); setSaving(false); return }
@@ -453,28 +385,6 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                     </div>
                   ))}
 
-                  {/* Convocatoria */}
-                  <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: '#000', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('estudio', 'hiring_title', 'Convocatoria')}</p>
-                    <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', lineHeight: 1.5, marginBottom: 10 }}>{t('estudio', 'hiring_desc', 'Mostrá un cartel en el feed avisando que tu estudio busca guest artist o residente.')}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: hiring ? 10 : 0 }}>
-                      <button onClick={() => setHiring(v => !v)} style={{ width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', background: hiring ? '#000' : 'rgba(0,0,0,0.15)', flexShrink: 0 }}>
-                        <span style={{ position: 'absolute', top: 3, left: hiring ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: hiring ? '#efff42' : 'rgba(0,0,0,0.3)', transition: 'left 0.15s' }} />
-                      </button>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#000' }}>{hiring ? t('estudio', 'hiring_active', 'Convocatoria activa') : t('estudio', 'hiring_enable', 'Activar convocatoria')}</span>
-                    </div>
-                    {hiring && (
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        {(['guest artist', 'residente'] as const).map(role => (
-                          <button key={role} onClick={() => setHiringRole(role)}
-                            style={{ flex: 1, padding: '8px', borderRadius: 10, border: `2px solid ${hiringRole === role ? '#000' : 'rgba(0,0,0,0.15)'}`, background: hiringRole === role ? '#000' : 'transparent', color: hiringRole === role ? '#efff42' : 'rgba(0,0,0,0.5)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-                            {role === 'guest artist' ? t('estudio', 'hiring_guest', 'Guest Artist') : t('estudio', 'hiring_resident', 'Residente')}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
                   {/* Agregar artista */}
                   <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
                     <p style={{ fontSize: 11, fontWeight: 700, color: '#000', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('estudio', 'add_artist_title', 'Agregar artista por IG')}</p>
@@ -510,45 +420,6 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                       </div>
                     </div>
                   )}
-
-                  {/* Flash Days */}
-                  <div style={{ borderTop: '1.5px solid rgba(0,0,0,0.12)', paddingTop: 14 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: '#000', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('estudio', 'flash_days_title', 'Flash Days')}</p>
-                    <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', lineHeight: 1.5, marginBottom: 10 }}>{t('estudio', 'flash_days_desc', 'Subí el flyer y la fecha. Aparece en la sección de Eventos de Flashttoo.')}</p>
-
-                    {flashDays.map(f => (
-                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(0,0,0,0.07)', borderRadius: 10, marginBottom: 6 }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={f.flyer_url} alt="" style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover' }} />
-                        <p style={{ flex: 1, fontSize: 13, fontWeight: 700, color: '#000' }}>
-                          {new Date(f.date + 'T12:00:00').toLocaleDateString(language, { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </p>
-                        <button onClick={() => removeFlashDay(f.id)}
-                          style={{ background: 'none', border: 'none', color: 'rgba(0,0,0,0.35)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>×</button>
-                      </div>
-                    ))}
-
-                    {flashDays.length === 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <input type="date" value={fdDate} onChange={e => setFdDate(e.target.value)} required
-                        style={{ width: '100%', padding: '10px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.12)', color: fdDate ? '#000' : 'rgba(0,0,0,0.35)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
-                      <label style={{ display: 'block', cursor: 'pointer' }}>
-                        {fdPreview ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={fdPreview} alt="" style={{ width: '100%', borderRadius: 10, objectFit: 'contain', maxHeight: 160, background: 'rgba(0,0,0,0.08)' }} />
-                        ) : (
-                          <div style={{ width: '100%', padding: '18px', borderRadius: 12, border: '1.5px dashed rgba(0,0,0,0.2)', background: 'rgba(0,0,0,0.05)', textAlign: 'center' }}>
-                            <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(0,0,0,0.4)' }}>{t('estudio', 'upload_flyer', '+ Subir flyer')}</p>
-                          </div>
-                        )}
-                        <input type="file" accept="image/*" onChange={handleFdFlyer} style={{ display: 'none' }} />
-                      </label>
-                      {fdError && <p style={{ fontSize: 12, color: 'rgba(160,0,0,0.8)' }}>{fdError}</p>}
-                      <button onClick={addFlashDay} disabled={addingFd || !fdFile || !fdDate}
-                        style={{ width: '100%', padding: '10px', borderRadius: 12, background: '#000', color: '#efff42', fontWeight: 800, fontSize: 13, border: 'none', cursor: 'pointer', opacity: (addingFd || !fdFile || !fdDate) ? 0.3 : 1 }}>
-                        {addingFd ? t('estudio', 'publishing', 'Publicando...') : t('estudio', 'publish_flash_day', 'Publicar Flash Day')}
-                      </button>
-                    </div>}
-                  </div>
 
                   {saveError && <p style={{ color: 'rgba(160,0,0,0.8)', fontSize: 12 }}>{saveError}</p>}
                   <button onClick={saveEdit} disabled={saving}
