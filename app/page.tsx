@@ -29,25 +29,6 @@ function BioText({ text, style }: { text: string; style?: React.CSSProperties })
   )
 }
 
-const FLASHNEWS_MAX = 160
-
-function flashnewsColor(text: string) {
-  const t = text.toLowerCase()
-  if (/turno|disponible|abierto|agenda|cita|reserva/.test(t)) return '#4ddc8c'
-  if (/flash|diseño|walk.?in/.test(t)) return '#ff8c42'
-  if (/artículo|articulo|cultura|nota/.test(t)) return '#5da8ff'
-  return '#efff42'
-}
-
-function flashnewsActive(at?: string | null) {
-  return !!at && Date.now() - new Date(at).getTime() < 86400000
-}
-
-function flashnewsBubblePos(id: string): 'left' | 'center' | 'right' {
-  const n = id.charCodeAt(0) % 3
-  return n === 0 ? 'left' : n === 1 ? 'center' : 'right'
-}
-
 function initialsOf(name: string) {
   const parts = name.trim().split(/\s+/)
   const first = parts[0]?.[0] || ''
@@ -233,12 +214,6 @@ export default function Home() {
   const [hiringActive, setHiringActive] = useState(false)
   const [hiringRole, setHiringRole] = useState<'guest artist' | 'residente'>('guest artist')
   const [savingHiring, setSavingHiring] = useState(false)
-  const [showFlashnewsModal, setShowFlashnewsModal] = useState(false)
-  const [flashnewsText, setFlashnewsText] = useState('')
-  const [savingFlashnews, setSavingFlashnews] = useState(false)
-  const [flashnewsError, setFlashnewsError] = useState('')
-  const [activeFlashnews, setActiveFlashnews] = useState<{ message: string; at: string } | null>(null)
-  const [flashnewsFor, setFlashnewsFor] = useState<'artist' | 'studio'>('artist')
   const [flashLinkCopied, setFlashLinkCopied] = useState(false)
   const artistMenuRef = useRef<HTMLDivElement>(null)
   const [phrases, setPhrases] = useState<Phrase[]>([])
@@ -1153,21 +1128,6 @@ export default function Home() {
                       style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
                       {t('estudio', 'publish_flash_day', 'Publicar Flash Day')}
                     </button>
-                    {/* Flashnews */}
-                    <button
-                      onClick={() => {
-                        setStudioMenuOpen(false)
-                        setFlashnewsFor('studio')
-                        const fn = (loggedStudio as Record<string, unknown>).flashnews as string | null
-                        const fat = (loggedStudio as Record<string, unknown>).flashnews_at as string | null
-                        setActiveFlashnews(fn && flashnewsActive(fat) ? { message: fn, at: fat! } : null)
-                        setFlashnewsText('')
-                        setFlashnewsError('')
-                        setShowFlashnewsModal(true)
-                      }}
-                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                      Flashnews
-                    </button>
                     {/* Editar perfil */}
                     <button
                       onClick={async () => {
@@ -1290,22 +1250,6 @@ export default function Home() {
                       style={{ display: 'block', padding: '12px 16px', textDecoration: 'none', color: 'rgba(255,255,255,0.75)', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                       {t('artist_menu', 'edit_flashbook', 'Editar Flashbook')}
                     </a>
-                    {/* Flashnews */}
-                    <button
-                      onClick={() => {
-                        setArtistMenuOpen(false)
-                        setFlashnewsFor('artist')
-                        const myArtist = artists.find(x => x.id === loggedArtist.id)
-                        const fn = myArtist?.flashnews
-                        const fat = myArtist?.flashnews_at
-                        setActiveFlashnews(fn && flashnewsActive(fat) ? { message: fn, at: fat! } : null)
-                        setFlashnewsText('')
-                        setFlashnewsError('')
-                        setShowFlashnewsModal(true)
-                      }}
-                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                      Flashnews
-                    </button>
                     <button
                       onClick={() => {
                         try { localStorage.removeItem('flashttoo_artist_session') } catch {}
@@ -1528,13 +1472,6 @@ export default function Home() {
                               onError={() => markPhotoBroken(big.data.id)} />
                           )}
                           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 45%, transparent 100%)' }} />
-                          {big.data.flashnews && flashnewsActive(big.data.flashnews_at) && (
-                            <div style={{ position: 'absolute', top: 10, zIndex: 3, pointerEvents: 'none', maxWidth: '72%',
-                              ...(flashnewsBubblePos(big.data.id) === 'left' ? { left: 8 } : flashnewsBubblePos(big.data.id) === 'right' ? { right: 8 } : { left: '50%', transform: 'translateX(-50%)' }),
-                              background: 'rgba(8,8,8,0.92)', border: `1px solid ${flashnewsColor(big.data.flashnews)}`, borderRadius: 9, padding: '6px 10px', fontSize: 11, color: '#fff', lineHeight: 1.4, boxShadow: `0 2px 14px ${flashnewsColor(big.data.flashnews)}35` }}>
-                              {big.data.flashnews}
-                            </div>
-                          )}
                           <div className="absolute bottom-0 left-0 right-0 p-3">
                             <p className="text-white font-bold" style={{ fontSize: 16, overflowWrap: 'break-word' }}>{big.data.name}</p>
                             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{big.data.city}</p>
@@ -1561,13 +1498,6 @@ export default function Home() {
                                   onError={() => markPhotoBroken(item.data.id)} />
                               )}
                               <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
-                              {item.data.flashnews && flashnewsActive(item.data.flashnews_at) && (
-                                <div style={{ position: 'absolute', top: 8, zIndex: 3, pointerEvents: 'none', maxWidth: '78%',
-                                  ...(flashnewsBubblePos(item.data.id) === 'left' ? { left: 6 } : flashnewsBubblePos(item.data.id) === 'right' ? { right: 6 } : { left: '50%', transform: 'translateX(-50%)' }),
-                                  background: 'rgba(8,8,8,0.92)', border: `1px solid ${flashnewsColor(item.data.flashnews)}`, borderRadius: 7, padding: '4px 7px', fontSize: 9, color: '#fff', lineHeight: 1.4, boxShadow: `0 2px 10px ${flashnewsColor(item.data.flashnews)}35` }}>
-                                  {item.data.flashnews}
-                                </div>
-                              )}
                               <div className="absolute bottom-0 left-0 right-0 p-2">
                                 <p className="text-white font-bold leading-tight" style={{ fontSize: 11, overflowWrap: 'break-word' }}>{item.data.name}</p>
                                 <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{item.data.city}</p>
@@ -1590,20 +1520,6 @@ export default function Home() {
                                     style={{ color: 'rgba(239,255,66,0.4)', fontSize: 22, fontWeight: 900 }}>{initialsOf(item.data.name)}</div>
                               }
                               <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }} />
-                              {(() => {
-                                const stFn = (item.data as Record<string, unknown>).flashnews as string | null
-                                const stAt = (item.data as Record<string, unknown>).flashnews_at as string | null
-                                if (!stFn || !flashnewsActive(stAt)) return null
-                                const stClr = flashnewsColor(stFn)
-                                const stPos = flashnewsBubblePos(item.data.id)
-                                return (
-                                  <div style={{ position: 'absolute', top: 8, zIndex: 3, pointerEvents: 'none', maxWidth: '78%',
-                                    ...(stPos === 'left' ? { left: 6 } : stPos === 'right' ? { right: 6 } : { left: '50%', transform: 'translateX(-50%)' }),
-                                    background: 'rgba(8,8,8,0.92)', border: `1px solid ${stClr}`, borderRadius: 7, padding: '4px 7px', fontSize: 9, color: '#fff', lineHeight: 1.4, boxShadow: `0 2px 10px ${stClr}35` }}>
-                                    {stFn}
-                                  </div>
-                                )
-                              })()}
                               <div className="absolute top-2 right-2">
                                 <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', background: '#efff42', padding: '2px 5px', borderRadius: 4 }}>{t('inicio', 'studio_badge', 'Estudio')}</span>
                               </div>
@@ -2346,103 +2262,6 @@ export default function Home() {
               style={{ width: '100%', padding: '13px', borderRadius: 10, background: '#efff42', color: '#000', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer', opacity: savingHiring ? 0.5 : 1 }}>
               {savingHiring ? t('estudio', 'saving', 'Guardando...') : t('estudio', 'save_btn', 'Guardar')}
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Flashnews modal */}
-      {showFlashnewsModal && (loggedArtist || loggedStudio) && (
-        <div className="fixed inset-0 flex items-end justify-center z-50" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowFlashnewsModal(false) }}>
-          <div className="w-full rounded-t-2xl p-6 flex flex-col gap-4" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', maxWidth: 480, margin: '0 auto' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Flashnews</p>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>Dura 24hs y se borra solo. Solo uno activo a la vez.</p>
-              </div>
-              <button onClick={() => setShowFlashnewsModal(false)}
-                style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-            </div>
-
-            {activeFlashnews ? (
-              /* Ya tiene uno activo */
-              <div>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>Aviso activo:</p>
-                <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: `1px solid ${flashnewsColor(activeFlashnews.message)}40`, marginBottom: 16 }}>
-                  <p style={{ fontSize: 13, color: '#fff', lineHeight: 1.5 }}>{activeFlashnews.message}</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: flashnewsColor(activeFlashnews.message), flexShrink: 0 }} />
-                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
-                      Expira {new Date(new Date(activeFlashnews.at).getTime() + 86400000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  disabled={savingFlashnews}
-                  onClick={async () => {
-                    setSavingFlashnews(true)
-                    try {
-                      if (flashnewsFor === 'studio' && loggedStudio) {
-                        await fetch(`/api/studios/${loggedStudio.slug}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access_token: loggedStudio.access_token, flashnews: null, flashnews_at: null }) })
-                      } else if (flashnewsFor === 'artist' && loggedArtist) {
-                        const myArtist = artists.find(x => x.id === loggedArtist.id)
-                        if (myArtist) await fetch(`/api/artists/${myArtist.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access_token: loggedArtist.access_token, flashnews: null, flashnews_at: null }) })
-                        setArtists(prev => prev.map(a => a.id === loggedArtist.id ? { ...a, flashnews: null, flashnews_at: null } : a))
-                      }
-                      setActiveFlashnews(null)
-                      setShowFlashnewsModal(false)
-                    } catch { /* silent */ } finally { setSavingFlashnews(false) }
-                  }}
-                  style={{ width: '100%', padding: '11px', borderRadius: 12, background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.8)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                  {savingFlashnews ? 'Borrando...' : 'Borrar aviso'}
-                </button>
-              </div>
-            ) : (
-              /* Formulario nuevo */
-              <div className="flex flex-col gap-3">
-                <div style={{ position: 'relative' }}>
-                  <textarea
-                    value={flashnewsText}
-                    onChange={e => { if (e.target.value.length <= FLASHNEWS_MAX) setFlashnewsText(e.target.value) }}
-                    placeholder="Estudio abierto hoy, flash day mañana..."
-                    rows={3}
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: `1px solid ${flashnewsText ? flashnewsColor(flashnewsText) + '60' : 'rgba(255,255,255,0.1)'}`, borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
-                  />
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, paddingInline: 2 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {flashnewsText && <>
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: flashnewsColor(flashnewsText) }} />
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Color auto</span>
-                      </>}
-                    </div>
-                    <span style={{ fontSize: 11, color: flashnewsText.length >= FLASHNEWS_MAX ? '#f87171' : 'rgba(255,255,255,0.2)' }}>{flashnewsText.length}/{FLASHNEWS_MAX}</span>
-                  </div>
-                </div>
-                {flashnewsError && <p style={{ fontSize: 12, color: '#f87171' }}>{flashnewsError}</p>}
-                <button
-                  disabled={savingFlashnews || !flashnewsText.trim()}
-                  onClick={async () => {
-                    if (!flashnewsText.trim()) return
-                    setSavingFlashnews(true); setFlashnewsError('')
-                    try {
-                      const now = new Date().toISOString()
-                      if (flashnewsFor === 'studio' && loggedStudio) {
-                        const r = await fetch(`/api/studios/${loggedStudio.slug}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access_token: loggedStudio.access_token, flashnews: flashnewsText.trim(), flashnews_at: now }) })
-                        if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.status.toString()) }
-                      } else if (flashnewsFor === 'artist' && loggedArtist) {
-                        const r = await fetch(`/api/artists/${loggedArtist.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access_token: loggedArtist.access_token, flashnews: flashnewsText.trim(), flashnews_at: now }) })
-                        if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.status.toString()) }
-                        setArtists(prev => prev.map(a => a.id === loggedArtist.id ? { ...a, flashnews: flashnewsText.trim(), flashnews_at: now } : a))
-                      }
-                      setShowFlashnewsModal(false)
-                      setFlashnewsText('')
-                    } catch (err) { setFlashnewsError('Error: ' + (err instanceof Error ? err.message : 'intentá de nuevo')) } finally { setSavingFlashnews(false) }
-                  }}
-                  style={{ width: '100%', padding: '13px', borderRadius: 12, background: flashnewsText.trim() ? '#efff42' : 'rgba(255,255,255,0.06)', border: 'none', color: flashnewsText.trim() ? '#000' : 'rgba(255,255,255,0.2)', fontSize: 14, fontWeight: 700, cursor: flashnewsText.trim() ? 'pointer' : 'default', transition: 'all 0.2s' }}>
-                  {savingFlashnews ? 'Publicando...' : 'Publicar Flashnews'}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
