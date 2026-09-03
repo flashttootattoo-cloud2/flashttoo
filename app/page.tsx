@@ -2400,14 +2400,6 @@ export default function Home() {
             ) : (
               /* Formulario nuevo */
               <div className="flex flex-col gap-3">
-                <div>
-                  <div className="flex items-start gap-3" style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(239,255,66,0.04)', border: '1px solid rgba(239,255,66,0.12)' }}>
-                    <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>💡</span>
-                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
-                      Escribí un aviso corto. El color aparece solo según lo que decís: turno disponible, flash day, artículo de cultura, o lo que quieras compartir.
-                    </p>
-                  </div>
-                </div>
                 <div style={{ position: 'relative' }}>
                   <textarea
                     value={flashnewsText}
