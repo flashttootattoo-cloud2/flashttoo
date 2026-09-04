@@ -53,9 +53,10 @@ type ContentCard = {
   id: string; title: string; body: string; active: boolean
 }
 
+type PhraseLink = { label: string; url: string }
 type Phrase = {
   id: string; image_url: string; description: string | null; language_code: string
-  created_at: string; tags?: string[]
+  created_at: string; tags?: string[]; links?: PhraseLink[]
   recent_commenters: { id: string; emoji: string | null; photo_url: string | null }[]
   comment_count: number
 }
@@ -322,10 +323,11 @@ export default function Home() {
       if (saved) {
         const session = JSON.parse(saved)
         setLoggedArtist(session)
-        // Refresh alias from DB — can be stale when changed on another device
+        // Refresh alias from DB
         void supabase.from('artists').select('flashbook_alias').eq('id', session.id).single()
           .then(({ data }) => {
-            if (data && data.flashbook_alias !== session.flashbook_alias) {
+            if (!data) return
+            if (data.flashbook_alias !== session.flashbook_alias) {
               const updated = { ...session, flashbook_alias: data.flashbook_alias ?? null }
               setLoggedArtist(updated)
               try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(updated)) } catch {}
@@ -335,7 +337,10 @@ export default function Home() {
     } catch {}
     try {
       const savedStudio = localStorage.getItem('flashttoo_studio_session')
-      if (savedStudio) setLoggedStudio(JSON.parse(savedStudio))
+      if (savedStudio) {
+        const s = JSON.parse(savedStudio)
+        setLoggedStudio(s)
+      }
     } catch {}
   }, [])
 
@@ -2801,6 +2806,20 @@ export default function Home() {
                       </div>
                     )}
                     {renderPhraseContent(phrase.description)}
+                    {phrase.links && phrase.links.length > 0 && (
+                      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 10 }}>Fuentes</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                          {phrase.links.map((lnk, i) => (
+                            <a key={i} href={lnk.url} target="_blank" rel="noopener noreferrer"
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, textDecoration: 'none', color: '#efff42', fontSize: 12, lineHeight: 1.4 }}>
+                              <span style={{ fontSize: 14, flexShrink: 0 }}>↗</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lnk.label || lnk.url}</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

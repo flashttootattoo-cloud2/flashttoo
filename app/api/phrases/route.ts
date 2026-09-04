@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   let query = sb()
     .from('phrases')
-    .select('id, image_url, description, language_code, created_at, tags')
+    .select('id, image_url, description, language_code, created_at, tags, links')
     .eq('language_code', lang)
     .eq('active', true)
   if (tag) {
@@ -78,13 +78,15 @@ export async function POST(req: NextRequest) {
   const description = (fd.get('description') as string | null)?.trim() || null
   const tagsRaw = (fd.get('tags') as string | null) || ''
   const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []
+  const linksRaw = (fd.get('links') as string | null) || '[]'
+  const links = (() => { try { return JSON.parse(linksRaw) } catch { return [] } })()
 
   const ext = image.name.split('.').pop() || 'jpg'
   const image_url = await uploadFile(image, `phrases/${crypto.randomUUID()}.${ext}`)
 
   const { data, error } = await sb()
     .from('phrases')
-    .insert({ image_url, description, language_code: lang, tags, active: false })
+    .insert({ image_url, description, language_code: lang, tags, links, active: false })
     .select()
     .single()
 

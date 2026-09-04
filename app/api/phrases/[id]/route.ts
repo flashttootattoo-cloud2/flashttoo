@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   const { data, error } = await sb()
     .from('phrases')
-    .select('id, image_url, description, language_code, created_at, tags')
+    .select('id, image_url, description, language_code, created_at, tags, links')
     .eq('id', id)
     .single()
   if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -32,7 +32,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   const body = await req.json()
   const patch: Record<string, unknown> = {}
-  for (const k of ['description', 'language_code', 'active', 'tags']) if (k in body) patch[k] = body[k]
+  for (const k of ['description', 'language_code', 'active', 'tags', 'links']) if (k in body) patch[k] = body[k]
   const { data, error } = await sb().from('phrases').update(patch).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ phrase: data })
