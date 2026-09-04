@@ -1283,6 +1283,10 @@ export default function AdminPage() {
   const [phraseLinkInput, setPhraseLinkInput] = useState({ label: '', url: '' })
   const [editPhraseLinks, setEditPhraseLinks] = useState<{ label: string; url: string }[]>([])
   const [editLinkInput, setEditLinkInput]     = useState({ label: '', url: '' })
+  const [showPhraseLinkForm, setShowPhraseLinkForm] = useState(false)
+  const [phraseLinkFormVal, setPhraseLinkFormVal]   = useState({ url: '', label: '' })
+  const [showEditLinkForm, setShowEditLinkForm]     = useState(false)
+  const [editLinkFormVal, setEditLinkFormVal]       = useState({ url: '', label: '' })
   const [editPhraseTags, setEditPhraseTags]   = useState<string[]>([])
   const [newTagInput, setNewTagInput]         = useState('')
   const [editNewTagInput, setEditNewTagInput] = useState('')
@@ -4232,6 +4236,10 @@ export default function AdminPage() {
                     style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 4, color: uploadingImg ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.55)', cursor: 'pointer', lineHeight: 1 }}>
                     {uploadingImg ? '...' : '📷'}
                   </button>
+                  <button type="button" title="Insertar enlace" onClick={() => { setShowPhraseLinkForm(v => !v); setPhraseLinkFormVal({ url: '', label: '' }) }}
+                    style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', background: showPhraseLinkForm ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${showPhraseLinkForm ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.11)'}`, borderRadius: 4, color: showPhraseLinkForm ? '#efff42' : 'rgba(255,255,255,0.55)', cursor: 'pointer', lineHeight: 1 }}>
+                    🔗
+                  </button>
                   <input ref={phraseImgInputRef} type="file" accept="image/*" hidden
                     onChange={e => {
                       const file = e.target.files?.[0]; if (!file) return
@@ -4245,6 +4253,26 @@ export default function AdminPage() {
                       })
                     }} />
                 </div>
+                {showPhraseLinkForm && (
+                  <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap', padding: '6px 8px', background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.15)', borderRadius: 6 }}>
+                    <input value={phraseLinkFormVal.url} onChange={e => setPhraseLinkFormVal(p => ({ ...p, url: e.target.value }))}
+                      placeholder="https://..." style={{ flex: 2, minWidth: 120, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '4px 8px', fontSize: 11, color: '#fff', outline: 'none' }} />
+                    <input value={phraseLinkFormVal.label} onChange={e => setPhraseLinkFormVal(p => ({ ...p, label: e.target.value }))}
+                      placeholder="Ver publicación original" style={{ flex: 2, minWidth: 120, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '4px 8px', fontSize: 11, color: '#fff', outline: 'none' }} />
+                    <button type="button" onClick={() => {
+                      const url = phraseLinkFormVal.url.trim(); if (!url) return
+                      const label = phraseLinkFormVal.label.trim() || 'Ver publicación original'
+                      const ta = phraseDescRef.current
+                      const pos = ta?.selectionStart ?? phraseForm.description.length
+                      const tag = `[link:${url}|${label}]`
+                      const cur = phraseForm.description
+                      const newVal = cur.slice(0, pos) + (pos > 0 && cur[pos - 1] !== '\n' ? '\n' : '') + tag + '\n' + cur.slice(pos)
+                      setPhraseForm(f => ({ ...f, description: newVal }))
+                      setShowPhraseLinkForm(false)
+                    }} style={{ padding: '4px 10px', borderRadius: 5, background: '#efff42', border: 'none', color: '#000', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Insertar</button>
+                    <button type="button" onClick={() => setShowPhraseLinkForm(false)} style={{ padding: '4px 8px', borderRadius: 5, background: 'rgba(255,255,255,0.06)', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer' }}>✕</button>
+                  </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <textarea ref={phraseDescRef} value={phraseForm.description}
                     onChange={e => setPhraseForm(f => ({ ...f, description: e.target.value }))}
@@ -4486,6 +4514,10 @@ export default function AdminPage() {
                             style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, color: uploadingImg ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)', cursor: 'pointer', lineHeight: 1 }}>
                             {uploadingImg ? '...' : '📷'}
                           </button>
+                          <button type="button" title="Insertar enlace" onClick={() => { setShowEditLinkForm(v => !v); setEditLinkFormVal({ url: '', label: '' }) }}
+                            style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', background: showEditLinkForm ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${showEditLinkForm ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 4, color: showEditLinkForm ? '#efff42' : 'rgba(255,255,255,0.5)', cursor: 'pointer', lineHeight: 1 }}>
+                            🔗
+                          </button>
                           <input ref={editImgInputRef} type="file" accept="image/*" hidden
                             onChange={e => {
                               const file = e.target.files?.[0]; if (!file) return
@@ -4497,6 +4529,24 @@ export default function AdminPage() {
                               })
                             }} />
                         </div>
+                        {showEditLinkForm && (
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', padding: '5px 7px', marginBottom: 4, background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.15)', borderRadius: 5 }}>
+                            <input value={editLinkFormVal.url} onChange={e => setEditLinkFormVal(p => ({ ...p, url: e.target.value }))}
+                              placeholder="https://..." style={{ flex: 2, minWidth: 100, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '3px 7px', fontSize: 10, color: '#fff', outline: 'none' }} />
+                            <input value={editLinkFormVal.label} onChange={e => setEditLinkFormVal(p => ({ ...p, label: e.target.value }))}
+                              placeholder="Ver publicación original" style={{ flex: 2, minWidth: 100, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '3px 7px', fontSize: 10, color: '#fff', outline: 'none' }} />
+                            <button type="button" onClick={() => {
+                              const url = editLinkFormVal.url.trim(); if (!url) return
+                              const label = editLinkFormVal.label.trim() || 'Ver publicación original'
+                              const ta = editPhraseDescRef.current
+                              const pos = ta?.selectionStart ?? editPhraseDesc.length
+                              const tag = `[link:${url}|${label}]`
+                              setEditPhraseDesc(cur => cur.slice(0, pos) + (pos > 0 && cur[pos - 1] !== '\n' ? '\n' : '') + tag + '\n' + cur.slice(pos))
+                              setShowEditLinkForm(false)
+                            }} style={{ padding: '3px 9px', borderRadius: 4, background: '#efff42', border: 'none', color: '#000', fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Insertar</button>
+                            <button type="button" onClick={() => setShowEditLinkForm(false)} style={{ padding: '3px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 10, cursor: 'pointer' }}>✕</button>
+                          </div>
+                        )}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8 }}>
                           <textarea ref={editPhraseDescRef} value={editPhraseDesc} onChange={e => setEditPhraseDesc(e.target.value)}
                             rows={6} placeholder={'# Título\n## Subtítulo\nTexto...'}

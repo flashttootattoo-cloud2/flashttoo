@@ -46,6 +46,17 @@ export function renderPhraseContent(text: string): React.ReactNode {
             ? { width: '60%', display: 'block', margin: '8px auto', borderRadius: 6 }
             : { width: '100%', display: 'block', margin: '6px 0', borderRadius: 6 }} />
         }
+        const linkMatch = line.match(/^\[link:(https?:\/\/[^\]|]+)(?:\|([^\]]+))?\]$/)
+        if (linkMatch) {
+          const href = linkMatch[1]
+          const label = linkMatch[2]?.trim() || 'Ver publicación original'
+          return (
+            <a key={i} href={href} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: '10px 0', padding: '9px 16px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 10, color: '#efff42', fontSize: 12, fontWeight: 600, textDecoration: 'none', lineHeight: 1 }}>
+              <span style={{ fontSize: 14 }}>↗</span>{label}
+            </a>
+          )
+        }
         return <p key={i} style={{ fontSize: 13, color: '#e4e4e7', lineHeight: 1.72, margin: '0 0 2px' }}>{renderInline(line)}</p>
       })}
     </>
