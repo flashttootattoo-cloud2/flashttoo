@@ -1253,7 +1253,7 @@ export default function AdminPage() {
 
   // Frases
   type PhraseLink = { label: string; url: string }
-  type AdminPhrase = { id: string; image_url: string; description: string | null; language_code: string; active: boolean; created_at: string; comment_count?: number; tags?: string[]; links?: PhraseLink[] }
+  type AdminPhrase = { id: string; image_url: string; description: string | null; language_code: string; active: boolean; created_at: string; comment_count?: number; tags?: string[]; links?: PhraseLink[]; view_count?: number; external_view_count?: number }
   type AdminPhraseComment = { id: string; artist_name: string | null; guest_name: string | null; guest_emoji: string | null; content: string; created_at: string }
   const [adminPhrases, setAdminPhrases]       = useState<AdminPhrase[]>([])
   const [loadingPhrases, setLoadingPhrases]   = useState(false)
@@ -4384,6 +4384,11 @@ export default function AdminPage() {
                     {(ph.tags ?? []).length > 0 && (
                       <div style={{ position: 'absolute', bottom: 3, left: 3, width: 6, height: 6, borderRadius: '50%', background: '#efff42' }} />
                     )}
+                    {(ph.view_count ?? 0) > 0 && (
+                      <div style={{ position: 'absolute', bottom: 3, right: 3, fontSize: 8, fontWeight: 800, background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.7)', padding: '1px 4px', borderRadius: 8 }}>
+                        {ph.view_count}
+                      </div>
+                    )}
                     {(ph.comment_count ?? 0) > 0 && (
                       <div style={{ position: 'absolute', top: 3, right: 3, fontSize: 8, fontWeight: 800, background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '1px 4px', borderRadius: 8 }}>
                         {ph.comment_count}
@@ -4407,6 +4412,18 @@ export default function AdminPage() {
                         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', margin: '0 0 4px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                           {ph.language_code.toUpperCase()} · {new Date(ph.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                         </p>
+                        {/* Estadísticas de vistas */}
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>
+                            👁 <strong style={{ color: '#fff' }}>{ph.view_count ?? 0}</strong> vistas
+                          </span>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                            🔗 <strong style={{ color: 'rgba(239,255,66,0.8)' }}>{ph.external_view_count ?? 0}</strong> externas
+                          </span>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                            📱 <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{(ph.view_count ?? 0) - (ph.external_view_count ?? 0)}</strong> app
+                          </span>
+                        </div>
                         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                           {(ph.tags ?? []).map(t => (
                             <span key={t} style={{ fontSize: 9, fontWeight: 700, background: 'rgba(239,255,66,0.12)', color: '#efff42', padding: '1px 6px', borderRadius: 10 }}>#{t}</span>

@@ -437,9 +437,9 @@ export default function Home() {
         history.replaceState({}, '', '/')
         history.pushState({}, '', '/')
         const target = list.find((p: Phrase) => p.id === phraseDeepLink)
-        if (target) { openPhrase(target); return }
+        if (target) { openPhrase(target, 'external'); return }
         fetch(`/api/phrases/${phraseDeepLink}`).then(r => r.json()).then(d2 => {
-          if (d2.phrase) openPhrase(d2.phrase)
+          if (d2.phrase) openPhrase(d2.phrase, 'external')
         }).catch(() => {})
       } else {
         setPhrase(list[0] ?? null)
@@ -971,7 +971,7 @@ export default function Home() {
     }
   }
 
-  const openPhrase = useCallback((target?: Phrase) => {
+  const openPhrase = useCallback((target?: Phrase, source: 'internal' | 'external' = 'internal') => {
     const p = target ?? phrase
     if (!p) return
     setPhrase(p)
@@ -980,6 +980,7 @@ export default function Home() {
     setReplyText('')
     loadPhraseComments(p.id)
     history.pushState({ phraseOpen: true }, '', '/')
+    fetch(`/api/phrases/${p.id}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source }) }).catch(() => {})
   }, [phrase, loadPhraseComments])
 
   // Evento disparado desde cultura para abrir un artículo
