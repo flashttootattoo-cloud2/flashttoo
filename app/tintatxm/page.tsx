@@ -1253,7 +1253,7 @@ export default function AdminPage() {
 
   // Frases
   type PhraseLink = { label: string; url: string }
-  type AdminPhrase = { id: string; image_url: string; description: string | null; language_code: string; active: boolean; created_at: string; comment_count?: number; tags?: string[]; links?: PhraseLink[]; view_count?: number; external_view_count?: number; publish_at?: string | null }
+  type AdminPhrase = { id: string; image_url: string; description: string | null; language_code: string; active: boolean; created_at: string; comment_count?: number; tags?: string[]; links?: PhraseLink[]; view_count?: number; external_view_count?: number; publish_at?: string | null; slug?: string | null }
   type AdminPhraseComment = { id: string; artist_name: string | null; guest_name: string | null; guest_emoji: string | null; content: string; created_at: string }
   const [adminPhrases, setAdminPhrases]       = useState<AdminPhrase[]>([])
   const [loadingPhrases, setLoadingPhrases]   = useState(false)
@@ -4461,6 +4461,11 @@ export default function AdminPage() {
                             <span key={t} style={{ fontSize: 9, fontWeight: 700, background: 'rgba(239,255,66,0.12)', color: '#efff42', padding: '1px 6px', borderRadius: 10 }}>#{t}</span>
                           ))}
                         </div>
+                        {ph.slug && (
+                          <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', margin: '3px 0 0', letterSpacing: '0.02em', wordBreak: 'break-all' }}>
+                            /articulo/<span style={{ color: 'rgba(255,255,255,0.4)' }}>{ph.slug}</span>
+                          </p>
+                        )}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
                         <button type="button"
@@ -4477,7 +4482,7 @@ export default function AdminPage() {
                           style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: ph.active ? 'rgba(74,222,128,0.1)' : 'rgba(255,200,80,0.1)', color: ph.active ? '#4ade80' : 'rgba(255,200,80,0.8)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
                           {ph.active ? '● Publicado' : ph.publish_at && !ph.active ? '🕐 Programado' : '○ Borrador'}
                         </button>
-                        <a href={`/articulo/${ph.id}`} target="_blank" rel="noopener noreferrer"
+                        <a href={`/articulo/${ph.slug ?? ph.id}`} target="_blank" rel="noopener noreferrer"
                           style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: 'none', borderRadius: 6, cursor: 'pointer', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
                           Preview ↗
                         </a>

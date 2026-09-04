@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { deleteFile } from '@/lib/storage'
+import { generateSlug } from '@/lib/slug'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -33,6 +34,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json()
   const patch: Record<string, unknown> = {}
   for (const k of ['description', 'language_code', 'active', 'tags', 'links', 'publish_at']) if (k in body) patch[k] = body[k]
+
+  // Regenerar slug si cambia la descripción
+  if ('description' in body) {
+    const baseSlug = generateSlug(body.description as string | null)
+    if (baseSlug) {
+      let slug = baseSlug
+      let attempt = 0
+      while (attempt < 10) {
+        const { data: existing } = await sb().from('phrases').select('id').eq('slug', slug).neq('id', id).maybeSingle()
+        if (!existing) break
+        attempt++
+        slug = `${baseSlug}-${attempt}`
+      }
+      patch.slug = slug
+    }
+  }
+
   const { data, error } = await sb().from('phrases').update(patch).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ phrase: data })

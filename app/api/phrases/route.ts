@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { uploadFile } from '@/lib/storage'
+import { generateSlug } from '@/lib/slug'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -92,8 +93,23 @@ export async function POST(req: NextRequest) {
   const ext = image.name.split('.').pop() || 'jpg'
   const image_url = await uploadFile(image, `phrases/${crypto.randomUUID()}.${ext}`)
 
+  const baseSlug = generateSlug(description)
+  let slug: string | null = null
+  if (baseSlug) {
+    // Garantizar unicidad agregando sufijo numérico si es necesario
+    let candidate = baseSlug
+    let attempt = 0
+    while (attempt < 10) {
+      const { data: existing } = await sb().from('phrases').select('id').eq('slug', candidate).maybeSingle()
+      if (!existing) { slug = candidate; break }
+      attempt++
+      candidate = `${baseSlug}-${attempt}`
+    }
+  }
+
   const insertData: Record<string, unknown> = { image_url, description, language_code: lang, tags, links, active: false }
   if (publishAt) insertData.publish_at = publishAt
+  if (slug) insertData.slug = slug
 
   const { data, error } = await sb()
     .from('phrases')
