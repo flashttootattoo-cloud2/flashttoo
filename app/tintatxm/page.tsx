@@ -1279,10 +1279,6 @@ export default function AdminPage() {
   const tagLabel = (tag: string) => TAG_LABELS[tag]?.[language] ?? tag
   const [phraseForm, setPhraseForm]           = useState({ description: '', language_code: 'es' })
   const [phraseTags, setPhraseTags]           = useState<string[]>([])
-  const [phraseLinks, setPhraseLinks]         = useState<{ label: string; url: string }[]>([])
-  const [phraseLinkInput, setPhraseLinkInput] = useState({ label: '', url: '' })
-  const [editPhraseLinks, setEditPhraseLinks] = useState<{ label: string; url: string }[]>([])
-  const [editLinkInput, setEditLinkInput]     = useState({ label: '', url: '' })
   const [showPhraseLinkForm, setShowPhraseLinkForm] = useState(false)
   const [phraseLinkFormVal, setPhraseLinkFormVal]   = useState({ url: '', label: '' })
   const [showEditLinkForm, setShowEditLinkForm]     = useState(false)
@@ -4322,34 +4318,6 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              {/* Fuentes / enlaces */}
-              <div>
-                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Fuentes (opcional)</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 8 }}>
-                  {phraseLinks.map((lnk, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
-                      <span style={{ fontSize: 11, color: '#efff42', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lnk.label || lnk.url}</span>
-                      <button type="button" onClick={() => setPhraseLinks(prev => prev.filter((_, j) => j !== i))}
-                        style={{ fontSize: 13, background: 'none', border: 'none', color: 'rgba(255,80,80,0.6)', cursor: 'pointer', padding: 0, lineHeight: 1 }}>✕</button>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  <input value={phraseLinkInput.label} onChange={e => setPhraseLinkInput(p => ({ ...p, label: e.target.value }))}
-                    placeholder="Etiqueta (ej: Wikipedia)" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 10px', fontSize: 12, color: '#fff', outline: 'none' }} />
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <input value={phraseLinkInput.url} onChange={e => setPhraseLinkInput(p => ({ ...p, url: e.target.value }))}
-                      placeholder="https://..." style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 10px', fontSize: 12, color: '#fff', outline: 'none' }} />
-                    <button type="button" onClick={() => {
-                      const url = phraseLinkInput.url.trim()
-                      if (!url) return
-                      setPhraseLinks(prev => [...prev, { label: phraseLinkInput.label.trim(), url }])
-                      setPhraseLinkInput({ label: '', url: '' })
-                    }} style={{ padding: '5px 12px', borderRadius: 8, background: 'rgba(239,255,66,0.15)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Agregar</button>
-                  </div>
-                </div>
-              </div>
-
               {phraseError && <p style={{ fontSize: 12, color: '#f87171' }}>{phraseError}</p>}
 
               <button
@@ -4363,14 +4331,12 @@ export default function AdminPage() {
                     fd.append('description', phraseForm.description)
                     fd.append('language_code', phraseForm.language_code)
                     fd.append('tags', phraseTags.join(','))
-                    fd.append('links', JSON.stringify(phraseLinks))
                     const r = await fetch('/api/phrases', { method: 'POST', headers: { 'x-admin-pass': pass }, body: fd })
                     const d = await r.json()
                     if (!r.ok) throw new Error(d.error || 'Error')
                     setAdminPhrases(prev => [d.phrase, ...prev])
                     setPhraseForm({ description: '', language_code: 'es' })
                     setPhraseTags([])
-                    setPhraseLinks([])
                     setPhraseImage(null); setPhrasePreview(null)
                   } catch (err: unknown) {
                     setPhraseError(err instanceof Error ? err.message : 'Error')
@@ -4449,7 +4415,7 @@ export default function AdminPage() {
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
                         <button type="button"
-                          onClick={() => { setEditPhraseId(prev => prev === ph.id ? null : ph.id); setEditPhraseDesc(ph.description || ''); setEditPhraseLang(ph.language_code); setEditPhraseTags(ph.tags || []); setEditPhraseLinks(ph.links || []); setEditLinkInput({ label: '', url: '' }) }}
+                          onClick={() => { setEditPhraseId(prev => prev === ph.id ? null : ph.id); setEditPhraseDesc(ph.description || ''); setEditPhraseLang(ph.language_code); setEditPhraseTags(ph.tags || []); setShowEditLinkForm(false) }}
                           style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: editPhraseId === ph.id ? '#efff42' : 'rgba(255,255,255,0.07)', color: editPhraseId === ph.id ? '#000' : 'rgba(255,255,255,0.6)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
                           {editPhraseId === ph.id ? 'Cerrar editor' : 'Editar'}
                         </button>
@@ -4574,27 +4540,6 @@ export default function AdminPage() {
                           <button type="button" onClick={() => { const t = editNewTagInput.trim().toLowerCase().replace(/\s+/g,'-'); if (t) { if (!editPhraseTags.includes(t)) setEditPhraseTags(prev => [...prev, t]); setEditExtraPhraseTags(prev => prev.includes(t) ? prev : [...prev, t]) }; setEditNewTagInput('') }}
                             style={{ padding: '3px 8px', borderRadius: 8, background: 'rgba(239,255,66,0.15)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>+ agregar</button>
                         </div>
-                        {/* Fuentes */}
-                        <div style={{ marginBottom: 8 }}>
-                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Fuentes</p>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 6 }}>
-                            {editPhraseLinks.map((lnk, i) => (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 6 }}>
-                                <span style={{ fontSize: 10, color: '#efff42', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lnk.label || lnk.url}</span>
-                                <button type="button" onClick={() => setEditPhraseLinks(prev => prev.filter((_, j) => j !== i))}
-                                  style={{ fontSize: 12, background: 'none', border: 'none', color: 'rgba(255,80,80,0.6)', cursor: 'pointer', padding: 0 }}>✕</button>
-                              </div>
-                            ))}
-                          </div>
-                          <input value={editLinkInput.label} onChange={e => setEditLinkInput(p => ({ ...p, label: e.target.value }))}
-                            placeholder="Etiqueta (opcional)" style={{ width: '100%', marginBottom: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '4px 8px', fontSize: 10, color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
-                          <div style={{ display: 'flex', gap: 5 }}>
-                            <input value={editLinkInput.url} onChange={e => setEditLinkInput(p => ({ ...p, url: e.target.value }))}
-                              placeholder="https://..." style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '4px 8px', fontSize: 10, color: '#fff', outline: 'none' }} />
-                            <button type="button" onClick={() => { const url = editLinkInput.url.trim(); if (!url) return; setEditPhraseLinks(prev => [...prev, { label: editLinkInput.label.trim(), url }]); setEditLinkInput({ label: '', url: '' }) }}
-                              style={{ padding: '4px 9px', borderRadius: 6, background: 'rgba(239,255,66,0.15)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Agregar</button>
-                          </div>
-                        </div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
                           <select value={editPhraseLang} onChange={e => setEditPhraseLang(e.target.value)}
                             className={iCls} style={{ width: 70, padding: '4px 6px', fontSize: 11 }}>
@@ -4611,10 +4556,10 @@ export default function AdminPage() {
                                 const r = await fetch(`/api/phrases/${ph.id}`, {
                                   method: 'PATCH',
                                   headers: { 'x-admin-pass': pass, 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ description: editPhraseDesc || null, language_code: editPhraseLang, tags: editPhraseTags, links: editPhraseLinks }),
+                                  body: JSON.stringify({ description: editPhraseDesc || null, language_code: editPhraseLang, tags: editPhraseTags }),
                                 })
                                 if (r.ok) {
-                                  setAdminPhrases(prev => prev.map(p => p.id === ph.id ? { ...p, description: editPhraseDesc || null, language_code: editPhraseLang, tags: editPhraseTags, links: editPhraseLinks } : p))
+                                  setAdminPhrases(prev => prev.map(p => p.id === ph.id ? { ...p, description: editPhraseDesc || null, language_code: editPhraseLang, tags: editPhraseTags } : p))
                                   setEditPhraseId(null)
                                 }
                               } finally { setSavingEditPhrase(false) }
