@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   const { data: phrases } = await sb()
     .from('phrases')
-    .select('id, image_url, description, language_code, active, created_at, tags, links, view_count, external_view_count')
+    .select('id, image_url, description, language_code, active, created_at, tags, links, view_count, external_view_count, publish_at')
     .order('created_at', { ascending: false })
 
   if (!phrases) return NextResponse.json({ phrases: [] })

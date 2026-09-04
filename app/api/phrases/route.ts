@@ -15,15 +15,22 @@ export async function GET(req: NextRequest) {
   const lang = url.searchParams.get('lang') || 'es'
   const tag  = url.searchParams.get('tag')
 
+  const now = new Date().toISOString()
   let query = sb()
     .from('phrases')
     .select('id, image_url, description, language_code, created_at, tags, links')
     .eq('language_code', lang)
-    .eq('active', true)
+    .or(`active.eq.true,and(active.eq.false,publish_at.not.is.null,publish_at.lte.${now})`)
   if (tag) {
     query = query.contains('tags', [tag])
   }
   const { data: allPhrases } = await query.limit(tag ? 50 : 100)
+
+  // Auto-activar las que ya pasaron su publish_at (fire and forget)
+  const due = (allPhrases || []).filter((p: Record<string, unknown>) => !p.active && p.publish_at)
+  if (due.length > 0) {
+    void sb().from('phrases').update({ active: true }).in('id', due.map((p: Record<string, unknown>) => p.id))
+  }
   // Excluir cultura (frases con tags) del feed principal
   const phrases = tag
     ? allPhrases
@@ -80,13 +87,17 @@ export async function POST(req: NextRequest) {
   const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []
   const linksRaw = (fd.get('links') as string | null) || '[]'
   const links = (() => { try { return JSON.parse(linksRaw) } catch { return [] } })()
+  const publishAt = (fd.get('publish_at') as string | null) || null
 
   const ext = image.name.split('.').pop() || 'jpg'
   const image_url = await uploadFile(image, `phrases/${crypto.randomUUID()}.${ext}`)
 
+  const insertData: Record<string, unknown> = { image_url, description, language_code: lang, tags, links, active: false }
+  if (publishAt) insertData.publish_at = publishAt
+
   const { data, error } = await sb()
     .from('phrases')
-    .insert({ image_url, description, language_code: lang, tags, links, active: false })
+    .insert(insertData)
     .select()
     .single()
 

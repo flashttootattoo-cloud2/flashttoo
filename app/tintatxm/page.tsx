@@ -1253,7 +1253,7 @@ export default function AdminPage() {
 
   // Frases
   type PhraseLink = { label: string; url: string }
-  type AdminPhrase = { id: string; image_url: string; description: string | null; language_code: string; active: boolean; created_at: string; comment_count?: number; tags?: string[]; links?: PhraseLink[]; view_count?: number; external_view_count?: number }
+  type AdminPhrase = { id: string; image_url: string; description: string | null; language_code: string; active: boolean; created_at: string; comment_count?: number; tags?: string[]; links?: PhraseLink[]; view_count?: number; external_view_count?: number; publish_at?: string | null }
   type AdminPhraseComment = { id: string; artist_name: string | null; guest_name: string | null; guest_emoji: string | null; content: string; created_at: string }
   const [adminPhrases, setAdminPhrases]       = useState<AdminPhrase[]>([])
   const [loadingPhrases, setLoadingPhrases]   = useState(false)
@@ -1277,7 +1277,8 @@ export default function AdminPage() {
     guía:        { es: 'guía',        en: 'guide',       pt: 'guia' },
   }
   const tagLabel = (tag: string) => TAG_LABELS[tag]?.[language] ?? tag
-  const [phraseForm, setPhraseForm]           = useState({ description: '', language_code: 'es' })
+  const [phraseForm, setPhraseForm]           = useState({ description: '', language_code: 'es', publish_at: '' })
+  const [phraseScheduled, setPhraseScheduled] = useState(false)
   const [phraseTags, setPhraseTags]           = useState<string[]>([])
   const [showPhraseLinkForm, setShowPhraseLinkForm] = useState(false)
   const [phraseLinkFormVal, setPhraseLinkFormVal]   = useState({ url: '', label: '' })
@@ -1316,6 +1317,7 @@ export default function AdminPage() {
   const [editPhraseId, setEditPhraseId]       = useState<string | null>(null)
   const [editPhraseDesc, setEditPhraseDesc]   = useState('')
   const [editPhraseLang, setEditPhraseLang]   = useState('es')
+  const [editPhrasePublishAt, setEditPhrasePublishAt] = useState('')
   const [savingEditPhrase, setSavingEditPhrase] = useState(false)
   const editPhraseDescRef  = useRef<HTMLTextAreaElement>(null)
   const phraseImgInputRef  = useRef<HTMLInputElement>(null)
@@ -4318,6 +4320,27 @@ export default function AdminPage() {
                 </select>
               </div>
 
+              {/* Programar publicación */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: phraseScheduled ? 8 : 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setPhraseScheduled(v => !v)}
+                    style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', background: phraseScheduled ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.06)', border: `1px solid ${phraseScheduled ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 6, color: phraseScheduled ? '#efff42' : 'rgba(255,255,255,0.45)', cursor: 'pointer' }}>
+                    🕐 Programar publicación
+                  </button>
+                </div>
+                {phraseScheduled && (
+                  <input
+                    type="datetime-local"
+                    value={phraseForm.publish_at}
+                    onChange={e => setPhraseForm(f => ({ ...f, publish_at: e.target.value }))}
+                    className={iCls}
+                    style={{ colorScheme: 'dark' }}
+                  />
+                )}
+              </div>
+
               {phraseError && <p style={{ fontSize: 12, color: '#f87171' }}>{phraseError}</p>}
 
               <button
@@ -4331,11 +4354,15 @@ export default function AdminPage() {
                     fd.append('description', phraseForm.description)
                     fd.append('language_code', phraseForm.language_code)
                     fd.append('tags', phraseTags.join(','))
+                    if (phraseScheduled && phraseForm.publish_at) {
+                      fd.append('publish_at', new Date(phraseForm.publish_at).toISOString())
+                    }
                     const r = await fetch('/api/phrases', { method: 'POST', headers: { 'x-admin-pass': pass }, body: fd })
                     const d = await r.json()
                     if (!r.ok) throw new Error(d.error || 'Error')
                     setAdminPhrases(prev => [d.phrase, ...prev])
-                    setPhraseForm({ description: '', language_code: 'es' })
+                    setPhraseForm({ description: '', language_code: 'es', publish_at: '' })
+                    setPhraseScheduled(false)
                     setPhraseTags([])
                     setPhraseImage(null); setPhrasePreview(null)
                   } catch (err: unknown) {
@@ -4346,7 +4373,7 @@ export default function AdminPage() {
                 }}
                 className="py-3 rounded-xl text-sm font-bold transition-opacity"
                 style={{ background: '#efff42', color: '#000', opacity: (savingPhrase || !phraseImage) ? 0.4 : 1 }}>
-                {savingPhrase ? 'Subiendo...' : 'Publicar frase'}
+                {savingPhrase ? 'Subiendo...' : phraseScheduled && phraseForm.publish_at ? 'Programar frase' : 'Publicar frase'}
               </button>
             </div>
 
@@ -4413,7 +4440,7 @@ export default function AdminPage() {
                           {ph.language_code.toUpperCase()} · {new Date(ph.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                         </p>
                         {/* Estadísticas de vistas */}
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>
                             👁 <strong style={{ color: '#fff' }}>{ph.view_count ?? 0}</strong> vistas
                           </span>
@@ -4423,6 +4450,11 @@ export default function AdminPage() {
                           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
                             📱 <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{(ph.view_count ?? 0) - (ph.external_view_count ?? 0)}</strong> app
                           </span>
+                          {!ph.active && ph.publish_at && (
+                            <span style={{ fontSize: 10, color: 'rgba(239,255,66,0.7)' }}>
+                              🕐 <strong>{new Date(ph.publish_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</strong>
+                            </span>
+                          )}
                         </div>
                         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                           {(ph.tags ?? []).map(t => (
@@ -4432,7 +4464,7 @@ export default function AdminPage() {
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
                         <button type="button"
-                          onClick={() => { setEditPhraseId(prev => prev === ph.id ? null : ph.id); setEditPhraseDesc(ph.description || ''); setEditPhraseLang(ph.language_code); setEditPhraseTags(ph.tags || []); setShowEditLinkForm(false) }}
+                          onClick={() => { setEditPhraseId(prev => prev === ph.id ? null : ph.id); setEditPhraseDesc(ph.description || ''); setEditPhraseLang(ph.language_code); setEditPhraseTags(ph.tags || []); setShowEditLinkForm(false); setEditPhrasePublishAt(ph.publish_at ? new Date(ph.publish_at).toISOString().slice(0,16) : '') }}
                           style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: editPhraseId === ph.id ? '#efff42' : 'rgba(255,255,255,0.07)', color: editPhraseId === ph.id ? '#000' : 'rgba(255,255,255,0.6)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
                           {editPhraseId === ph.id ? 'Cerrar editor' : 'Editar'}
                         </button>
@@ -4443,7 +4475,7 @@ export default function AdminPage() {
                             setAdminPhrases(prev => prev.map(p => p.id === ph.id ? { ...p, active: next } : p))
                           }}
                           style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: ph.active ? 'rgba(74,222,128,0.1)' : 'rgba(255,200,80,0.1)', color: ph.active ? '#4ade80' : 'rgba(255,200,80,0.8)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
-                          {ph.active ? '● Publicado' : '○ Borrador'}
+                          {ph.active ? '● Publicado' : ph.publish_at && !ph.active ? '🕐 Programado' : '○ Borrador'}
                         </button>
                         <a href={`/articulo/${ph.id}`} target="_blank" rel="noopener noreferrer"
                           style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: 'none', borderRadius: 6, cursor: 'pointer', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
@@ -4557,26 +4589,35 @@ export default function AdminPage() {
                           <button type="button" onClick={() => { const t = editNewTagInput.trim().toLowerCase().replace(/\s+/g,'-'); if (t) { if (!editPhraseTags.includes(t)) setEditPhraseTags(prev => [...prev, t]); setEditExtraPhraseTags(prev => prev.includes(t) ? prev : [...prev, t]) }; setEditNewTagInput('') }}
                             style={{ padding: '3px 8px', borderRadius: 8, background: 'rgba(239,255,66,0.15)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>+ agregar</button>
                         </div>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
                           <select value={editPhraseLang} onChange={e => setEditPhraseLang(e.target.value)}
                             className={iCls} style={{ width: 70, padding: '4px 6px', fontSize: 11 }}>
                             <option value="es">ES</option>
                             <option value="en">EN</option>
                             <option value="pt">PT</option>
                           </select>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>🕐</span>
+                            <input type="datetime-local" value={editPhrasePublishAt}
+                              onChange={e => setEditPhrasePublishAt(e.target.value)}
+                              className={iCls} style={{ fontSize: 10, padding: '3px 6px', colorScheme: 'dark' }} />
+                          </div>
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button type="button" disabled={savingEditPhrase}
                             onClick={async () => {
                               setSavingEditPhrase(true)
                               try {
+                                const payload: Record<string, unknown> = { description: editPhraseDesc || null, language_code: editPhraseLang, tags: editPhraseTags }
+                                if (editPhrasePublishAt) payload.publish_at = new Date(editPhrasePublishAt).toISOString()
+                                else payload.publish_at = null
                                 const r = await fetch(`/api/phrases/${ph.id}`, {
                                   method: 'PATCH',
                                   headers: { 'x-admin-pass': pass, 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ description: editPhraseDesc || null, language_code: editPhraseLang, tags: editPhraseTags }),
+                                  body: JSON.stringify(payload),
                                 })
                                 if (r.ok) {
-                                  setAdminPhrases(prev => prev.map(p => p.id === ph.id ? { ...p, description: editPhraseDesc || null, language_code: editPhraseLang, tags: editPhraseTags } : p))
+                                  setAdminPhrases(prev => prev.map(p => p.id === ph.id ? { ...p, description: editPhraseDesc || null, language_code: editPhraseLang, tags: editPhraseTags, publish_at: editPhrasePublishAt ? new Date(editPhrasePublishAt).toISOString() : null } : p))
                                   setEditPhraseId(null)
                                 }
                               } finally { setSavingEditPhrase(false) }
