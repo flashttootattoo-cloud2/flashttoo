@@ -2812,7 +2812,7 @@ export default function Home() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                           {phrase.links.map((lnk, i) => (
                             <a key={i} href={lnk.url} target="_blank" rel="noopener noreferrer"
-                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, textDecoration: 'none', color: '#efff42', fontSize: 12, lineHeight: 1.4 }}>
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, textDecoration: 'none', color: '#efff42', fontSize: 13, lineHeight: 1.4, minHeight: 44, boxSizing: 'border-box', touchAction: 'manipulation', cursor: 'pointer' }}>
                               <span style={{ fontSize: 14, flexShrink: 0 }}>↗</span>
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lnk.label || lnk.url}</span>
                             </a>

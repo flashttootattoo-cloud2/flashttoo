@@ -52,8 +52,9 @@ export function renderPhraseContent(text: string): React.ReactNode {
           const label = linkMatch[2]?.trim() || 'Ver publicación original'
           return (
             <a key={i} href={href} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: '10px 0', padding: '9px 16px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 10, color: '#efff42', fontSize: 12, fontWeight: 600, textDecoration: 'none', lineHeight: 1 }}>
-              <span style={{ fontSize: 14 }}>↗</span>{label}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '10px 0', padding: '12px 16px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 10, color: '#efff42', fontSize: 13, fontWeight: 600, textDecoration: 'none', lineHeight: 1, minHeight: 44, boxSizing: 'border-box', touchAction: 'manipulation', cursor: 'pointer' }}>
+              <span style={{ fontSize: 15, flexShrink: 0 }}>↗</span>
+              <span>{label}</span>
             </a>
           )
         }
