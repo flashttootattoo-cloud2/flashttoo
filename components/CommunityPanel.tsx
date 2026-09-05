@@ -326,13 +326,13 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
             value={filterCity}
             onChange={e => setFilterCity(e.target.value)}
             placeholder={t('comunidad', 'filter_city', 'Filtrar por ciudad...')}
-            style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }}
+            style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }}
           />
           <input
             value={filterCountry}
             onChange={e => setFilterCountry(e.target.value)}
             placeholder={t('comunidad', 'filter_country', 'País...')}
-            style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }}
+            style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }}
           />
           {(filterCity || filterCountry) && (
             <button
