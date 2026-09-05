@@ -814,7 +814,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                           fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {})
                           fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_click' }) }).catch(() => {})
                         }}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(239,255,66,0.07)', color: 'rgba(239,255,66,0.85)', border: '1px solid rgba(239,255,66,0.2)', borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: 'none', letterSpacing: '0.02em' }}>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
                         Web
                       </a>
                     )}
