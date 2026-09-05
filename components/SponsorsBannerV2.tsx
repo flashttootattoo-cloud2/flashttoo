@@ -582,7 +582,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     <div style={{ padding: '16px 20px 20px' }}>
                       {c.name && <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 12px', lineHeight: 1.2 }}>{c.name}</p>}
                       {c.link && (
-                        <a href={c.link} target="_blank" rel="noopener noreferrer"
+                        <a href={/^https?:\/\//i.test(c.link) ? c.link : `https://${c.link}`} target="_blank" rel="noopener noreferrer"
                           onClick={() => fetch(`/api/conventions/${c.id}/click`, { method: 'POST' }).catch(() => {})}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>
                           {t('eventos', 'see_more', 'Ver más →')}
@@ -809,7 +809,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {sel.link && (
-                      <a href={sel.link} target="_blank" rel="noopener noreferrer"
+                      <a href={/^https?:\/\//i.test(sel.link) ? sel.link : `https://${sel.link}`} target="_blank" rel="noopener noreferrer"
                         onClick={() => {
                           fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {})
                           fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_click' }) }).catch(() => {})
