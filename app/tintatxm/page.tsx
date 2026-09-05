@@ -1197,6 +1197,7 @@ export default function AdminPage() {
     { key: 'activar',    label: 'Activar — Página de activación de perfil' },
     { key: 'password',   label: 'Password — Página de nueva contraseña' },
     { key: 'galeria',    label: 'Galería — Overlay de fotos' },
+    { key: 'comunidad',  label: 'Comunidad — Feed de publicaciones' },
   ]
 
   const openLang = async (code: string) => {
