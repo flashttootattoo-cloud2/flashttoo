@@ -197,7 +197,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
   const nowLabel = t('comunidad', 'time_now', 'ahora')
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0a0a0a' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0a0a0a', overflow: 'hidden', minWidth: 0 }}>
       <style>{`.community-textarea::placeholder { color: rgba(255,255,255,0.18); }`}</style>
 
       {/* Header */}
@@ -493,7 +493,7 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onShare, reporter
           {(isArtist || isStudio) && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
-                {t('comunidad', 'contact_from_profile', 'Contactalo desde su perfil')}
+                {t('comunidad', 'contact_from_profile', 'Contactá desde su perfil')}
               </p>
               <button
                 onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug) }}

@@ -3166,7 +3166,7 @@ export default function Home() {
       {communityOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex' }}>
           <div style={{ flex: '0 0 12%', background: 'rgba(0,0,0,0.55)' }} onClick={() => setCommunityOpen(false)} />
-          <div style={{ flex: 1, maxWidth: 500, height: '100%', background: '#0a0a0a', display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.07)', animation: 'slideInRight 0.22s ease' }}>
+          <div style={{ flex: 1, minWidth: 0, maxWidth: 500, height: '100%', background: '#0a0a0a', display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.07)', animation: 'slideInRight 0.22s ease', overflow: 'hidden' }}>
             <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <CommunityPanel
                 onClose={() => setCommunityOpen(false)}
