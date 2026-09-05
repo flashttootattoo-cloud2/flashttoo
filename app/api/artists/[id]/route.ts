@@ -6,6 +6,13 @@ function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const { data: artist } = await sb().from('artists').select('id, name, city, country, photo_url, slug').eq('id', id).single()
+  if (!artist) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json({ artist })
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const body = await req.json()

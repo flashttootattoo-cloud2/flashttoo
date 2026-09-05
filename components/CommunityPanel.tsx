@@ -66,9 +66,19 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [studioLocation, setStudioLocation] = useState<{ city?: string; country?: string } | null>(null)
+  const [artistLocation, setArtistLocation] = useState<{ city?: string; country?: string } | null>(null)
   const [highlightedId, setHighlightedId] = useState<string | undefined>(highlightPostId)
   const [filterCity, setFilterCity] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
+
+  // Buscar ciudad del artista logueado si no viene en el prop
+  useEffect(() => {
+    if (!loggedArtist || (loggedArtist.city && loggedArtist.country)) return
+    fetch(`/api/artists/${loggedArtist.id}`)
+      .then(r => r.json())
+      .then(d => { if (d.artist) setArtistLocation({ city: d.artist.city, country: d.artist.country }) })
+      .catch(() => {})
+  }, [loggedArtist])
 
   // Buscar ciudad del estudio logueado si no viene en el prop
   useEffect(() => {
@@ -80,8 +90,8 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
   }, [loggedStudio])
 
   const sortByProximity = useCallback((raw: CommunityPost[]) => {
-    const city    = (loggedArtist?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
-    const country = (loggedArtist?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
+    const city    = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
+    const country = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
     const isNearby = (p: CommunityPost) =>
       !!(city && p.city?.toLowerCase() === city && country && p.country?.toLowerCase() === country)
     return [...raw].sort((a, b) => {
@@ -97,7 +107,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
         (country && p.country?.toLowerCase() === country ? 1 : 0)
       return score(b) - score(a)
     })
-  }, [loggedArtist, loggedStudio, studioLocation])
+  }, [loggedArtist, artistLocation, loggedStudio, studioLocation])
 
   useEffect(() => {
     setPosts(prev => prev.length ? sortByProximity(prev) : prev)
@@ -160,7 +170,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
     try {
       let body: Record<string, unknown> = { content: text, lang }
       if (loggedArtist) {
-        body = { ...body, type: 'artist', artist_id: loggedArtist.id, artist_name: loggedArtist.name, artist_photo: loggedArtist.photo_url, artist_slug: loggedArtist.slug, city: loggedArtist.city || null, country: loggedArtist.country || null }
+        body = { ...body, type: 'artist', artist_id: loggedArtist.id, artist_name: loggedArtist.name, artist_photo: loggedArtist.photo_url, artist_slug: loggedArtist.slug, city: loggedArtist.city || artistLocation?.city || null, country: loggedArtist.country || artistLocation?.country || null }
       } else if (loggedStudio) {
         body = { ...body, type: 'studio', studio_id: loggedStudio.slug, studio_name: loggedStudio.name, studio_logo: loggedStudio.logo_url, studio_slug: loggedStudio.slug, city: loggedStudio.city || studioLocation?.city || null, country: loggedStudio.country || studioLocation?.country || null }
       } else {
@@ -367,8 +377,8 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
             )
           }
           return filtered.map((post: CommunityPost) => {
-            const viewerCity = (loggedArtist?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
-            const viewerCountry = (loggedArtist?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
+            const viewerCity = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
+            const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
             const nearby = !!(viewerCity && post.city?.toLowerCase() === viewerCity && viewerCountry && post.country?.toLowerCase() === viewerCountry)
             const ownerId = loggedArtist?.id ?? loggedStudio?.slug ?? null
             const isOwn = !!(ownerId && (
