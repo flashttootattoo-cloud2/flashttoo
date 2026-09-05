@@ -32,11 +32,12 @@ function StatItem({ label, value }: { label: string; value: number }) {
   )
 }
 
-export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, authEmail, adminPass, showClickCounters = false }: {
+export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, refreshToken, authEmail, adminPass, showClickCounters = false }: {
   slug: string
   onClose: () => void
   onOpenArtist: (artist: Artist) => void
   accessToken?: string
+  refreshToken?: string
   authEmail?: string
   adminPass?: string
   showClickCounters?: boolean
@@ -57,7 +58,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
   const [keyError, setKeyError] = useState('')
   const [verifying, setVerifying] = useState(false)
 
-  const [editForm, setEditForm] = useState({ name: '', description: '', instagram: '', whatsapp: '', website: '' })
+  const [editForm, setEditForm] = useState({ name: '', description: '', city: '', country: '', instagram: '', whatsapp: '', website: '' })
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -90,7 +91,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
     if (authAutoOpenedRef.current) return
     authAutoOpenedRef.current = true
     setEditOpen(true)
-    setEditForm({ name: studio.name || '', description: studio.description || '', instagram: studio.instagram || '', whatsapp: studio.whatsapp || '', website: studio.website || '' })
+    setEditForm({ name: studio.name || '', description: studio.description || '', city: studio.city || '', country: studio.country || '', instagram: studio.instagram || '', whatsapp: studio.whatsapp || '', website: studio.website || '' })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studio, authMode])
 
@@ -137,7 +138,7 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
     })
     if (r.ok) {
       setKeyVerified(keyInput.trim())
-      setEditForm({ name: studio?.name || '', description: studio?.description || '', instagram: studio?.instagram || '', whatsapp: studio?.whatsapp || '', website: studio?.website || '' })
+      setEditForm({ name: studio?.name || '', description: studio?.description || '', city: studio?.city || '', country: studio?.country || '', instagram: studio?.instagram || '', whatsapp: studio?.whatsapp || '', website: studio?.website || '' })
     } else { setKeyError(t('estudio', 'wrong_key', 'Clave incorrecta. Si la perdiste, contactanos por Instagram @flashttoo')) }
     setVerifying(false)
   }
@@ -167,17 +168,44 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
 
   const saveEdit = async () => {
     setSaving(true); setSaveError('')
-    const fd = new FormData()
-    if (authMode && accessToken) {
-      fd.append('access_token', accessToken)
-    } else {
-      fd.append('edit_key', keyVerified)
+
+    const buildFd = (token: string) => {
+      const fd = new FormData()
+      fd.append('access_token', token)
+      Object.entries(editForm).forEach(([k, v]) => fd.append(k, v))
+      if (logoFile) fd.append('logo', logoFile)
+      return fd
     }
-    Object.entries(editForm).forEach(([k, v]) => fd.append(k, v))
-    if (logoFile) fd.append('logo', logoFile)
-    const r = await fetch(`/api/studios/${slug}`, { method: 'PATCH', body: fd })
-    const d = await r.json()
-    if (!r.ok) { setSaveError(d.error || 'Error al guardar'); setSaving(false); return }
+
+    const tryWithKey = () => {
+      const fd = new FormData()
+      fd.append('edit_key', keyVerified)
+      Object.entries(editForm).forEach(([k, v]) => fd.append(k, v))
+      if (logoFile) fd.append('logo', logoFile)
+      return fd
+    }
+
+    let r: Response
+    if (authMode && accessToken) {
+      r = await fetch(`/api/studios/${slug}`, { method: 'PATCH', body: buildFd(accessToken) })
+      if (r.status === 401 && refreshToken) {
+        try {
+          const ref = await fetch('/api/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: refreshToken }) })
+          if (ref.ok) {
+            const { access_token: newToken } = await ref.json()
+            r = await fetch(`/api/studios/${slug}`, { method: 'PATCH', body: buildFd(newToken) })
+          }
+        } catch { /* reintento fallido */ }
+      }
+    } else {
+      r = await fetch(`/api/studios/${slug}`, { method: 'PATCH', body: tryWithKey() })
+    }
+
+    const d = await r!.json()
+    if (!r!.ok) {
+      setSaveError(r!.status === 401 ? 'Sesión expirada. Cerrá y volvé a abrir el perfil.' : (d.error || 'Error al guardar'))
+      setSaving(false); return
+    }
     setStudio(d.studio); setLogoFile(null); setLogoPreview(null)
     setSaving(false)
     setEditOpen(false); setKeyVerified(''); setKeyInput('')
@@ -369,6 +397,8 @@ export default function StudioPanel({ slug, onClose, onOpenArtist, accessToken, 
                   {([
                     { key: 'name',        label: t('estudio', 'field_name', 'Nombre'),      placeholder: t('estudio', 'field_name_placeholder', 'Nombre del estudio') },
                     { key: 'description', label: t('estudio', 'field_description', 'Descripción'), placeholder: t('estudio', 'field_description_placeholder', 'Descripción breve del estudio') },
+                    { key: 'city',        label: 'Ciudad',      placeholder: 'Buenos Aires' },
+                    { key: 'country',     label: 'País',        placeholder: 'Argentina' },
                     { key: 'instagram',   label: 'Instagram',   placeholder: t('agregar', 'instagram_placeholder', '@usuario') },
                     { key: 'whatsapp',    label: 'WhatsApp',    placeholder: '+54 9 11 1234 5678' },
                     { key: 'website',     label: t('estudio', 'stat_web', 'Web'), placeholder: 'https://tuestudio.com' },

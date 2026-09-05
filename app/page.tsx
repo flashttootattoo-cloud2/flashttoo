@@ -11,6 +11,7 @@ import StudioPanel from '@/components/StudioPanel'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 import { useTranslation } from '@/contexts/TranslationContext'
 import { renderPhraseContent } from '@/components/PhraseContent'
+import CommunityPanel from '@/components/CommunityPanel'
 
 function BioText({ text, style }: { text: string; style?: React.CSSProperties }) {
   const parts = text.split(/(@[a-zA-Z0-9_.]{1,30})/g)
@@ -201,7 +202,15 @@ export default function Home() {
   const [showClickCounters, setShowClickCounters] = useState(false)
   const [loggedArtist, setLoggedArtist] = useState<{ id: string; name: string; photo_url: string | null; slug: string; access_token: string; flashbook_alias: string | null } | null>(null)
   const [artistMenuOpen, setArtistMenuOpen] = useState(false)
-  const [loggedStudio, setLoggedStudio] = useState<{ slug: string; name: string; logo_url: string | null; visible: boolean; access_token: string; refresh_token?: string } | null>(null)
+  const [communityOpen, setCommunityOpen] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return new URLSearchParams(window.location.search).get('comunidad') === '1'
+  })
+  const highlightPostId = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('post') ?? undefined
+    : undefined
+  const communitySwipeRef = useRef<{ startX: number; startY: number } | null>(null)
+  const [loggedStudio, setLoggedStudio] = useState<{ slug: string; name: string; logo_url: string | null; visible: boolean; access_token: string; refresh_token?: string; city?: string | null; country?: string | null } | null>(null)
   const [studioMenuOpen, setStudioMenuOpen] = useState(false)
   const studioMenuRef = useRef<HTMLDivElement>(null)
   const [showFlashDayModal, setShowFlashDayModal] = useState(false)
@@ -340,6 +349,12 @@ export default function Home() {
       if (savedStudio) {
         const s = JSON.parse(savedStudio)
         setLoggedStudio(s)
+        // Cargar ciudad/país del estudio
+        fetch(`/api/studios/${s.slug}`).then(r => r.json()).then(d => {
+          if (d.studio?.city || d.studio?.country) {
+            setLoggedStudio((prev: typeof s | null) => prev ? { ...prev, city: d.studio.city, country: d.studio.country } : prev)
+          }
+        }).catch(() => {})
       }
     } catch {}
   }, [])
@@ -1072,7 +1087,22 @@ export default function Home() {
   )
 
   return (
-    <main style={{ background: '#000', minHeight: '100vh', paddingBottom: 40 }}>
+    <main
+      style={{ background: '#000', minHeight: '100vh', paddingBottom: 40 }}
+      onTouchStart={e => {
+        if (communityOpen) return
+        const t = e.touches[0]
+        communitySwipeRef.current = { startX: t.clientX, startY: t.clientY }
+      }}
+      onTouchEnd={e => {
+        if (!communitySwipeRef.current || communityOpen) return
+        const t = e.changedTouches[0]
+        const dx = communitySwipeRef.current.startX - t.clientX
+        const dy = Math.abs(communitySwipeRef.current.startY - t.clientY)
+        communitySwipeRef.current = null
+        if (dx > 60 && dy < 60) setCommunityOpen(true)
+      }}
+    >
 
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30"
@@ -2733,6 +2763,7 @@ export default function Home() {
           onClose={() => { closeStudio(); setStudioAuth(null) }}
           onOpenArtist={(artist) => openModal(artist)}
           accessToken={studioAuth?.access_token}
+          refreshToken={loggedStudio?.refresh_token ?? undefined}
           authEmail={studioAuth?.auth_email ?? undefined}
           showClickCounters={showClickCounters}
         />
@@ -3120,6 +3151,51 @@ export default function Home() {
           </button>
         </div>
       )}
+
+      {/* ── PANEL COMUNIDAD (swipe izquierda) ─────────────────────── */}
+      {!communityOpen && (
+        <button
+          onClick={() => setCommunityOpen(true)}
+          style={{ position: 'fixed', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 40, background: 'rgba(239,255,66,0.22)', border: '1px solid rgba(239,255,66,0.35)', borderRight: 'none', borderRadius: '12px 0 0 12px', padding: '14px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </button>
+      )}
+
+      {communityOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex' }}>
+          <div style={{ flex: '0 0 12%', background: 'rgba(0,0,0,0.55)' }} onClick={() => setCommunityOpen(false)} />
+          <div style={{ flex: 1, maxWidth: 500, height: '100%', background: '#0a0a0a', display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.07)', animation: 'slideInRight 0.22s ease' }}>
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <CommunityPanel
+                onClose={() => setCommunityOpen(false)}
+                lang={language}
+                highlightPostId={highlightPostId}
+                loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: artists.find(a => a.id === loggedArtist.id)?.city, country: artists.find(a => a.id === loggedArtist.id)?.country } : null}
+                loggedStudio={loggedStudio ? { slug: loggedStudio.slug, name: loggedStudio.name, logo_url: loggedStudio.logo_url, city: loggedStudio.city ?? undefined, country: loggedStudio.country ?? undefined } : null}
+                onOpenArtist={id => {
+                  setCommunityOpen(false)
+                  const local = artists.find(x => x.id === id)
+                  if (local) { openModal(local) }
+                  else {
+                    supabase.from('artists').select('*').eq('id', id).maybeSingle()
+                      .then(({ data }) => { if (data) openModal(data as Artist) })
+                  }
+                }}
+                onOpenStudio={slug => { setCommunityOpen(false); openStudio(slug) }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to   { transform: translateX(0); }
+        }
+      `}</style>
     </main>
   )
 }

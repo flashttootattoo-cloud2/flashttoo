@@ -615,7 +615,7 @@ type StudioStat = { profile_views: number; instagram_clicks: number; whatsapp_cl
 type SearchStat = { type: string; value: string; count: number }
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 const TOP = 10
-function StatsPanel({ artists, visits, installs, studios, searchStats, appEventCounts }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }; appEventCounts: Record<string, number> }) {
+function StatsPanel({ artists, visits, installs, studios, searchStats, appEventCounts, pass, onResetSearch }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }; appEventCounts: Record<string, number>; pass: string; onResetSearch: () => void }) {
   const [showAllCountries, setShowAllCountries]       = useState(false)
   const [showAllCities, setShowAllCities]             = useState(false)
   const [showAllStyles, setShowAllStyles]             = useState(false)
@@ -948,7 +948,18 @@ function StatsPanel({ artists, visits, installs, studios, searchStats, appEventC
       {/* ── Búsquedas ── */}
       {(searchStats.countries.length > 0 || searchStats.cities.length > 0 || searchStats.styles.length > 0) && (
         <div>
-          <p style={sectionLabel}>Búsquedas realizadas</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={sectionLabel}>Búsquedas realizadas</p>
+            <button
+              onClick={async () => {
+                if (!confirm('¿Reiniciar todas las búsquedas a 0?')) return
+                await fetch('/api/admin/search-stats', { method: 'DELETE', headers: { 'x-admin-pass': pass } })
+                onResetSearch()
+              }}
+              style={{ fontSize: 11, color: 'rgba(255,80,80,0.6)', background: 'none', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, padding: '3px 10px', cursor: 'pointer' }}>
+              Reiniciar
+            </button>
+          </div>
           <div className="flex flex-col gap-4">
 
             {searchStats.countries.length > 0 && (() => {
@@ -1061,7 +1072,7 @@ export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [pin, setPin]         = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios' | 'idiomas' | 'frases'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios' | 'idiomas' | 'frases' | 'comunidad'>('artistas')
   const [artists, setArtists]       = useState<Artist[]>([])
   const [artistsTotal, setArtistsTotal] = useState(0)
   const [artistsOffset, setArtistsOffset] = useState(0)
@@ -1914,6 +1925,7 @@ export default function AdminPage() {
               { key: 'agregar',      label: '+ Agregar' },
               { key: 'idiomas',      label: 'Idiomas' },
               { key: 'frases',       label: 'Frases' },
+              { key: 'comunidad',    label: 'Comunidad' },
             ] as const
             const current = tabs.find(t => t.key === tab)
             return (
@@ -2036,7 +2048,7 @@ export default function AdminPage() {
             </div>
             {loadingStats
               ? <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando estadísticas...</p>
-              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} appEventCounts={appEventCounts} />
+              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} appEventCounts={appEventCounts} pass={pass} onResetSearch={() => setSearchStats({ countries: [], cities: [], styles: [] })} />
             }
           </div>
 
@@ -4678,6 +4690,11 @@ export default function AdminPage() {
 
           </div>
 
+        ) : tab === 'comunidad' ? (
+
+          // ── COMUNIDAD ─────────────────────────────────────────────────────────
+          <AdminCommunity pass={pass} />
+
         ) : (
 
           // ── ADS ─────────────────────────────────────────────────────────────
@@ -5174,6 +5191,154 @@ function AdField({ label, children }: { label: string; children: React.ReactNode
     <div>
       <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
       {children}
+    </div>
+  )
+}
+
+type AdminPost = { id: string; content: string; lang: string; created_at: string; type: string; client_name?: string; artist_name?: string; studio_name?: string; report_count?: number; city?: string; country?: string }
+
+function AdminCommunity({ pass }: { pass: string }) {
+  const LANGS = ['es', 'en', 'pt', 'fr', 'de', 'it']
+  const [text, setText] = useState('')
+  const [lang, setLang] = useState('es')
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<'ok' | 'error' | null>(null)
+  const [adminPosts, setAdminPosts] = useState<AdminPost[]>([])
+  const [reportedPosts, setReportedPosts] = useState<AdminPost[]>([])
+  const [loadingPosts, setLoadingPosts] = useState(true)
+
+  const loadPosts = async () => {
+    setLoadingPosts(true)
+    const r = await fetch('/api/admin/community', { headers: { 'x-admin-pass': pass } }).catch(() => null)
+    if (r?.ok) {
+      const d = await r.json()
+      setAdminPosts(d.adminPosts ?? [])
+      setReportedPosts(d.reportedPosts ?? [])
+    }
+    setLoadingPosts(false)
+  }
+
+  useEffect(() => { loadPosts() }, [])
+
+  const deletePost = async (id: string) => {
+    await fetch('/api/admin/community', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass }, body: JSON.stringify({ id }) })
+    setAdminPosts(prev => prev.filter(p => p.id !== id))
+    setReportedPosts(prev => prev.filter(p => p.id !== id))
+  }
+
+  const send = async () => {
+    if (!text.trim()) return
+    setSending(true); setResult(null)
+    const r = await fetch('/api/admin/community', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
+      body: JSON.stringify({ content: text, lang }),
+    }).catch(() => null)
+    setSending(false)
+    if (r?.ok) { setText(''); setResult('ok'); loadPosts() }
+    else setResult('error')
+  }
+
+  const postName = (p: AdminPost) => p.client_name ?? p.artist_name ?? p.studio_name ?? '—'
+  const timeAgoAdmin = (iso: string) => {
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`
+    return `${Math.floor(diff / 86400)}d`
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+
+      {/* Composer */}
+      <div className="rounded-xl p-5 flex flex-col gap-4"
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon-desktop-512.png" alt="Flashttoo" style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid #efff42', background: '#000', objectFit: 'contain', padding: 4 }} />
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Flashttoo</p>
+            <p style={{ fontSize: 10, fontWeight: 700, color: '#efff42', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Oficial</p>
+          </div>
+        </div>
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="Escribí el mensaje para la comunidad..."
+          maxLength={300}
+          rows={4}
+          style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.55 }}
+        />
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
+            {LANGS.map(l => (
+              <button key={l} onClick={() => setLang(l)}
+                style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, border: `1px solid ${lang === l ? '#efff42' : 'rgba(255,255,255,0.1)'}`, background: lang === l ? 'rgba(239,255,66,0.1)' : 'transparent', color: lang === l ? '#efff42' : 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto' }}>{text.length}/300</span>
+          <button onClick={send} disabled={sending || !text.trim()}
+            style={{ padding: '8px 20px', borderRadius: 20, fontSize: 13, fontWeight: 700, background: text.trim() ? '#efff42' : 'rgba(255,255,255,0.08)', color: text.trim() ? '#000' : 'rgba(255,255,255,0.3)', border: 'none', cursor: text.trim() ? 'pointer' : 'default' }}>
+            {sending ? 'Publicando...' : 'Publicar'}
+          </button>
+        </div>
+        {result === 'ok' && <p style={{ fontSize: 12, color: '#4ade80' }}>Publicado correctamente ✓</p>}
+        {result === 'error' && <p style={{ fontSize: 12, color: '#f87171' }}>Error al publicar</p>}
+      </div>
+
+      {/* Mis posts */}
+      <div className="flex flex-col gap-3">
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Mis publicaciones ({adminPosts.length})</p>
+        {loadingPosts ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Cargando...</p> : adminPosts.length === 0
+          ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin publicaciones aún.</p>
+          : adminPosts.map(p => (
+            <div key={p.id} className="rounded-xl p-4 flex gap-3"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(239,255,66,0.1)' }}>
+              <div style={{ flex: 1 }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span style={{ fontSize: 10, color: '#efff42', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.lang}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
+                </div>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
+              </div>
+              <button onClick={() => deletePost(p.id)}
+                style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
+                Borrar
+              </button>
+            </div>
+          ))}
+      </div>
+
+      {/* Reportados */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,80,80,0.6)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Reportados ({reportedPosts.length})</p>
+          <button onClick={loadPosts} style={{ fontSize: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0 }}>↻ actualizar</button>
+        </div>
+        {loadingPosts ? null : reportedPosts.length === 0
+          ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin reportes.</p>
+          : reportedPosts.map(p => (
+            <div key={p.id} className="rounded-xl p-4 flex gap-3"
+              style={{ background: 'rgba(255,80,80,0.04)', border: '1px solid rgba(255,80,80,0.15)' }}>
+              <div style={{ flex: 1 }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{postName(p)}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.type} · {p.lang}</span>
+                  {p.city && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{[p.city, p.country].filter(Boolean).join(', ')}</span>}
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#f87171', marginLeft: 'auto' }}>{p.report_count} reporte{(p.report_count ?? 0) > 1 ? 's' : ''}</span>
+                </div>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
+              </div>
+              <button onClick={() => deletePost(p.id)}
+                style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
+                Borrar
+              </button>
+            </div>
+          ))}
+      </div>
+
     </div>
   )
 }

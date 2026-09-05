@@ -8,6 +8,12 @@ function checkAuth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
+export async function DELETE(req: NextRequest) {
+  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  await sb().from('search_stats').update({ count: 0 }).gte('count', 0)
+  return NextResponse.json({ ok: true })
+}
+
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
