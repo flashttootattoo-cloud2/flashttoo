@@ -90,7 +90,7 @@ function filterSponsors(all: Sponsor[], city?: string, country?: string): Sponso
   })
 }
 
-export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false, showInsumos = true }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean; showInsumos?: boolean }) {
+export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false, showInsumos = true, onOverlayChange }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean; showInsumos?: boolean; onOverlayChange?: (open: boolean) => void }) {
   const { t, language } = useTranslation()
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [bannerGap, setBannerGap] = useState(8)
@@ -152,6 +152,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   expandedRef.current      = expanded
 
   // Fetch una sola vez — mezcla aleatoria fija en este montaje
+  useEffect(() => {
+    onOverlayChange?.(!!selectedId)
+  }, [selectedId, onOverlayChange])
+
   useEffect(() => {
     setLoading(true)
     fetch('/api/sponsors-v2')

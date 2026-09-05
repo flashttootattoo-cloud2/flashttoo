@@ -195,6 +195,7 @@ export default function Home() {
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [eventsCountryFilter, setEventsCountryFilter] = useState(false)
   const [showInsumos, setShowInsumos] = useState(true)
+  const [insumoOpen, setInsumoOpen] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [studioAuth, setStudioAuth] = useState<{ slug: string; auth_email: string | null; access_token: string } | null>(null)
@@ -2770,7 +2771,7 @@ export default function Home() {
       )}
 
       {!selectedStudioSlug && <ConventionModal conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} />}
-      <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} />
+      <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} onOverlayChange={setInsumoOpen} />
 
       {/* ── MODAL FRASE ─────────────────────────────────────────── */}
       {phraseOpen && phrase && !!phrase.tags?.length && (
@@ -3153,7 +3154,7 @@ export default function Home() {
       )}
 
       {/* ── PANEL COMUNIDAD (swipe izquierda) ─────────────────────── */}
-      {!communityOpen && (
+      {!communityOpen && !insumoOpen && (
         <button
           onClick={() => setCommunityOpen(true)}
           style={{ position: 'fixed', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 65, background: 'rgba(239,255,66,0.22)', border: '1px solid rgba(239,255,66,0.35)', borderRight: 'none', borderRadius: '12px 0 0 12px', padding: '14px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
