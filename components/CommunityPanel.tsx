@@ -282,9 +282,9 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
             </div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
               <input value={clientCity} onChange={e => setClientCity(e.target.value)} placeholder={t('comunidad', 'city', 'Ciudad')}
-                style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none' }} />
+                style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none' }} />
               <input value={clientCountry} onChange={e => setClientCountry(e.target.value)} placeholder={t('comunidad', 'country', 'País')}
-                style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none' }} />
+                style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none' }} />
             </div>
             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>
               {t('comunidad', 'how_contact', '¿Cómo te contactamos?')}
