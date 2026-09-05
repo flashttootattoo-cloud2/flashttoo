@@ -582,7 +582,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, reporterId, nearb
               </span>
               {(isArtist || isStudio || isAdmin) && (
                 <span style={{ fontSize: 9, fontWeight: 700, color: isAdmin ? '#efff42' : isArtist ? 'rgba(239,255,66,0.55)' : 'rgba(100,200,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
-                  {isAdmin ? t('comunidad', 'badge_official', 'Oficial') : isArtist ? t('comunidad', 'badge_artist', 'Tatuador') : t('comunidad', 'badge_studio', 'Estudio')}
+                  {isAdmin ? t('comunidad', 'badge_official', 'Oficial') : isArtist ? t('comunidad', 'badge_artist', 'Tattoo Artist') : t('comunidad', 'badge_studio', 'Estudio')}
                 </span>
               )}
             </div>
