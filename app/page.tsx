@@ -3165,7 +3165,15 @@ export default function Home() {
       )}
 
       {communityOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex' }}
+          onTouchStart={e => { communitySwipeRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY } }}
+          onTouchEnd={e => {
+            if (!communitySwipeRef.current) return
+            const dx = e.changedTouches[0].clientX - communitySwipeRef.current.startX
+            const dy = Math.abs(e.changedTouches[0].clientY - communitySwipeRef.current.startY)
+            communitySwipeRef.current = null
+            if (dx > 60 && dy < 60) setCommunityOpen(false)
+          }}>
           <div style={{ flex: '0 0 12%', background: 'rgba(0,0,0,0.55)' }} onClick={() => setCommunityOpen(false)} />
           <div style={{ flex: 1, minWidth: 0, maxWidth: 500, height: '100%', background: '#0a0a0a', display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.07)', animation: 'slideInRight 0.22s ease', overflow: 'hidden' }}>
             <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
