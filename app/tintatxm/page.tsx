@@ -615,7 +615,7 @@ type StudioStat = { profile_views: number; instagram_clicks: number; whatsapp_cl
 type SearchStat = { type: string; value: string; count: number }
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 const TOP = 10
-function StatsPanel({ artists, visits, installs, studios, searchStats, appEventCounts, pass, onResetSearch, onResetAppEvent }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }; appEventCounts: Record<string, number>; pass: string; onResetSearch: () => void; onResetAppEvent: (key: string) => void }) {
+function StatsPanel({ artists, visits, installs, studios, searchStats, appEventCounts, pass, onResetSearch, onResetAppEvent, onResetArtistClicks }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }; appEventCounts: Record<string, number>; pass: string; onResetSearch: () => void; onResetAppEvent: (key: string) => void; onResetArtistClicks: (field: string) => void }) {
   const [showAllCountries, setShowAllCountries]       = useState(false)
   const [showAllCities, setShowAllCities]             = useState(false)
   const [showAllStyles, setShowAllStyles]             = useState(false)
@@ -773,14 +773,20 @@ function StatsPanel({ artists, visits, installs, studios, searchStats, appEventC
         <p style={sectionLabel}>Tatuadores</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {([
-            { label: 'Tatuadores', value: artists.length, color: '#efff42' },
-            { label: 'Visitas',    value: totalViews,     color: 'rgba(255,255,255,0.7)' },
-            { label: 'Clicks IG',  value: totalIG,        color: '#c084fc' },
-            { label: 'Clicks WA',  value: totalWA,        color: '#4ade80' },
-          ] as const).map(item => (
+            { label: 'Tatuadores', value: artists.length, color: '#efff42',               field: null },
+            { label: 'Visitas',    value: totalViews,     color: 'rgba(255,255,255,0.7)', field: null },
+            { label: 'Clicks IG',  value: totalIG,        color: '#c084fc',               field: 'instagram_clicks' },
+            { label: 'Clicks WA',  value: totalWA,        color: '#4ade80',               field: 'whatsapp_clicks' },
+          ]).map(item => (
             <div key={item.label} className="p-4" style={card}>
               <p className="font-bold" style={{ fontSize: 28, color: item.color, lineHeight: 1 }}>{fmtN(item.value)}</p>
               <p className="mt-1.5" style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{item.label}</p>
+              {item.field && (
+                <button onClick={() => onResetArtistClicks(item.field!)}
+                  style={{ marginTop: 6, fontSize: 10, color: 'rgba(255,80,80,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  Reiniciar
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -2111,7 +2117,7 @@ export default function AdminPage() {
             </div>
             {loadingStats
               ? <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando estadísticas...</p>
-              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} appEventCounts={appEventCounts} pass={pass} onResetSearch={() => setSearchStats({ countries: [], cities: [], styles: [] })} onResetAppEvent={async (key) => { await fetch('/api/admin/app-events', { method: 'DELETE', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: key }) }); setAppEventCounts(prev => ({ ...prev, [key]: 0 })) }} />
+              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} appEventCounts={appEventCounts} pass={pass} onResetSearch={() => setSearchStats({ countries: [], cities: [], styles: [] })} onResetAppEvent={async (key) => { await fetch('/api/admin/app-events', { method: 'DELETE', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: key }) }); setAppEventCounts(prev => ({ ...prev, [key]: 0 })) }} onResetArtistClicks={async (field) => { await fetch('/api/admin/stats/reset-clicks', { method: 'DELETE', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ field }) }); loadStatsArtists(pass, true) }} />
             }
           </div>
 

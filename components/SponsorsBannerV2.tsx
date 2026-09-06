@@ -831,6 +831,15 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         Instagram
                       </a>
                     )}
+                    {sel.whatsapp && (
+                      <a href={`https://wa.me/${sel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                        onClick={() => {
+                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'whatsapp_click' }) }).catch(() => {})
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                        WhatsApp
+                      </a>
+                    )}
                     <button
                       onClick={() => {
                         const url = `${window.location.origin}${window.location.pathname}?insumo=${sel.name ? slugify(sel.name) : sel.id}`
@@ -844,15 +853,6 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                       {t('insumos', 'share_btn', 'Compartir perfil')}
                     </button>
-                    {sel.whatsapp && (
-                      <a href={`https://wa.me/${sel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                        onClick={() => {
-                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'whatsapp_click' }) }).catch(() => {})
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(37,211,102,0.06)', color: 'rgba(37,211,102,0.8)', border: '1px solid rgba(37,211,102,0.18)', borderRadius: 14, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
-                        WhatsApp
-                      </a>
-                    )}
                   </div>
 
                   {/* Países como chips */}
