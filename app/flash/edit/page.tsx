@@ -274,8 +274,9 @@ export default function FlashbookEditPage() {
     )
   }
 
-  const aliasChanged = aliasInput !== alias && aliasInput.length > 0
-  const canSaveAlias = aliasChanged && aliasAvailable === true && !aliasChecking && !aliasSaving
+  const aliasChanged = aliasInput !== alias
+  const isClearingAlias = aliasInput === '' && alias !== ''
+  const canSaveAlias = aliasChanged && !aliasSaving && (isClearingAlias || (aliasAvailable === true && !aliasChecking))
 
   // Label helpers
   const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'

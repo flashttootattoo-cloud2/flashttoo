@@ -20,3 +20,14 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ counts })
 }
+
+export async function DELETE(req: NextRequest) {
+  const auth = req.headers.get('x-admin-pass')
+  if (auth !== process.env.ADMIN_PASSWORD) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  const { event_name } = await req.json()
+  if (!event_name) return NextResponse.json({ error: 'event_name required' }, { status: 400 })
+
+  await sb().from('app_events').delete().eq('event_name', event_name)
+  return NextResponse.json({ ok: true })
+}

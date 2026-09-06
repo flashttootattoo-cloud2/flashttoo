@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
   if (search) query = query.ilike('name', `%${search}%`)
   if (status) query = query.eq('status', status)
+  if (url.searchParams.get('migrated') === 'true') query = query.not('migrated_at', 'is', null)
   const { data, count } = await query.range(offset, offset + limit - 1)
   return NextResponse.json({ artists: data || [], total: count ?? 0 })
 }

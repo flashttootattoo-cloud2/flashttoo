@@ -5,9 +5,12 @@ function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
+const PAGE = 30
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const lang = searchParams.get('lang') || 'es'
+  const lang   = searchParams.get('lang') || 'es'
+  const offset = parseInt(searchParams.get('offset') || '0', 10)
   const now = new Date().toISOString()
   const { data, error } = await sb()
     .from('community_posts')
@@ -16,10 +19,10 @@ export async function GET(req: NextRequest) {
     .lt('report_count', 3)
     .eq('lang', lang)
     .order('created_at', { ascending: false })
-    .limit(60)
+    .range(offset, offset + PAGE - 1)
 
-  if (error) return NextResponse.json({ posts: [] })
-  return NextResponse.json({ posts: data ?? [] })
+  if (error) return NextResponse.json({ posts: [], hasMore: false })
+  return NextResponse.json({ posts: data ?? [], hasMore: (data?.length ?? 0) === PAGE })
 }
 
 export async function POST(req: NextRequest) {
@@ -45,10 +48,12 @@ export async function POST(req: NextRequest) {
 
   if (type === 'artist') {
     if (!body.artist_id) return NextResponse.json({ error: 'artist_id requerido' }, { status: 400 })
-    insert.artist_id   = body.artist_id
-    insert.artist_name = body.artist_name || null
-    insert.artist_photo = body.artist_photo || null
-    insert.artist_slug = body.artist_slug || null
+    insert.artist_id      = body.artist_id
+    insert.artist_name    = body.artist_name || null
+    insert.artist_photo   = body.artist_photo || null
+    insert.artist_slug    = body.artist_slug || null
+    insert.show_flashbook  = body.show_flashbook === true ? true : null
+    insert.flashbook_alias = body.show_flashbook === true ? (body.flashbook_alias || null) : null
   } else if (type === 'studio') {
     insert.studio_id   = body.studio_id || null
     insert.studio_name = body.studio_name || null

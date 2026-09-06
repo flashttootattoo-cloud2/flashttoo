@@ -615,7 +615,7 @@ type StudioStat = { profile_views: number; instagram_clicks: number; whatsapp_cl
 type SearchStat = { type: string; value: string; count: number }
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 const TOP = 10
-function StatsPanel({ artists, visits, installs, studios, searchStats, appEventCounts, pass, onResetSearch }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }; appEventCounts: Record<string, number>; pass: string; onResetSearch: () => void }) {
+function StatsPanel({ artists, visits, installs, studios, searchStats, appEventCounts, pass, onResetSearch, onResetAppEvent }: { artists: Artist[]; visits: DayVisit[]; installs: InstallStats; studios: StudioStat[]; searchStats: { countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }; appEventCounts: Record<string, number>; pass: string; onResetSearch: () => void; onResetAppEvent: (key: string) => void }) {
   const [showAllCountries, setShowAllCountries]       = useState(false)
   const [showAllCities, setShowAllCities]             = useState(false)
   const [showAllStyles, setShowAllStyles]             = useState(false)
@@ -1057,6 +1057,11 @@ function StatsPanel({ artists, visits, installs, studios, searchStats, appEventC
                 <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</p>
                 <p style={{ fontSize: 32, fontWeight: 900, color, lineHeight: 1 }}>{appEventCounts[key] ?? 0}</p>
                 <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>aperturas totales</p>
+                <button
+                  onClick={() => onResetAppEvent(key)}
+                  style={{ marginTop: 6, fontSize: 10, color: 'rgba(255,80,80,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+                  Reiniciar
+                </button>
               </div>
             ))}
           </div>
@@ -1086,6 +1091,9 @@ export default function AdminPage() {
   const [editIGValue, setEditIGValue] = useState('')
   const [savingIG, setSavingIG] = useState(false)
   const [loadingArtists, setLoadingArtists] = useState(false)
+  const [showMigrated, setShowMigrated] = useState(false)
+  const [migratedArtists, setMigratedArtists] = useState<Artist[]>([])
+  const [loadingMigrated, setLoadingMigrated] = useState(false)
   const [searchStats, setSearchStats] = useState<{ countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }>({ countries: [], cities: [], styles: [] })
   const [appEventCounts, setAppEventCounts] = useState<Record<string, number>>({})
   const [artistSearch, setArtistSearch] = useState('')
@@ -1156,7 +1164,7 @@ export default function AdminPage() {
   const [savingBannerV2, setSavingBannerV2]   = useState(false)
   const [bannerGap, setBannerGap]             = useState(8)
   const [savingBannerGap, setSavingBannerGap] = useState(false)
-  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', bio: '', instagram: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
+  const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', bio: '', instagram: '', whatsapp: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
   const [sponsorV2ProfileLogo, setSponsorV2ProfileLogo] = useState<File | null>(null)
@@ -1237,7 +1245,7 @@ export default function AdminPage() {
   const [statsV2Sp, setStatsV2Sp]             = useState<SponsorV2Admin | null>(null)
   const [statsV2Data, setStatsV2Data]         = useState<StatsV2Data | null>(null)
   const [statsV2Loading, setStatsV2Loading]   = useState(false)
-  const [editV2Form, setEditV2Form]           = useState({ name: '', category: '', bio: '', instagram: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100, bg_image_dark: 0, logo_bg_color: '' })
+  const [editV2Form, setEditV2Form]           = useState({ name: '', category: '', bio: '', instagram: '', whatsapp: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100, bg_image_dark: 0, logo_bg_color: '' })
   const [insumoBgImages, setInsumoBgImages]   = useState<string[]>([])
   const [uploadingBg, setUploadingBg]         = useState(false)
   const [savingEditV2, setSavingEditV2]       = useState(false)
@@ -1551,6 +1559,14 @@ export default function AdminPage() {
     }
     setLoadingPending(false)
   }
+
+  useEffect(() => {
+    if (!auth || !pass) return
+    refreshPending(pass)
+    const iv = setInterval(() => refreshPending(pass), 30_000)
+    return () => clearInterval(iv)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth, pass])
 
   const refreshStudios = async (p: string) => {
     setLoadingStudios(true)
@@ -1914,19 +1930,19 @@ export default function AdminPage() {
           {(() => {
             const pendingCount = artists.filter(a => a.status === 'pending').length
             const tabs = [
-              { key: 'artistas',   label: `Tatuadores (${artists.filter(a => a.status !== 'pending').length})` },
-              { key: 'ads',        label: `Publicidades (${ads.length})` },
-              { key: 'stats',      label: 'Estadísticas' },
-              { key: 'pendientes', label: pendingCount > 0 ? `Pendientes (${pendingCount})` : 'Pendientes', alert: pendingCount > 0 },
-              { key: 'config',     label: 'Config' },
-              { key: 'contenido',  label: 'Contenido' },
+              { key: 'stats',        label: 'Estadísticas' },
+              { key: 'artistas',     label: `Tatuadores (${artists.filter(a => a.status !== 'pending').length})` },
+              { key: 'pendientes',   label: pendingCount > 0 ? `Pendientes (${pendingCount})` : 'Pendientes', alert: pendingCount > 0 },
               { key: 'sponsors2',    label: `Sponsors (${sponsorsV2.length})` },
               { key: 'convenciones', label: `Convenciones (${conventions.length})` },
               { key: 'estudios',     label: `Estudios (${adminStudios.length})` },
+              { key: 'frases',       label: 'Cultura' },
+              { key: 'comunidad',    label: 'Comunidad' },
+              { key: 'ads',          label: `Publicidad (${ads.length})` },
+              { key: 'contenido',    label: 'Contenido' },
               { key: 'agregar',      label: '+ Agregar' },
               { key: 'idiomas',      label: 'Idiomas' },
-              { key: 'frases',       label: 'Frases' },
-              { key: 'comunidad',    label: 'Comunidad' },
+              { key: 'config',       label: 'Config' },
             ] as const
             const current = tabs.find(t => t.key === tab)
             return (
@@ -1934,8 +1950,11 @@ export default function AdminPage() {
                 <button onClick={() => setMenuOpen(v => !v)}
                   className="w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}>
-                  <span className="truncate" style={{ color: ('alert' in (current ?? {}) && (current as {alert?:boolean}).alert) ? '#f87171' : '#fff' }}>
-                    {current?.label}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+                    <span className="truncate" style={{ color: ('alert' in (current ?? {}) && (current as {alert?:boolean}).alert) ? '#f87171' : '#fff' }}>
+                      {current?.label}
+                    </span>
+                    {('alert' in (current ?? {}) && (current as {alert?:boolean}).alert) && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f87171', flexShrink: 0 }} />}
                   </span>
                   <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{menuOpen ? '▲' : '▼'}</span>
                 </button>
@@ -1954,7 +1973,10 @@ export default function AdminPage() {
                         }}
                         onMouseEnter={e => { if (tab !== t.key) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
                         onMouseLeave={e => { if (tab !== t.key) e.currentTarget.style.background = 'transparent' }}>
-                        {t.label}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {t.label}
+                          {'alert' in t && t.alert && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f87171', flexShrink: 0 }} />}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -1969,18 +1991,35 @@ export default function AdminPage() {
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando...</p>
         ) : tab === 'artistas' ? (
 
-          // ── ARTISTAS ──────────���─────────────────────────────────────────────
+          // ── ARTISTAS ──────────────────────────────────────────────────────
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>Tatuadores ({artistsTotal})</p>
-              <button
-                onClick={refreshArtists}
-                disabled={loadingArtists}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                style={{ background: 'rgba(255,255,255,0.05)', color: loadingArtists ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <span style={{ display: 'inline-block', animation: loadingArtists ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-                {loadingArtists ? 'Actualizando…' : 'Actualizar'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    const next = !showMigrated
+                    setShowMigrated(next)
+                    if (next && migratedArtists.length === 0) {
+                      setLoadingMigrated(true)
+                      const r = await fetch(`/api/admin/artists?migrated=true&limit=1000&offset=0`, { headers: H(pass) }).then(res => res.json()).catch(() => null)
+                      if (r?.artists) setMigratedArtists(r.artists)
+                      setLoadingMigrated(false)
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                  style={{ background: showMigrated ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.05)', color: showMigrated ? '#efff42' : 'rgba(255,255,255,0.5)', border: `1px solid ${showMigrated ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
+                  {loadingMigrated ? '...' : `Migrados${showMigrated && migratedArtists.length ? ` (${migratedArtists.length})` : ''}`}
+                </button>
+                <button
+                  onClick={refreshArtists}
+                  disabled={loadingArtists}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.05)', color: loadingArtists ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ display: 'inline-block', animation: loadingArtists ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+                  {loadingArtists ? 'Actualizando…' : 'Actualizar'}
+                </button>
+              </div>
             </div>
             <div className="relative">
               <input
@@ -2005,6 +2044,13 @@ export default function AdminPage() {
                   {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} para &quot;{artistSearch}&quot;
                 </p>
                 <ArtistGrid artists={searchResults} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
+              </>
+            ) : showMigrated ? (
+              <>
+                {loadingMigrated
+                  ? <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando migrados...</p>
+                  : <ArtistGrid artists={[...migratedArtists].sort((a, b) => new Date(b.migrated_at!).getTime() - new Date(a.migrated_at!).getTime())} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
+                }
               </>
             ) : (
               <>
@@ -2049,7 +2095,7 @@ export default function AdminPage() {
             </div>
             {loadingStats
               ? <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando estadísticas...</p>
-              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} appEventCounts={appEventCounts} pass={pass} onResetSearch={() => setSearchStats({ countries: [], cities: [], styles: [] })} />
+              : <StatsPanel artists={statsArtists} visits={visits} installs={installs} studios={adminStudios} searchStats={searchStats} appEventCounts={appEventCounts} pass={pass} onResetSearch={() => setSearchStats({ countries: [], cities: [], styles: [] })} onResetAppEvent={async (key) => { await fetch('/api/admin/app-events', { method: 'DELETE', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: key }) }); setAppEventCounts(prev => ({ ...prev, [key]: 0 })) }} />
             }
           </div>
 
@@ -3038,6 +3084,7 @@ export default function AdminPage() {
                   fd.append('description', sponsorV2Form.category.trim())
                   fd.append('bio', sponsorV2Form.bio.trim())
                   fd.append('instagram', sponsorV2Form.instagram.trim())
+                  fd.append('whatsapp', sponsorV2Form.whatsapp.trim())
                   fd.append('link', sponsorV2Form.link.trim())
                   fd.append('level', sponsorV2Form.country.trim() ? 'country' : 'global')
                   fd.append('city', '')
@@ -3052,7 +3099,7 @@ export default function AdminPage() {
                   const d = await r.json()
                   if (!r.ok) throw new Error(d.error || 'Error')
                   setSponsorsV2(prev => [d.sponsor, ...prev])
-                  setSponsorV2Form({ name: '', category: '', bio: '', instagram: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
+                  setSponsorV2Form({ name: '', category: '', bio: '', instagram: '', whatsapp: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
                   setSponsorV2Logo(null); setSponsorV2LogoPreview(null)
                   setSponsorV2ProfileLogo(null); setSponsorV2ProfileLogoPreview(null)
                 } catch (err: unknown) {
@@ -3173,6 +3220,11 @@ export default function AdminPage() {
                 <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Instagram (sin @)</p>
                 <input value={sponsorV2Form.instagram} onChange={e => setSponsorV2Form(f => ({ ...f, instagram: e.target.value }))}
                   placeholder="nombredemarca" className={iCls} />
+              </div>
+              <div>
+                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>WhatsApp</p>
+                <input value={sponsorV2Form.whatsapp} onChange={e => setSponsorV2Form(f => ({ ...f, whatsapp: e.target.value }))}
+                  placeholder="+54 9 11 1234 5678" className={iCls} />
               </div>
 
               {/* Notas internas */}
@@ -3311,6 +3363,7 @@ export default function AdminPage() {
                             category: sp.description || '',
                             bio: sp.bio || '',
                             instagram: sp.instagram || '',
+                            whatsapp: sp.whatsapp || '',
                             link: sp.link || '',
                             level: sp.level,
                             city: sp.city || '',
@@ -3478,6 +3531,11 @@ export default function AdminPage() {
                         <input value={editV2Form.instagram} onChange={e => setEditV2Form(f => ({ ...f, instagram: e.target.value }))}
                           placeholder="nombredemarca" className={iCls} />
                       </div>
+                      <div>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>WhatsApp</p>
+                        <input value={editV2Form.whatsapp} onChange={e => setEditV2Form(f => ({ ...f, whatsapp: e.target.value }))}
+                          placeholder="+54 9 11 1234 5678" className={iCls} />
+                      </div>
                       {/* Tamaño del logo */}
                       <div className="flex flex-col gap-3">
                         <div>
@@ -3540,6 +3598,7 @@ export default function AdminPage() {
                               description: editV2Form.category.trim() || null,
                               bio: editV2Form.bio.trim() || null,
                               instagram: editV2Form.instagram.trim() || null,
+                              whatsapp: editV2Form.whatsapp.trim() || null,
                               link: editV2Form.link.trim() || null,
                               level: editV2Form.country.trim() ? 'country' : 'global',
                               city: null as null,

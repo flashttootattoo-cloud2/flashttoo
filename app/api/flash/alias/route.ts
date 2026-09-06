@@ -21,12 +21,15 @@ export async function PATCH(req: NextRequest) {
 
   if (alias !== undefined) {
     const raw = String(alias ?? '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '')
-    if (!raw) return NextResponse.json({ error: 'Alias inválido' }, { status: 400 })
-    const { data: taken } = await sb().from('artists').select('id').eq('flashbook_alias', raw).single()
-    if (taken && taken.id !== artist_id) {
-      return NextResponse.json({ error: 'Ese alias ya está en uso' }, { status: 409 })
+    if (!raw) {
+      updates.flashbook_alias = null
+    } else {
+      const { data: taken } = await sb().from('artists').select('id').eq('flashbook_alias', raw).single()
+      if (taken && taken.id !== artist_id) {
+        return NextResponse.json({ error: 'Ese alias ya está en uso' }, { status: 409 })
+      }
+      updates.flashbook_alias = raw
     }
-    updates.flashbook_alias = raw
   }
 
   if (flashbook_whatsapp !== undefined) {

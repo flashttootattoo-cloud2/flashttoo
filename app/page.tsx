@@ -201,7 +201,7 @@ export default function Home() {
   const [studioAuth, setStudioAuth] = useState<{ slug: string; auth_email: string | null; access_token: string } | null>(null)
   const [showContactInfo, setShowContactInfo] = useState(true)
   const [showClickCounters, setShowClickCounters] = useState(false)
-  const [loggedArtist, setLoggedArtist] = useState<{ id: string; name: string; photo_url: string | null; slug: string; access_token: string; flashbook_alias: string | null } | null>(null)
+  const [loggedArtist, setLoggedArtist] = useState<{ id: string; name: string; photo_url: string | null; slug: string; city: string | null; country: string | null; access_token: string; flashbook_alias: string | null } | null>(null)
   const [artistMenuOpen, setArtistMenuOpen] = useState(false)
   const [communityOpen, setCommunityOpen] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -333,12 +333,12 @@ export default function Home() {
       if (saved) {
         const session = JSON.parse(saved)
         setLoggedArtist(session)
-        // Refresh alias from DB
-        void supabase.from('artists').select('flashbook_alias').eq('id', session.id).single()
+        // Refresh fields from DB
+        void supabase.from('artists').select('flashbook_alias, city, country').eq('id', session.id).single()
           .then(({ data }) => {
             if (!data) return
-            if (data.flashbook_alias !== session.flashbook_alias) {
-              const updated = { ...session, flashbook_alias: data.flashbook_alias ?? null }
+            if (data.flashbook_alias !== session.flashbook_alias || data.city !== session.city || data.country !== session.country) {
+              const updated = { ...session, flashbook_alias: data.flashbook_alias ?? null, city: data.city ?? null, country: data.country ?? null }
               setLoggedArtist(updated)
               try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(updated)) } catch {}
             }
@@ -2219,6 +2219,8 @@ export default function Home() {
                 name: a.name,
                 photo_url: a.photo_url ?? null,
                 slug: a.slug,
+                city: a.city ?? null,
+                country: a.country ?? null,
                 access_token: artist.access_token ?? '',
                 refresh_token: artist.refresh_token ?? '',
                 flashbook_alias: a.flashbook_alias ?? null,
@@ -3154,7 +3156,7 @@ export default function Home() {
       )}
 
       {/* ── PANEL COMUNIDAD (swipe izquierda) ─────────────────────── */}
-      {!communityOpen && !insumoOpen && (
+      {!communityOpen && !insumoOpen && !showReport && !selectedStudioSlug && (
         <button
           onClick={() => setCommunityOpen(true)}
           style={{ position: 'fixed', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 65, background: 'rgba(239,255,66,0.22)', border: '1px solid rgba(239,255,66,0.35)', borderRight: 'none', borderRadius: '12px 0 0 12px', padding: '14px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
@@ -3181,7 +3183,7 @@ export default function Home() {
                 onClose={() => setCommunityOpen(false)}
                 lang={language}
                 highlightPostId={highlightPostId}
-                loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: artists.find(a => a.id === loggedArtist.id)?.city, country: artists.find(a => a.id === loggedArtist.id)?.country } : null}
+                loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: loggedArtist.city ?? undefined, country: loggedArtist.country ?? undefined, flashbook_alias: loggedArtist.flashbook_alias } : null}
                 loggedStudio={loggedStudio ? { slug: loggedStudio.slug, name: loggedStudio.name, logo_url: loggedStudio.logo_url, city: loggedStudio.city ?? undefined, country: loggedStudio.country ?? undefined } : null}
                 onOpenArtist={id => {
                   setCommunityOpen(false)

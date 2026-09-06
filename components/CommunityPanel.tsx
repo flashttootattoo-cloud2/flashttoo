@@ -16,6 +16,8 @@ type CommunityPost = {
   artist_name: string | null
   artist_photo: string | null
   artist_slug: string | null
+  show_flashbook: boolean | null
+  flashbook_alias: string | null
   studio_name: string | null
   studio_logo: string | null
   studio_slug: string | null
@@ -41,7 +43,7 @@ function contactLabel(type: string | null, val: string | null): { href: string }
 }
 
 type Props = {
-  loggedArtist: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string } | null
+  loggedArtist: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null } | null
   loggedStudio: { slug: string; name: string; logo_url: string | null; city?: string; country?: string } | null
   onOpenArtist: (id: string) => void
   onOpenStudio: (slug: string) => void
@@ -70,6 +72,10 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
   const [highlightedId, setHighlightedId] = useState<string | undefined>(highlightPostId)
   const [filterCity, setFilterCity] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
+  const [withFlashbook, setWithFlashbook] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const offsetRef = useRef(0)
 
   // Buscar ciudad del artista logueado si no viene en el prop
   useEffect(() => {
@@ -92,20 +98,24 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
   const sortByProximity = useCallback((raw: CommunityPost[]) => {
     const city    = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
     const country = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
-    const isNearby = (p: CommunityPost) =>
-      !!(city && p.city?.toLowerCase() === city && country && p.country?.toLowerCase() === country)
+    const sameCountry = (p: CommunityPost) => !!(country && p.country?.toLowerCase() === country)
+    const sameCity    = (p: CommunityPost) => !!(city && p.city?.toLowerCase() === city)
     return [...raw].sort((a, b) => {
-      const nearbyA = isNearby(a)
-      const nearbyB = isNearby(b)
+      const nearbyA = sameCountry(a)
+      const nearbyB = sameCountry(b)
       if (nearbyA && !nearbyB) return -1
       if (nearbyB && !nearbyA) return 1
+      if (nearbyA && nearbyB) {
+        const fullA = sameCity(a)
+        const fullB = sameCity(b)
+        if (fullA && !fullB) return -1
+        if (fullB && !fullA) return 1
+      }
       if (!nearbyA && !nearbyB) {
         if (a.type === 'admin' && b.type !== 'admin') return -1
         if (b.type === 'admin' && a.type !== 'admin') return 1
       }
-      const score = (p: CommunityPost) =>
-        (country && p.country?.toLowerCase() === country ? 1 : 0)
-      return score(b) - score(a)
+      return 0
     })
   }, [loggedArtist, artistLocation, loggedStudio, studioLocation])
 
@@ -116,11 +126,31 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const r = await fetch(`/api/community?lang=${encodeURIComponent(lang)}`)
+      const r = await fetch(`/api/community?lang=${encodeURIComponent(lang)}&offset=0`)
       const d = await r.json()
-      if (Array.isArray(d.posts)) setPosts(sortByProximity(d.posts))
+      if (Array.isArray(d.posts)) {
+        setPosts(sortByProximity(d.posts))
+        offsetRef.current = d.posts.length
+        setHasMore(d.hasMore ?? false)
+      }
     } finally { setLoading(false) }
   }, [sortByProximity, lang])
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore) return
+    setLoadingMore(true)
+    try {
+      const r = await fetch(`/api/community?lang=${encodeURIComponent(lang)}&offset=${offsetRef.current}`)
+      const d = await r.json()
+      if (Array.isArray(d.posts) && d.posts.length > 0) {
+        setPosts(prev => [...prev, ...d.posts])
+        offsetRef.current += d.posts.length
+        setHasMore(d.hasMore ?? false)
+      } else {
+        setHasMore(false)
+      }
+    } finally { setLoadingMore(false) }
+  }, [lang, loadingMore])
 
   useEffect(() => { load() }, [load])
 
@@ -170,7 +200,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
     try {
       let body: Record<string, unknown> = { content: text, lang }
       if (loggedArtist) {
-        body = { ...body, type: 'artist', artist_id: loggedArtist.id, artist_name: loggedArtist.name, artist_photo: loggedArtist.photo_url, artist_slug: loggedArtist.slug, city: loggedArtist.city || artistLocation?.city || null, country: loggedArtist.country || artistLocation?.country || null }
+        body = { ...body, type: 'artist', artist_id: loggedArtist.id, artist_name: loggedArtist.name, artist_photo: loggedArtist.photo_url, artist_slug: loggedArtist.slug || loggedArtist.id, city: loggedArtist.city || artistLocation?.city || null, country: loggedArtist.country || artistLocation?.country || null, show_flashbook: withFlashbook || null, flashbook_alias: withFlashbook ? (loggedArtist.flashbook_alias || null) : null }
       } else if (loggedStudio) {
         body = { ...body, type: 'studio', studio_id: loggedStudio.slug, studio_name: loggedStudio.name, studio_logo: loggedStudio.logo_url, studio_slug: loggedStudio.slug, city: loggedStudio.city || studioLocation?.city || null, country: loggedStudio.country || studioLocation?.country || null }
       } else {
@@ -184,6 +214,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
         if (!isLoggedIn) { try { localStorage.setItem(CLIENT_KEY, String(Date.now())) } catch {} }
         setPosts(prev => [d.post, ...prev])
         setText('')
+        setWithFlashbook(false)
         setClientName(''); setClientCity(''); setClientCountry(''); setContact('')
         setShowClientForm(false)
       }
@@ -246,6 +277,16 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
               style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, resize: 'none', lineHeight: 1.5, fontFamily: 'inherit', caretColor: '#efff42' }}
               className="community-textarea"
             />
+            {loggedArtist?.flashbook_alias && (
+              <div style={{ marginTop: 8, marginBottom: 2 }}>
+                <button
+                  type="button"
+                  onClick={() => setWithFlashbook(v => !v)}
+                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, border: `1px solid ${withFlashbook ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: withFlashbook ? 'rgba(239,255,66,0.1)' : 'transparent', color: withFlashbook ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
+                  {withFlashbook ? t('comunidad', 'flashbook_attached', 'Flashbook adjunto') : t('comunidad', 'attach_flashbook', '+ Adjuntar tu flashbook')}
+                </button>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{text.length}/300</span>
               <button
@@ -379,7 +420,10 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
           return filtered.map((post: CommunityPost) => {
             const viewerCity = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
             const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
-            const nearby = !!(viewerCity && post.city?.toLowerCase() === viewerCity && viewerCountry && post.country?.toLowerCase() === viewerCountry)
+            const sameCountry = !!(viewerCountry && post.country?.toLowerCase() === viewerCountry)
+            const nearby: 'full' | 'country' | false = sameCountry
+              ? (viewerCity && post.city?.toLowerCase() === viewerCity ? 'full' : 'country')
+              : false
             const ownerId = loggedArtist?.id ?? loggedStudio?.slug ?? null
             const isOwn = !!(ownerId && (
               (post.type === 'artist' && post.artist_id === ownerId) ||
@@ -397,6 +441,16 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
             )
           })
         })()}
+        {hasMore && (
+          <div style={{ padding: '12px 16px' }}>
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: loadingMore ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)', fontSize: 13, cursor: loadingMore ? 'default' : 'pointer' }}>
+              {loadingMore ? '·  ·  ·' : '+'}
+            </button>
+          </div>
+        )}
         <div style={{ height: 40 }} />
       </div>
     </div>
@@ -428,6 +482,9 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onShare, reporter
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState<{ bottom: number; right: number } | null>(null)
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
+  const autoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [reported, setReported] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const isArtist = post.type === 'artist'
@@ -435,6 +492,23 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onShare, reporter
   const isClient = post.type === 'client'
 
   const showMenu = isOwn || (isClient && !!reporterId)
+
+  const closeMenu = () => {
+    if (autoCloseRef.current) { clearTimeout(autoCloseRef.current); autoCloseRef.current = null }
+    setMenuOpen(false)
+  }
+
+  const openMenu = () => {
+    if (menuOpen) { closeMenu(); return }
+    setReported(false)
+    if (menuBtnRef.current) {
+      const rect = menuBtnRef.current.getBoundingClientRect()
+      setMenuPos({ bottom: window.innerHeight - rect.top + 6, right: window.innerWidth - rect.right })
+    }
+    setMenuOpen(true)
+    if (autoCloseRef.current) clearTimeout(autoCloseRef.current)
+    autoCloseRef.current = setTimeout(() => { setMenuOpen(false); autoCloseRef.current = null }, 5000)
+  }
 
   return (
     <div style={{ marginTop: 16 }}>
@@ -452,37 +526,41 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onShare, reporter
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
         {showMenu && (
-          <div style={{ marginLeft: 'auto', position: 'relative' }}>
+          <div style={{ marginLeft: 'auto' }}>
             <button
-              onClick={() => { setMenuOpen(v => !v); setReported(false) }}
+              ref={menuBtnRef}
+              onClick={openMenu}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.22)', fontSize: 16, lineHeight: 1, letterSpacing: '-1px', padding: '0 2px' }}>
               ···
             </button>
-            {menuOpen && (
-              <div style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 6, background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, overflow: 'hidden', minWidth: 130, zIndex: 10 }}>
-                {isOwn ? (
-                  <button
-                    disabled={deleting}
-                    onClick={async () => {
-                      setDeleting(true)
-                      await fetch(`/api/community/${post.id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ owner_id: reporterId }) }).catch(() => {})
-                      onDelete(post.id)
-                    }}
-                    style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: deleting ? 'rgba(255,80,80,0.4)' : 'rgba(255,80,80,0.8)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                    {deleting ? t('comunidad', 'deleting', 'Borrando...') : t('comunidad', 'delete', 'Borrar')}
-                  </button>
-                ) : reported ? (
-                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', padding: '10px 14px', margin: 0 }}>
-                    {t('comunidad', 'thanks_report', 'Gracias por reportar')}
-                  </p>
-                ) : (
-                  <button
-                    onClick={() => { setReported(true); fetch('/api/community/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ post_id: post.id, reporter_id: reporterId }) }).catch(() => {}); setTimeout(() => setMenuOpen(false), 5000) }}
-                    style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: 'rgba(255,80,80,0.8)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                    {t('comunidad', 'report', 'Reportar')}
-                  </button>
-                )}
-              </div>
+            {menuOpen && menuPos && (
+              <>
+                <div onClick={closeMenu} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
+                <div style={{ position: 'fixed', bottom: menuPos.bottom, right: menuPos.right, background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, overflow: 'hidden', minWidth: 130, zIndex: 200 }}>
+                  {isOwn ? (
+                    <button
+                      disabled={deleting}
+                      onClick={async () => {
+                        setDeleting(true)
+                        await fetch(`/api/community/${post.id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ owner_id: reporterId }) }).catch(() => {})
+                        onDelete(post.id)
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: deleting ? 'rgba(255,80,80,0.4)' : 'rgba(255,80,80,0.8)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {deleting ? t('comunidad', 'deleting', 'Borrando...') : t('comunidad', 'delete', 'Borrar')}
+                    </button>
+                  ) : reported ? (
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', padding: '10px 14px', margin: 0 }}>
+                      {t('comunidad', 'thanks_report', 'Gracias por reportar')}
+                    </p>
+                  ) : (
+                    <button
+                      onClick={() => { setReported(true); fetch('/api/community/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ post_id: post.id, reporter_id: reporterId }) }).catch(() => {}); setTimeout(() => setMenuOpen(false), 5000) }}
+                      style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: 'rgba(255,80,80,0.8)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('comunidad', 'report', 'Reportar')}
+                    </button>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -533,7 +611,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, reporterId, nearb
   onOpenArtist: (slug: string) => void
   onOpenStudio: (slug: string) => void
   reporterId: string | null
-  nearby: boolean
+  nearby: 'full' | 'country' | false
   isOwn: boolean
   highlighted?: boolean
   nowLabel: string
@@ -551,7 +629,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, reporterId, nearb
       padding: '14px 16px',
       borderBottom: '1px solid rgba(255,255,255,0.05)',
       background: highlighted ? 'rgba(239,255,66,0.10)' : isAdmin ? 'rgba(239,255,66,0.04)' : 'transparent',
-      borderLeft: isAdmin ? '3px solid #efff42' : nearby || highlighted ? '3px solid #efff42' : '3px solid transparent',
+      borderLeft: isAdmin || nearby === 'full' || highlighted ? '3px solid #efff42' : nearby === 'country' ? '1px solid rgba(239,255,66,0.4)' : '3px solid transparent',
       transition: 'background 1.5s ease, border-left-color 1.5s ease',
     }}>
 
@@ -597,6 +675,15 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, reporterId, nearb
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {post.content}
           </p>
+
+          {post.show_flashbook && post.flashbook_alias && (
+            <a
+              href={`/flash/${post.flashbook_alias}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ marginTop: 10, fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, color: '#efff42', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
+              {t('comunidad', 'view_flashbook', 'Ver flashbook')}
+            </a>
+          )}
 
           {isAdmin
             ? (
