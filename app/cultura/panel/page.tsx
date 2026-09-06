@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { renderPhraseContent } from '@/components/PhraseContent'
 
 type Phrase = { id: string; image_url: string; description: string | null; language_code: string; tags: string[]; active: boolean; created_at: string }
 
@@ -11,13 +12,11 @@ export default function CulturaPanel() {
   const [editorName, setEditorName] = useState('')
   const [checking, setChecking] = useState(true)
 
-  // login
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [loggingIn, setLoggingIn] = useState(false)
 
-  // form
   const [image, setImage] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [description, setDescription] = useState('')
@@ -29,11 +28,20 @@ export default function CulturaPanel() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  // recent phrases
   const [phrases, setPhrases] = useState<Phrase[]>([])
   const [loadingPhrases, setLoadingPhrases] = useState(false)
 
+  // link form
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [linkUrl, setLinkUrl] = useState('')
+  const [linkLabel, setLinkLabel] = useState('')
+
+  // image upload into content
+  const [uploadingImg, setUploadingImg] = useState(false)
+
   const imgRef = useRef<HTMLInputElement>(null)
+  const contentImgRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     const saved = sessionStorage.getItem('cultura_token')
@@ -73,6 +81,75 @@ export default function CulturaPanel() {
     setEditorName(d.name)
   }
 
+  // ---- editor helpers ----
+  function getTA() { return textareaRef.current }
+
+  function insertAtCursor(text: string) {
+    const ta = getTA(); if (!ta) return
+    const { selectionStart: s, selectionEnd: e, value } = ta
+    const next = value.slice(0, s) + text + value.slice(e)
+    setDescription(next)
+    requestAnimationFrame(() => {
+      ta.selectionStart = ta.selectionEnd = s + text.length
+      ta.focus()
+    })
+  }
+
+  function insertPrefix(prefix: string) {
+    const ta = getTA(); if (!ta) return
+    const { selectionStart: s, value } = ta
+    const lineStart = value.lastIndexOf('\n', s - 1) + 1
+    const lineEnd = value.indexOf('\n', s)
+    const end = lineEnd === -1 ? value.length : lineEnd
+    const line = value.slice(lineStart, end)
+    // if already prefixed with same prefix, remove it
+    if (line.startsWith(prefix)) {
+      const next = value.slice(0, lineStart) + line.slice(prefix.length) + value.slice(end)
+      setDescription(next)
+      requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = s - prefix.length; ta.focus() })
+    } else {
+      const next = value.slice(0, lineStart) + prefix + line + value.slice(end)
+      setDescription(next)
+      requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = s + prefix.length; ta.focus() })
+    }
+  }
+
+  function wrapSelection(before: string, after: string) {
+    const ta = getTA(); if (!ta) return
+    const { selectionStart: s, selectionEnd: e, value } = ta
+    const selected = value.slice(s, e) || 'texto'
+    const wrapped = before + selected + after
+    const next = value.slice(0, s) + wrapped + value.slice(e)
+    setDescription(next)
+    requestAnimationFrame(() => {
+      ta.selectionStart = s + before.length
+      ta.selectionEnd = s + before.length + (value.slice(s, e) || 'texto').length
+      ta.focus()
+    })
+  }
+
+  async function uploadContentImage(file: File) {
+    if (!token) return
+    setUploadingImg(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    const r = await fetch('/api/admin/upload-image', { method: 'POST', headers: { 'x-cultura-token': token }, body: fd }).catch(() => null)
+    setUploadingImg(false)
+    if (!r?.ok) return
+    const d = await r.json()
+    if (d.url) insertAtCursor(`[img:${d.url}]\n`)
+  }
+
+  function insertLink() {
+    if (!linkUrl.trim()) return
+    const url = linkUrl.trim().startsWith('http') ? linkUrl.trim() : `https://${linkUrl.trim()}`
+    const label = linkLabel.trim()
+    insertAtCursor(`[link:${url}${label ? `|${label}` : ''}]\n`)
+    setLinkUrl('')
+    setLinkLabel('')
+    setLinkOpen(false)
+  }
+
   const submit = async () => {
     if (!image || !token) return
     setSaving(true); setError(''); setSuccess(false)
@@ -102,7 +179,8 @@ export default function CulturaPanel() {
     <div style={{ minHeight: '100dvh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       <div style={{ width: '100%', maxWidth: 360 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(239,255,66,0.6)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Flashttoo</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 36, marginBottom: 20, display: 'block' }} />
         <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 6 }}>Panel de Cultura</h1>
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 32 }}>Ingresá con tus credenciales para publicar contenido.</p>
         <form onSubmit={login} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -117,15 +195,24 @@ export default function CulturaPanel() {
     </div>
   )
 
+  const toolBtn = (label: string, onClick: () => void, active = false) => (
+    <button type="button" onClick={onClick}
+      style={{ fontSize: 11, fontWeight: 700, padding: '4px 8px', background: active ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${active ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 6, color: active ? '#efff42' : 'rgba(255,255,255,0.55)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      {label}
+    </button>
+  )
+
   return (
-    <div style={{ minHeight: '100dvh', background: '#0a0a0a', padding: '24px 16px', maxWidth: 560, margin: '0 auto' }}>
+    <div style={{ minHeight: '100dvh', background: '#0a0a0a', padding: '24px 16px', maxWidth: 920, margin: '0 auto' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } } * { box-sizing: border-box }`}</style>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
-        <div>
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(239,255,66,0.6)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>Flashttoo · Cultura</p>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Hola, {editorName}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/Logoprincipal.svg" alt="Flashttoo" style={{ height: 28 }} />
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>·</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Cultura · {editorName}</span>
         </div>
         <button onClick={() => { sessionStorage.removeItem('cultura_token'); setToken(null) }}
           style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer' }}>
@@ -139,7 +226,7 @@ export default function CulturaPanel() {
 
         {/* Imagen */}
         <div onClick={() => imgRef.current?.click()}
-          style={{ aspectRatio: '1', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', overflow: 'hidden', cursor: 'pointer', marginBottom: 14, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ aspectRatio: '1', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', overflow: 'hidden', cursor: 'pointer', marginBottom: 14, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', maxWidth: 240 }}>
           {preview
             ? <img src={preview} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
             : <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>+ Subir imagen</p>
@@ -150,10 +237,59 @@ export default function CulturaPanel() {
           setImage(f); setPreview(URL.createObjectURL(f))
         }} />
 
-        {/* Descripción */}
-        <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4}
-          placeholder="Descripción (opcional)"
-          style={{ ...iCls, resize: 'vertical', marginBottom: 14 }} />
+        {/* Contenido (editor + preview) */}
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>Contenido (opcional)</p>
+
+          {/* Toolbar */}
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+            {toolBtn('H1', () => insertPrefix('# '))}
+            {toolBtn('H2', () => insertPrefix('## '))}
+            {toolBtn('B', () => wrapSelection('**', '**'))}
+            {toolBtn('==', () => wrapSelection('==', '=='))}
+            {toolBtn('"', () => insertPrefix('> '))}
+            {toolBtn('—', () => insertAtCursor('\n---\n'))}
+            {toolBtn('¶', () => insertAtCursor('\n'))}
+            {toolBtn(uploadingImg ? '…' : '📷', async () => { contentImgRef.current?.click() }, uploadingImg)}
+            {toolBtn('🔗', () => setLinkOpen(v => !v), linkOpen)}
+          </div>
+
+          {/* Link form */}
+          {linkOpen && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+              <input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="URL (ej. https://…)" style={{ ...iCls, flex: '2 1 140px' }} />
+              <input value={linkLabel} onChange={e => setLinkLabel(e.target.value)} placeholder="Etiqueta (opcional)" style={{ ...iCls, flex: '1 1 100px' }} />
+              <button type="button" onClick={insertLink}
+                style={{ padding: '8px 14px', background: '#efff42', color: '#000', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+                Insertar
+              </button>
+            </div>
+          )}
+
+          <input ref={contentImgRef} type="file" accept="image/*" hidden onChange={e => {
+            const f = e.target.files?.[0]; if (!f) return
+            e.target.value = ''
+            uploadContentImage(f)
+          }} />
+
+          {/* Editor + Preview side by side */}
+          <div style={{ display: 'grid', gridTemplateColumns: description.trim() ? '1fr 1fr' : '1fr', gap: 10 }}>
+            <textarea
+              ref={textareaRef}
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={10}
+              placeholder={'# Título\n## Subtítulo\nPárrafo de texto...\n> Cita\n---'}
+              style={{ ...iCls, resize: 'vertical', fontFamily: 'monospace', lineHeight: 1.6, fontSize: 12 }}
+            />
+            {description.trim() && (
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '12px 14px', overflowY: 'auto', maxHeight: 400 }}>
+                <p style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Vista previa</p>
+                {renderPhraseContent(description)}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Tags */}
         <div style={{ marginBottom: 14 }}>
