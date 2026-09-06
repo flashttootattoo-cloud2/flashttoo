@@ -7,8 +7,17 @@ function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
-function auth(req: NextRequest) {
-  return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
+async function auth(req: NextRequest) {
+  if (req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD) return true
+  const token = req.headers.get('x-cultura-token')
+  if (!token) return false
+  const { data } = await sb()
+    .from('cultura_editors')
+    .select('id')
+    .eq('session_token', token)
+    .gt('session_expires_at', new Date().toISOString())
+    .single()
+  return !!data
 }
 
 export async function GET(req: NextRequest) {
@@ -76,7 +85,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!await auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const fd = await req.formData()
   const image = fd.get('image') as File | null
