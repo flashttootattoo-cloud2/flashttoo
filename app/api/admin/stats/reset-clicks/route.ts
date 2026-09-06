@@ -15,7 +15,7 @@ export async function DELETE(req: NextRequest) {
   const { field } = await req.json()
   if (!ALLOWED.includes(field as Field)) return NextResponse.json({ error: 'field inválido' }, { status: 400 })
 
-  const { error } = await sb().from('artists').update({ [field]: 0 }).gte('id', '0')
+  const { error } = await sb().from('artists').update({ [field]: 0 }).neq('id', '00000000-0000-0000-0000-000000000000')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
