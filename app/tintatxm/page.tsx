@@ -664,6 +664,111 @@ function StatsPanel({ artists, visits, installs, studios, searchStats, appEventC
   return (
     <div className="flex flex-col gap-8">
 
+      {/* ── Visitantes únicos por día ── */}
+      <div>
+        <p style={sectionLabel}>Visitantes únicos — últimos 30 días <span style={{ fontWeight: 400, opacity: 0.5 }}>· 21 hs ARG</span></p>
+        <div className="p-5" style={card}>
+          {visits.length === 0 ? (
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.15)' }}>Sin datos aún</p>
+          ) : (() => {
+            const max = Math.max(...visits.map(d => d.count), 1)
+            const total = visits.reduce((s, d) => s + d.count, 0)
+            const today = visits[visits.length - 1]?.count ?? 0
+            const W = 300, H = 90, PX = 8, PY = 16
+            const cW = W - PX * 2, cH = H - PY * 2
+            const pts = visits.map((d, i) => ({
+              x: PX + (i / (visits.length - 1)) * cW,
+              y: PY + cH - (d.count / max) * cH,
+              count: d.count,
+              date: d.date,
+            }))
+            const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+            const area = `${line} L${pts[pts.length-1].x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`
+
+            return (
+              <>
+                <div className="flex items-end gap-5 mb-4">
+                  <div>
+                    <p className="font-bold" style={{ fontSize: 26, color: '#efff42', lineHeight: 1 }}>{today}</p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>hoy</p>
+                  </div>
+                  <div>
+                    <p className="font-bold" style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)', lineHeight: 1 }}>{fmtN(total)}</p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>mes</p>
+                  </div>
+                  <div>
+                    <p className="font-bold" style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', lineHeight: 1 }}>{(total / 30).toFixed(1)}</p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>promedio</p>
+                  </div>
+                </div>
+                <div style={{ position: 'relative' }} onMouseLeave={() => setVisitHover(null)}>
+                  {visitHover && (
+                    <div style={{
+                      position: 'absolute',
+                      left: `clamp(0px, calc(${(visitHover.x / W) * 100}% - 38px), calc(100% - 76px))`,
+                      top: -36,
+                      background: '#1a1a1a',
+                      border: '1px solid rgba(239,255,66,0.3)',
+                      borderRadius: 8,
+                      padding: '4px 10px',
+                      pointerEvents: 'none',
+                      zIndex: 10,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#efff42', lineHeight: 1.3 }}>{visitHover.count}</p>
+                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{visitHover.date.slice(5).replace('-', '/')}</p>
+                    </div>
+                  )}
+                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+                    className="w-full" style={{ height: 90, display: 'block' }}>
+                    <defs>
+                      <linearGradient id="vg" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#efff42" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#efff42" stopOpacity="0.01" />
+                      </linearGradient>
+                    </defs>
+                    <path d={area} fill="url(#vg)" />
+                    <path d={line} fill="none" stroke="#efff42" strokeWidth="1.8"
+                      strokeLinecap="round" strokeLinejoin="round" />
+                    {pts.map((p, i) => (
+                      <circle key={i} cx={p.x} cy={p.y} r="2.5" fill={p.count > 0 ? '#efff42' : 'transparent'} />
+                    ))}
+                    {pts.map((p, i) => (
+                      <rect key={`h${i}`}
+                        x={p.x - (W / visits.length / 2)} y={0}
+                        width={W / visits.length} height={H}
+                        fill="transparent"
+                        style={{ cursor: 'crosshair' }}
+                        onMouseEnter={() => setVisitHover(p)}
+                      />
+                    ))}
+                  </svg>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 90, pointerEvents: 'none' }}>
+                    {pts.map((p, i) => p.count > 0 ? (
+                      <span key={i} style={{
+                        position: 'absolute',
+                        left: `${(p.x / W) * 100}%`,
+                        top: Math.max(1, p.y - 11),
+                        transform: 'translateX(-50%)',
+                        fontSize: 7,
+                        color: 'rgba(239,255,66,0.7)',
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        whiteSpace: 'nowrap',
+                      }}>{p.count}</span>
+                    ) : null)}
+                  </div>
+                </div>
+                <div className="flex justify-between mt-2" style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)' }}>
+                  <span>{visits[0]?.date.slice(5).replace('-', '/')}</span>
+                  <span>{visits[visits.length - 1]?.date.slice(5).replace('-', '/')}</span>
+                </div>
+              </>
+            )
+          })()}
+        </div>
+      </div>
+
       <div>
         <p style={sectionLabel}>Tatuadores</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -732,97 +837,6 @@ function StatsPanel({ artists, visits, installs, studios, searchStats, appEventC
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* ── Visitantes únicos por día ── */}
-      <div>
-        <p style={sectionLabel}>Visitantes únicos — últimos 30 días <span style={{ fontWeight: 400, opacity: 0.5 }}>· 21 hs ARG</span></p>
-        <div className="p-5" style={card}>
-          {visits.length === 0 ? (
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.15)' }}>Sin datos aún</p>
-          ) : (() => {
-            const max = Math.max(...visits.map(d => d.count), 1)
-            const total = visits.reduce((s, d) => s + d.count, 0)
-            const today = visits[visits.length - 1]?.count ?? 0
-            const W = 300, H = 72, PX = 8, PY = 10
-            const cW = W - PX * 2, cH = H - PY * 2
-            const pts = visits.map((d, i) => ({
-              x: PX + (i / (visits.length - 1)) * cW,
-              y: PY + cH - (d.count / max) * cH,
-              count: d.count,
-              date: d.date,
-            }))
-            const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
-            const area = `${line} L${pts[pts.length-1].x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`
-
-            return (
-              <>
-                <div className="flex items-end gap-5 mb-4">
-                  <div>
-                    <p className="font-bold" style={{ fontSize: 26, color: '#efff42', lineHeight: 1 }}>{today}</p>
-                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>hoy</p>
-                  </div>
-                  <div>
-                    <p className="font-bold" style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)', lineHeight: 1 }}>{fmtN(total)}</p>
-                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>mes</p>
-                  </div>
-                  <div>
-                    <p className="font-bold" style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', lineHeight: 1 }}>{(total / 30).toFixed(1)}</p>
-                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>promedio</p>
-                  </div>
-                </div>
-                <div style={{ position: 'relative' }} onMouseLeave={() => setVisitHover(null)}>
-                  {visitHover && (
-                    <div style={{
-                      position: 'absolute',
-                      left: `clamp(0px, calc(${(visitHover.x / W) * 100}% - 38px), calc(100% - 76px))`,
-                      top: -36,
-                      background: '#1a1a1a',
-                      border: '1px solid rgba(239,255,66,0.3)',
-                      borderRadius: 8,
-                      padding: '4px 10px',
-                      pointerEvents: 'none',
-                      zIndex: 10,
-                      whiteSpace: 'nowrap',
-                    }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: '#efff42', lineHeight: 1.3 }}>{visitHover.count}</p>
-                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{visitHover.date.slice(5).replace('-', '/')}</p>
-                    </div>
-                  )}
-                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
-                    className="w-full" style={{ height: 72, display: 'block' }}>
-                    <defs>
-                      <linearGradient id="vg" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#efff42" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#efff42" stopOpacity="0.01" />
-                      </linearGradient>
-                    </defs>
-                    <path d={area} fill="url(#vg)" />
-                    <path d={line} fill="none" stroke="#efff42" strokeWidth="1.8"
-                      strokeLinecap="round" strokeLinejoin="round" />
-                    {pts.map((p, i) => (
-                      <circle key={i} cx={p.x} cy={p.y} r="2.5" fill={p.count > 0 ? '#efff42' : 'transparent'} />
-                    ))}
-                    {/* hit areas invisibles para hover */}
-                    {pts.map((p, i) => (
-                      <rect key={`h${i}`}
-                        x={p.x - (W / visits.length / 2)} y={0}
-                        width={W / visits.length} height={H}
-                        fill="transparent"
-                        style={{ cursor: 'crosshair' }}
-                        onMouseEnter={() => setVisitHover(p)}
-                      />
-                    ))}
-                  </svg>
-                </div>
-                <div className="flex justify-between mt-2" style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)' }}>
-                  <span>{visits[0]?.date.slice(5).replace('-', '/')}</span>
-                  <span>{visits[visits.length - 1]?.date.slice(5).replace('-', '/')}</span>
-                </div>
-              </>
-            )
-          })()}
         </div>
       </div>
 
@@ -1578,15 +1592,17 @@ export default function AdminPage() {
   const loadStatsArtists = async (p: string, force = false) => {
     if (!force && (statsArtists.length > 0 || loadingStats)) return
     setLoadingStats(true)
-    const [r, sr, er] = await Promise.all([
+    const [r, sr, er, vr] = await Promise.all([
       fetch('/api/admin/artists?limit=10000&offset=0', { headers: H(p) }),
       fetch('/api/admin/search-stats', { headers: H(p) }),
       fetch('/api/admin/app-events', { headers: H(p) }),
+      fetch('/api/admin/stats/visits', { headers: H(p) }),
     ])
-    const [d, sd, ed] = await Promise.all([r.json(), sr.json(), er.json()])
+    const [d, sd, ed, vd] = await Promise.all([r.json(), sr.json(), er.json(), vr.json()])
     setStatsArtists(d.artists || [])
     setSearchStats({ countries: sd.countries || [], cities: sd.cities || [], styles: sd.styles || [] })
     setAppEventCounts(ed.counts || {})
+    if (vd.days) setVisits(vd.days)
     setLoadingStats(false)
   }
 
