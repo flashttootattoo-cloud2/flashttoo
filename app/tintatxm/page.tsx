@@ -1297,12 +1297,14 @@ export default function AdminPage() {
   type AdminPhraseComment = { id: string; artist_name: string | null; guest_name: string | null; guest_emoji: string | null; content: string; created_at: string }
   const [adminPhrases, setAdminPhrases]       = useState<AdminPhrase[]>([])
   const [loadingPhrases, setLoadingPhrases]   = useState(false)
-  type CulturaEditor = { id: string; email: string; name: string; created_at: string }
+  type CulturaEditor = { id: string; email: string; name: string; password_plain?: string | null; created_at: string }
   const [culturaEditors, setCulturaEditors]   = useState<CulturaEditor[]>([])
   const [loadingEditors, setLoadingEditors]   = useState(false)
   const [editorForm, setEditorForm]           = useState({ email: '', name: '', password: '' })
   const [savingEditor, setSavingEditor]       = useState(false)
   const [editorError, setEditorError]         = useState('')
+  const [editorFormOpen, setEditorFormOpen]   = useState(false)
+  const [showPassFor, setShowPassFor]         = useState<string | null>(null)
   const PHRASE_TAGS = ['tatuaje','técnica','cultura','arte','diseño','cuidados','minimalista','color','tradicional','blackwork','realismo','geometría','lettering','historia','inspiración','guía']
   const TAG_LABELS: Record<string, Record<string, string>> = {
     tatuaje:     { es: 'tatuaje',     en: 'tattoo',      pt: 'tatuagem' },
@@ -4289,6 +4291,82 @@ export default function AdminPage() {
           // ── FRASES ──────────────────────────────────────────────────────────
           <div className="flex flex-col gap-6">
 
+            {/* ── Editores de Cultura ── */}
+            <div className="rounded-xl p-5 flex flex-col gap-4"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>EDITORES DE CULTURA</p>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <a href="/cultura/panel" target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '3px 8px' }}>
+                    Abrir panel ↗
+                  </a>
+                  <button onClick={() => { setEditorFormOpen(v => !v); setEditorError('') }}
+                    style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', background: editorFormOpen ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.06)', border: `1px solid ${editorFormOpen ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 6, color: editorFormOpen ? '#efff42' : 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
+                    + Agregar editor
+                  </button>
+                </div>
+              </div>
+
+              {/* Lista */}
+              {loadingEditors
+                ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Cargando...</p>
+                : culturaEditors.length === 0
+                  ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin editores aún</p>
+                  : culturaEditors.map(ed => (
+                    <div key={ed.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 10 }}>
+                      <div>
+                        <p style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{ed.name}</p>
+                        <button type="button" onClick={() => setShowPassFor(showPassFor === ed.id ? null : ed.id)}
+                          style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                          {ed.email}
+                        </button>
+                        {showPassFor === ed.id && ed.password_plain && (
+                          <p style={{ fontSize: 11, marginTop: 4, color: '#efff42', fontFamily: 'monospace', background: 'rgba(239,255,66,0.06)', padding: '3px 7px', borderRadius: 5, display: 'inline-block' }}>
+                            {ed.password_plain}
+                          </p>
+                        )}
+                        {showPassFor === ed.id && !ed.password_plain && (
+                          <p style={{ fontSize: 11, marginTop: 4, color: 'rgba(255,255,255,0.25)' }}>Contraseña no guardada</p>
+                        )}
+                      </div>
+                      <button onClick={async () => {
+                        await fetch('/api/admin/cultura-editors', { method: 'DELETE', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ id: ed.id }) })
+                        setCulturaEditors(prev => prev.filter(e => e.id !== ed.id))
+                      }} style={{ fontSize: 18, color: 'rgba(255,80,80,0.4)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, padding: '0 4px', flexShrink: 0 }}>×</button>
+                    </div>
+                  ))
+              }
+
+              {/* Formulario agregar (colapsable) */}
+              {editorFormOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12 }}>
+                  <input value={editorForm.name} onChange={e => setEditorForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Nombre" className={iCls} />
+                  <input value={editorForm.email} onChange={e => setEditorForm(f => ({ ...f, email: e.target.value }))}
+                    placeholder="Email" type="email" className={iCls} />
+                  <input value={editorForm.password} onChange={e => setEditorForm(f => ({ ...f, password: e.target.value }))}
+                    placeholder="Contraseña" type="text" className={iCls} />
+                  {editorError && <p style={{ fontSize: 11, color: '#f87171' }}>{editorError}</p>}
+                  <button disabled={savingEditor || !editorForm.email || !editorForm.name || !editorForm.password}
+                    onClick={async () => {
+                      setSavingEditor(true); setEditorError('')
+                      const r = await fetch('/api/admin/cultura-editors', { method: 'POST', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify(editorForm) })
+                      const d = await r.json()
+                      setSavingEditor(false)
+                      if (!r.ok) { setEditorError(d.error || 'Error'); return }
+                      setCulturaEditors(prev => [d.editor, ...prev])
+                      setEditorForm({ email: '', name: '', password: '' })
+                      setEditorFormOpen(false)
+                    }}
+                    className="py-2 px-4 rounded-lg text-xs font-bold disabled:opacity-40"
+                    style={{ background: '#efff42', color: '#000', border: 'none', cursor: 'pointer' }}>
+                    {savingEditor ? 'Guardando…' : '+ Agregar editor'}
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Formulario nueva frase */}
             <div className="rounded-xl p-5 flex flex-col gap-4"
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -4781,63 +4859,6 @@ export default function AdminPage() {
                   No hay frases publicadas todavía.
                 </p>
               )}
-            </div>
-
-            {/* ── Editores de Cultura ── */}
-            <div className="rounded-xl p-5 flex flex-col gap-4"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>EDITORES DE CULTURA</p>
-                <a href="/cultura/panel" target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '3px 8px' }}>
-                  Abrir panel ↗
-                </a>
-              </div>
-
-              {/* Lista */}
-              {loadingEditors
-                ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Cargando...</p>
-                : culturaEditors.length === 0
-                  ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin editores aún</p>
-                  : culturaEditors.map(ed => (
-                    <div key={ed.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 10 }}>
-                      <div>
-                        <p style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{ed.name}</p>
-                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{ed.email}</p>
-                      </div>
-                      <button onClick={async () => {
-                        await fetch('/api/admin/cultura-editors', { method: 'DELETE', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ id: ed.id }) })
-                        setCulturaEditors(prev => prev.filter(e => e.id !== ed.id))
-                      }} style={{ fontSize: 18, color: 'rgba(255,80,80,0.4)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}>×</button>
-                    </div>
-                  ))
-              }
-
-              {/* Agregar editor */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12 }}>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Agregar editor</p>
-                <input value={editorForm.name} onChange={e => setEditorForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Nombre" className={iCls} />
-                <input value={editorForm.email} onChange={e => setEditorForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="Email" type="email" className={iCls} />
-                <input value={editorForm.password} onChange={e => setEditorForm(f => ({ ...f, password: e.target.value }))}
-                  placeholder="Contraseña" type="text" className={iCls} />
-                {editorError && <p style={{ fontSize: 11, color: '#f87171' }}>{editorError}</p>}
-                <button disabled={savingEditor || !editorForm.email || !editorForm.name || !editorForm.password}
-                  onClick={async () => {
-                    setSavingEditor(true); setEditorError('')
-                    const r = await fetch('/api/admin/cultura-editors', { method: 'POST', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify(editorForm) })
-                    const d = await r.json()
-                    setSavingEditor(false)
-                    if (!r.ok) { setEditorError(d.error || 'Error'); return }
-                    setCulturaEditors(prev => [d.editor, ...prev])
-                    setEditorForm({ email: '', name: '', password: '' })
-                  }}
-                  className="py-2 px-4 rounded-lg text-xs font-bold disabled:opacity-40"
-                  style={{ background: '#efff42', color: '#000', border: 'none', cursor: 'pointer' }}>
-                  {savingEditor ? 'Guardando…' : '+ Agregar editor'}
-                </button>
-              </div>
             </div>
 
           </div>

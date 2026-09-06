@@ -16,7 +16,7 @@ function hashPw(email: string, pw: string) {
 
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { data } = await sb().from('cultura_editors').select('id, email, name, created_at').order('created_at', { ascending: false })
+  const { data } = await sb().from('cultura_editors').select('id, email, name, password_plain, created_at').order('created_at', { ascending: false })
   return NextResponse.json({ editors: data ?? [] })
 }
 
@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
   if (existing) return NextResponse.json({ error: 'Email ya registrado' }, { status: 409 })
 
   const { data, error } = await sb().from('cultura_editors')
-    .insert({ email: clean, name: name.trim(), password_hash: hashPw(clean, password) })
-    .select('id, email, name, created_at').single()
+    .insert({ email: clean, name: name.trim(), password_hash: hashPw(clean, password), password_plain: password })
+    .select('id, email, name, password_plain, created_at').single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ editor: data })
