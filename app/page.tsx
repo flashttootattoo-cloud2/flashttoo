@@ -3028,12 +3028,12 @@ export default function Home() {
                       </button>
                     </div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                      {TIMES_T.map(t => {
-                        const on = selTimes.includes(t)
+                      {TIMES_T.map(hr => {
+                        const on = selTimes.includes(hr)
                         return (
-                          <button key={t} type="button" onClick={() => toggleTime(t)}
+                          <button key={hr} type="button" onClick={() => toggleTime(hr)}
                             style={{fontSize:12,fontWeight:700,padding:'6px 11px',borderRadius:8,border:`1px solid ${on?'rgba(239,255,66,0.5)':'rgba(255,255,255,0.1)'}`,background:on?'rgba(239,255,66,0.15)':'rgba(255,255,255,0.04)',color:on?'#efff42':'rgba(255,255,255,0.35)',cursor:'pointer'}}>
-                            {t}
+                            {hr}
                           </button>
                         )
                       })}
