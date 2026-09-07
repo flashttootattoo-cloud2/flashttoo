@@ -2902,6 +2902,7 @@ export default function Home() {
       })()}
 
       {turnosOpen && loggedArtist && (() => {
+        const la = loggedArtist!
         const MONTH_NAMES_T = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
         const DAY_LABELS_T = ['L','M','X','J','V','S','D']
         const TIMES_T = Array.from({length:24}, (_,i) => `${String(i).padStart(2,'0')}:00`)
@@ -2934,7 +2935,7 @@ export default function Home() {
             const r = await fetch('/api/flash/availability', {
               method: 'PATCH',
               headers: {'Content-Type':'application/json'},
-              body: JSON.stringify({access_token: loggedArtist.access_token, artist_id: loggedArtist.id, slots: turnosSlots}),
+              body: JSON.stringify({access_token: la.access_token, artist_id: la.id, slots: turnosSlots}),
             })
             if (!r.ok) { const d = await r.json().catch(()=>({})); setTurnosSaveError(d.error || `Error ${r.status}`) }
             else { const d = await r.json().catch(()=>({})); if (Array.isArray(d.availability)) setTurnosSlots(d.availability); setTurnosSaved(true); setTimeout(() => setTurnosSaved(false), 2500) }
@@ -2942,10 +2943,10 @@ export default function Home() {
           setTurnosSaving(false)
         }
         function copyLink() {
-          const n = (loggedArtist.name || '').toLowerCase()
+          const n = (la.name || '').toLowerCase()
             .normalize('NFD').replace(/[̀-ͯ]/g, '')
             .replace(/[^a-z0-9]+/g, '')
-          const slug = loggedArtist.flashbook_alias ?? `turnoslibresy${n}-${loggedArtist.id}`
+          const slug = la.flashbook_alias ?? `turnoslibresy${n}-${la.id}`
           navigator.clipboard.writeText(`${window.location.origin}/disponibilidad/${slug}`)
           setTurnosCopied(true); setTimeout(() => setTurnosCopied(false), 2000)
         }

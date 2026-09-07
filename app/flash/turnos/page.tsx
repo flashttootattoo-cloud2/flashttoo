@@ -71,15 +71,16 @@ export default function TurnosPage() {
     }
   }
 
-  function toggleTime(t: string) {
+  function toggleTime(hr: string) {
     if (!selectedDay) return
     setSlots(prev => prev.map(s => s.date === selectedDay
-      ? { ...s, times: s.times.includes(t) ? s.times.filter(x => x !== t) : [...s.times, t].sort() }
+      ? { ...s, times: s.times.includes(hr) ? s.times.filter(x => x !== hr) : [...s.times, hr].sort() }
       : s
     ))
   }
 
   async function save() {
+    if (!session || session === 'loading') return
     setSaving(true); setSaveError('')
     try {
       const r = await fetch('/api/flash/availability', {
@@ -101,6 +102,7 @@ export default function TurnosPage() {
   }
 
   function availSlug() {
+    if (!session || session === 'loading') return ''
     const n = (session.name || '').toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '')
