@@ -6,7 +6,8 @@ import { useTranslation } from '@/contexts/TranslationContext'
 type Slot = { date: string; times: string[] }
 type Artist = { id: string; name: string; photo_url: string | null; flashbook_alias: string | null; availability: Slot[] }
 
-const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const MONTH_KEYS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+const MONTH_ES   = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DAY_LABELS = ['L','M','X','J','V','S','D']
 
 function pad(n: number) { return String(n).padStart(2, '0') }
@@ -98,7 +99,7 @@ export default function DisponibilidadPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <button type="button" onClick={() => setViewMonth(v => { const d = new Date(v.year, v.month - 1); return { year: d.getFullYear(), month: d.getMonth() } })}
               style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 18, cursor: 'pointer', padding: '4px 8px', lineHeight: 1 }}>‹</button>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{MONTH_NAMES[month]} {year}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{t('meses', MONTH_KEYS[month], MONTH_ES[month])} {year}</span>
             <button type="button" onClick={() => setViewMonth(v => { const d = new Date(v.year, v.month + 1); return { year: d.getFullYear(), month: d.getMonth() } })}
               style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 18, cursor: 'pointer', padding: '4px 8px', lineHeight: 1 }}>›</button>
           </div>

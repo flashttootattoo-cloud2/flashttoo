@@ -1229,6 +1229,7 @@ export default function AdminPage() {
     { key: 'artist_menu',    label: 'Menú del artista — Opciones del perfil' },
     { key: 'turnos_libres',  label: 'Turnos libres — Disponibilidad' },
     { key: 'disponibilidad', label: 'Disponibilidad — Página pública compartida' },
+    { key: 'meses',          label: 'Meses — Nombres del calendario' },
   ]
 
   const openLang = async (code: string) => {

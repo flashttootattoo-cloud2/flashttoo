@@ -1916,7 +1916,7 @@ export default function Home() {
                     {showClickCounters && selected.whatsapp && <StatItem label="WhatsApp" value={selected.whatsapp_clicks ?? 0} />}
                   </div>
                   {selectedHasAvail && (
-                    <button type="button" onClick={() => { setAvailPopOpen(v => { if (!v) { setAvailPhotoIdx(i => i + 1); setAvailSelectedDay(null); setAvailViewMonth({year:new Date().getFullYear(),month:new Date().getMonth()}); setAvailArtistName(selected.name); setAvailArtistPhoto(selected.photo_url ?? null); setAvailArtistGallery([selected.gallery_photo_1??null,selected.gallery_photo_2??null,selected.gallery_photo_3??null]) } return !v }) }}
+                    <button type="button" onClick={() => { setAvailPopOpen(v => { if (!v) { setAvailPhotoIdx(i => i + 1); setAvailArtistName(selected.name); setAvailArtistPhoto(selected.photo_url ?? null); setAvailArtistGallery([selected.gallery_photo_1??null,selected.gallery_photo_2??null,selected.gallery_photo_3??null]); const tod=new Date().toISOString().slice(0,10); const near=selectedAvailSlots.filter(s=>s.date>=tod).sort((a,b)=>a.date.localeCompare(b.date))[0]; if(near){const[y,m]=near.date.split('-').map(Number);setAvailSelectedDay(near.date);setAvailViewMonth({year:y,month:m-1})}else{setAvailSelectedDay(null);setAvailViewMonth({year:new Date().getFullYear(),month:new Date().getMonth()})} } return !v }) }}
                       style={{ fontSize: 11, fontWeight: 700, color: availPopOpen ? '#000' : '#efff42', background: availPopOpen ? '#efff42' : 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.3)', borderRadius: 20, padding: '4px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       {t('turnos_libres', 'titulo', 'Turnos libres')}
                     </button>
@@ -2795,7 +2795,9 @@ export default function Home() {
       )}
 
       {availPopOpen && (() => {
-        const MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+        const MES_K = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+        const MES_F = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+        const MN = MES_K.map((k, i) => t('meses', k, MES_F[i]))
         const DL = ['L','M','X','J','V','S','D']
         const { year, month } = availViewMonth
         const firstDay = new Date(year, month, 1).getDay()
@@ -2828,7 +2830,7 @@ export default function Home() {
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
                 <div>
                   <p style={{ fontSize:15, fontWeight:800, color:'#f0f0ee', margin:0 }}>{t('turnos_libres', 'titulo', 'Turnos libres')}</p>
-                  {availArtistName && <p style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:2 }}>{availArtistName}</p>}
+                  {availArtistName && <p style={{ fontSize:11, color:'#efff42', marginTop:2, fontWeight:700 }}>{availArtistName}</p>}
                 </div>
                 <button type="button" onClick={() => setAvailPopOpen(false)}
                   style={{ fontSize:18, color:'rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:'50%', width:30, height:30, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
@@ -2903,7 +2905,9 @@ export default function Home() {
 
       {turnosOpen && loggedArtist && (() => {
         const la = loggedArtist!
-        const MONTH_NAMES_T = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+        const MES_K2 = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+        const MES_F2 = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+        const MONTH_NAMES_T = MES_K2.map((k, i) => t('meses', k, MES_F2[i]))
         const DAY_LABELS_T = ['L','M','X','J','V','S','D']
         const TIMES_T = Array.from({length:24}, (_,i) => `${String(i).padStart(2,'0')}:00`)
         const { year, month } = turnosViewMonth
@@ -3533,6 +3537,13 @@ export default function Home() {
                     .then(d => {
                       const slots = Array.isArray(d.artist?.availability) ? d.artist.availability : []
                       setSelectedAvailSlots(slots)
+                      const tod = new Date().toISOString().slice(0, 10)
+                      const near = slots.filter((s:{date:string}) => s.date >= tod).sort((a:{date:string},b:{date:string}) => a.date.localeCompare(b.date))[0]
+                      if (near) {
+                        const [y, m] = near.date.split('-').map(Number)
+                        setAvailSelectedDay(near.date)
+                        setAvailViewMonth({ year: y, month: m - 1 })
+                      }
                     }).catch(() => {}).finally(() => setAvailLoading(false))
                 }}
               />

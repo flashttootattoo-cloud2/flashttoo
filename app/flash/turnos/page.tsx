@@ -7,7 +7,8 @@ type Slot = { date: string; times: string[] }
 type Session = { id: string; name: string; flashbook_alias: string | null; access_token: string; refresh_token?: string }
 
 const TIMES = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2,'0')}:00`)
-const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const MONTH_KEYS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+const MONTH_ES   = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DAY_LABELS = ['L','M','X','J','V','S','D']
 
 function pad(n: number) { return String(n).padStart(2, '0') }
@@ -166,7 +167,7 @@ export default function TurnosPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <button type="button" onClick={() => setViewMonth(v => { const d = new Date(v.year, v.month - 1); return { year: d.getFullYear(), month: d.getMonth() } })}
               style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', padding: '6px 12px', borderRadius: 8, lineHeight: 1 }}>‹</button>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{MONTH_NAMES[month]} {year}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{t('meses', MONTH_KEYS[month], MONTH_ES[month])} {year}</span>
             <button type="button" onClick={() => setViewMonth(v => { const d = new Date(v.year, v.month + 1); return { year: d.getFullYear(), month: d.getMonth() } })}
               style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', padding: '6px 12px', borderRadius: 8, lineHeight: 1 }}>›</button>
           </div>
