@@ -18,6 +18,7 @@ type CommunityPost = {
   artist_slug: string | null
   show_flashbook: boolean | null
   flashbook_alias: string | null
+  show_availability: boolean | null
   studio_name: string | null
   studio_logo: string | null
   studio_slug: string | null
@@ -47,12 +48,13 @@ type Props = {
   loggedStudio: { slug: string; name: string; logo_url: string | null; city?: string; country?: string } | null
   onOpenArtist: (id: string) => void
   onOpenStudio: (slug: string) => void
+  onOpenAvailability?: (artist_id: string, artist_name: string, artist_photo: string | null) => void
   onClose?: () => void
   lang?: string
   highlightPostId?: string
 }
 
-export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtist, onOpenStudio, onClose, lang = 'es', highlightPostId }: Props) {
+export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtist, onOpenStudio, onOpenAvailability, onClose, lang = 'es', highlightPostId }: Props) {
   const { t } = useTranslation()
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [loading, setLoading] = useState(true)
@@ -73,6 +75,8 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
   const [filterCity, setFilterCity] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
   const [withFlashbook, setWithFlashbook] = useState(false)
+  const [withAvailability, setWithAvailability] = useState(false)
+  const [loggedHasFutureSlots, setLoggedHasFutureSlots] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const offsetRef = useRef(0)
@@ -86,6 +90,19 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
       .catch(() => {})
   }, [loggedArtist])
 
+  // Verificar si el artista logueado tiene turnos futuros
+  useEffect(() => {
+    if (!loggedArtist?.id) { setLoggedHasFutureSlots(false); return }
+    const today = new Date().toISOString().slice(0, 10)
+    fetch(`/api/flash/availability?artist_id=${loggedArtist.id}`)
+      .then(r => r.json())
+      .then(d => {
+        const slots: { date: string }[] = d?.artist?.availability ?? []
+        setLoggedHasFutureSlots(slots.some(s => s.date >= today))
+      })
+      .catch(() => setLoggedHasFutureSlots(false))
+  }, [loggedArtist?.id])
+
   // Buscar ciudad del estudio logueado si no viene en el prop
   useEffect(() => {
     if (!loggedStudio || (loggedStudio.city && loggedStudio.country)) return
@@ -95,11 +112,12 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
       .catch(() => {})
   }, [loggedStudio])
 
+  const viewerCity    = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
+  const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
+
   const sortByProximity = useCallback((raw: CommunityPost[]) => {
-    const city    = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
-    const country = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
-    const sameCountry = (p: CommunityPost) => !!(country && p.country?.toLowerCase() === country)
-    const sameCity    = (p: CommunityPost) => !!(city && p.city?.toLowerCase() === city)
+    const sameCountry = (p: CommunityPost) => !!(viewerCountry && p.country?.toLowerCase() === viewerCountry)
+    const sameCity    = (p: CommunityPost) => !!(viewerCity && p.city?.toLowerCase() === viewerCity)
     return [...raw].sort((a, b) => {
       const nearbyA = sameCountry(a)
       const nearbyB = sameCountry(b)
@@ -117,7 +135,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
       }
       return 0
     })
-  }, [loggedArtist, artistLocation, loggedStudio, studioLocation])
+  }, [viewerCity, viewerCountry])
 
   useEffect(() => {
     setPosts(prev => prev.length ? sortByProximity(prev) : prev)
@@ -200,7 +218,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
     try {
       let body: Record<string, unknown> = { content: text, lang }
       if (loggedArtist) {
-        body = { ...body, type: 'artist', artist_id: loggedArtist.id, artist_name: loggedArtist.name, artist_photo: loggedArtist.photo_url, artist_slug: loggedArtist.slug || loggedArtist.id, city: loggedArtist.city || artistLocation?.city || null, country: loggedArtist.country || artistLocation?.country || null, show_flashbook: withFlashbook || null, flashbook_alias: withFlashbook ? (loggedArtist.flashbook_alias || null) : null }
+        body = { ...body, type: 'artist', artist_id: loggedArtist.id, artist_name: loggedArtist.name, artist_photo: loggedArtist.photo_url, artist_slug: loggedArtist.slug || loggedArtist.id, city: loggedArtist.city || artistLocation?.city || null, country: loggedArtist.country || artistLocation?.country || null, show_flashbook: withFlashbook || null, flashbook_alias: withFlashbook ? (loggedArtist.flashbook_alias || null) : null, show_availability: withAvailability || null }
       } else if (loggedStudio) {
         body = { ...body, type: 'studio', studio_id: loggedStudio.slug, studio_name: loggedStudio.name, studio_logo: loggedStudio.logo_url, studio_slug: loggedStudio.slug, city: loggedStudio.city || studioLocation?.city || null, country: loggedStudio.country || studioLocation?.country || null }
       } else {
@@ -215,6 +233,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
         setPosts(prev => [d.post, ...prev])
         setText('')
         setWithFlashbook(false)
+        setWithAvailability(false)
         setClientName(''); setClientCity(''); setClientCountry(''); setContact('')
         setShowClientForm(false)
       }
@@ -277,14 +296,20 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
               style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, resize: 'none', lineHeight: 1.5, fontFamily: 'inherit', caretColor: '#efff42' }}
               className="community-textarea"
             />
-            {loggedArtist?.flashbook_alias && (
-              <div style={{ marginTop: 8, marginBottom: 2 }}>
-                <button
-                  type="button"
-                  onClick={() => setWithFlashbook(v => !v)}
-                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, border: `1px solid ${withFlashbook ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: withFlashbook ? 'rgba(239,255,66,0.1)' : 'transparent', color: withFlashbook ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
-                  {withFlashbook ? t('comunidad', 'flashbook_attached', 'Flashbook adjunto') : t('comunidad', 'attach_flashbook', '+ Adjuntar tu flashbook')}
-                </button>
+            {loggedArtist && (
+              <div style={{ marginTop: 8, marginBottom: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {loggedArtist.flashbook_alias && (
+                  <button type="button" onClick={() => setWithFlashbook(v => !v)}
+                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, border: `1px solid ${withFlashbook ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: withFlashbook ? 'rgba(239,255,66,0.1)' : 'transparent', color: withFlashbook ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
+                    {withFlashbook ? t('comunidad', 'flashbook_attached', 'Flashbook adjunto') : t('comunidad', 'attach_flashbook', '+ Adjuntar tu flashbook')}
+                  </button>
+                )}
+                {loggedHasFutureSlots && (
+                  <button type="button" onClick={() => setWithAvailability(v => !v)}
+                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, border: `1px solid ${withAvailability ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: withAvailability ? 'rgba(239,255,66,0.1)' : 'transparent', color: withAvailability ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
+                    {withAvailability ? t('comunidad','turnos_adjuntos','Turnos adjuntos') : t('comunidad','adjuntar_turnos','+ Adjuntar turnos libres')}
+                  </button>
+                )}
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
@@ -432,6 +457,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
             return (
               <PostCard key={post.id} post={post} onShare={share}
                 onOpenArtist={onOpenArtist} onOpenStudio={onOpenStudio}
+                onOpenAvailability={onOpenAvailability}
                 reporterId={ownerId}
                 nearby={nearby}
                 isOwn={isOwn}
@@ -605,11 +631,12 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onShare, reporter
   )
 }
 
-function PostCard({ post, onShare, onOpenArtist, onOpenStudio, reporterId, nearby, isOwn, highlighted, nowLabel, onDelete }: {
+function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenAvailability, reporterId, nearby, isOwn, highlighted, nowLabel, onDelete }: {
   post: CommunityPost
   onShare: (p: CommunityPost) => void
   onOpenArtist: (slug: string) => void
   onOpenStudio: (slug: string) => void
+  onOpenAvailability?: (artist_id: string, artist_name: string, artist_photo: string | null) => void
   reporterId: string | null
   nearby: 'full' | 'country' | false
   isOwn: boolean
@@ -676,14 +703,23 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, reporterId, nearb
             {post.content}
           </p>
 
-          {post.show_flashbook && post.flashbook_alias && (
-            <a
-              href={`/flash/${post.flashbook_alias}`}
-              target="_blank" rel="noopener noreferrer"
-              style={{ marginTop: 10, fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, color: '#efff42', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
-              {t('comunidad', 'view_flashbook', 'Ver flashbook')}
-            </a>
-          )}
+          {(post.show_flashbook && post.flashbook_alias) || post.show_availability ? (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+              {post.show_flashbook && post.flashbook_alias && (
+                <a href={`/flash/${post.flashbook_alias}`} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, color: '#efff42', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
+                  {t('comunidad', 'view_flashbook', 'Ver flashbook')}
+                </a>
+              )}
+              {post.show_availability && post.artist_id && (
+                <button type="button"
+                  onClick={() => onOpenAvailability?.(post.artist_id!, post.artist_name ?? '', post.artist_photo ?? null)}
+                  style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, color: '#efff42', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  {t('comunidad','turnos_libres_chip','Turnos libres')}
+                </button>
+              )}
+            </div>
+          ) : null}
 
           {isAdmin
             ? (

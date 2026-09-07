@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
     insert.artist_slug    = body.artist_slug || null
     insert.show_flashbook  = body.show_flashbook === true ? true : null
     insert.flashbook_alias = body.show_flashbook === true ? (body.flashbook_alias || null) : null
+    insert.show_availability = body.show_availability === true ? true : null
   } else if (type === 'studio') {
     insert.studio_id   = body.studio_id || null
     insert.studio_name = body.studio_name || null

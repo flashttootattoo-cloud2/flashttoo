@@ -134,6 +134,24 @@ export default function Home() {
   const stylesRef = useRef<HTMLDivElement>(null)
   const deepLinkHandled = useRef(false)
   const [selected, setSelected]   = useState<Artist | null>(null)
+  const [selectedHasAvail, setSelectedHasAvail] = useState(false)
+  const [selectedAvailSlots, setSelectedAvailSlots] = useState<{date:string;times:string[]}[]>([])
+  const [availPopOpen, setAvailPopOpen] = useState(false)
+  const [availViewMonth, setAvailViewMonth] = useState<{year:number;month:number}>(() => { const d = new Date(); return {year:d.getFullYear(),month:d.getMonth()} })
+  const [availSelectedDay, setAvailSelectedDay] = useState<string|null>(null)
+  const [availPhotoIdx, setAvailPhotoIdx] = useState(0)
+  const [availArtistName, setAvailArtistName] = useState('')
+  const [availArtistPhoto, setAvailArtistPhoto] = useState<string|null>(null)
+  const [availArtistGallery, setAvailArtistGallery] = useState<(string|null)[]>([])
+  const [availLoading, setAvailLoading] = useState(false)
+  const [turnosOpen, setTurnosOpen] = useState(false)
+  const [turnosSlots, setTurnosSlots] = useState<{date:string;times:string[]}[]>([])
+  const [turnosViewMonth, setTurnosViewMonth] = useState<{year:number;month:number}>(() => { const d = new Date(); return {year:d.getFullYear(),month:d.getMonth()} })
+  const [turnosSelectedDay, setTurnosSelectedDay] = useState<string|null>(null)
+  const [turnosSaving, setTurnosSaving] = useState(false)
+  const [turnosSaved, setTurnosSaved] = useState(false)
+  const [turnosSaveError, setTurnosSaveError] = useState('')
+  const [turnosCopied, setTurnosCopied] = useState(false)
   const [editing, setEditing]         = useState(false)
   const [editOpen, setEditOpen]       = useState(false)
   const [editKey, setEditKey]         = useState('')
@@ -370,6 +388,22 @@ export default function Home() {
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [])
+
+  // Disponibilidad del artista seleccionado (solo cuando hay perfil abierto)
+  useEffect(() => {
+    if (!selected) { setSelectedHasAvail(false); setSelectedAvailSlots([]); return }
+    setAvailLoading(true)
+    fetch(`/api/flash/availability?artist_id=${selected.id}`)
+      .then(r => r.json())
+      .then(d => {
+        const slots = Array.isArray(d.artist?.availability) ? d.artist.availability : []
+        const today = new Date().toISOString().slice(0, 10)
+        setSelectedAvailSlots(slots)
+        setSelectedHasAvail(slots.some((s: {date:string}) => s.date >= today))
+      })
+      .catch(() => { setSelectedHasAvail(false); setSelectedAvailSlots([]) })
+      .finally(() => setAvailLoading(false))
+  }, [selected?.id])
 
   // Contar visitante único por día (1 vez por dispositivo por día)
   useEffect(() => {
@@ -1289,6 +1323,22 @@ export default function Home() {
                     </a>
                     <button
                       onClick={() => {
+                        setArtistMenuOpen(false)
+                        setTurnosOpen(true)
+                        setTurnosSelectedDay(null)
+                        setTurnosViewMonth({year:new Date().getFullYear(),month:new Date().getMonth()})
+                        if (loggedArtist) {
+                          fetch(`/api/flash/availability?artist_id=${loggedArtist.id}`)
+                            .then(r => r.json())
+                            .then(d => { if (Array.isArray(d.artist?.availability)) setTurnosSlots(d.artist.availability) })
+                            .catch(() => {})
+                        }
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('artist_menu', 'turnos_libres', 'Turnos libres')}
+                    </button>
+                    <button
+                      onClick={() => {
                         try { localStorage.removeItem('flashttoo_artist_session') } catch {}
                         setLoggedArtist(null)
                         setArtistMenuOpen(false)
@@ -1860,11 +1910,17 @@ export default function Home() {
               {/* Stats + Like */}
               <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
                 <div className="flex items-center justify-between">
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 items-center">
                     <StatItem label={t('artista', 'stat_views', 'visitas')}   value={selected.profile_views ?? 0} />
                     {showClickCounters && <StatItem label="Instagram" value={selected.instagram_clicks ?? 0} />}
                     {showClickCounters && selected.whatsapp && <StatItem label="WhatsApp" value={selected.whatsapp_clicks ?? 0} />}
                   </div>
+                  {selectedHasAvail && (
+                    <button type="button" onClick={() => { setAvailPopOpen(v => { if (!v) { setAvailPhotoIdx(i => i + 1); setAvailSelectedDay(null); setAvailViewMonth({year:new Date().getFullYear(),month:new Date().getMonth()}); setAvailArtistName(selected.name); setAvailArtistPhoto(selected.photo_url ?? null); setAvailArtistGallery([selected.gallery_photo_1??null,selected.gallery_photo_2??null,selected.gallery_photo_3??null]) } return !v }) }}
+                      style={{ fontSize: 11, fontWeight: 700, color: availPopOpen ? '#000' : '#efff42', background: availPopOpen ? '#efff42' : 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.3)', borderRadius: 20, padding: '4px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      {t('turnos_libres', 'titulo', 'Turnos libres')}
+                    </button>
+                  )}
                   <button onClick={toggleLike}
                     className="flex items-center gap-2 px-4 py-2 rounded-full transition-all"
                     style={{ background: liked ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${liked ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.08)'}` }}>
@@ -1883,6 +1939,7 @@ export default function Home() {
                   </div>
                 )}
               </div>
+
 
             </div>
           </div>
@@ -2737,6 +2794,271 @@ export default function Home() {
         </div>
       )}
 
+      {availPopOpen && (() => {
+        const MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+        const DL = ['L','M','X','J','V','S','D']
+        const { year, month } = availViewMonth
+        const firstDay = new Date(year, month, 1).getDay()
+        const daysInMonth = new Date(year, month + 1, 0).getDate()
+        const todayAv = new Date(); todayAv.setHours(0,0,0,0)
+        const cells: (number|null)[] = []
+        for (let i = 0; i < (firstDay === 0 ? 6 : firstDay - 1); i++) cells.push(null)
+        for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+        const pad = (n:number) => String(n).padStart(2,'0')
+        const selSlot = availSelectedDay ? selectedAvailSlots.find(s => s.date === availSelectedDay) : null
+        const today = new Date().toISOString().slice(0,10)
+        const hasFuture = selectedAvailSlots.some(s => s.date >= today)
+        return (
+          <div style={{ position:'fixed', inset:0, zIndex:120, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 16px' }}
+            onClick={() => setAvailPopOpen(false)}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ position:'relative', width:'100%', maxWidth:340, border:'1px solid rgba(255,255,255,0.1)', borderRadius:20, padding:'20px 18px', boxShadow:'0 24px 60px rgba(0,0,0,0.8)', animation:'slideUpModal 0.45s cubic-bezier(0.22,0.61,0.36,1)', overflow:'hidden' }}>
+              <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+              {/* Fondo foto rotativa */}
+              {(() => {
+                const photos = [availArtistPhoto, ...availArtistGallery].filter(Boolean) as string[]
+                const bg = photos.length > 0 ? photos[availPhotoIdx % photos.length] : null
+                return bg
+                  ? <><img src={bg} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0 }} /><div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.75)', zIndex:1 }} /></>
+                  : <div style={{ position:'absolute', inset:0, background:'#141414', zIndex:0 }} />
+              })()}
+              <div style={{ position:'relative', zIndex:2 }}>
+
+              {/* Header */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+                <div>
+                  <p style={{ fontSize:15, fontWeight:800, color:'#f0f0ee', margin:0 }}>{t('turnos_libres', 'titulo', 'Turnos libres')}</p>
+                  {availArtistName && <p style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:2 }}>{availArtistName}</p>}
+                </div>
+                <button type="button" onClick={() => setAvailPopOpen(false)}
+                  style={{ fontSize:18, color:'rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:'50%', width:30, height:30, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+              </div>
+
+              {availLoading && (
+                <div style={{ display:'flex', justifyContent:'center', padding:'24px 0' }}>
+                  <div style={{ width:20, height:20, border:'2px solid rgba(239,255,66,0.2)', borderTop:'2px solid #efff42', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+                  <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+                </div>
+              )}
+              {!availLoading && !hasFuture && (
+                <div style={{ textAlign:'center', padding:'20px 0 8px' }}>
+                  <p style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.5)' }}>{t('turnos_libres', 'ocupados', 'El artista ya ocupó los turnos')}</p>
+                  <p style={{ fontSize:11, color:'rgba(255,255,255,0.25)', marginTop:4 }}>{t('turnos_libres', 'consultar_fechas', 'Consultale directamente para nuevas fechas')}</p>
+                </div>
+              )}
+
+              {/* Nav mes */}
+              {hasFuture && <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                <button type="button" onClick={() => setAvailViewMonth(v => { const d = new Date(v.year,v.month-1); return {year:d.getFullYear(),month:d.getMonth()} })}
+                  style={{ background:'rgba(255,255,255,0.06)', border:'none', color:'rgba(255,255,255,0.5)', fontSize:16, cursor:'pointer', padding:'5px 10px', borderRadius:8, lineHeight:1 }}>‹</button>
+                <span style={{ fontSize:13, fontWeight:700, color:'#fff' }}>{MN[month]} {year}</span>
+                <button type="button" onClick={() => setAvailViewMonth(v => { const d = new Date(v.year,v.month+1); return {year:d.getFullYear(),month:d.getMonth()} })}
+                  style={{ background:'rgba(255,255,255,0.06)', border:'none', color:'rgba(255,255,255,0.5)', fontSize:16, cursor:'pointer', padding:'5px 10px', borderRadius:8, lineHeight:1 }}>›</button>
+              </div>}
+
+              {/* Días semana */}
+              {hasFuture && <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:3 }}>
+                {DL.map(d => <div key={d} style={{ textAlign:'center', fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.2)', padding:'2px 0' }}>{d}</div>)}
+              </div>}
+
+              {/* Grilla */}
+              {hasFuture && <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3, marginBottom:12 }}>
+                {cells.map((day, i) => {
+                  if (!day) return <div key={i} />
+                  const dateStr = `${year}-${pad(month+1)}-${pad(day)}`
+                  const isPast = new Date(year,month,day) < todayAv
+                  const slot = selectedAvailSlots.find(s => s.date === dateStr)
+                  const isAvail = !!slot
+                  const isSel = availSelectedDay === dateStr
+                  return (
+                    <button key={i} type="button" disabled={isPast||!isAvail}
+                      onClick={() => setAvailSelectedDay(isSel ? null : dateStr)}
+                      style={{ aspectRatio:'1', borderRadius:7, fontSize:11, fontWeight:isAvail?800:400,
+                        border: isSel ? '2px solid #efff42' : isAvail ? '1px solid rgba(239,255,66,0.4)' : 'none',
+                        background: isAvail ? 'rgba(239,255,66,0.12)' : 'transparent',
+                        color: isPast ? 'rgba(255,255,255,0.08)' : isAvail ? '#efff42' : 'rgba(255,60,60,0.6)',
+                        cursor: isAvail&&!isPast ? 'pointer' : 'default' }}>
+                      {day}
+                    </button>
+                  )
+                })}
+              </div>}
+
+              {/* Horarios */}
+              {hasFuture && selSlot && (
+                <div style={{ padding:'10px 12px', background:'rgba(239,255,66,0.06)', border:'1px solid rgba(239,255,66,0.15)', borderRadius:10 }}>
+                  <p style={{ fontSize:11, fontWeight:700, color:'rgba(239,255,66,0.7)', marginBottom:8 }}>{availSelectedDay!.split('-').reverse().slice(0,2).join('/')} — {t('turnos_libres', 'horarios_disponibles', 'Horarios disponibles')}</p>
+                  {selSlot.times.length > 0
+                    ? <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                        {selSlot.times.map(t => <span key={t} style={{ fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:7, background:'rgba(239,255,66,0.12)', border:'1px solid rgba(239,255,66,0.25)', color:'#efff42' }}>{t}</span>)}
+                      </div>
+                    : <p style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>Consultar horario</p>}
+                </div>
+              )}
+              </div>{/* /zIndex wrapper */}
+            </div>
+          </div>
+        )
+      })()}
+
+      {turnosOpen && loggedArtist && (() => {
+        const MONTH_NAMES_T = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+        const DAY_LABELS_T = ['L','M','X','J','V','S','D']
+        const TIMES_T = Array.from({length:24}, (_,i) => `${String(i).padStart(2,'0')}:00`)
+        const { year, month } = turnosViewMonth
+        const firstDay = new Date(year, month, 1).getDay()
+        const daysInMonth = new Date(year, month + 1, 0).getDate()
+        const todayT = new Date(); todayT.setHours(0,0,0,0)
+        const cells: (number|null)[] = []
+        for (let i = 0; i < (firstDay === 0 ? 6 : firstDay - 1); i++) cells.push(null)
+        for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+        const pad = (n:number) => String(n).padStart(2,'0')
+        const selSlot = turnosSelectedDay ? turnosSlots.find(s => s.date === turnosSelectedDay) : null
+        const selTimes = selSlot?.times ?? []
+        const availCount = turnosSlots.filter(s => s.date >= new Date().toISOString().slice(0,10)).length
+
+        function toggleDay(dateStr: string) {
+          const has = turnosSlots.find(s => s.date === dateStr)
+          if (has) { setTurnosSlots(prev => prev.filter(s => s.date !== dateStr)); if (turnosSelectedDay === dateStr) setTurnosSelectedDay(null) }
+          else { setTurnosSlots(prev => [...prev, {date:dateStr, times:[]}]); setTurnosSelectedDay(dateStr) }
+        }
+        function toggleTime(t: string) {
+          if (!turnosSelectedDay) return
+          setTurnosSlots(prev => prev.map(s => s.date === turnosSelectedDay
+            ? {...s, times: s.times.includes(t) ? s.times.filter(x => x !== t) : [...s.times, t].sort()}
+            : s))
+        }
+        async function save() {
+          setTurnosSaving(true); setTurnosSaveError('')
+          try {
+            const r = await fetch('/api/flash/availability', {
+              method: 'PATCH',
+              headers: {'Content-Type':'application/json'},
+              body: JSON.stringify({access_token: loggedArtist.access_token, artist_id: loggedArtist.id, slots: turnosSlots}),
+            })
+            if (!r.ok) { const d = await r.json().catch(()=>({})); setTurnosSaveError(d.error || `Error ${r.status}`) }
+            else { const d = await r.json().catch(()=>({})); if (Array.isArray(d.availability)) setTurnosSlots(d.availability); setTurnosSaved(true); setTimeout(() => setTurnosSaved(false), 2500) }
+          } catch { setTurnosSaveError('Error de conexión') }
+          setTurnosSaving(false)
+        }
+        function copyLink() {
+          const n = (loggedArtist.name || '').toLowerCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9]+/g, '')
+          const slug = loggedArtist.flashbook_alias ?? `turnoslibresy${n}-${loggedArtist.id}`
+          navigator.clipboard.writeText(`${window.location.origin}/disponibilidad/${slug}`)
+          setTurnosCopied(true); setTimeout(() => setTurnosCopied(false), 2000)
+        }
+
+        return (
+          <div style={{position:'fixed',inset:0,zIndex:200,background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 16px'}}
+            onClick={() => setTurnosOpen(false)}>
+            <div onClick={e => e.stopPropagation()}
+              style={{width:'100%',maxWidth:400,background:'#111',border:'1px solid rgba(255,255,255,0.09)',borderRadius:20,padding:'0 0 32px',boxShadow:'0 24px 60px rgba(0,0,0,0.8)',animation:'slideUpModal 0.45s cubic-bezier(0.22,0.61,0.36,1)',maxHeight:'90dvh',overflowY:'auto'}}>
+
+              {/* Handle */}
+              <div style={{display:'flex',justifyContent:'center',padding:'12px 0 0'}}>
+                <div style={{width:36,height:4,borderRadius:2,background:'rgba(255,255,255,0.12)'}} />
+              </div>
+
+              {/* Header */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px 0'}}>
+                <div>
+                  <p style={{fontSize:17,fontWeight:800,color:'#f0f0ee',margin:0}}>{t('turnos_libres', 'titulo', 'Turnos libres')}</p>
+                  {availCount > 0
+                    ? <p style={{fontSize:11,color:'rgba(239,255,66,0.6)',marginTop:2}}>{availCount} {availCount===1?t('turnos_libres','dia_disponible','día disponible'):t('turnos_libres','dias_disponibles','días disponibles')}</p>
+                    : <p style={{fontSize:11,color:'rgba(255,255,255,0.2)',marginTop:2}}>{t('turnos_libres','sin_dias','Sin días marcados')}</p>}
+                </div>
+                <button type="button" onClick={() => setTurnosOpen(false)}
+                  style={{fontSize:20,color:'rgba(255,255,255,0.3)',background:'rgba(255,255,255,0.06)',border:'none',borderRadius:'50%',width:32,height:32,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,flexShrink:0}}>×</button>
+              </div>
+
+              <div style={{padding:'16px 20px 0'}}>
+                <p style={{fontSize:11,color:'rgba(255,255,255,0.2)',marginBottom:18,lineHeight:1.5}}>Marcá los días en amarillo. Los días en rojo aparecen como ocupados.</p>
+
+                {/* Nav mes */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                  <button type="button" onClick={() => setTurnosViewMonth(v => { const d = new Date(v.year,v.month-1); return {year:d.getFullYear(),month:d.getMonth()} })}
+                    style={{background:'rgba(255,255,255,0.06)',border:'none',color:'rgba(255,255,255,0.5)',fontSize:18,cursor:'pointer',padding:'6px 12px',borderRadius:8,lineHeight:1}}>‹</button>
+                  <span style={{fontSize:14,fontWeight:700,color:'#fff'}}>{MONTH_NAMES_T[month]} {year}</span>
+                  <button type="button" onClick={() => setTurnosViewMonth(v => { const d = new Date(v.year,v.month+1); return {year:d.getFullYear(),month:d.getMonth()} })}
+                    style={{background:'rgba(255,255,255,0.06)',border:'none',color:'rgba(255,255,255,0.5)',fontSize:18,cursor:'pointer',padding:'6px 12px',borderRadius:8,lineHeight:1}}>›</button>
+                </div>
+
+                {/* Días semana */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:3,marginBottom:4}}>
+                  {DAY_LABELS_T.map(d => <div key={d} style={{textAlign:'center',fontSize:9,fontWeight:700,color:'rgba(255,255,255,0.2)',letterSpacing:'0.08em',padding:'3px 0'}}>{d}</div>)}
+                </div>
+
+                {/* Grilla */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:16}}>
+                  {cells.map((day, i) => {
+                    if (!day) return <div key={i} />
+                    const dateStr = `${year}-${pad(month+1)}-${pad(day)}`
+                    const isPast = new Date(year,month,day) < todayT
+                    const slot = turnosSlots.find(s => s.date === dateStr)
+                    const isSelected = turnosSelectedDay === dateStr
+                    const isAvail = !!slot
+                    return (
+                      <button key={i} type="button" disabled={isPast}
+                        onClick={() => { setTurnosSelectedDay(isSelected ? null : dateStr); if (!isAvail) toggleDay(dateStr) }}
+                        style={{aspectRatio:'1',borderRadius:9,fontSize:12,fontWeight:isAvail?800:400,
+                          border: isSelected ? '2px solid #efff42' : isAvail ? '1px solid rgba(239,255,66,0.35)' : '1px solid rgba(255,255,255,0.06)',
+                          background: isAvail ? 'rgba(239,255,66,0.13)' : 'rgba(255,30,30,0.08)',
+                          color: isPast ? 'rgba(255,255,255,0.1)' : isAvail ? '#efff42' : 'rgba(255,255,255,0.28)',
+                          cursor: isPast ? 'default' : 'pointer',
+                          display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:1}}>
+                        {day}
+                        {slot && slot.times.length > 0 && <span style={{fontSize:7,color:'rgba(239,255,66,0.55)',lineHeight:1}}>·{slot.times.length}</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Editor horarios */}
+                {turnosSelectedDay && turnosSlots.find(s => s.date === turnosSelectedDay) && (
+                  <div style={{marginBottom:16,padding:'14px',background:'rgba(239,255,66,0.05)',border:'1px solid rgba(239,255,66,0.15)',borderRadius:12}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                      <p style={{fontSize:12,fontWeight:700,color:'rgba(239,255,66,0.8)'}}>
+                        {turnosSelectedDay.split('-').reverse().slice(0,2).join('/')} — {t('turnos_libres','horarios','Horarios')}
+                      </p>
+                      <button type="button" onClick={() => toggleDay(turnosSelectedDay)}
+                        style={{fontSize:10,color:'rgba(255,80,80,0.7)',background:'none',border:'1px solid rgba(255,80,80,0.25)',borderRadius:6,padding:'3px 9px',cursor:'pointer'}}>
+                        {t('turnos_libres','quitar_dia','Quitar día')}
+                      </button>
+                    </div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                      {TIMES_T.map(t => {
+                        const on = selTimes.includes(t)
+                        return (
+                          <button key={t} type="button" onClick={() => toggleTime(t)}
+                            style={{fontSize:12,fontWeight:700,padding:'6px 11px',borderRadius:8,border:`1px solid ${on?'rgba(239,255,66,0.5)':'rgba(255,255,255,0.1)'}`,background:on?'rgba(239,255,66,0.15)':'rgba(255,255,255,0.04)',color:on?'#efff42':'rgba(255,255,255,0.35)',cursor:'pointer'}}>
+                            {t}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {turnosSaveError && <p style={{fontSize:11,color:'#f87171',marginBottom:8}}>{turnosSaveError}</p>}
+
+                <div style={{display:'flex',gap:8}}>
+                  <button type="button" onClick={copyLink}
+                    style={{flex:1,padding:'11px',background:turnosCopied?'rgba(100,220,100,0.1)':'rgba(255,255,255,0.06)',border:`1px solid ${turnosCopied?'rgba(100,220,100,0.3)':'rgba(255,255,255,0.1)'}`,borderRadius:10,fontSize:12,fontWeight:700,color:turnosCopied?'rgba(100,220,100,0.8)':'rgba(255,255,255,0.5)',cursor:'pointer'}}>
+                    {turnosCopied ? t('turnos_libres','copiado','✓ Copiado') : t('turnos_libres','copiar_link','Copiar link')}
+                  </button>
+                  <button type="button" onClick={save} disabled={turnosSaving}
+                    style={{flex:2,padding:'11px',background:turnosSaved?'rgba(100,220,100,0.15)':'#efff42',border:'none',borderRadius:10,fontSize:13,fontWeight:800,color:turnosSaved?'rgba(100,220,100,0.9)':'#000',cursor:'pointer',opacity:turnosSaving?0.6:1}}>
+                    {turnosSaving ? t('turnos_libres','guardando','Guardando…') : turnosSaved ? t('turnos_libres','guardado','✓ Guardado') : t('turnos_libres','guardar','Guardar')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {editing && selected && (
         <EditPanel
           artist={selected}
@@ -3195,6 +3517,23 @@ export default function Home() {
                   }
                 }}
                 onOpenStudio={slug => { setCommunityOpen(false); openStudio(slug) }}
+                onOpenAvailability={(artist_id, artist_name, artist_photo) => {
+                  setAvailPopOpen(true)
+                  setAvailPhotoIdx(0)
+                  setAvailSelectedDay(null)
+                  setAvailViewMonth({year:new Date().getFullYear(),month:new Date().getMonth()})
+                  setAvailArtistName(artist_name)
+                  setAvailArtistPhoto(artist_photo)
+                  setAvailArtistGallery([])
+                  setSelectedAvailSlots([])
+                  setAvailLoading(true)
+                  fetch(`/api/flash/availability?artist_id=${artist_id}`)
+                    .then(r => r.json())
+                    .then(d => {
+                      const slots = Array.isArray(d.artist?.availability) ? d.artist.availability : []
+                      setSelectedAvailSlots(slots)
+                    }).catch(() => {}).finally(() => setAvailLoading(false))
+                }}
               />
             </div>
           </div>

@@ -23,12 +23,14 @@ export async function GET(req: NextRequest) {
   }
   const [designsRes, artistRes] = await Promise.all([
     sb().from('flash_designs').select('id, photo_url, medidas, position, labels').eq('artist_id', artist_id).order('position'),
-    sb().from('artists').select('flashbook_alias, flashbook_whatsapp').eq('id', artist_id).single(),
+    sb().from('artists').select('flashbook_alias, flashbook_whatsapp, availability, slug').eq('id', artist_id).single(),
   ])
   return NextResponse.json({
     designs: designsRes.data ?? [],
     flashbook_alias: artistRes.data?.flashbook_alias ?? null,
     flashbook_whatsapp: artistRes.data?.flashbook_whatsapp ?? null,
+    availability: artistRes.data?.availability ?? [],
+    slug: artistRes.data?.slug ?? null,
   })
 }
 

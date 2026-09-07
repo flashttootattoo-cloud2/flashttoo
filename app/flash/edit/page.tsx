@@ -70,6 +70,7 @@ export default function FlashbookEditPage() {
   const [pitchOpen, setPitchOpen] = useState(false)
   const [aliasOpen, setAliasOpen] = useState(false)
   const [waOpen, setWaOpen] = useState(false)
+  const [artistSlug, setArtistSlug] = useState('')
 
   // Deleting
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -129,6 +130,7 @@ export default function FlashbookEditPage() {
         setMedidasOriginal(map)
         if (d.flashbook_alias) { setAlias(d.flashbook_alias); setAliasInput(d.flashbook_alias) }
         if (d.flashbook_whatsapp) setWaInput(d.flashbook_whatsapp)
+        if (d.slug) setArtistSlug(d.slug)
       })
       .catch(e => showToast(e.message || 'Error al cargar diseños'))
       .finally(() => setLoadingDesigns(false))

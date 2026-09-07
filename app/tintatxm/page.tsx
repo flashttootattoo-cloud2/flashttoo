@@ -1224,8 +1224,11 @@ export default function AdminPage() {
     { key: 'ingresar',   label: 'Ingresar — Modal de login y registro' },
     { key: 'activar',    label: 'Activar — Página de activación de perfil' },
     { key: 'password',   label: 'Password — Página de nueva contraseña' },
-    { key: 'galeria',    label: 'Galería — Overlay de fotos' },
-    { key: 'comunidad',  label: 'Comunidad — Feed de publicaciones' },
+    { key: 'galeria',        label: 'Galería — Overlay de fotos' },
+    { key: 'comunidad',      label: 'Comunidad — Feed de publicaciones' },
+    { key: 'artist_menu',    label: 'Menú del artista — Opciones del perfil' },
+    { key: 'turnos_libres',  label: 'Turnos libres — Disponibilidad' },
+    { key: 'disponibilidad', label: 'Disponibilidad — Página pública compartida' },
   ]
 
   const openLang = async (code: string) => {
