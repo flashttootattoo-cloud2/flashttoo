@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { uploadFile, deleteFile } from '@/lib/storage'
+import { deleteFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -71,55 +71,45 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const fd = await req.formData()
-  const videoFile  = fd.get('video')  as File | null
-  const coverFile  = fd.get('cover')  as File | null
+  const body = await req.json() as {
+    id: string
+    video_url: string
+    cover_image_url: string
+    author_instagram: string
+    author_flashttoo_slug?: string | null
+    instagram_video_url?: string | null
+    description?: string | null
+    description_en?: string | null
+    description_pt?: string | null
+    tags?: string[]
+    tags_en?: string[]
+    tags_pt?: string[]
+    mute_audio?: boolean
+    publish_at?: string | null
+  }
 
-  if (!videoFile) return NextResponse.json({ error: 'Video requerido' }, { status: 400 })
-  if (!coverFile) return NextResponse.json({ error: 'Portada requerida' }, { status: 400 })
-
-  const authorInstagram      = ((fd.get('author_instagram')      as string | null) ?? '').trim()
-  const authorFlashttooSlug  = ((fd.get('author_flashttoo_slug') as string | null) ?? '').trim() || null
-  const instagramVideoUrl = ((fd.get('instagram_video_url') as string | null) ?? '').trim() || null
-  const descriptionEn     = ((fd.get('description_en')      as string | null) ?? '').trim() || null
-  const descriptionPt     = ((fd.get('description_pt')      as string | null) ?? '').trim() || null
-  const tagsEnRaw         = (fd.get('tags_en')              as string | null) ?? ''
-  const tagsPtRaw         = (fd.get('tags_pt')              as string | null) ?? ''
-  const tagsEn            = tagsEnRaw ? tagsEnRaw.split(',').map(t => t.trim()).filter(Boolean) : []
-  const tagsPt            = tagsPtRaw ? tagsPtRaw.split(',').map(t => t.trim()).filter(Boolean) : []
-  const description     = ((fd.get('description')      as string | null) ?? '').trim() || null
-  const tagsRaw         = (fd.get('tags')              as string | null) ?? ''
-  const tags            = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []
-  const publishAt       = (fd.get('publish_at')        as string | null) || null
-  const muteAudio       = fd.get('mute_audio') === 'true'
-
-  const id = crypto.randomUUID()
-  const videoExt = videoFile.name.split('.').pop() || 'mp4'
-  const coverExt = coverFile.name.split('.').pop()  || 'jpg'
-
-  const [videoUrl, coverUrl] = await Promise.all([
-    uploadFile(videoFile, `cultura-videos/${id}/video.${videoExt}`),
-    uploadFile(coverFile, `cultura-videos/${id}/cover.${coverExt}`),
-  ])
+  if (!body.video_url) return NextResponse.json({ error: 'video_url requerido' }, { status: 400 })
+  if (!body.cover_image_url) return NextResponse.json({ error: 'cover_image_url requerido' }, { status: 400 })
+  if (!body.author_instagram?.trim()) return NextResponse.json({ error: 'Instagram del autor requerido' }, { status: 400 })
 
   const now = new Date().toISOString()
   const { data, error } = await sb().from('cultura_videos').insert({
-    id,
-    video_url:        videoUrl,
-    cover_image_url:  coverUrl,
-    author_instagram:      authorInstagram,
-    author_flashttoo_slug: authorFlashttooSlug,
-    instagram_video_url: instagramVideoUrl,
-    description_en:      descriptionEn,
-    description_pt:      descriptionPt,
-    tags_en:             tagsEn,
-    tags_pt:             tagsPt,
-    description,
-    tags,
-    mute_audio:   muteAudio,
-    publish_at:   publishAt || null,
-    active:       !publishAt,
-    published_at: publishAt ? null : now,
+    id:                    body.id,
+    video_url:             body.video_url,
+    cover_image_url:       body.cover_image_url,
+    author_instagram:      body.author_instagram.trim(),
+    author_flashttoo_slug: body.author_flashttoo_slug ?? null,
+    instagram_video_url:   body.instagram_video_url ?? null,
+    description:           body.description ?? null,
+    description_en:        body.description_en ?? null,
+    description_pt:        body.description_pt ?? null,
+    tags:                  body.tags ?? [],
+    tags_en:               body.tags_en ?? [],
+    tags_pt:               body.tags_pt ?? [],
+    mute_audio:            body.mute_audio ?? false,
+    publish_at:            body.publish_at ?? null,
+    active:                !body.publish_at,
+    published_at:          body.publish_at ? null : now,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -130,34 +130,64 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
     if (!coverFile) { setError('Capturá un fotograma o subí una portada'); return }
     if (!instagram.trim()) { setError('Ingresá el Instagram del autor'); return }
 
-    setUploading(true); setError(''); setUploadProgress('Subiendo archivos...')
-    const fd = new FormData()
-    fd.append('video',            videoFile)
-    fd.append('cover',            coverFile)
-    fd.append('author_instagram', instagram.trim())
-    if (hasFlashttoo) fd.append('author_flashttoo_slug', instagram.trim().replace('@', ''))
-    if (igVideoUrl.trim()) fd.append('instagram_video_url', igVideoUrl.trim())
-    if (descEn.trim()) fd.append('description_en', descEn.trim())
-    if (descPt.trim()) fd.append('description_pt', descPt.trim())
-    if (tagsEn.trim()) fd.append('tags_en', tagsEn.trim())
-    if (tagsPt.trim()) fd.append('tags_pt', tagsPt.trim())
-    fd.append('description',      description.trim())
-    fd.append('tags',             tags)
-    if (publishAt) fd.append('publish_at', new Date(publishAt).toISOString())
-    fd.append('mute_audio', muteAudio ? 'true' : 'false')
+    setUploading(true); setError('')
 
-    const r = await fetch('/api/cultura-videos', { method: 'POST', headers: H(pass), body: fd }).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
-    setUploading(false); setUploadProgress('')
+    try {
+      const id = crypto.randomUUID()
+      const videoExt = videoFile.name.split('.').pop() || 'mp4'
+      const coverExt = coverFile.name.split('.').pop() || 'jpg'
+      const videoPath = `cultura-videos/${id}/video.${videoExt}`
+      const coverPath = `cultura-videos/${id}/cover.${coverExt}`
 
-    if (r.error) { setError(r.error); return }
+      // 1. Obtener URLs pre-firmadas
+      setUploadProgress('Preparando...')
+      const [vp, cp] = await Promise.all([
+        fetch('/api/upload-presign', { method: 'POST', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ path: videoPath, contentType: videoFile.type }) }).then(r => r.json()),
+        fetch('/api/upload-presign', { method: 'POST', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ path: coverPath, contentType: coverFile.type }) }).then(r => r.json()),
+      ])
+      if (vp.error || cp.error) { setError(vp.error || cp.error); setUploading(false); setUploadProgress(''); return }
 
-    setVideoFile(null); setCoverFile(null); setVideoPreview(null); setCoverPreview(null)
-    setInstagram(''); setHasFlashttoo(false); setIgVideoUrl('')
-    setDescription(''); setTags(''); setDescEn(''); setTagsEn(''); setDescPt(''); setTagsPt('')
-    setPublishAt(''); setLangTab('es'); setMuteAudio(false)
-    setScrubTime(0); setVideoDuration(0); setFrameCaptured(false)
-    setFormOpen(false)
-    load()
+      // 2. Subir directamente a R2 desde el browser
+      setUploadProgress('Subiendo video...')
+      await fetch(vp.uploadUrl, { method: 'PUT', headers: { 'Content-Type': videoFile.type }, body: videoFile })
+
+      setUploadProgress('Subiendo portada...')
+      await fetch(cp.uploadUrl, { method: 'PUT', headers: { 'Content-Type': coverFile.type }, body: coverFile })
+
+      // 3. Guardar metadata en DB
+      setUploadProgress('Guardando...')
+      const body = {
+        id,
+        video_url:             vp.publicUrl,
+        cover_image_url:       cp.publicUrl,
+        author_instagram:      instagram.trim(),
+        author_flashttoo_slug: hasFlashttoo ? instagram.trim().replace('@', '') : null,
+        instagram_video_url:   igVideoUrl.trim() || null,
+        description:           description.trim() || null,
+        description_en:        descEn.trim() || null,
+        description_pt:        descPt.trim() || null,
+        tags:                  tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        tags_en:               tagsEn ? tagsEn.split(',').map(t => t.trim()).filter(Boolean) : [],
+        tags_pt:               tagsPt ? tagsPt.split(',').map(t => t.trim()).filter(Boolean) : [],
+        mute_audio:            muteAudio,
+        publish_at:            publishAt ? new Date(publishAt).toISOString() : null,
+      }
+      const r = await fetch('/api/cultura-videos', { method: 'POST', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
+      setUploading(false); setUploadProgress('')
+
+      if (r.error) { setError(r.error); return }
+
+      setVideoFile(null); setCoverFile(null); setVideoPreview(null); setCoverPreview(null)
+      setInstagram(''); setHasFlashttoo(false); setIgVideoUrl('')
+      setDescription(''); setTags(''); setDescEn(''); setTagsEn(''); setDescPt(''); setTagsPt('')
+      setPublishAt(''); setLangTab('es'); setMuteAudio(false)
+      setScrubTime(0); setVideoDuration(0); setFrameCaptured(false)
+      setFormOpen(false)
+      load()
+    } catch {
+      setError('Error al subir. Revisá la conexión e intentá de nuevo.')
+      setUploading(false); setUploadProgress('')
+    }
   }
 
   async function archive(id: string) {

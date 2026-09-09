@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { createClient } from '@supabase/supabase-js'
 
 function r2Client() {
@@ -41,6 +42,17 @@ export async function uploadFile(file: File, path: string): Promise<string> {
   const { error } = await sb.storage.from('artist-photos').upload(path, file, { contentType: file.type })
   if (error) throw error
   return sb.storage.from('artist-photos').getPublicUrl(path).data.publicUrl
+}
+
+export async function getPresignedUploadUrl(path: string, contentType: string): Promise<{ uploadUrl: string; publicUrl: string }> {
+  const command = new PutObjectCommand({
+    Bucket:      process.env.CLOUDFLARE_R2_BUCKET!,
+    Key:         path,
+    ContentType: contentType,
+  })
+  const uploadUrl = await getSignedUrl(r2Client(), command, { expiresIn: 300 })
+  const publicUrl = `${process.env.CLOUDFLARE_R2_PUBLIC_URL}/${path}`
+  return { uploadUrl, publicUrl }
 }
 
 export async function deleteFile(url: string): Promise<void> {
