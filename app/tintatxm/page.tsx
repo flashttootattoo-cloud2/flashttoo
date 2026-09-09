@@ -7,6 +7,7 @@ import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 import StudioPanel from '@/components/StudioPanel'
 import { renderPhraseContent } from '@/components/PhraseContent'
 import { useTranslation } from '@/contexts/TranslationContext'
+import CulturaVideosAdmin from '@/components/CulturaVideosAdmin'
 
 type DayVisit = { date: string; count: number }
 type Visit = { from: string; to: string; city: string; country: string }
@@ -1097,7 +1098,7 @@ export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [pin, setPin]         = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios' | 'idiomas' | 'frases' | 'comunidad'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios' | 'idiomas' | 'frases' | 'comunidad' | 'culturavideos'>('artistas')
   const [artists, setArtists]       = useState<Artist[]>([])
   const [artistsTotal, setArtistsTotal] = useState(0)
   const [artistsOffset, setArtistsOffset] = useState(0)
@@ -1970,7 +1971,8 @@ export default function AdminPage() {
               { key: 'sponsors2',    label: `Sponsors (${sponsorsV2.length})` },
               { key: 'convenciones', label: `Convenciones (${conventions.length})` },
               { key: 'estudios',     label: `Estudios (${adminStudios.length})` },
-              { key: 'frases',       label: 'Cultura' },
+              { key: 'frases',        label: 'Cultura' },
+              { key: 'culturavideos', label: 'Cultura Videos' },
               { key: 'comunidad',    label: 'Comunidad' },
               { key: 'ads',          label: `Publicidad (${ads.length})` },
               { key: 'contenido',    label: 'Contenido' },
@@ -4866,6 +4868,11 @@ export default function AdminPage() {
             </div>
 
           </div>
+
+        ) : tab === 'culturavideos' ? (
+
+          // ── CULTURA VIDEOS ────────────────────────────────────────────────────
+          <CulturaVideosAdmin pass={pass} />
 
         ) : tab === 'comunidad' ? (
 

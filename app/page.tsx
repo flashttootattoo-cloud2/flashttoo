@@ -3099,7 +3099,7 @@ export default function Home() {
         />
       )}
 
-      {!selectedStudioSlug && <ConventionModal conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} />}
+      {/* ConventionModal desactivado temporalmente */}
       <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} onOverlayChange={setInsumoOpen} />
 
       {/* ── MODAL FRASE ─────────────────────────────────────────── */}
