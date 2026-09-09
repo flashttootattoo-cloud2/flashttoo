@@ -657,6 +657,17 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
                       </div>
                     </div>
 
+                    {/* Programar publicación */}
+                    <div>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Programar publicación (opcional)</p>
+                      <input
+                        type="datetime-local" value={publishAt}
+                        onChange={e => { setPublishAt(e.target.value); if (e.target.value) setEditIsDraft(false) }}
+                        style={{ padding: '7px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#fff', fontSize: 12, outline: 'none', colorScheme: 'dark' }}
+                      />
+                      {publishAt && <button onClick={() => setPublishAt('')} style={{ marginLeft: 8, fontSize: 10, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}>✕ quitar</button>}
+                    </div>
+
                     {editError && <p style={{ fontSize: 11, color: '#f87171' }}>{editError}</p>}
                     <button onClick={saveEdit}
                       style={{ padding: '9px', background: '#efff42', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800, color: '#000', cursor: 'pointer' }}>
