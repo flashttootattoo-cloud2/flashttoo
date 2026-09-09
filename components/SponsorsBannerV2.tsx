@@ -199,18 +199,22 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const photoStackRef    = useRef<GalleryPhoto[]>([])  // historial de fotos visitadas
   const navigatingBackRef = useRef(false)  // evita push en useEffect al volver atrás
   // Refs espejo para que el handler de popstate siempre lea valores actuales (sin closure obsoleto)
-  const selectedPhotoRef = useRef<GalleryPhoto | null>(null)
-  const showGalleryRef   = useRef(false)
-  const selectedIdRef    = useRef<string | null>(null)
-  const showInfoRef      = useRef(false)
-  const expandedRef      = useRef(false)
+  const selectedPhotoRef        = useRef<GalleryPhoto | null>(null)
+  const showGalleryRef          = useRef(false)
+  const selectedIdRef           = useRef<string | null>(null)
+  const showInfoRef             = useRef(false)
+  const expandedRef             = useRef(false)
+  const showCulturaRef          = useRef(false)
+  const selectedCulturaVideoRef = useRef<CulturaVid | null>(null)
 
   // Sincronizar refs espejo con estado actual en cada render
-  selectedPhotoRef.current = selectedPhoto
-  showGalleryRef.current   = showGallery
-  selectedIdRef.current    = selectedId
-  showInfoRef.current      = showInfo
-  expandedRef.current      = expanded
+  selectedPhotoRef.current        = selectedPhoto
+  showGalleryRef.current          = showGallery
+  selectedIdRef.current           = selectedId
+  showInfoRef.current             = showInfo
+  expandedRef.current             = expanded
+  showCulturaRef.current          = showCultura
+  selectedCulturaVideoRef.current = selectedCulturaVideo
 
   // Fetch una sola vez — mezcla aleatoria fija en este montaje
   useEffect(() => {
@@ -336,10 +340,12 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         setSelectedPhoto(prev ?? null)
         return
       }
-      if (showGalleryRef.current) { setShowGallery(false); return }
-      if (selectedIdRef.current)  { setSelectedId(null);   return }
-      if (showInfoRef.current)    { setShowInfo(false);    return }
-      if (expandedRef.current)    { setExpanded(false);    return }
+      if (showGalleryRef.current)          { setShowGallery(false); return }
+      if (selectedCulturaVideoRef.current) { setSelectedCulturaVideo(null); return }
+      if (showCulturaRef.current)          { setShowCultura(false); return }
+      if (selectedIdRef.current)           { setSelectedId(null);   return }
+      if (showInfoRef.current)             { setShowInfo(false);    return }
+      if (expandedRef.current)             { setExpanded(false);    return }
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -353,6 +359,22 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     }
     return () => { document.body.style.overflow = '' }
   }, [showGallery])
+
+  useEffect(() => {
+    if (showCultura) {
+      history.pushState({ sv2: 'cultura' }, '')
+      histDepthRef.current++
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCultura])
+
+  useEffect(() => {
+    if (selectedCulturaVideo) {
+      history.pushState({ sv2: 'cultura-video' }, '')
+      histDepthRef.current++
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCulturaVideo])
 
   useEffect(() => {
     if (!showGallery || selectedPhoto) return
@@ -840,7 +862,8 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     const isLong = sel.bio.length > 400 || sel.bio.split('\n').length > 8
                     return (
                       <div style={{ marginBottom: 32 }}>
-                        <p style={{
+                        <style>{`.sv2-bio{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}`}</style>
+                        <p className="sv2-bio" style={{
                           fontSize: 15, color: 'rgba(255,255,255,0.5)', lineHeight: 1.85, margin: 0, fontWeight: 400, whiteSpace: 'pre-wrap',
                           ...(!bioExpanded && isLong ? {
                             display: '-webkit-box', WebkitLineClamp: 10,
