@@ -23,17 +23,16 @@ export default function CulturaVideoModal() {
   const [muted, setMuted]       = useState(true)
   const [playing, setPlaying]   = useState(true)
   const videoRef                = useRef<HTMLVideoElement>(null)
+  const historyPushedRef        = useRef(false)
 
   useEffect(() => {
     try { if (sessionStorage.getItem('cultura_video_closed')) return } catch {}
-    const lang = navigator.language?.slice(0, 2) || 'es'
-    // Trae todos los videos (activos + archivados) ordenados por fecha
     fetch(`/api/cultura-videos`)
       .then(r => r.json())
       .then(d => {
         const videos: CulturaVideo[] = d?.videos ?? []
         if (!videos.length) return
-        const recent = videos[0] // ya vienen ordenados por published_at desc
+        const recent = videos[0]
         if (!recent.published_at) return
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
         if (new Date(recent.published_at).getTime() < sevenDaysAgo) return
@@ -43,7 +42,34 @@ export default function CulturaVideoModal() {
       .catch(() => {})
   }, [])
 
+  // Empujar historial cuando el modal se abre
+  useEffect(() => {
+    if (visible) {
+      history.pushState({ culturaModal: true }, '')
+      historyPushedRef.current = true
+    }
+  }, [visible])
+
+  // Capturar botón atrás del celular
+  useEffect(() => {
+    function onPop() {
+      if (historyPushedRef.current) {
+        historyPushedRef.current = false
+        setVisible(false)
+        try { sessionStorage.setItem('cultura_video_closed', '1') } catch {}
+        if (videoRef.current) videoRef.current.pause()
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
   function dismiss() {
+    if (historyPushedRef.current) {
+      historyPushedRef.current = false
+      history.back() // dispara popstate que cierra el modal
+      return
+    }
     setVisible(false)
     try { sessionStorage.setItem('cultura_video_closed', '1') } catch {}
     if (videoRef.current) videoRef.current.pause()
