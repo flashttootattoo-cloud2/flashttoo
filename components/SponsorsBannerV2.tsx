@@ -862,9 +862,9 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     const isLong = sel.bio.length > 400 || sel.bio.split('\n').length > 8
                     return (
                       <div style={{ marginBottom: 32 }}>
-                        <style>{`.sv2-bio{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}`}</style>
-                        <p className="sv2-bio" style={{
+                        <p style={{
                           fontSize: 15, color: 'rgba(255,255,255,0.5)', lineHeight: 1.85, margin: 0, fontWeight: 400, whiteSpace: 'pre-wrap',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                           ...(!bioExpanded && isLong ? {
                             display: '-webkit-box', WebkitLineClamp: 10,
                             WebkitBoxOrient: 'vertical', overflow: 'hidden',
@@ -1131,7 +1131,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             <button onClick={() => history.back()} style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 16, cursor: 'pointer', flexShrink: 0 }}>←</button>
           </div>
           {/* Foto grande + info artista conectados */}
-          <div style={{ margin: '12px 20px 0', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ margin: '12px 20px 0', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(239,255,66,0.3)' }}>
             {/* Foto con etiquetas encima */}
             <div style={{ position: 'relative' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}

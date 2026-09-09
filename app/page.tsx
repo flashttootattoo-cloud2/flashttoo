@@ -1888,7 +1888,7 @@ export default function Home() {
               )}
 
               {selected.bio && (
-                <BioText text={selected.bio} style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 16 }} />
+                <BioText text={selected.bio} style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 16, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }} />
               )}
 
               {galleryEnabled && (() => {
@@ -2213,17 +2213,17 @@ export default function Home() {
             const answered = INTERVIEW_QUESTIONS.filter(q => iv[q.key]?.trim())
             if (!answered.length) return null
             return (
-              <div style={{ background: '#efff42', borderRadius: 20, marginTop: 8, padding: '22px 20px 24px', boxShadow: '0 40px 100px rgba(0,0,0,0.9)' }}>
-                <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', marginBottom: 20 }}>
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, marginTop: 8, padding: '22px 20px 24px' }}>
+                <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', color: 'rgba(239,255,66,0.5)', textTransform: 'uppercase', marginBottom: 20 }}>
                   {t('artista', 'meet_artist', 'Conocé a')} {selected.name}
                 </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {answered.map(q => (
-                    <div key={q.key}>
-                      <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 5, lineHeight: 1.4 }}>
+                    <div key={q.key} style={{ paddingLeft: 14, borderLeft: '2px solid rgba(239,255,66,0.2)' }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(239,255,66,0.45)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 6, lineHeight: 1.4 }}>
                         {t('historia', q.key, q.label)}
                       </p>
-                      <p style={{ fontSize: 14, color: '#000', lineHeight: 1.65 }}>
+                      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', lineHeight: 1.7, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
                         {iv[q.key]}
                       </p>
                     </div>
