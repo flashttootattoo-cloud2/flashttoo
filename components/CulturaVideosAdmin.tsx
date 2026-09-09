@@ -63,6 +63,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
   const [langTab, setLangTab]             = useState<'es'|'en'|'pt'>('es')
   const [editLangTab, setEditLangTab]     = useState<'es'|'en'|'pt'>('es')
   const [muteAudio, setMuteAudio]         = useState(false)
+  const [saveAsDraft, setSaveAsDraft]     = useState(false)
   const [description, setDescription] = useState('')
   const [tags, setTags]               = useState('')
   const [publishAt, setPublishAt]     = useState('')
@@ -171,6 +172,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
         tags_pt:               tagsPt ? tagsPt.split(',').map(t => t.trim()).filter(Boolean) : [],
         mute_audio:            muteAudio,
         publish_at:            publishAt ? new Date(publishAt).toISOString() : null,
+        draft:                 saveAsDraft,
       }
       const r = await fetch('/api/cultura-videos', { method: 'POST', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
       setUploading(false); setUploadProgress('')
@@ -180,7 +182,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
       setVideoFile(null); setCoverFile(null); setVideoPreview(null); setCoverPreview(null)
       setInstagram(''); setHasFlashttoo(false); setIgVideoUrl('')
       setDescription(''); setTags(''); setDescEn(''); setTagsEn(''); setDescPt(''); setTagsPt('')
-      setPublishAt(''); setLangTab('es'); setMuteAudio(false)
+      setPublishAt(''); setLangTab('es'); setMuteAudio(false); setSaveAsDraft(false)
       setScrubTime(0); setVideoDuration(0); setFrameCaptured(false)
       setFormOpen(false)
       load()
@@ -188,6 +190,11 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
       setError('Error al subir. Revisá la conexión e intentá de nuevo.')
       setUploading(false); setUploadProgress('')
     }
+  }
+
+  async function activateVideo(id: string) {
+    await fetch('/api/cultura-videos', { method: 'PUT', headers: { ...H(pass), 'Content-Type': 'application/json' }, body: JSON.stringify({ id, active: true }) })
+    load()
   }
 
   async function archive(id: string) {
@@ -476,8 +483,18 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
               onChange={e => setPublishAt(e.target.value)}
               style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', colorScheme: 'dark' }}
             />
-            {!publishAt && <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 4 }}>Sin fecha → publica ahora</p>}
+            {!publishAt && !saveAsDraft && <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 4 }}>Sin fecha → publica ahora</p>}
           </div>
+
+          {/* Borrador */}
+          {!publishAt && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={saveAsDraft} onChange={e => setSaveAsDraft(e.target.checked)} style={{ accentColor: '#efff42', width: 14, height: 14 }} />
+              <span style={{ fontSize: 11, color: saveAsDraft ? '#efff42' : 'rgba(255,255,255,0.35)' }}>
+                Guardar como borrador — publica cuando vos lo actives
+              </span>
+            </label>
+          )}
 
           {error && <p style={{ fontSize: 12, color: '#f87171' }}>{error}</p>}
           {uploadProgress && <p style={{ fontSize: 12, color: 'rgba(239,255,66,0.7)' }}>{uploadProgress}</p>}
@@ -540,6 +557,12 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
                       style={{ fontSize: 11, padding: '5px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: 'rgba(255,255,255,0.4)', cursor: 'pointer', textDecoration: 'none', textAlign: 'center' }}>
                       Preview
                     </a>
+                    {!v.active && !v.archived_at && !v.publish_at && (
+                      <button onClick={() => activateVideo(v.id)}
+                        style={{ fontSize: 11, padding: '5px 10px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 7, color: '#4ade80', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        Activar
+                      </button>
+                    )}
                     {v.active && !v.archived_at && (
                       <button onClick={() => archive(v.id)}
                         style={{ fontSize: 11, padding: '5px 10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 7, color: '#f59e0b', cursor: 'pointer', whiteSpace: 'nowrap' }}>

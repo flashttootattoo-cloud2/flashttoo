@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
     tags_pt?: string[]
     mute_audio?: boolean
     publish_at?: string | null
+    draft?: boolean
   }
 
   if (!body.video_url) return NextResponse.json({ error: 'video_url requerido' }, { status: 400 })
@@ -108,8 +109,8 @@ export async function POST(req: NextRequest) {
     tags_pt:               body.tags_pt ?? [],
     mute_audio:            body.mute_audio ?? false,
     publish_at:            body.publish_at ?? null,
-    active:                !body.publish_at,
-    published_at:          body.publish_at ? null : now,
+    active:                !body.publish_at && !body.draft,
+    published_at:          (body.publish_at || body.draft) ? null : now,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -149,7 +150,10 @@ export async function PUT(req: NextRequest) {
     update.active       = !body.publish_at
     update.published_at = body.publish_at ? null : new Date().toISOString()
   }
-  if (body.active         !== undefined) update.active         = body.active
+  if (body.active         !== undefined) {
+    update.active = body.active
+    if (body.active) update.published_at = new Date().toISOString()
+  }
   if (body.description_en !== undefined) update.description_en = body.description_en
   if (body.description_pt !== undefined) update.description_pt = body.description_pt
   if (body.tags_en        !== undefined) update.tags_en        = body.tags_en
