@@ -7,6 +7,7 @@ import EditPanel from '@/components/EditPanel'
 import ArtistAuthModal from '@/components/ArtistAuthModal'
 import SponsorsBannerV2 from '@/components/SponsorsBannerV2'
 import ConventionModal from '@/components/ConventionModal'
+import CulturaVideoModal from '@/components/CulturaVideoModal'
 import StudioPanel from '@/components/StudioPanel'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 import { useTranslation } from '@/contexts/TranslationContext'
@@ -3099,6 +3100,7 @@ export default function Home() {
         />
       )}
 
+      <CulturaVideoModal />
       {/* ConventionModal desactivado temporalmente */}
       <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} onOverlayChange={setInsumoOpen} />
 

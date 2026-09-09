@@ -10,9 +10,52 @@ function isAdmin(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
+async function autoPublishScheduled() {
+  const now = new Date().toISOString()
+  await sb()
+    .from('cultura_videos')
+    .update({ active: true, published_at: now })
+    .eq('active', false)
+    .not('publish_at', 'is', null)
+    .lte('publish_at', now)
+    .is('archived_at', null)
+}
+
+async function autoArchiveOld() {
+  const client = sb()
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+  // Fetch all active videos ordered newest first
+  const { data: active } = await client
+    .from('cultura_videos')
+    .select('id, video_url, published_at')
+    .is('archived_at', null)
+    .eq('active', true)
+    .order('published_at', { ascending: false, nullsFirst: false })
+
+  if (!active?.length) return
+
+  // Archive: beyond position 7 OR older than 7 days
+  const toArchive = active.filter((v, i) => i >= 7 || (v.published_at && v.published_at < sevenDaysAgo))
+  if (!toArchive.length) return
+
+  const now = new Date().toISOString()
+  await Promise.allSettled(toArchive.map(async v => {
+    if (v.video_url) await deleteFile(v.video_url).catch(() => {})
+    await client.from('cultura_videos').update({
+      video_url: null, archived_at: now, video_deleted_at: now,
+    }).eq('id', v.id)
+  }))
+}
+
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const status = url.searchParams.get('status') // 'active' | 'archived' | null = all
+
+  // Auto-publicar programados y auto-archivar viejos (fire and forget)
+  if (!status || status === 'active') {
+    void autoPublishScheduled().then(() => autoArchiveOld())
+  }
 
   const client = sb()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,7 +78,15 @@ export async function POST(req: NextRequest) {
   if (!videoFile) return NextResponse.json({ error: 'Video requerido' }, { status: 400 })
   if (!coverFile) return NextResponse.json({ error: 'Portada requerida' }, { status: 400 })
 
-  const authorInstagram = ((fd.get('author_instagram') as string | null) ?? '').trim()
+  const authorInstagram      = ((fd.get('author_instagram')      as string | null) ?? '').trim()
+  const authorFlashttooSlug  = ((fd.get('author_flashttoo_slug') as string | null) ?? '').trim() || null
+  const instagramVideoUrl = ((fd.get('instagram_video_url') as string | null) ?? '').trim() || null
+  const descriptionEn     = ((fd.get('description_en')      as string | null) ?? '').trim() || null
+  const descriptionPt     = ((fd.get('description_pt')      as string | null) ?? '').trim() || null
+  const tagsEnRaw         = (fd.get('tags_en')              as string | null) ?? ''
+  const tagsPtRaw         = (fd.get('tags_pt')              as string | null) ?? ''
+  const tagsEn            = tagsEnRaw ? tagsEnRaw.split(',').map(t => t.trim()).filter(Boolean) : []
+  const tagsPt            = tagsPtRaw ? tagsPtRaw.split(',').map(t => t.trim()).filter(Boolean) : []
   const description     = ((fd.get('description')      as string | null) ?? '').trim() || null
   const tagsRaw         = (fd.get('tags')              as string | null) ?? ''
   const tags            = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []
@@ -55,7 +106,13 @@ export async function POST(req: NextRequest) {
     id,
     video_url:        videoUrl,
     cover_image_url:  coverUrl,
-    author_instagram: authorInstagram,
+    author_instagram:      authorInstagram,
+    author_flashttoo_slug: authorFlashttooSlug,
+    instagram_video_url: instagramVideoUrl,
+    description_en:      descriptionEn,
+    description_pt:      descriptionPt,
+    tags_en:             tagsEn,
+    tags_pt:             tagsPt,
     description,
     tags,
     publish_at:   publishAt || null,
@@ -65,6 +122,49 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ video: data })
+}
+
+// PUT: editar metadata
+export async function PUT(req: NextRequest) {
+  if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await req.json() as {
+    id: string
+    author_instagram?: string
+    author_flashttoo_slug?: string | null
+    instagram_video_url?: string | null
+    description?: string | null
+    tags?: string[]
+    publish_at?: string | null
+    active?: boolean
+    description_en?: string | null
+    description_pt?: string | null
+    tags_en?: string[]
+    tags_pt?: string[]
+  }
+  if (!body.id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const update: any = {}
+  if (body.author_instagram      !== undefined) update.author_instagram      = body.author_instagram
+  if (body.author_flashttoo_slug !== undefined) update.author_flashttoo_slug = body.author_flashttoo_slug
+  if (body.instagram_video_url   !== undefined) update.instagram_video_url   = body.instagram_video_url
+  if (body.description           !== undefined) update.description           = body.description
+  if (body.tags                  !== undefined) update.tags                  = body.tags
+  if (body.publish_at            !== undefined) {
+    update.publish_at   = body.publish_at || null
+    update.active       = !body.publish_at
+    update.published_at = body.publish_at ? null : new Date().toISOString()
+  }
+  if (body.active         !== undefined) update.active         = body.active
+  if (body.description_en !== undefined) update.description_en = body.description_en
+  if (body.description_pt !== undefined) update.description_pt = body.description_pt
+  if (body.tags_en        !== undefined) update.tags_en        = body.tags_en
+  if (body.tags_pt        !== undefined) update.tags_pt        = body.tags_pt
+
+  const { error } = await sb().from('cultura_videos').update(update).eq('id', body.id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }
 
 // PATCH: archivar (borra el video de R2, mantiene portada)

@@ -90,6 +90,48 @@ function filterSponsors(all: Sponsor[], city?: string, country?: string): Sponso
   })
 }
 
+function CulturaVideoPlayer({ src, poster }: { src: string; poster: string }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  const [muted, setMuted] = useState(true)
+  const [playing, setPlaying] = useState(true)
+
+  function togglePlay() {
+    const v = ref.current; if (!v) return
+    if (v.paused) { v.play(); setPlaying(true) } else { v.pause(); setPlaying(false) }
+  }
+  function toggleSound(e: React.MouseEvent) {
+    e.stopPropagation()
+    const v = ref.current; if (!v) return
+    v.muted = !v.muted; setMuted(v.muted)
+  }
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', cursor: 'pointer' }} onClick={togglePlay}>
+      <video ref={ref} src={src} poster={poster} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      {!playing && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: '#fff', fontSize: 20, marginLeft: 3 }}>▶</span>
+          </div>
+        </div>
+      )}
+      <button onClick={toggleSound} style={{ position: 'absolute', bottom: 12, right: 12, width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        {muted ? (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+          </svg>
+        ) : (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+        )}
+      </button>
+    </div>
+  )
+}
+
 export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false, showInsumos = true, onOverlayChange }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean; showInsumos?: boolean; onOverlayChange?: (open: boolean) => void }) {
   const { t, language } = useTranslation()
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
@@ -108,11 +150,30 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const [culturaTag, setCulturaTag] = useState<string | null>(null)
   const [culturaAvailableTags, setCulturaAvailableTags] = useState<string[]>([])
   const culturaLangRef = useRef<string>('')
+  type CulturaVid = { id: string; video_url: string | null; cover_image_url: string; author_instagram: string; author_flashttoo_slug: string | null; instagram_video_url: string | null; description: string | null; description_en: string | null; description_pt: string | null; tags: string[]; tags_en: string[]; tags_pt: string[]; published_at: string | null; publish_at: string | null }
+  function cvDesc(v: CulturaVid): string | null {
+    const lang = language?.slice(0, 2)
+    if (lang === 'en' && v.description_en) return v.description_en
+    if (lang === 'pt' && v.description_pt) return v.description_pt
+    return v.description
+  }
+  function cvTags(v: CulturaVid): string[] {
+    const lang = language?.slice(0, 2)
+    if (lang === 'en' && v.tags_en?.length) return v.tags_en
+    if (lang === 'pt' && v.tags_pt?.length) return v.tags_pt
+    return v.tags
+  }
+  const [culturaVideos, setCulturaVideos] = useState<CulturaVid[]>([])
+  const [culturaVideosLoaded, setCulturaVideosLoaded] = useState(false)
+  const [culturaArchived, setCulturaArchived] = useState<CulturaVid[]>([])
+  const [culturaVideoTag, setCulturaVideoTag] = useState<string | null>(null)
+  const [selectedCulturaVideo, setSelectedCulturaVideo] = useState<CulturaVid | null>(null)
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([])
   const [galleryLoaded, setGalleryLoaded] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<GalleryPhoto | null>(null)
   const [galleryDisplayCount, setGalleryDisplayCount] = useState(20)
   const galleryContainerRef = useRef<HTMLDivElement>(null)
+  const culturaCarouselDragging = useRef(false)
   const gallerySentinelRef = useRef<HTMLDivElement>(null)
   const [detailDisplayCount, setDetailDisplayCount] = useState(20)
   const [activeStyleFilter, setActiveStyleFilter] = useState<string | null>(null)
@@ -936,6 +997,11 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 if (showCultura) { setShowCultura(false); return }
                 setSelectedPhoto(null); setShowGallery(false); setExpanded(false); photoStackRef.current = []; histDepthRef.current = 0
                 setShowCultura(true)
+                if (!culturaVideosLoaded) {
+                  setCulturaVideosLoaded(true)
+                  fetch(`/api/cultura-videos?status=active&lang=${language}`).then(r => r.json()).then(d => setCulturaVideos(d.videos ?? [])).catch(() => {})
+                  fetch(`/api/cultura-videos?status=archived&lang=${language}`).then(r => r.json()).then(d => setCulturaArchived(d.videos ?? [])).catch(() => {})
+                }
                 if (!culturaLoaded || culturaLangRef.current !== language) {
                   culturaLangRef.current = language
                   setCulturaLoaded(false)
@@ -1139,7 +1205,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
 
       {/* cultura. overlay */}
       {showCultura && (
-        <div style={{ position: 'fixed', top: 0, bottom: 0, left: 'max(0px, calc(50% - 40rem))', right: 'max(0px, calc(50% - 40rem))', zIndex: 39, background: '#0a0a0a', overflowY: 'auto', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
+        <div style={{ position: 'fixed', top: 0, bottom: 0, left: 'max(0px, calc(50% - 40rem))', right: 'max(0px, calc(50% - 40rem))', zIndex: selectedCulturaVideo ? 95 : 39, background: '#0a0a0a', overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {/* Header */}
           <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1148,126 +1214,153 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             <button onClick={() => setShowCultura(false)} style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 18, cursor: 'pointer', flexShrink: 0 }}>×</button>
           </div>
           {/* Tags scroll */}
-          {culturaAvailableTags.length > 0 && (() => {
-            const TAG_LABELS: Record<string, Record<string, string>> = {
-              tatuaje:     { es:'tatuaje',     en:'tattoo',      pt:'tatuagem' },
-              técnica:     { es:'técnica',     en:'technique',   pt:'técnica' },
-              cultura:     { es:'cultura',     en:'culture',     pt:'cultura' },
-              arte:        { es:'arte',        en:'art',         pt:'arte' },
-              diseño:      { es:'diseño',      en:'design',      pt:'design' },
-              cuidados:    { es:'cuidados',    en:'aftercare',   pt:'cuidados' },
-              minimalista: { es:'minimalista', en:'minimalist',  pt:'minimalista' },
-              color:       { es:'color',       en:'color',       pt:'cor' },
-              tradicional: { es:'tradicional', en:'traditional', pt:'tradicional' },
-              blackwork:   { es:'blackwork',   en:'blackwork',   pt:'blackwork' },
-              realismo:    { es:'realismo',    en:'realism',     pt:'realismo' },
-              geometría:   { es:'geometría',   en:'geometry',    pt:'geometria' },
-              lettering:   { es:'lettering',   en:'lettering',   pt:'lettering' },
-              historia:    { es:'historia',    en:'history',     pt:'história' },
-              inspiración: { es:'inspiración', en:'inspiration', pt:'inspiração' },
-              guía:        { es:'guía',        en:'guide',       pt:'guia' },
-            }
-            const tagLabel = (tag: string) => TAG_LABELS[tag]?.[language] ?? tag
-            const selectTag = (tag: string | null) => {
-              const next = culturaTag === tag ? null : tag
-              setCulturaTag(next)
-              setCulturaLoaded(false)
-              const qs = `/api/cultura?lang=${language}${next ? `&tag=${next}` : ''}`
-              fetch(qs).then(r => r.json()).then(d => {
-                const arts = d.articles ?? []
-                setCulturaArticles(arts)
-                setCulturaLoaded(true)
-                if (!next) {
-                  const tags = [...new Set<string>(arts.flatMap((a: { tags?: string[] }) => a.tags ?? []))]
-                  setCulturaAvailableTags(tags)
-                }
-              }).catch(() => {})
-            }
-            return (
-              <div
-                style={{ overflowX: 'auto', display: 'flex', gap: 0, padding: '10px 16px', scrollbarWidth: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'grab', userSelect: 'none' }}
+          {/* Video carousel */}
+          {(culturaVideos.length > 0 || culturaArchived.length > 0) && (() => {
+            const allVideoTags = Array.from(new Set([...culturaVideos, ...culturaArchived].flatMap(v => cvTags(v)))).sort()
+            const filteredActive = culturaVideoTag ? culturaVideos.filter(v => cvTags(v).includes(culturaVideoTag)) : culturaVideos
+            const filteredArchived = culturaVideoTag ? culturaArchived.filter(v => cvTags(v).includes(culturaVideoTag)) : culturaArchived
+            return (<>
+            {allVideoTags.length > 0 && (
+              <div style={{ overflowX: 'auto', display: 'flex', gap: 0, padding: '10px 16px 0', scrollbarWidth: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'grab', userSelect: 'none' }}
                 onWheel={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).scrollLeft += e.deltaY }}
                 onMouseDown={e => { const el = e.currentTarget; const startX = e.pageX - el.offsetLeft; const sl = el.scrollLeft; const onMove = (ev: MouseEvent) => { el.scrollLeft = sl - (ev.pageX - el.offsetLeft - startX) }; const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp) }}>
-                <style>{`.ctag::-webkit-scrollbar{display:none}`}</style>
-                {[null, ...culturaAvailableTags].map(tag => {
-                  const active = culturaTag === tag
-                  const label = tag ? tagLabel(tag) : t('cultura', 'tag_all', 'Todo')
+                {[null, ...allVideoTags].map(tag => {
+                  const active = culturaVideoTag === tag
+                  const label = tag ?? t('cultura', 'filter_all', 'Todo')
                   return (
-                    <button key={label} onClick={() => selectTag(tag)}
+                    <button key={label} onClick={() => setCulturaVideoTag(tag)}
                       style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 14px 8px', fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#efff42' : 'rgba(255,255,255,0.4)', borderBottom: active ? '2px solid #efff42' : '2px solid transparent', transition: 'color .18s,border-color .18s', whiteSpace: 'nowrap' }}>
                       {label}
                     </button>
                   )
                 })}
               </div>
-            )
-          })()}
-          {/* Article list */}
-          <div style={{ padding: '16px 16px 120px' }}>
-            {!culturaLoaded ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
-                <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>{t('cultura', 'loading', 'Cargando...')}</p>
-              </div>
-            ) : culturaArticles.length === 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
-                <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>{t('cultura', 'empty', 'Todavía no hay contenido.')}</p>
-              </div>
-            ) : (
-              <><style>{`@keyframes culturaFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}@keyframes culturaDot{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}`}</style>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {culturaArticles.map(article => {
-                  const h1Line = article.description?.split('\n').find(l => l.startsWith('# '))
-                  const title = h1Line ? h1Line.slice(2) : article.description?.split('\n').find(l => l.trim()) ?? ''
-                  const words = article.description?.split(/\s+/).length ?? 0
-                  const mins = Math.max(1, Math.round(words / 200))
-                  const date = new Date(article.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
+            )}
+          {filteredActive.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', padding: '0 16px', marginBottom: 10 }}>{t('cultura', 'carousel_title', 'Últimas 7 portadas')}</p>
+              <div
+                style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x', cursor: 'grab', userSelect: 'none' }}
+                onWheel={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).scrollLeft += e.deltaY + e.deltaX }}
+                onMouseDown={e => { culturaCarouselDragging.current = false; const el = e.currentTarget; el.style.cursor = 'grabbing'; const startX = e.pageX - el.offsetLeft; const sl = el.scrollLeft; const onMove = (ev: MouseEvent) => { if (Math.abs(ev.pageX - el.offsetLeft - startX) > 4) culturaCarouselDragging.current = true; el.scrollLeft = sl - (ev.pageX - el.offsetLeft - startX) }; const onUp = () => { el.style.cursor = 'grab'; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp) }}
+              >
+                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 10, padding: '0 16px 4px', width: 'max-content', minWidth: '100%', boxSizing: 'border-box', justifyContent: 'center' }}>
+                {filteredActive.map(v => {
+                  const ig = v.author_instagram.startsWith('@') ? v.author_instagram : `@${v.author_instagram}`
                   return (
-                    <button key={article.id}
-                      onClick={() => { window.dispatchEvent(new CustomEvent('open-phrase', { detail: article.id })) }}
-                      style={{ position: 'relative', width: '100%', borderRadius: 14, overflow: 'hidden', padding: 0, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.07)', background: '#111', display: 'block' }}>
-                      {/* Imagen */}
-                      <div style={{ paddingBottom: '56%', position: 'relative' }}>
-                        {article.image_url && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={article.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                        )}
-                        {/* Gradiente */}
-                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }} />
-                        {/* Título */}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px 36px' }}>
-                          <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.3, textAlign: 'left', letterSpacing: '-0.01em' }}>{title}</p>
-                        </div>
-                        {/* Comentaristas + typing */}
-                        <div style={{ position: 'absolute', bottom: 10, left: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {article.recent_commenters.length > 0 && (
-                            <div style={{ display: 'flex' }}>
-                              {article.recent_commenters.slice(0, 3).map((c, ci) => (
-                                <div key={c.id} style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid rgba(0,0,0,0.7)', marginLeft: ci > 0 ? -7 : 0, background: '#222', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0, animation: 'culturaFloat 2.4s ease-in-out infinite', animationDelay: `${ci * 0.3}s` }}>
-                                  {c.photo_url
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    ? <img src={c.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    : <span>{c.emoji || '💬'}</span>}
-                                </div>
-                              ))}
+                    <div key={v.id} onClick={() => { if (!culturaCarouselDragging.current) setSelectedCulturaVideo(v) }} style={{ flexShrink: 0, width: 130, borderRadius: 12, overflow: 'hidden', background: '#111', border: '1px solid rgba(255,255,255,0.07)', position: 'relative', cursor: 'pointer' }}>
+                      <div style={{ position: 'relative', aspectRatio: '9/16' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={v.cover_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        {v.video_url && (
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ color: '#fff', fontSize: 11, marginLeft: 2 }}>▶</span>
                             </div>
-                          )}
-                          {article.comment_count > 3 && (
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>+{article.comment_count - 3}</span>
-                          )}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(0,0,0,0.55)', borderRadius: 20, padding: '3px 8px' }}>
-                            {[0, 0.22, 0.44].map((delay, di) => (
-                              <span key={di} style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.85)', display: 'inline-block', animation: 'culturaDot 1.2s ease-in-out infinite', animationDelay: `${delay}s` }} />
-                            ))}
                           </div>
-                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>{date} · {mins} {t('cultura', 'min_read', 'min')}</span>
-                        </div>
+                        )}
+                        {cvTags(v).length > 0 && (
+                          <div style={{ position: 'absolute', top: 7, left: 7 }}>
+                            <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 6px', borderRadius: 4, background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>{cvTags(v)[0]}</span>
+                          </div>
+                        )}
                       </div>
-                    </button>
+                      <div style={{ padding: '7px 9px 10px' }}>
+                        {v.author_flashttoo_slug
+                          ? <button onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('open-artist', { detail: v.author_flashttoo_slug })) }} style={{ fontSize: 10, fontWeight: 700, color: '#efff42', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>{ig}</button>
+                          : <a href={`https://instagram.com/${ig.slice(1)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 10, fontWeight: 700, color: '#efff42', textDecoration: 'none' }}>{ig}</a>
+                        }
+                        {cvDesc(v) && <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 3, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{cvDesc(v)}</p>}
+                      </div>
+                    </div>
                   )
                 })}
-              </div></>
-            )}
-          </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {filteredArchived.length > 0 && (
+            <div style={{ padding: '20px 16px 16px 20px', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 12 }}>{t('cultura', 'archive_title', 'Archivo')}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, width: '100%', transform: 'translateZ(0)' }}>
+                {filteredArchived.map(v => {
+                  const ig = v.author_instagram.startsWith('@') ? v.author_instagram : `@${v.author_instagram}`
+                  return (
+                    <div key={v.id} onClick={() => setSelectedCulturaVideo(v)} style={{ borderRadius: 10, overflow: 'hidden', background: '#111', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', position: 'relative' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={v.cover_image_url} alt="" style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', display: 'block' }} />
+                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%)' }} />
+                      <div style={{ position: 'absolute', bottom: 7, left: 8, right: 8 }}>
+                        {v.author_flashttoo_slug
+                          ? <button onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('open-artist', { detail: v.author_flashttoo_slug })) }} style={{ fontSize: 9, fontWeight: 700, color: '#efff42', lineHeight: 1.2, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>{ig}</button>
+                          : <p style={{ fontSize: 9, fontWeight: 700, color: '#efff42', lineHeight: 1.2 }}>{ig}</p>
+                        }
+                      </div>
+                      {cvTags(v).length > 0 && (
+                        <div style={{ position: 'absolute', top: 6, left: 6 }}>
+                          <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 5px', borderRadius: 3, background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>{cvTags(v)[0]}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          </>)
+          })()}
+
+          {/* Video fullscreen modal */}
+          {selectedCulturaVideo && (() => {
+            const sv = selectedCulturaVideo
+            const ig = sv.author_instagram.startsWith('@') ? sv.author_instagram : `@${sv.author_instagram}`
+            return (
+              <div onClick={() => setSelectedCulturaVideo(null)} style={{ position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                <style>{`@keyframes cvExpand{from{opacity:0;transform:scale(0.93) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}`}</style>
+                <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 340, borderRadius: 20, overflow: 'hidden', background: '#0a0a0a', animation: 'cvExpand 0.45s cubic-bezier(0.22,0.61,0.36,1)', boxShadow: '0 32px 80px rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div style={{ position: 'relative', aspectRatio: '9/16', background: '#000' }}>
+                    {sv.video_url
+                      ? <CulturaVideoPlayer src={sv.video_url} poster={sv.cover_image_url} />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      : <img src={sv.cover_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    }
+                    {cvTags(sv).length > 0 && (
+                      <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 5 }}>
+                        {cvTags(sv).slice(0, 2).map(t => (
+                          <span key={t} style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 5, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ padding: '14px 16px 18px' }}>
+                    {sv.author_flashttoo_slug
+                      ? <button onClick={e => { e.stopPropagation(); setSelectedCulturaVideo(null); window.dispatchEvent(new CustomEvent('open-artist', { detail: sv.author_flashttoo_slug })) }} style={{ fontSize: 13, fontWeight: 700, color: '#efff42', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>{ig}</button>
+                      : <a href={`https://instagram.com/${ig.slice(1)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 13, fontWeight: 700, color: '#efff42', textDecoration: 'none' }}>{ig}</a>
+                    }
+                    {cvDesc(sv) && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 5, lineHeight: 1.5 }}>{cvDesc(sv)}</p>}
+                    {!sv.video_url && sv.instagram_video_url && (
+                      <a href={sv.instagram_video_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, padding: '7px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                        </svg>
+                        {t('cultura', 'see_on_instagram', 'Ver video en Instagram')}
+                      </a>
+                    )}
+                    {(sv.published_at ?? sv.publish_at) && (
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 8 }}>
+                        {t('cultura', 'cover_prefix', 'Portada')} · {new Date((sv.published_at ?? sv.publish_at)!).toLocaleDateString(language, { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                    )}
+                  </div>
+                  <button onClick={() => setSelectedCulturaVideo(null)} style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✕</button>
+                </div>
+              </div>
+            )
+          })()}
+
+          <div style={{ height: 120 }} />
         </div>
       )}
 
