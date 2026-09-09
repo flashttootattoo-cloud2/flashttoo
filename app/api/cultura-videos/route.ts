@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
   const tagsRaw         = (fd.get('tags')              as string | null) ?? ''
   const tags            = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []
   const publishAt       = (fd.get('publish_at')        as string | null) || null
+  const muteAudio       = fd.get('mute_audio') === 'true'
 
   const id = crypto.randomUUID()
   const videoExt = videoFile.name.split('.').pop() || 'mp4'
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
     tags_pt:             tagsPt,
     description,
     tags,
+    mute_audio:   muteAudio,
     publish_at:   publishAt || null,
     active:       !publishAt,
     published_at: publishAt ? null : now,
@@ -141,6 +143,7 @@ export async function PUT(req: NextRequest) {
     description_pt?: string | null
     tags_en?: string[]
     tags_pt?: string[]
+    mute_audio?: boolean
   }
   if (!body.id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
 
@@ -161,6 +164,7 @@ export async function PUT(req: NextRequest) {
   if (body.description_pt !== undefined) update.description_pt = body.description_pt
   if (body.tags_en        !== undefined) update.tags_en        = body.tags_en
   if (body.tags_pt        !== undefined) update.tags_pt        = body.tags_pt
+  if (body.mute_audio     !== undefined) update.mute_audio     = body.mute_audio
 
   const { error } = await sb().from('cultura_videos').update(update).eq('id', body.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

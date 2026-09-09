@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS cultura_videos (
   published_at     timestamptz,                   -- cuando salió al aire
   archived_at      timestamptz,                   -- cuando pasó a archivo
   video_deleted_at timestamptz,                   -- cuando se borró el video de R2
+  mute_audio       boolean     NOT NULL DEFAULT false,
   active           boolean     NOT NULL DEFAULT false,
   created_at       timestamptz NOT NULL DEFAULT now()
 );
@@ -30,6 +31,7 @@ ALTER TABLE cultura_videos ADD COLUMN IF NOT EXISTS description_en text;
 ALTER TABLE cultura_videos ADD COLUMN IF NOT EXISTS description_pt text;
 ALTER TABLE cultura_videos ADD COLUMN IF NOT EXISTS tags_en text[] NOT NULL DEFAULT '{}';
 ALTER TABLE cultura_videos ADD COLUMN IF NOT EXISTS tags_pt text[] NOT NULL DEFAULT '{}';
+ALTER TABLE cultura_videos ADD COLUMN IF NOT EXISTS mute_audio boolean NOT NULL DEFAULT false;
 
 -- Índices
 CREATE INDEX IF NOT EXISTS cultura_videos_active_idx    ON cultura_videos (active, published_at DESC);

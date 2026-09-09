@@ -90,7 +90,7 @@ function filterSponsors(all: Sponsor[], city?: string, country?: string): Sponso
   })
 }
 
-function CulturaVideoPlayer({ src, poster }: { src: string; poster: string }) {
+function CulturaVideoPlayer({ src, poster, forceMuted }: { src: string; poster: string; forceMuted?: boolean }) {
   const ref = useRef<HTMLVideoElement>(null)
   const [muted, setMuted] = useState(true)
   const [playing, setPlaying] = useState(true)
@@ -115,7 +115,7 @@ function CulturaVideoPlayer({ src, poster }: { src: string; poster: string }) {
           </div>
         </div>
       )}
-      <button onClick={toggleSound} style={{ position: 'absolute', bottom: 12, right: 12, width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+      {!forceMuted && <button onClick={toggleSound} style={{ position: 'absolute', bottom: 12, right: 12, width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
         {muted ? (
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
@@ -127,7 +127,7 @@ function CulturaVideoPlayer({ src, poster }: { src: string; poster: string }) {
             <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
           </svg>
         )}
-      </button>
+      </button>}
     </div>
   )
 }
@@ -150,7 +150,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const [culturaTag, setCulturaTag] = useState<string | null>(null)
   const [culturaAvailableTags, setCulturaAvailableTags] = useState<string[]>([])
   const culturaLangRef = useRef<string>('')
-  type CulturaVid = { id: string; video_url: string | null; cover_image_url: string; author_instagram: string; author_flashttoo_slug: string | null; instagram_video_url: string | null; description: string | null; description_en: string | null; description_pt: string | null; tags: string[]; tags_en: string[]; tags_pt: string[]; published_at: string | null; publish_at: string | null }
+  type CulturaVid = { id: string; video_url: string | null; cover_image_url: string; author_instagram: string; author_flashttoo_slug: string | null; instagram_video_url: string | null; description: string | null; description_en: string | null; description_pt: string | null; tags: string[]; tags_en: string[]; tags_pt: string[]; mute_audio: boolean; published_at: string | null; publish_at: string | null }
   function cvDesc(v: CulturaVid): string | null {
     const lang = language?.slice(0, 2)
     if (lang === 'en' && v.description_en) return v.description_en
@@ -1321,7 +1321,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                 <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 340, borderRadius: 20, overflow: 'hidden', background: '#0a0a0a', animation: 'cvExpand 0.45s cubic-bezier(0.22,0.61,0.36,1)', boxShadow: '0 32px 80px rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.07)' }}>
                   <div style={{ position: 'relative', aspectRatio: '9/16', background: '#000' }}>
                     {sv.video_url
-                      ? <CulturaVideoPlayer src={sv.video_url} poster={sv.cover_image_url} />
+                      ? <CulturaVideoPlayer src={sv.video_url} poster={sv.cover_image_url} forceMuted={sv.mute_audio} />
                       // eslint-disable-next-line @next/next/no-img-element
                       : <img src={sv.cover_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     }

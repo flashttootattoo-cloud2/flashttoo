@@ -13,6 +13,7 @@ type CulturaVideo = {
   tags: string[]
   tags_en: string[]
   tags_pt: string[]
+  mute_audio: boolean
   published_at: string | null
 }
 
@@ -116,7 +117,7 @@ export default function CulturaVideoModal() {
           )}
 
           {/* Botón sonido — solo si hay video */}
-          {video.video_url && (
+          {video.video_url && !video.mute_audio && (
             <button onClick={toggleSound} style={{ position: 'absolute', bottom: 12, right: 12, width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title={muted ? 'Activar sonido' : 'Silenciar'}>
               {muted
                 ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>

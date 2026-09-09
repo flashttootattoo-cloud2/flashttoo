@@ -17,6 +17,7 @@ type CulturaVideo = {
   publish_at: string | null
   published_at: string | null
   archived_at: string | null
+  mute_audio: boolean
   active: boolean
   created_at: string
 }
@@ -61,6 +62,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
   const [tagsPt, setTagsPt]               = useState('')
   const [langTab, setLangTab]             = useState<'es'|'en'|'pt'>('es')
   const [editLangTab, setEditLangTab]     = useState<'es'|'en'|'pt'>('es')
+  const [muteAudio, setMuteAudio]         = useState(false)
   const [description, setDescription] = useState('')
   const [tags, setTags]               = useState('')
   const [publishAt, setPublishAt]     = useState('')
@@ -142,6 +144,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
     fd.append('description',      description.trim())
     fd.append('tags',             tags)
     if (publishAt) fd.append('publish_at', new Date(publishAt).toISOString())
+    fd.append('mute_audio', muteAudio ? 'true' : 'false')
 
     const r = await fetch('/api/cultura-videos', { method: 'POST', headers: H(pass), body: fd }).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
     setUploading(false); setUploadProgress('')
@@ -151,7 +154,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
     setVideoFile(null); setCoverFile(null); setVideoPreview(null); setCoverPreview(null)
     setInstagram(''); setHasFlashttoo(false); setIgVideoUrl('')
     setDescription(''); setTags(''); setDescEn(''); setTagsEn(''); setDescPt(''); setTagsPt('')
-    setPublishAt(''); setLangTab('es')
+    setPublishAt(''); setLangTab('es'); setMuteAudio(false)
     setScrubTime(0); setVideoDuration(0); setFrameCaptured(false)
     setFormOpen(false)
     load()
@@ -175,6 +178,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
     setDescPt(v.description_pt ?? '')
     setTagsPt((v.tags_pt ?? []).join(', '))
     setPublishAt(v.publish_at ? new Date(v.publish_at).toISOString().slice(0, 16) : '')
+    setMuteAudio(v.mute_audio ?? false)
     setEditLangTab('es')
     setEditError('')
     setFormOpen(false)
@@ -184,7 +188,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
     setEditingId(null)
     setInstagram(''); setHasFlashttoo(false); setIgVideoUrl('')
     setDescription(''); setTags(''); setDescEn(''); setTagsEn(''); setDescPt(''); setTagsPt('')
-    setPublishAt(''); setEditError('')
+    setPublishAt(''); setMuteAudio(false); setEditError('')
   }
 
   async function saveEdit() {
@@ -202,6 +206,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
       description_pt:        descPt.trim() || null,
       tags_pt:               tagsPt ? tagsPt.split(',').map(t => t.trim()).filter(Boolean) : [],
       publish_at:            publishAt || null,
+      mute_audio:            muteAudio,
     }
     const r = await fetch('/api/cultura-videos', {
       method: 'PUT',
@@ -274,11 +279,15 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
               }
             </div>
             <input ref={videoInputRef} type="file" accept="video/*" style={{ display: 'none' }} onChange={e => handleVideoFile(e.target.files?.[0] ?? null)} />
-            {videoFile && (
+            {videoFile && (<>
               <button onClick={() => videoInputRef.current?.click()} style={{ marginTop: 6, fontSize: 10, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                 Cambiar video
               </button>
-            )}
+              <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', marginTop: 4 }}>
+                <input type="checkbox" checked={muteAudio} onChange={e => setMuteAudio(e.target.checked)} style={{ accentColor: '#efff42', width: 14, height: 14 }} />
+                <span style={{ fontSize: 11, color: muteAudio ? '#efff42' : 'rgba(255,255,255,0.35)' }}>Silenciar audio del video</span>
+              </label>
+            </>)}
           </div>
 
           {/* Frame capture */}
@@ -532,6 +541,10 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
                       <input type="url" value={igVideoUrl} onChange={e => setIgVideoUrl(e.target.value)} placeholder="https://www.instagram.com/p/..."
                         style={{ width: '100%', padding: '7px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#fff', fontSize: 12, outline: 'none' }} />
                     </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={muteAudio} onChange={e => setMuteAudio(e.target.checked)} style={{ accentColor: '#efff42' }} />
+                      <span style={{ fontSize: 11, color: muteAudio ? '#efff42' : 'rgba(255,255,255,0.35)' }}>Silenciar audio del video</span>
+                    </label>
 
                     {/* Descripción y tags por idioma */}
                     <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 9, overflow: 'hidden' }}>
