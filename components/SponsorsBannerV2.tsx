@@ -1142,24 +1142,24 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               )}
             </div>
           {/* Info artista */}
-          <div style={{ background: '#efff42', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          {(() => { const slug = selectedPhoto.artist_instagram ? selectedPhoto.artist_instagram.replace('@', '') : selectedPhoto.artist_id; return (
+          <div style={{ background: '#0a0a0a', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '14px 16px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={selectedPhoto.artist_photo} alt="" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(0,0,0,0.12)' }} />
+            <img src={selectedPhoto.artist_photo} alt="" style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(239,255,66,0.25)' }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 15, fontWeight: 800, color: '#000', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedPhoto.artist_name}</p>
+              <p style={{ fontSize: 14, fontWeight: 800, color: '#efff42', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedPhoto.artist_name}</p>
               {(selectedPhoto.artist_city || selectedPhoto.artist_country) && (
-                <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.5)', margin: '3px 0 0' }}>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', margin: '3px 0 0' }}>
                   {[selectedPhoto.artist_city, selectedPhoto.artist_country].filter(Boolean).join(', ')}
                 </p>
               )}
             </div>
-            {(() => { const slug = selectedPhoto.artist_instagram ? selectedPhoto.artist_instagram.replace('@', '') : selectedPhoto.artist_id; return (
             <button onClick={() => openArtistFromGallery(slug)}
-              style={{ flexShrink: 0, padding: '8px 16px', background: '#000', borderRadius: 10, color: '#efff42', fontWeight: 800, fontSize: 12, border: 'none', cursor: loadingArtistSlug === slug ? 'default' : 'pointer', letterSpacing: '0.03em', opacity: loadingArtistSlug === slug ? 0.6 : 1 }}>
+              style={{ flexShrink: 0, padding: '8px 16px', background: '#efff42', borderRadius: 10, color: '#000', fontWeight: 800, fontSize: 12, border: 'none', cursor: loadingArtistSlug === slug ? 'default' : 'pointer', letterSpacing: '0.03em', opacity: loadingArtistSlug === slug ? 0.6 : 1 }}>
               {loadingArtistSlug === slug ? '...' : t('galeria', 'ver_artista', 'Ver artista')}
             </button>
-            )})()}
           </div>
+          )})()}
           </div>
           {/* Más fotos relacionadas */}
           {(() => {

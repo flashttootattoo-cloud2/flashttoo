@@ -135,6 +135,7 @@ export async function PUT(req: NextRequest) {
     tags_en?: string[]
     tags_pt?: string[]
     mute_audio?: boolean
+    draft?: boolean
   }
   if (!body.id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
 
@@ -145,7 +146,11 @@ export async function PUT(req: NextRequest) {
   if (body.instagram_video_url   !== undefined) update.instagram_video_url   = body.instagram_video_url
   if (body.description           !== undefined) update.description           = body.description
   if (body.tags                  !== undefined) update.tags                  = body.tags
-  if (body.publish_at            !== undefined) {
+  if (body.draft) {
+    update.active       = false
+    update.published_at = null
+    update.publish_at   = null
+  } else if (body.publish_at !== undefined) {
     update.publish_at   = body.publish_at || null
     update.active       = !body.publish_at
     update.published_at = body.publish_at ? null : new Date().toISOString()

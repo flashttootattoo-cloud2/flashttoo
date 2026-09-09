@@ -64,6 +64,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
   const [editLangTab, setEditLangTab]     = useState<'es'|'en'|'pt'>('es')
   const [muteAudio, setMuteAudio]         = useState(false)
   const [saveAsDraft, setSaveAsDraft]     = useState(false)
+  const [editIsDraft, setEditIsDraft]     = useState(false)
   const [description, setDescription] = useState('')
   const [tags, setTags]               = useState('')
   const [publishAt, setPublishAt]     = useState('')
@@ -216,6 +217,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
     setTagsPt((v.tags_pt ?? []).join(', '))
     setPublishAt(v.publish_at ? new Date(v.publish_at).toISOString().slice(0, 16) : '')
     setMuteAudio(v.mute_audio ?? false)
+    setEditIsDraft(!v.active && !v.publish_at && !v.archived_at)
     setEditLangTab('es')
     setEditError('')
     setFormOpen(false)
@@ -225,7 +227,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
     setEditingId(null)
     setInstagram(''); setHasFlashttoo(false); setIgVideoUrl('')
     setDescription(''); setTags(''); setDescEn(''); setTagsEn(''); setDescPt(''); setTagsPt('')
-    setPublishAt(''); setMuteAudio(false); setEditError('')
+    setPublishAt(''); setMuteAudio(false); setEditIsDraft(false); setEditError('')
   }
 
   async function saveEdit() {
@@ -244,6 +246,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
       tags_pt:               tagsPt ? tagsPt.split(',').map(t => t.trim()).filter(Boolean) : [],
       publish_at:            publishAt || null,
       mute_audio:            muteAudio,
+      draft:                 editIsDraft && !publishAt,
     }
     const r = await fetch('/api/cultura-videos', {
       method: 'PUT',
@@ -598,6 +601,12 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
                       <input type="checkbox" checked={muteAudio} onChange={e => setMuteAudio(e.target.checked)} style={{ accentColor: '#efff42' }} />
                       <span style={{ fontSize: 11, color: muteAudio ? '#efff42' : 'rgba(255,255,255,0.35)' }}>Silenciar audio del video</span>
                     </label>
+                    {!publishAt && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer' }}>
+                        <input type="checkbox" checked={editIsDraft} onChange={e => setEditIsDraft(e.target.checked)} style={{ accentColor: '#efff42' }} />
+                        <span style={{ fontSize: 11, color: editIsDraft ? '#efff42' : 'rgba(255,255,255,0.35)' }}>Mantener como borrador</span>
+                      </label>
+                    )}
 
                     {/* Descripción y tags por idioma */}
                     <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 9, overflow: 'hidden' }}>
