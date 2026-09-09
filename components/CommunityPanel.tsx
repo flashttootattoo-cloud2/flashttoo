@@ -293,7 +293,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
               placeholder={placeholder}
               maxLength={300}
               rows={2}
-              style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, resize: 'none', lineHeight: 1.5, fontFamily: 'inherit', caretColor: '#efff42' }}
+              style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, resize: 'none', lineHeight: 1.5, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', caretColor: '#efff42' }}
               className="community-textarea"
             />
             {loggedArtist && (
@@ -699,7 +699,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenAvailabilit
             </p>
           )}
 
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             {post.content}
           </p>
 
