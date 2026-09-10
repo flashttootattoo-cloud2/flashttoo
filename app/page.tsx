@@ -3479,7 +3479,7 @@ export default function Home() {
             setFsDragging(false)
             setFsDragX(0)
           }}
-          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.88)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 16px', cursor: fullscreenPhotos.length > 1 ? 'grab' : 'default' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 16px', cursor: fullscreenPhotos.length > 1 ? 'grab' : 'default' }}>
 
           <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
           {/* Modal card */}
