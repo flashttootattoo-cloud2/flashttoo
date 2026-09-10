@@ -31,6 +31,12 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+function toLocalInput(iso: string) {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function statusLabel(v: CulturaVideo): { label: string; color: string } {
   if (v.archived_at) return { label: 'Archivado', color: '#6b7280' }
   if (!v.active && v.publish_at) return { label: 'Programado', color: '#f59e0b' }
@@ -215,7 +221,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
     setTagsEn((v.tags_en ?? []).join(', '))
     setDescPt(v.description_pt ?? '')
     setTagsPt((v.tags_pt ?? []).join(', '))
-    setPublishAt(v.publish_at ? new Date(v.publish_at).toISOString().slice(0, 16) : '')
+    setPublishAt(v.publish_at ? toLocalInput(v.publish_at) : '')
     setMuteAudio(v.mute_audio ?? false)
     setEditIsDraft(!v.active && !v.publish_at && !v.archived_at)
     setEditLangTab('es')
@@ -244,7 +250,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
       tags_en:               tagsEn ? tagsEn.split(',').map(t => t.trim()).filter(Boolean) : [],
       description_pt:        descPt.trim() || null,
       tags_pt:               tagsPt ? tagsPt.split(',').map(t => t.trim()).filter(Boolean) : [],
-      publish_at:            publishAt || null,
+      publish_at:            publishAt ? new Date(publishAt).toISOString() : null,
       mute_audio:            muteAudio,
       draft:                 editIsDraft && !publishAt,
     }
