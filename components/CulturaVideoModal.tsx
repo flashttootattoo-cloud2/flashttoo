@@ -65,14 +65,13 @@ export default function CulturaVideoModal() {
   }, [])
 
   function dismiss() {
-    if (historyPushedRef.current) {
-      historyPushedRef.current = false
-      history.back() // dispara popstate que cierra el modal
-      return
-    }
     setVisible(false)
     try { sessionStorage.setItem('cultura_video_closed', '1') } catch {}
     if (videoRef.current) videoRef.current.pause()
+    if (historyPushedRef.current) {
+      historyPushedRef.current = false
+      history.back()
+    }
   }
 
   function toggleSound(e: React.MouseEvent) {

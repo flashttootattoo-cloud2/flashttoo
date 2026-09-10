@@ -707,14 +707,14 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenAvailabilit
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
               {post.show_flashbook && post.flashbook_alias && (
                 <a href={`/flash/${post.flashbook_alias}`} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, color: '#efff42', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
+                  style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(56,189,248,0.1)', border: 'none', borderRadius: 20, color: '#38bdf8', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
                   {t('comunidad', 'view_flashbook', 'Ver flashbook')}
                 </a>
               )}
               {post.show_availability && post.artist_id && (
                 <button type="button"
                   onClick={() => onOpenAvailability?.(post.artist_id!, post.artist_name ?? '', post.artist_photo ?? null)}
-                  style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, color: '#efff42', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(56,189,248,0.1)', border: 'none', borderRadius: 20, color: '#38bdf8', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                   {t('comunidad','turnos_libres_chip','Turnos libres')}
                 </button>
               )}

@@ -138,6 +138,7 @@ export default function Home() {
   const [selectedHasAvail, setSelectedHasAvail] = useState(false)
   const [selectedAvailSlots, setSelectedAvailSlots] = useState<{date:string;times:string[]}[]>([])
   const [availPopOpen, setAvailPopOpen] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
   const [availViewMonth, setAvailViewMonth] = useState<{year:number;month:number}>(() => { const d = new Date(); return {year:d.getFullYear(),month:d.getMonth()} })
   const [availSelectedDay, setAvailSelectedDay] = useState<string|null>(null)
   const [availPhotoIdx, setAvailPhotoIdx] = useState(0)
@@ -191,6 +192,7 @@ export default function Home() {
   const [localLikes, setLocalLikes]   = useState(0)
   const [copied, setCopied]           = useState(false)
   const [emailCopied, setEmailCopied] = useState(false)
+  const [stylesExpanded, setStylesExpanded] = useState(false)
   const [loading, setLoading]         = useState(true)
   const [conventions, setConventions]       = useState<Convention[]>([])
   const [flashDays, setFlashDays]           = useState<{ id: string; studio_slug: string; studio_name: string; flyer_url: string; date: string }[]>([])
@@ -673,6 +675,7 @@ export default function Home() {
     const alreadyLiked = localStorage.getItem(`liked_${artist.id}`) === '1'
     setLiked(alreadyLiked)
     setLocalLikes((artist.likes ?? 0) + (alreadyLiked ? 1 : 0))
+    setStylesExpanded(false)
     trackView(artist.id)
     const slug = artist.instagram ? artist.instagram.replace('@', '') : artist.id
     window.history.pushState({}, '', `/?artista=${slug}`)
@@ -1878,12 +1881,17 @@ export default function Home() {
             <div className="px-5 pb-5 pt-3">
               {selected.styles.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-4">
-                  {selected.styles.map(s => (
-                    <span key={s} className="text-xs px-2.5 py-1 rounded-full"
-                      style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.18)', color: 'rgba(239,255,66,0.75)' }}>
+                  {(stylesExpanded ? selected.styles : selected.styles.slice(0, 3)).map(s => (
+                    <span key={s} style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 5, background: 'transparent', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>
                       {s}
                     </span>
                   ))}
+                  {!stylesExpanded && selected.styles.length > 3 && (
+                    <button onClick={() => setStylesExpanded(true)}
+                      style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 5, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
+                      +{selected.styles.length - 3}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1916,12 +1924,18 @@ export default function Home() {
                     {showClickCounters && <StatItem label="Instagram" value={selected.instagram_clicks ?? 0} />}
                     {showClickCounters && selected.whatsapp && <StatItem label="WhatsApp" value={selected.whatsapp_clicks ?? 0} />}
                   </div>
-                  {selectedHasAvail && (
-                    <button type="button" onClick={() => { setAvailPopOpen(v => { if (!v) { setAvailPhotoIdx(i => i + 1); setAvailArtistName(selected.name); setAvailArtistPhoto(selected.photo_url ?? null); setAvailArtistGallery([selected.gallery_photo_1??null,selected.gallery_photo_2??null,selected.gallery_photo_3??null]); const tod=new Date().toISOString().slice(0,10); const near=selectedAvailSlots.filter(s=>s.date>=tod).sort((a,b)=>a.date.localeCompare(b.date))[0]; if(near){const[y,m]=near.date.split('-').map(Number);setAvailSelectedDay(near.date);setAvailViewMonth({year:y,month:m-1})}else{setAvailSelectedDay(null);setAvailViewMonth({year:new Date().getFullYear(),month:new Date().getMonth()})} } return !v }) }}
-                      style={{ fontSize: 11, fontWeight: 700, color: availPopOpen ? '#000' : '#efff42', background: availPopOpen ? '#efff42' : 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.3)', borderRadius: 20, padding: '4px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                      {t('turnos_libres', 'titulo', 'Turnos libres')}
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {selectedHasAvail && (
+                      <button type="button" onClick={() => { setAvailPopOpen(v => { if (!v) { setAvailPhotoIdx(i => i + 1); setAvailArtistName(selected.name); setAvailArtistPhoto(selected.photo_url ?? null); setAvailArtistGallery([selected.gallery_photo_1??null,selected.gallery_photo_2??null,selected.gallery_photo_3??null]); const tod=new Date().toISOString().slice(0,10); const near=selectedAvailSlots.filter(s=>s.date>=tod).sort((a,b)=>a.date.localeCompare(b.date))[0]; if(near){const[y,m]=near.date.split('-').map(Number);setAvailSelectedDay(near.date);setAvailViewMonth({year:y,month:m-1})}else{setAvailSelectedDay(null);setAvailViewMonth({year:new Date().getFullYear(),month:new Date().getMonth()})} } return !v }) }}
+                        style={{ fontSize: 11, fontWeight: 700, color: availPopOpen ? '#38bdf8' : '#000', background: availPopOpen ? 'rgba(56,189,248,0.12)' : '#38bdf8', border: 'none', borderRadius: 20, padding: '4px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        {t('turnos_libres', 'titulo', 'Turnos libres')}
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setContactOpen(v => !v)}
+                      style={{ fontSize: 11, fontWeight: 700, color: contactOpen ? '#38bdf8' : '#000', background: contactOpen ? 'rgba(56,189,248,0.12)' : '#38bdf8', border: 'none', borderRadius: 20, padding: '4px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      {t('artista', 'contact_label', 'Contacto')}
                     </button>
-                  )}
+                  </div>
                   <button onClick={toggleLike}
                     className="flex items-center gap-2 px-4 py-2 rounded-full transition-all"
                     style={{ background: liked ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${liked ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.08)'}` }}>
@@ -1963,7 +1977,7 @@ export default function Home() {
                   ))}
                 </div>
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '0 12px' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2"/>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                   </svg>
@@ -2032,48 +2046,6 @@ export default function Home() {
           })()}
 
           {/* Contacto */}
-          <div style={{ height: 3, background: '#000' }} />
-          <div style={{ padding: 16 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 12 }}>{t('artista', 'contact_label', 'Contacto')}</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {selected.instagram && (
-                <a href={`https://instagram.com/${selected.instagram.replace('@', '')}`}
-                  target="_blank" rel="noopener noreferrer"
-                  onClick={() => trackClick(selected.id, 'instagram')}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>Instagram</span>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>↗</span>
-                </a>
-              )}
-              {showContactInfo && selected.whatsapp && (
-                <a href={`https://wa.me/${selected.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${selected.name}, te encontré en Flashttoo 👋`)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  onClick={() => trackClick(selected.id, 'whatsapp')}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>WhatsApp</span>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>↗</span>
-                </a>
-              )}
-              {selected.email && (
-                <button onClick={() => { navigator.clipboard.writeText(selected.email!); setEmailCopied(true); setTimeout(() => setEmailCopied(false), 2000) }}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', width: '100%', cursor: 'pointer' }}>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: emailCopied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)' }}>{emailCopied ? '¡Mail copiado!' : 'Email'}</span>
-                  {emailCopied
-                    ? <span style={{ fontSize: 13, color: 'rgba(239,255,66,0.4)' }}>✓</span>
-                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
-                  }
-                </button>
-              )}
-              <button onClick={shareArtist}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', borderRadius: 12, background: copied ? 'rgba(239,255,66,0.07)' : 'rgba(255,255,255,0.05)', border: `1px solid ${copied ? 'rgba(239,255,66,0.2)' : 'rgba(255,255,255,0.07)'}`, width: '100%', cursor: 'pointer' }}>
-                <span style={{ fontSize: 14, fontWeight: 500, color: copied ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)' }}>{copied ? '¡Copiado!' : 'Compartir perfil'}</span>
-                {copied
-                  ? <span style={{ fontSize: 13, color: 'rgba(239,255,66,0.4)' }}>✓</span>
-                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                }
-              </button>
-            </div>
-          </div>
           </div>{/* end unified card */}
 
           {/* Panel edición — justo debajo del perfil */}
@@ -2815,23 +2787,15 @@ export default function Home() {
           <div style={{ position:'fixed', inset:0, zIndex:120, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 16px' }}
             onClick={() => setAvailPopOpen(false)}>
             <div onClick={e => e.stopPropagation()}
-              style={{ position:'relative', width:'100%', maxWidth:340, border:'1px solid rgba(255,255,255,0.1)', borderRadius:20, padding:'20px 18px', boxShadow:'0 24px 60px rgba(0,0,0,0.8)', animation:'slideUpModal 0.45s cubic-bezier(0.22,0.61,0.36,1)', overflow:'hidden' }}>
+              style={{ position:'relative', width:'100%', maxWidth:340, border:'1px solid rgba(255,255,255,0.08)', borderRadius:20, padding:'20px 18px', boxShadow:'0 24px 60px rgba(0,0,0,0.9)', animation:'slideUpModal 0.38s cubic-bezier(0.22,0.61,0.36,1)', overflow:'hidden', background:'rgba(18,18,20,0.78)', backdropFilter:'blur(40px)', WebkitBackdropFilter:'blur(40px)' }}>
               <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
-              {/* Fondo foto rotativa */}
-              {(() => {
-                const photos = [availArtistPhoto, ...availArtistGallery].filter(Boolean) as string[]
-                const bg = photos.length > 0 ? photos[availPhotoIdx % photos.length] : null
-                return bg
-                  ? <><img src={bg} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0 }} /><div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.75)', zIndex:1 }} /></>
-                  : <div style={{ position:'absolute', inset:0, background:'#141414', zIndex:0 }} />
-              })()}
-              <div style={{ position:'relative', zIndex:2 }}>
+              <div style={{ position:'relative' }}>
 
               {/* Header */}
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
                 <div>
                   <p style={{ fontSize:15, fontWeight:800, color:'#f0f0ee', margin:0 }}>{t('turnos_libres', 'titulo', 'Turnos libres')}</p>
-                  {availArtistName && <p style={{ fontSize:11, color:'#efff42', marginTop:2, fontWeight:700 }}>{availArtistName}</p>}
+                  {availArtistName && <p style={{ fontSize:11, color:'#efff42', marginTop:2, fontWeight:600, fontFamily:'-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{availArtistName}</p>}
                 </div>
                 <button type="button" onClick={() => setAvailPopOpen(false)}
                   style={{ fontSize:18, color:'rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:'50%', width:30, height:30, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
@@ -2899,6 +2863,71 @@ export default function Home() {
                 </div>
               )}
               </div>{/* /zIndex wrapper */}
+            </div>
+          </div>
+        )
+      })()}
+
+      {contactOpen && selected && (() => {
+        const menuRow = { display:'flex', alignItems:'center', gap:14, padding:'13px 18px', cursor:'pointer', textDecoration:'none', width:'100%', background:'none', border:'none', textAlign:'left' as const }
+        const menuIcon = { width:18, height:18, flexShrink:0, opacity:0.5 }
+        const menuLabel = { fontSize:15, fontWeight:300, color:'rgba(255,255,255,0.85)', flex:1, fontFamily:'-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }
+        const menuArrow = { fontSize:12, color:'rgba(255,255,255,0.2)' }
+        return (
+          <div style={{ position:'fixed', inset:0, zIndex:120, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 12px' }}
+            onClick={() => setContactOpen(false)}>
+            <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+            <div onClick={e => e.stopPropagation()}
+              style={{ width:'100%', maxWidth:360, borderRadius:20, boxShadow:'0 24px 60px rgba(0,0,0,0.9)', animation:'slideUpModal 0.38s cubic-bezier(0.22,0.61,0.36,1)', overflow:'hidden', background:'rgba(18,18,20,0.78)', backdropFilter:'blur(40px)', WebkitBackdropFilter:'blur(40px)', border:'1px solid rgba(255,255,255,0.08)' }}>
+
+              {/* Header */}
+              <div style={{ padding:'16px 18px 10px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <p style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.9)', margin:0, fontFamily:'-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{selected.name}</p>
+                <button onClick={() => setContactOpen(false)}
+                  style={{ fontSize:16, color:'rgba(255,255,255,0.4)', background:'rgba(255,255,255,0.08)', border:'none', borderRadius:'50%', width:28, height:28, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+              </div>
+
+              {/* Grupo contacto */}
+              <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:14, margin:'0 10px', overflow:'hidden' }}>
+                {selected.instagram && (
+                  <a href={`https://instagram.com/${selected.instagram.replace('@','')}`}
+                    target="_blank" rel="noopener noreferrer"
+                    onClick={() => { trackClick(selected.id, 'instagram'); setContactOpen(false) }}
+                    style={menuRow}>
+                    <svg style={menuIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" color="#ffffff"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/></svg>
+                    <span style={menuLabel}>Instagram</span>
+                  </a>
+                )}
+                {showContactInfo && selected.whatsapp && (
+                  <a href={`https://wa.me/${selected.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${selected.name}, te encontré en Flashttoo 👋`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    onClick={() => { trackClick(selected.id, 'whatsapp'); setContactOpen(false) }}
+                    style={menuRow}>
+                    <svg style={menuIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" color="#ffffff"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    <span style={menuLabel}>WhatsApp</span>
+                  </a>
+                )}
+                {selected.email && (
+                  <>
+                    <button onClick={() => { navigator.clipboard.writeText(selected.email!); setEmailCopied(true); setTimeout(() => { setEmailCopied(false); setContactOpen(false) }, 2000) }}
+                      style={menuRow}>
+                      <svg style={menuIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" color="#ffffff"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+                      <span style={{ ...menuLabel, color: emailCopied ? 'rgba(239,255,66,0.9)' : 'rgba(255,255,255,0.85)' }}>{emailCopied ? '¡Mail copiado!' : 'Email'}</span>
+                      {emailCopied && <span style={{ fontSize:13, color:'rgba(239,255,66,0.5)' }}>✓</span>}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Separador + Compartir */}
+              <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:14, margin:'8px 10px 10px', overflow:'hidden' }}>
+                <button onClick={() => { shareArtist(); setContactOpen(false) }} style={menuRow}>
+                  <svg style={menuIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" color="#ffffff"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                  <span style={{ ...menuLabel, color: copied ? 'rgba(239,255,66,0.9)' : 'rgba(255,255,255,0.85)' }}>{copied ? '¡Copiado!' : t('artista', 'share_profile', 'Compartir perfil')}</span>
+                  {copied && <span style={{ fontSize:13, color:'rgba(239,255,66,0.5)' }}>✓</span>}
+                </button>
+              </div>
+
             </div>
           </div>
         )
@@ -3140,7 +3169,7 @@ export default function Home() {
                   }}
                     className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
                     style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(239,255,66,0.3)', zIndex: 2 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
                       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                     </svg>
@@ -3489,7 +3518,7 @@ export default function Home() {
         <button
           onClick={() => setCommunityOpen(true)}
           style={{ position: 'fixed', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 65, background: 'rgba(239,255,66,0.22)', border: '1px solid rgba(239,255,66,0.35)', borderRight: 'none', borderRadius: '12px 0 0 12px', padding: '14px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
         </button>
