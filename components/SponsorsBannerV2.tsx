@@ -1388,7 +1388,15 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                       ? <button onClick={e => { e.stopPropagation(); setSelectedCulturaVideo(null); window.dispatchEvent(new CustomEvent('open-artist', { detail: sv.author_flashttoo_slug })) }} style={{ fontSize: 13, fontWeight: 700, color: '#efff42', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>{ig}</button>
                       : <a href={`https://instagram.com/${ig.slice(1)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 13, fontWeight: 700, color: '#efff42', textDecoration: 'none' }}>{ig}</a>
                     }
-                    {cvDesc(sv) && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 5, lineHeight: 1.5, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{cvDesc(sv)}</p>}
+                    {cvDesc(sv) && (
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 5, lineHeight: 1.5, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                        {cvDesc(sv)!.split(/(@[\w.]+)/g).map((part, i) =>
+                          /^@[\w.]+$/.test(part)
+                            ? <a key={i} href={`https://instagram.com/${part.slice(1)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: '#efff42', textDecoration: 'none', fontWeight: 600 }}>{part}</a>
+                            : part
+                        )}
+                      </p>
+                    )}
                     {!sv.video_url && sv.instagram_video_url && (
                       <a href={sv.instagram_video_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, padding: '7px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
