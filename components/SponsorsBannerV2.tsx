@@ -850,7 +850,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                       {sel.name}
                     </h1>
                     {sel.description && (
-                      <span style={{ display: 'inline-block', marginTop: 10, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.8)', background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.2)', borderRadius: 999, padding: '3px 10px' }}>
+                      <span style={{ display: 'inline-block', marginTop: 10, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#efff42', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(239,255,66,0.3)', borderRadius: 5, padding: '3px 8px' }}>
                         {sel.description}
                       </span>
                     )}
