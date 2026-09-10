@@ -41,6 +41,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   return NextResponse.json({ artist })
 }
 
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const { edit_key, access_token, artist_id, is_owner } = await req.json()
+  const studio = await authorizeStudio(slug, edit_key, access_token)
+  if (!studio) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  if (is_owner) {
+    await sb().from('studio_artists').update({ is_owner: false }).eq('studio_id', studio.id)
+  }
+  await sb().from('studio_artists').update({ is_owner }).eq('studio_id', studio.id).eq('artist_id', artist_id)
+  return NextResponse.json({ ok: true })
+}
+
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const { edit_key, access_token, artist_id } = await req.json()

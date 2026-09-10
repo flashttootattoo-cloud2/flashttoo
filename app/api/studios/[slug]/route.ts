@@ -38,10 +38,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
 
   const { data: links } = await sb
     .from('studio_artists')
-    .select('artist_id, artists(*)')
+    .select('artist_id, is_owner, artists(*)')
     .eq('studio_id', studio.id)
 
-  const artists = (links || []).map((l: { artist_id: string; artists: unknown }) => l.artists).filter(Boolean)
+  const artists = (links || []).map((l: { artist_id: string; is_owner: boolean; artists: unknown }) => ({ ...(l.artists as object), is_owner: l.is_owner })).filter(Boolean)
   return NextResponse.json({ studio, artists })
 }
 
