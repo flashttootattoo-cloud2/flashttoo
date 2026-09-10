@@ -113,7 +113,13 @@ export default function PreviewCulturaVideo() {
               {ig}
             </a>
             {video.description && (
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 5, lineHeight: 1.5 }}>{video.description}</p>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 5, lineHeight: 1.5 }}>
+                {video.description.split(/(@[\w.]+)/g).map((part, i) =>
+                  /^@[\w.]+$/.test(part)
+                    ? <a key={i} href={`https://instagram.com/${part.slice(1)}`} target="_blank" rel="noopener noreferrer" style={{ color: '#efff42', textDecoration: 'none', fontWeight: 600 }}>{part}</a>
+                    : part
+                )}
+              </p>
             )}
             {!video.video_url && video.instagram_video_url && (
               <a href={video.instagram_video_url} target="_blank" rel="noopener noreferrer"
