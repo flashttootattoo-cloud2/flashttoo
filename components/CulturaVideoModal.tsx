@@ -27,6 +27,10 @@ export default function CulturaVideoModal() {
 
   useEffect(() => {
     try { if (sessionStorage.getItem('cultura_video_closed')) return } catch {}
+    // No mostrar el video de portada si se entró por un link que ya abre otro contenido
+    // (insumo, artista, estudio, frase) — evita pisar ese historial y tapar lo compartido
+    const params = new URLSearchParams(window.location.search)
+    if (params.has('insumo') || params.has('artista') || params.has('estudio') || params.has('frase')) return
     fetch(`/api/cultura-videos`)
       .then(r => r.json())
       .then(d => {
