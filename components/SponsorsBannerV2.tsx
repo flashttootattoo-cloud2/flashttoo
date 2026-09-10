@@ -1205,7 +1205,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               )}
             </div>
             <button onClick={() => openArtistFromGallery(slug)}
-              style={{ flexShrink: 0, padding: '8px 16px', background: '#efff42', borderRadius: 10, color: '#000', fontWeight: 800, fontSize: 12, border: 'none', cursor: loadingArtistSlug === slug ? 'default' : 'pointer', letterSpacing: '0.03em', opacity: loadingArtistSlug === slug ? 0.6 : 1 }}>
+              style={{ flexShrink: 0, padding: '8px 16px', background: '#efff42', borderRadius: 20, color: '#000', fontWeight: 800, fontSize: 12, border: 'none', cursor: loadingArtistSlug === slug ? 'default' : 'pointer', letterSpacing: '0.03em', opacity: loadingArtistSlug === slug ? 0.6 : 1 }}>
               {loadingArtistSlug === slug ? '...' : t('galeria', 'ver_artista', 'Ver artista')}
             </button>
           </div>
