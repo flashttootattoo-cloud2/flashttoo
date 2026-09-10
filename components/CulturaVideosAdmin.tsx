@@ -538,7 +538,15 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
                         {v.author_instagram.startsWith('@') ? v.author_instagram : `@${v.author_instagram}`}
                       </a>
                     </div>
-                    {v.description && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4, marginBottom: 4 }}>{v.description}</p>}
+                    {v.description && (
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4, marginBottom: 4 }}>
+                        {v.description.split(/(@[\w.]+)/g).map((part, i) =>
+                          /^@[\w.]+$/.test(part)
+                            ? <a key={i} href={`https://instagram.com/${part.slice(1)}`} target="_blank" rel="noopener noreferrer" style={{ color: '#efff42', textDecoration: 'none', fontWeight: 600 }}>{part}</a>
+                            : part
+                        )}
+                      </p>
+                    )}
                     {v.tags.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>
                         {v.tags.map(t => (

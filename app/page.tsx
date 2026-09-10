@@ -2966,11 +2966,26 @@ export default function Home() {
         async function save() {
           setTurnosSaving(true); setTurnosSaveError('')
           try {
-            const r = await fetch('/api/flash/availability', {
+            let token = la.access_token
+            let r = await fetch('/api/flash/availability', {
               method: 'PATCH',
               headers: {'Content-Type':'application/json'},
-              body: JSON.stringify({access_token: la.access_token, artist_id: la.id, slots: turnosSlots}),
+              body: JSON.stringify({access_token: token, artist_id: la.id, slots: turnosSlots}),
             })
+            if (r.status === 401) {
+              const { data: { session } } = await supabase.auth.getSession()
+              if (session?.access_token) {
+                token = session.access_token
+                const updated = { ...la, access_token: token }
+                setLoggedArtist(updated)
+                try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(updated)) } catch {}
+                r = await fetch('/api/flash/availability', {
+                  method: 'PATCH',
+                  headers: {'Content-Type':'application/json'},
+                  body: JSON.stringify({access_token: token, artist_id: la.id, slots: turnosSlots}),
+                })
+              }
+            }
             if (!r.ok) { const d = await r.json().catch(()=>({})); setTurnosSaveError(d.error || `Error ${r.status}`) }
             else { const d = await r.json().catch(()=>({})); if (Array.isArray(d.availability)) setTurnosSlots(d.availability); setTurnosSaved(true); setTimeout(() => setTurnosSaved(false), 2500) }
           } catch { setTurnosSaveError('Error de conexión') }
