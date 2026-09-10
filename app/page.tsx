@@ -3479,37 +3479,46 @@ export default function Home() {
             setFsDragging(false)
             setFsDragX(0)
           }}
-          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.96)', overflow: 'hidden', cursor: fullscreenPhotos.length > 1 ? 'grab' : 'default' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.88)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 16px', cursor: fullscreenPhotos.length > 1 ? 'grab' : 'default' }}>
 
-          {/* Tira horizontal con todas las fotos */}
-          <div style={{
-            position: 'absolute', top: 0, left: 0,
-            display: 'flex', alignItems: 'center',
-            height: '100%',
-            transform: `translateX(calc(-${fullscreenIdx} * 100vw + ${fsDragX}px))`,
-            transition: fsDragging ? 'none' : 'transform 0.28s ease',
-            willChange: 'transform',
-          }}>
-            {fullscreenPhotos.map((src, i) => (
-              <div key={i} style={{ width: '100vw', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" draggable={false} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', userSelect: 'none' }} onClick={e => e.stopPropagation()} />
+          <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+          {/* Modal card */}
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 420, borderRadius: 24, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.08)', background: '#0a0a0a', animation: 'slideUpModal 0.85s cubic-bezier(0.16,1,0.3,1)' }}>
+
+            {/* Tira horizontal con todas las fotos */}
+            <div style={{ overflow: 'hidden', width: '100%' }}>
+              <div style={{
+                display: 'flex',
+                width: `${fullscreenPhotos.length * 100}%`,
+                transform: `translateX(calc(-${fullscreenIdx} * ${100 / fullscreenPhotos.length}% + ${fsDragX}px))`,
+                transition: fsDragging ? 'none' : 'transform 0.28s ease',
+                willChange: 'transform',
+              }}>
+                {fullscreenPhotos.map((src, i) => (
+                  <div key={i} style={{ width: `${100 / fullscreenPhotos.length}%`, flexShrink: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#0a0a0a' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="" draggable={false} style={{ width: '100%', maxHeight: '72vh', display: 'block', objectFit: 'contain', userSelect: 'none' }} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-
-          {fullscreenPhotos.length > 1 && (
-            <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6, pointerEvents: 'none' }}>
-              {fullscreenPhotos.map((_, i) => (
-                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', transition: 'background 0.2s', background: i === fullscreenIdx ? '#fff' : 'rgba(255,255,255,0.3)' }} />
-              ))}
             </div>
-          )}
-          <button
-            onClick={e => { e.stopPropagation(); history.back() }}
-            style={{ position: 'absolute', top: 20, right: 20, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            ×
-          </button>
+
+            {/* Dots */}
+            {fullscreenPhotos.length > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 6, padding: '12px 0', background: '#0a0a0a' }}>
+                {fullscreenPhotos.map((_, i) => (
+                  <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', transition: 'background 0.2s', background: i === fullscreenIdx ? '#fff' : 'rgba(255,255,255,0.25)' }} />
+                ))}
+              </div>
+            )}
+
+            {/* Cerrar */}
+            <button
+              onClick={e => { e.stopPropagation(); history.back() }}
+              style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              ×
+            </button>
+          </div>
         </div>
       )}
 

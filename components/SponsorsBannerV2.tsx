@@ -184,6 +184,8 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const [convCountrySearch, setConvCountrySearch] = useState('')
   const [gridBgImage, setGridBgImage] = useState<string | null>(null)
   const [bioExpanded, setBioExpanded] = useState(false)
+  const [sponsorContactOpen, setSponsorContactOpen] = useState(false)
+  const [galleryContactOpen, setGalleryContactOpen] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
   const [mailCopied, setMailCopied] = useState(false)
   const bgImagesRef   = useRef<string[]>([])
@@ -888,56 +890,81 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                             }}>↓</span>
                           </button>
                         )}
+                        {/* Chip Contacto */}
+                        {(sel.link || sel.instagram || sel.whatsapp) && (
+                          <div style={{ marginTop: 16 }}>
+                            <button onClick={() => setSponsorContactOpen(true)}
+                              style={{ fontSize: 11, fontWeight: 700, color: sponsorContactOpen ? '#38bdf8' : '#000', background: sponsorContactOpen ? 'rgba(56,189,248,0.12)' : '#38bdf8', border: 'none', borderRadius: 20, padding: '4px 12px', cursor: 'pointer', letterSpacing: '0.04em' }}>
+                              Contacto
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )
                   })()}
 
                   {/* Línea decorativa amarilla */}
-                  <div style={{ height: 1, background: 'linear-gradient(to right, rgba(239,255,66,0.25), transparent)', marginBottom: 28 }} />
+                  <div style={{ height: 1, background: 'linear-gradient(to right, rgba(239,255,66,0.25), transparent)', marginBottom: 20 }} />
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {sel.link && (
-                      <a href={/^https?:\/\//i.test(sel.link) ? sel.link : `https://${sel.link}`} target="_blank" rel="noopener noreferrer"
-                        onClick={() => {
-                          fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {})
-                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'detail_click' }) }).catch(() => {})
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
-                        Web
-                      </a>
-                    )}
-                    {sel.instagram && (
-                      <a href={`https://instagram.com/${sel.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                        onClick={() => {
-                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'instagram_click' }) }).catch(() => {})
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
-                        Instagram
-                      </a>
-                    )}
-                    {sel.whatsapp && (
-                      <a href={`https://wa.me/${sel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                        onClick={() => {
-                          fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'whatsapp_click' }) }).catch(() => {})
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
-                        WhatsApp
-                      </a>
-                    )}
-                    <button
-                      onClick={() => {
-                        const url = `${window.location.origin}${window.location.pathname}?insumo=${sel.name ? slugify(sel.name) : sel.id}`
-                        if (navigator.share) {
-                          navigator.share({ title: sel.name ?? '', url }).catch(() => {})
-                        } else {
-                          navigator.clipboard.writeText(url).catch(() => {})
-                        }
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 26px', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, fontSize: 14, fontWeight: 600, cursor: 'pointer', width: '100%' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                      {t('insumos', 'share_btn', 'Compartir perfil')}
-                    </button>
-                  </div>
+                  {/* Modal contacto insumo */}
+                  {sponsorContactOpen && (
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px' }}
+                      onClick={() => setSponsorContactOpen(false)}>
+                      <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+                      <div onClick={e => e.stopPropagation()}
+                        style={{ width: '100%', maxWidth: 360, borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.9)', animation: 'slideUpModal 0.38s cubic-bezier(0.22,0.61,0.36,1)', overflow: 'hidden', background: 'rgba(18,18,20,0.78)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+
+                        {/* Header */}
+                        <div style={{ padding: '16px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)', margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{sel.name}</p>
+                          <button onClick={() => setSponsorContactOpen(false)}
+                            style={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                        </div>
+
+                        {/* Filas de contacto */}
+                        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, margin: '0 10px', overflow: 'hidden' }}>
+                          {sel.link && (
+                            <a href={/^https?:\/\//i.test(sel.link) ? sel.link : `https://${sel.link}`} target="_blank" rel="noopener noreferrer"
+                              onClick={() => { fetch(`/api/sponsors-v2/${sel.id}/click`, { method: 'POST' }).catch(() => {}); setSponsorContactOpen(false) }}
+                              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 18px', textDecoration: 'none' }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.5 }}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                              <span style={{ fontSize: 15, fontWeight: 300, color: 'rgba(255,255,255,0.85)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>Web</span>
+                            </a>
+                          )}
+                          {sel.instagram && (
+                            <a href={`https://instagram.com/${sel.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                              onClick={() => { fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'instagram_click' }) }).catch(() => {}); setSponsorContactOpen(false) }}
+                              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 18px', textDecoration: 'none' }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.5 }}><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/></svg>
+                              <span style={{ fontSize: 15, fontWeight: 300, color: 'rgba(255,255,255,0.85)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>Instagram</span>
+                            </a>
+                          )}
+                          {sel.whatsapp && (
+                            <a href={`https://wa.me/${sel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                              onClick={() => { fetch(`/api/sponsors-v2/${sel.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_type: 'whatsapp_click' }) }).catch(() => {}); setSponsorContactOpen(false) }}
+                              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 18px', textDecoration: 'none' }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                              <span style={{ fontSize: 15, fontWeight: 300, color: 'rgba(255,255,255,0.85)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>WhatsApp</span>
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Compartir */}
+                        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, margin: '8px 10px 10px', overflow: 'hidden' }}>
+                          <button onClick={() => {
+                            const url = `${window.location.origin}${window.location.pathname}?insumo=${sel.name ? slugify(sel.name) : sel.id}`
+                            if (navigator.share) { navigator.share({ title: sel.name ?? '', url }).catch(() => {}) }
+                            else { navigator.clipboard.writeText(url).catch(() => {}) }
+                            setSponsorContactOpen(false)
+                          }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 18px', background: 'none', border: 'none', width: '100%', cursor: 'pointer' }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.5 }}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                            <span style={{ fontSize: 15, fontWeight: 300, color: 'rgba(255,255,255,0.85)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{t('insumos', 'share_btn', 'Compartir perfil')}</span>
+                          </button>
+                        </div>
+
+                      </div>
+                    </div>
+                  )}
 
                   {/* Países */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 24 }}>
