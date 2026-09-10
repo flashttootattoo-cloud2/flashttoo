@@ -1129,12 +1129,12 @@ export default function Home() {
     <main
       style={{ background: '#000', minHeight: '100vh', paddingBottom: 40 }}
       onTouchStart={e => {
-        if (communityOpen) return
+        if (communityOpen || fullscreenImg) return
         const t = e.touches[0]
         communitySwipeRef.current = { startX: t.clientX, startY: t.clientY }
       }}
       onTouchEnd={e => {
-        if (!communitySwipeRef.current || communityOpen) return
+        if (!communitySwipeRef.current || communityOpen || fullscreenImg) return
         const t = e.changedTouches[0]
         const dx = communitySwipeRef.current.startX - t.clientX
         const dy = Math.abs(communitySwipeRef.current.startY - t.clientY)
