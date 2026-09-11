@@ -12,7 +12,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const { data: post } = await sb()
     .from('community_posts')
-    .select('artist_id, studio_slug, type')
+    .select('artist_id, studio_slug, sponsor_slug, type')
     .eq('id', id)
     .single()
 
@@ -20,7 +20,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const authorized =
     (post.type === 'artist' && post.artist_id === body.owner_id) ||
-    (post.type === 'studio' && post.studio_slug === body.owner_id)
+    (post.type === 'studio' && post.studio_slug === body.owner_id) ||
+    (post.type === 'sponsor' && post.sponsor_slug === body.owner_id)
 
   if (!authorized) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 

@@ -4,6 +4,9 @@ import { createClient } from '@supabase/supabase-js'
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
+function sbAnon() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+}
 
 const PAGE = 30
 
@@ -32,7 +35,7 @@ export async function POST(req: NextRequest) {
   }
 
   const content = String(body.content).trim().slice(0, 300)
-  const type = body.type === 'artist' ? 'artist' : body.type === 'studio' ? 'studio' : 'client'
+  const type = body.type === 'artist' ? 'artist' : body.type === 'studio' ? 'studio' : body.type === 'sponsor' ? 'sponsor' : 'client'
 
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
   const lang = typeof body.lang === 'string' && body.lang ? body.lang : 'es'
@@ -60,6 +63,22 @@ export async function POST(req: NextRequest) {
     insert.studio_name = body.studio_name || null
     insert.studio_logo = body.studio_logo || null
     insert.studio_slug = body.studio_slug || null
+  } else if (type === 'sponsor') {
+    if (!body.sponsor_slug || !body.access_token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const { data: sponsor } = await sb().from('sponsors_v2').select('id, user_id, name, logo_url, slug, description, country, active, expires_at').eq('slug', body.sponsor_slug).single()
+    if (!sponsor) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const { data: { user } } = await sbAnon().auth.getUser(body.access_token)
+    if (!user || user.id !== sponsor.user_id) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const blocked = !sponsor.active || (sponsor.expires_at && new Date(sponsor.expires_at) < new Date())
+    if (blocked) return NextResponse.json({ error: 'Tu perfil está bloqueado, no podés publicar' }, { status: 403 })
+    insert.sponsor_id   = sponsor.id
+    insert.sponsor_name = sponsor.name
+    insert.sponsor_logo = sponsor.logo_url
+    insert.sponsor_slug = sponsor.slug
+    insert.sponsor_description = sponsor.description
+    // País(es) de venta de la marca — ya vienen separados por coma desde su perfil,
+    // se usan tal cual para la cercanía, sin que la marca los tipee en cada mensaje
+    insert.country = sponsor.country || null
   } else {
     if (!body.client_name?.trim()) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 })
     insert.client_name  = String(body.client_name).trim().slice(0, 60)

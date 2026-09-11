@@ -235,6 +235,11 @@ export default function Home() {
   const [loggedStudio, setLoggedStudio] = useState<{ slug: string; name: string; logo_url: string | null; visible: boolean; access_token: string; refresh_token?: string; city?: string | null; country?: string | null } | null>(null)
   const [studioMenuOpen, setStudioMenuOpen] = useState(false)
   const studioMenuRef = useRef<HTMLDivElement>(null)
+  const [loggedSponsor, setLoggedSponsor] = useState<{ slug: string; name: string; logo_url: string | null; active: boolean; expires_at?: string | null; access_token: string; refresh_token?: string } | null>(null)
+  const [sponsorMenuOpen, setSponsorMenuOpen] = useState(false)
+  const sponsorMenuRef = useRef<HTMLDivElement>(null)
+  const sponsorDeepLinkHandled = useRef(false)
+  const [sponsorSubscriptionOpen, setSponsorSubscriptionOpen] = useState(false)
   const [showFlashDayModal, setShowFlashDayModal] = useState(false)
   const [fdFile, setFdFile] = useState<File | null>(null)
   const [fdPreview, setFdPreview] = useState<string | null>(null)
@@ -379,6 +384,21 @@ export default function Home() {
         }).catch(() => {})
       }
     } catch {}
+    try {
+      const savedSponsor = localStorage.getItem('flashttoo_sponsor_session')
+      if (savedSponsor) {
+        const s = JSON.parse(savedSponsor)
+        setLoggedSponsor(s)
+        // Refrescar datos del sponsor (logo, estado, vencimiento) contra el servidor
+        fetch(`/api/sponsors-v2/${s.slug}`, { headers: { Authorization: `Bearer ${s.access_token}` } }).then(r => r.json()).then(d => {
+          if (d.sponsor) {
+            const updated = { ...s, name: d.sponsor.name, logo_url: d.sponsor.logo_url, active: d.sponsor.active, expires_at: d.sponsor.expires_at }
+            setLoggedSponsor(updated)
+            try { localStorage.setItem('flashttoo_sponsor_session', JSON.stringify(updated)) } catch {}
+          }
+        }).catch(() => {})
+      }
+    } catch {}
   }, [])
 
   useEffect(() => {
@@ -387,6 +407,7 @@ export default function Home() {
       if (langRef.current && !langRef.current.contains(e.target as Node)) { setLangOpen(false); setMenuLangOpen(false) }
       if (artistMenuRef.current && !artistMenuRef.current.contains(e.target as Node)) setArtistMenuOpen(false)
       if (studioMenuRef.current && !studioMenuRef.current.contains(e.target as Node)) setStudioMenuOpen(false)
+      if (sponsorMenuRef.current && !sponsorMenuRef.current.contains(e.target as Node)) setSponsorMenuOpen(false)
     }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
@@ -705,6 +726,26 @@ export default function Home() {
       }
       setSelectedStudioSlug(slug)
     }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Deep link: si viene de /completar-marca, abre la sesión de sponsor y su menú
+  useEffect(() => {
+    if (sponsorDeepLinkHandled.current) return
+    const slug = new URLSearchParams(window.location.search).get('marca')
+    if (!slug) return
+    sponsorDeepLinkHandled.current = true
+    const pending = sessionStorage.getItem('flashttoo_sponsor_auth')
+    if (!pending) return
+    try {
+      const auth = JSON.parse(pending)
+      sessionStorage.removeItem('flashttoo_sponsor_auth')
+      if (auth.slug === slug) {
+        const session = { slug: auth.slug, name: auth.name, logo_url: null, active: false, access_token: auth.access_token, refresh_token: auth.refresh_token }
+        localStorage.setItem('flashttoo_sponsor_session', JSON.stringify(session))
+        setLoggedSponsor(session)
+        setSponsorMenuOpen(true)
+      }
+    } catch { /* ignorar */ }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Deep link: abre el modal si la URL tiene ?artista=ID
@@ -1244,6 +1285,54 @@ export default function Home() {
               </div>
             )}
 
+            {/* Sponsor session button */}
+            {loggedSponsor && (
+              <div ref={sponsorMenuRef} className="relative">
+                <button
+                  onClick={() => setSponsorMenuOpen(v => !v)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 4px', borderRadius: 20, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: loggedSponsor.logo_url ? '#000' : '#efff42', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#000', flexShrink: 0 }}>
+                    {loggedSponsor.logo_url
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      ? <img src={loggedSponsor.logo_url} alt="" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
+                      : loggedSponsor.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loggedSponsor.name.split(' ')[0]}</span>
+                </button>
+                {sponsorMenuOpen && (
+                  <div className="absolute right-0 mt-2 rounded-xl z-50"
+                    style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.9)', minWidth: 200, overflow: 'hidden' }}>
+                    <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#efff42' }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>{loggedSponsor.name}</p>
+                      {!loggedSponsor.active && (
+                        loggedSponsor.expires_at && new Date(loggedSponsor.expires_at) < new Date() ? (
+                          <p style={{ fontSize: 11, color: '#b91c1c', fontWeight: 700, marginTop: 2 }}>{t('phrases', 'sponsor_blocked_short', 'Perfil bloqueado — suscripción vencida')}</p>
+                        ) : (
+                          <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', marginTop: 2 }}>{t('phrases', 'sponsor_review_short', 'Perfil en revisión')}</p>
+                        )
+                      )}
+                    </div>
+                    {loggedSponsor.expires_at && (
+                      <button
+                        onClick={() => { setSponsorMenuOpen(false); setSponsorSubscriptionOpen(true) }}
+                        style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                        {t('sponsor_menu', 'subscription', 'Suscripción')}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        try { localStorage.removeItem('flashttoo_sponsor_session') } catch {}
+                        setLoggedSponsor(null)
+                        setSponsorMenuOpen(false)
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', color: 'rgba(255,100,100,0.7)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('artist_menu', 'logout', 'Cerrar sesión')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Artist session avatar or Ingresar button */}
             {!loggedStudio && loggedArtist ? (
               <div ref={artistMenuRef} className="relative">
@@ -1353,7 +1442,7 @@ export default function Home() {
                   </div>
                 )}
               </div>
-            ) : !loggedStudio ? (
+            ) : !loggedStudio && !loggedSponsor ? (
               <button
                 onClick={() => { if (registrationOpen) { setShowAuthModal(true) } else { setShowRegistrationClosed(true) } }}
                 className="text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
@@ -2236,6 +2325,13 @@ export default function Home() {
             setLoggedStudio(ss)
             setStudioMenuOpen(true)
           }}
+          onSponsorLoggedIn={(sponsor, access_token, refresh_token) => {
+            setShowAuthModal(false)
+            const ss = { slug: sponsor.slug, name: sponsor.name, logo_url: sponsor.logo_url ?? null, active: sponsor.active ?? false, expires_at: sponsor.expires_at ?? null, access_token, refresh_token: refresh_token ?? '' }
+            try { localStorage.setItem('flashttoo_sponsor_session', JSON.stringify(ss)) } catch {}
+            setLoggedSponsor(ss)
+            setSponsorMenuOpen(true)
+          }}
           onLoggedIn={async (artist) => {
             setShowAuthModal(false)
             let a = artists.find(x => x.id === artist.id)
@@ -2933,6 +3029,32 @@ export default function Home() {
         )
       })()}
 
+      {/* Modal suscripción del sponsor */}
+      {sponsorSubscriptionOpen && loggedSponsor?.expires_at && (
+        <div style={{ position:'fixed', inset:0, zIndex:120, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 12px' }}
+          onClick={() => setSponsorSubscriptionOpen(false)}>
+          <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+          <div onClick={e => e.stopPropagation()}
+            style={{ width:'100%', maxWidth:360, borderRadius:20, boxShadow:'0 24px 60px rgba(0,0,0,0.9)', animation:'slideUpModal 0.38s cubic-bezier(0.22,0.61,0.36,1)', overflow:'hidden', background:'rgba(18,18,20,0.78)', backdropFilter:'blur(40px)', WebkitBackdropFilter:'blur(40px)', border:'1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ padding:'16px 18px 10px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <p style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.9)', margin:0, fontFamily:'-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{t('sponsor_menu', 'subscription', 'Suscripción')}</p>
+              <button onClick={() => setSponsorSubscriptionOpen(false)}
+                style={{ fontSize:16, color:'rgba(255,255,255,0.4)', background:'rgba(255,255,255,0.08)', border:'none', borderRadius:'50%', width:28, height:28, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+            </div>
+            <div style={{ padding: '4px 18px 22px' }}>
+              <p style={{ fontSize: 14, fontWeight: 300, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                {new Date(loggedSponsor.expires_at) < new Date()
+                  ? t('sponsor_menu', 'subscription_expired', 'Su suscripción venció el')
+                  : t('sponsor_menu', 'subscription_ends', 'Su suscripción se cancelará el')}{' '}
+                <span style={{ fontWeight: 700, color: '#efff42' }}>
+                  {new Date(loggedSponsor.expires_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {turnosOpen && loggedArtist && (() => {
         const la = loggedArtist!
         const MES_K2 = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -3567,6 +3689,15 @@ export default function Home() {
                 highlightPostId={highlightPostId}
                 loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: loggedArtist.city ?? undefined, country: loggedArtist.country ?? undefined, flashbook_alias: loggedArtist.flashbook_alias } : null}
                 loggedStudio={loggedStudio ? { slug: loggedStudio.slug, name: loggedStudio.name, logo_url: loggedStudio.logo_url, city: loggedStudio.city ?? undefined, country: loggedStudio.country ?? undefined } : null}
+                loggedSponsor={loggedSponsor}
+                onSponsorTokenRefreshed={tokens => {
+                  setLoggedSponsor(prev => {
+                    if (!prev) return prev
+                    const updated = { ...prev, access_token: tokens.access_token, refresh_token: tokens.refresh_token }
+                    try { localStorage.setItem('flashttoo_sponsor_session', JSON.stringify(updated)) } catch {}
+                    return updated
+                  })
+                }}
                 onOpenArtist={id => {
                   setCommunityOpen(false)
                   const local = artists.find(x => x.id === id)
@@ -3577,6 +3708,7 @@ export default function Home() {
                   }
                 }}
                 onOpenStudio={slug => { setCommunityOpen(false); openStudio(slug) }}
+                onOpenSponsor={slug => { setCommunityOpen(false); window.dispatchEvent(new CustomEvent('open-sponsor', { detail: slug })) }}
                 onOpenAvailability={(artist_id, artist_name, artist_photo) => {
                   setAvailPopOpen(true)
                   setAvailPhotoIdx(0)

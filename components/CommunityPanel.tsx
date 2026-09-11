@@ -4,7 +4,7 @@ import { useTranslation } from '@/contexts/TranslationContext'
 
 type CommunityPost = {
   id: string
-  type: 'artist' | 'studio' | 'client' | 'admin'
+  type: 'artist' | 'studio' | 'sponsor' | 'client' | 'admin'
   content: string
   city: string | null
   country: string | null
@@ -22,10 +22,21 @@ type CommunityPost = {
   studio_name: string | null
   studio_logo: string | null
   studio_slug: string | null
+  sponsor_id: string | null
+  sponsor_name: string | null
+  sponsor_logo: string | null
+  sponsor_slug: string | null
+  sponsor_description: string | null
   created_at: string
 }
 
 const EMOJIS = ['🙂','😊','🤔','🎨','✏️','🌙','🔥','⚡','🌿','💀','🐍','🦋','🌸','👁️','🖤']
+
+// Compara contra una lista separada por coma (ej. países de venta de una marca)
+function matchesAnyCountry(stored: string | null | undefined, target: string): boolean {
+  if (!stored || !target) return false
+  return stored.split(',').map(v => v.trim().toLowerCase()).filter(Boolean).includes(target)
+}
 
 function timeAgo(iso: string, nowLabel = 'ahora'): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -46,20 +57,24 @@ function contactLabel(type: string | null, val: string | null): { href: string }
 type Props = {
   loggedArtist: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null } | null
   loggedStudio: { slug: string; name: string; logo_url: string | null; city?: string; country?: string } | null
+  loggedSponsor?: { slug: string; name: string; logo_url: string | null; active: boolean; expires_at?: string | null; access_token: string; refresh_token?: string } | null
   onOpenArtist: (id: string) => void
   onOpenStudio: (slug: string) => void
+  onOpenSponsor?: (slug: string) => void
   onOpenAvailability?: (artist_id: string, artist_name: string, artist_photo: string | null) => void
+  onSponsorTokenRefreshed?: (tokens: { access_token: string; refresh_token?: string }) => void
   onClose?: () => void
   lang?: string
   highlightPostId?: string
 }
 
-export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtist, onOpenStudio, onOpenAvailability, onClose, lang = 'es', highlightPostId }: Props) {
+export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onClose, lang = 'es', highlightPostId }: Props) {
   const { t } = useTranslation()
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [postError, setPostError] = useState('')
   const [showClientForm, setShowClientForm] = useState(false)
   const [clientName, setClientName] = useState('')
   const [clientEmoji, setClientEmoji] = useState('🙂')
@@ -181,7 +196,8 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
     }
   }, [highlightedId, loading, posts])
 
-  const isLoggedIn = !!(loggedArtist || loggedStudio)
+  const isLoggedIn = !!(loggedArtist || loggedStudio || loggedSponsor)
+  const sponsorBlocked = !!loggedSponsor && (!loggedSponsor.active || (!!loggedSponsor.expires_at && new Date(loggedSponsor.expires_at) < new Date()))
 
   const CLIENT_KEY = 'community_last_post'
   const clientCanPost = () => {
@@ -202,7 +218,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
 
   const share = async (post: CommunityPost) => {
     const url = `${window.location.origin}?comunidad=1&post=${post.id}`
-    const name = post.type === 'admin' ? 'Flashttoo' : post.type === 'artist' ? post.artist_name : post.type === 'studio' ? post.studio_name : post.client_name
+    const name = post.type === 'admin' ? 'Flashttoo' : post.type === 'artist' ? post.artist_name : post.type === 'studio' ? post.studio_name : post.type === 'sponsor' ? post.sponsor_name : post.client_name
     const location = [post.city, post.country].filter(Boolean).join(', ')
     const shareText = `${name ? `${name}${location ? ` · ${location}` : ''}\n` : ''}${post.content}\n\n${url}`
     if (navigator.share) {
@@ -214,20 +230,35 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
 
   const submit = async () => {
     if (!text.trim()) return
+    if (sponsorBlocked) return
     setSending(true)
+    setPostError('')
     try {
       let body: Record<string, unknown> = { content: text, lang }
       if (loggedArtist) {
         body = { ...body, type: 'artist', artist_id: loggedArtist.id, artist_name: loggedArtist.name, artist_photo: loggedArtist.photo_url, artist_slug: loggedArtist.slug || loggedArtist.id, city: loggedArtist.city || artistLocation?.city || null, country: loggedArtist.country || artistLocation?.country || null, show_flashbook: withFlashbook || null, flashbook_alias: withFlashbook ? (loggedArtist.flashbook_alias || null) : null, show_availability: withAvailability || null }
       } else if (loggedStudio) {
         body = { ...body, type: 'studio', studio_id: loggedStudio.slug, studio_name: loggedStudio.name, studio_logo: loggedStudio.logo_url, studio_slug: loggedStudio.slug, city: loggedStudio.city || studioLocation?.city || null, country: loggedStudio.country || studioLocation?.country || null }
+      } else if (loggedSponsor) {
+        body = { ...body, type: 'sponsor', sponsor_slug: loggedSponsor.slug, access_token: loggedSponsor.access_token }
       } else {
         if (!clientName.trim()) return
         if (!clientCanPost()) return
         body = { ...body, type: 'client', client_name: clientName, client_emoji: clientEmoji, city: clientCity, country: clientCountry, contact_type: contactType, contact }
       }
-      const r = await fetch('/api/community', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const d = await r.json()
+      let r = await fetch('/api/community', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      let d = await r.json()
+      // Token de sponsor vencido — refrescar y reintentar una vez
+      if (r.status === 401 && loggedSponsor?.refresh_token) {
+        const ref = await fetch('/api/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: loggedSponsor.refresh_token }) })
+        if (ref.ok) {
+          const tokens = await ref.json()
+          onSponsorTokenRefreshed?.(tokens)
+          body.access_token = tokens.access_token
+          r = await fetch('/api/community', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+          d = await r.json()
+        }
+      }
       if (r.ok && d.post) {
         if (!isLoggedIn) { try { localStorage.setItem(CLIENT_KEY, String(Date.now())) } catch {} }
         setPosts(prev => [d.post, ...prev])
@@ -236,11 +267,15 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
         setWithAvailability(false)
         setClientName(''); setClientCity(''); setClientCountry(''); setContact('')
         setShowClientForm(false)
+      } else if (!r.ok) {
+        setPostError(d.error || t('comunidad', 'post_error', 'No se pudo publicar, probá de nuevo'))
       }
     } finally { setSending(false) }
   }
 
-  const placeholder = isLoggedIn
+  const placeholder = loggedSponsor
+    ? t('comunidad', 'placeholder_sponsor', '¿Qué novedad tenés hoy?')
+    : isLoggedIn
     ? t('comunidad', 'placeholder_artist', '¿Qué novedad tenés hoy para quien se quiere tatuar?')
     : t('comunidad', 'placeholder_client', '¿Qué estás buscando?')
 
@@ -279,23 +314,32 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
               : loggedStudio?.logo_url
               /* eslint-disable-next-line @next/next/no-img-element */
               ? <img src={loggedStudio.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : loggedSponsor?.logo_url
+              /* eslint-disable-next-line @next/next/no-img-element */
+              ? <img src={loggedSponsor.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} />
               : <span>{clientEmoji}</span>}
           </div>
 
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: loggedArtist ? '#efff42' : loggedStudio ? '#efff42' : 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
-              {loggedArtist ? loggedArtist.name : loggedStudio ? loggedStudio.name : clientName || t('comunidad', 'you', 'Vos')}
+            <p style={{ fontSize: 11, fontWeight: 700, color: loggedArtist || loggedStudio || loggedSponsor ? '#efff42' : 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+              {loggedArtist ? loggedArtist.name : loggedStudio ? loggedStudio.name : loggedSponsor ? loggedSponsor.name : clientName || t('comunidad', 'you', 'Vos')}
             </p>
-            <textarea
-              ref={textareaRef}
-              value={text}
-              onChange={e => setText(e.target.value)}
-              placeholder={placeholder}
-              maxLength={300}
-              rows={2}
-              style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, resize: 'none', lineHeight: 1.5, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', caretColor: '#efff42' }}
-              className="community-textarea"
-            />
+            {sponsorBlocked ? (
+              <p style={{ fontSize: 13, color: 'rgba(255,100,100,0.7)', lineHeight: 1.5, margin: 0 }}>
+                {t('comunidad', 'sponsor_blocked', 'Tu perfil está bloqueado — no podés publicar hasta que se reactive la suscripción.')}
+              </p>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                value={text}
+                onChange={e => setText(e.target.value)}
+                placeholder={placeholder}
+                maxLength={300}
+                rows={2}
+                style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, resize: 'none', lineHeight: 1.5, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', caretColor: '#efff42' }}
+                className="community-textarea"
+              />
+            )}
             {loggedArtist && (
               <div style={{ marginTop: 8, marginBottom: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {loggedArtist.flashbook_alias && (
@@ -312,12 +356,15 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
                 )}
               </div>
             )}
+            {postError && (
+              <p style={{ fontSize: 12, color: 'rgba(255,100,100,0.8)', marginTop: 6, marginBottom: 0 }}>{postError}</p>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{text.length}/300</span>
               <button
                 onClick={() => isLoggedIn ? submit() : (text.trim() ? setShowClientForm(true) : null)}
-                disabled={sending || !text.trim()}
-                style={{ fontSize: 12, fontWeight: 700, padding: '5px 14px', background: text.trim() ? '#efff42' : 'rgba(255,255,255,0.08)', color: text.trim() ? '#000' : 'rgba(255,255,255,0.3)', border: 'none', borderRadius: 20, cursor: text.trim() ? 'pointer' : 'default', transition: 'all 0.15s' }}>
+                disabled={sending || !text.trim() || sponsorBlocked}
+                style={{ fontSize: 12, fontWeight: 700, padding: '5px 14px', background: text.trim() && !sponsorBlocked ? '#efff42' : 'rgba(255,255,255,0.08)', color: text.trim() && !sponsorBlocked ? '#000' : 'rgba(255,255,255,0.3)', border: 'none', borderRadius: 20, cursor: text.trim() && !sponsorBlocked ? 'pointer' : 'default', transition: 'all 0.15s' }}>
                 {sending ? '...' : t('comunidad', 'publish', 'Publicar')}
               </button>
             </div>
@@ -445,18 +492,19 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, onOpenArtis
           return filtered.map((post: CommunityPost) => {
             const viewerCity = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
             const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
-            const sameCountry = !!(viewerCountry && post.country?.toLowerCase() === viewerCountry)
+            const sameCountry = !!(viewerCountry && matchesAnyCountry(post.country, viewerCountry))
             const nearby: 'full' | 'country' | false = sameCountry
               ? (viewerCity && post.city?.toLowerCase() === viewerCity ? 'full' : 'country')
               : false
-            const ownerId = loggedArtist?.id ?? loggedStudio?.slug ?? null
+            const ownerId = loggedArtist?.id ?? loggedStudio?.slug ?? loggedSponsor?.slug ?? null
             const isOwn = !!(ownerId && (
               (post.type === 'artist' && post.artist_id === ownerId) ||
-              (post.type === 'studio' && post.studio_slug === ownerId)
+              (post.type === 'studio' && post.studio_slug === ownerId) ||
+              (post.type === 'sponsor' && post.sponsor_slug === ownerId)
             ))
             return (
               <PostCard key={post.id} post={post} onShare={share}
-                onOpenArtist={onOpenArtist} onOpenStudio={onOpenStudio}
+                onOpenArtist={onOpenArtist} onOpenStudio={onOpenStudio} onOpenSponsor={onOpenSponsor}
                 onOpenAvailability={onOpenAvailability}
                 reporterId={ownerId}
                 nearby={nearby}
@@ -489,17 +537,18 @@ function CopyEmailButton({ email }: { email: string }) {
   return (
     <button
       onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(email).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(() => {}) }}
-      style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, color: '#efff42', cursor: 'pointer' }}>
+      style={{ fontSize: 11, fontWeight: 700, color: '#000', background: '#38bdf8', border: 'none', borderRadius: 20, padding: '4px 12px', cursor: 'pointer', letterSpacing: '0.04em' }}>
       {copied ? t('comunidad', 'copied', 'Copiado ✓') : t('comunidad', 'copy_email', 'Copiar email')}
     </button>
   )
 }
 
-function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onShare, reporterId, isOwn, onDelete }: {
+function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onOpenSponsor, onShare, reporterId, isOwn, onDelete }: {
   post: CommunityPost
   contact: { href: string } | null
   onOpenArtist: (id: string) => void
   onOpenStudio: (slug: string) => void
+  onOpenSponsor?: (slug: string) => void
   onShare: (p: CommunityPost) => void
   reporterId: string | null
   isOwn: boolean
@@ -507,14 +556,29 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onShare, reporter
 }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const [showCountries, setShowCountries] = useState(false)
+  const [contactPos, setContactPos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
+  const [countriesPos, setCountriesPos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
+  const contactBtnRef = useRef<HTMLButtonElement>(null)
+  const countriesBtnRef = useRef<HTMLButtonElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPos, setMenuPos] = useState<{ bottom: number; right: number } | null>(null)
   const menuBtnRef = useRef<HTMLButtonElement>(null)
   const autoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function popoverPos(btn: HTMLButtonElement | null): { top?: number; bottom?: number; left: number } | null {
+    if (!btn) return null
+    const rect = btn.getBoundingClientRect()
+    const left = Math.min(rect.left, window.innerWidth - 272)
+    return rect.top < window.innerHeight / 2
+      ? { top: rect.bottom + 8, left }
+      : { bottom: window.innerHeight - rect.top + 8, left }
+  }
   const [reported, setReported] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const isArtist = post.type === 'artist'
   const isStudio = post.type === 'studio'
+  const isSponsor = post.type === 'sponsor'
   const isClient = post.type === 'client'
 
   const showMenu = isOwn || (isClient && !!reporterId)
@@ -540,7 +604,8 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onShare, reporter
     <div style={{ marginTop: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <button
-          onClick={() => setOpen(v => !v)}
+          ref={contactBtnRef}
+          onClick={() => { if (open) { setOpen(false); return } setContactPos(popoverPos(contactBtnRef.current)); setOpen(true) }}
           style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: open ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.55)', fontSize: 12, padding: 0 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -551,6 +616,14 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onShare, reporter
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', padding: 0 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
+        {isSponsor && post.country && (
+          <button
+            ref={countriesBtnRef}
+            onClick={() => { if (showCountries) { setShowCountries(false); return } setCountriesPos(popoverPos(countriesBtnRef.current)); setShowCountries(true) }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: showCountries ? 'rgba(239,255,66,0.7)' : 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', padding: 0 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </button>
+        )}
         {showMenu && (
           <div style={{ marginLeft: 'auto' }}>
             <button
@@ -592,50 +665,88 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onShare, reporter
         )}
       </div>
 
-      {open && (
-        <div style={{ marginTop: 10, padding: '12px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)' }}>
-          {(isArtist || isStudio) && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
-                {t('comunidad', 'contact_from_profile', 'Contactá desde su perfil')}
+      {showCountries && post.country && countriesPos && (
+        <>
+          <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+          <div onClick={() => setShowCountries(false)} style={{ position: 'fixed', inset: 0, zIndex: 129 }} />
+          <div
+            style={{ position: 'fixed', ...countriesPos, zIndex: 130, width: 260, borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.9)', animation: 'slideUpModal 0.28s cubic-bezier(0.22,0.61,0.36,1)', overflow: 'hidden', background: 'rgba(18,18,20,0.92)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ padding: '16px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)', margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                {t('comunidad', 'find_us_in', 'Encontranos en')}
               </p>
-              <button
-                onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug) }}
-                style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, color: '#efff42', cursor: 'pointer' }}>
-                {t('comunidad', 'view_profile', 'Ver perfil →')}
-              </button>
+              <button onClick={() => setShowCountries(false)}
+                style={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
-          )}
-          {isClient && contact && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
-                {t('comunidad', 'contact_here', 'Contactame aquí')}
-              </p>
-              {post.contact_type === 'email'
-                ? <CopyEmailButton email={post.contact!} />
-                : <a href={contact.href} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                    style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, color: '#efff42', textDecoration: 'none' }}>
-                    {post.contact_type === 'whatsapp' ? 'WhatsApp' : 'Instagram'}
-                  </a>
-              }
+            <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, margin: '0 10px 10px', overflow: 'hidden' }}>
+              {post.country.split(',').map(v => v.trim()).filter(Boolean).map(c => (
+                <div key={c} style={{ padding: '6px 18px' }}>
+                  <span style={{ fontSize: 15, fontWeight: 300, color: 'rgba(255,255,255,0.85)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{c}</span>
+                </div>
+              ))}
             </div>
-          )}
-          {isClient && !contact && (
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
-              {t('comunidad', 'no_contact', 'Este usuario no dejó contacto.')}
-            </p>
-          )}
-        </div>
+          </div>
+        </>
+      )}
+
+      {open && contactPos && (
+        <>
+          <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 129 }} />
+          <div
+            style={{ position: 'fixed', ...contactPos, zIndex: 130, width: 260, borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.9)', animation: 'slideUpModal 0.28s cubic-bezier(0.22,0.61,0.36,1)', overflow: 'hidden', background: 'rgba(18,18,20,0.92)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ padding: '16px 18px 10px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {isArtist ? post.artist_name : isStudio ? post.studio_name : isSponsor ? post.sponsor_name : post.client_name}
+                </p>
+                <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.45)', margin: '2px 0 0', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                  {isClient ? t('comunidad', 'contact_here', 'Contactame aquí') : t('comunidad', 'contact_from_profile', 'Contactá desde su perfil')}
+                </p>
+              </div>
+              <button onClick={() => setOpen(false)}
+                style={{ flexShrink: 0, fontSize: 16, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            </div>
+            <div style={{ padding: '0 18px 18px' }}>
+              {(isArtist || isStudio || isSponsor) && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+                  <button
+                    onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug); else if (isSponsor && post.sponsor_id) onOpenSponsor?.(post.sponsor_id) }}
+                    style={{ fontSize: 11, fontWeight: 700, color: '#000', background: '#38bdf8', border: 'none', borderRadius: 20, padding: '4px 12px', cursor: 'pointer', letterSpacing: '0.04em' }}>
+                    {t('comunidad', 'view_profile', 'Ver perfil')}
+                  </button>
+                </div>
+              )}
+              {isClient && contact && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+                  {post.contact_type === 'email'
+                    ? <CopyEmailButton email={post.contact!} />
+                    : <a href={contact.href} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        style={{ fontSize: 11, fontWeight: 700, color: '#000', background: '#38bdf8', borderRadius: 20, padding: '4px 12px', cursor: 'pointer', letterSpacing: '0.04em', textDecoration: 'none' }}>
+                        {post.contact_type === 'whatsapp' ? 'WhatsApp' : 'Instagram'}
+                      </a>
+                  }
+                </div>
+              )}
+              {isClient && !contact && (
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0, textAlign: 'center' }}>
+                  {t('comunidad', 'no_contact', 'Este usuario no dejó contacto.')}
+                </p>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   )
 }
 
-function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenAvailability, reporterId, nearby, isOwn, highlighted, nowLabel, onDelete }: {
+function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, reporterId, nearby, isOwn, highlighted, nowLabel, onDelete }: {
   post: CommunityPost
   onShare: (p: CommunityPost) => void
   onOpenArtist: (slug: string) => void
   onOpenStudio: (slug: string) => void
+  onOpenSponsor?: (slug: string) => void
   onOpenAvailability?: (artist_id: string, artist_name: string, artist_photo: string | null) => void
   reporterId: string | null
   nearby: 'full' | 'country' | false
@@ -647,6 +758,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenAvailabilit
   const { t } = useTranslation()
   const isArtist = post.type === 'artist'
   const isStudio = post.type === 'studio'
+  const isSponsor = post.type === 'sponsor'
   const isClient = post.type === 'client'
   const isAdmin  = post.type === 'admin'
   const contact  = contactLabel(post.contact_type, post.contact)
@@ -663,8 +775,8 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenAvailabilit
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
 
         <div
-          onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug) }}
-          style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: isAdmin ? '#000' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: isArtist ? '2px solid #efff42' : isStudio ? '2px solid #4dcfff' : isAdmin ? '2px solid #efff42' : 'none', cursor: (isArtist || isStudio) ? 'pointer' : 'default' }}>
+          onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug); else if (isSponsor && post.sponsor_id) onOpenSponsor?.(post.sponsor_id) }}
+          style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: isAdmin || isSponsor ? '#000' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: isArtist ? '2px solid #efff42' : isStudio ? '2px solid #4dcfff' : isSponsor ? '2px solid #c084fc' : isAdmin ? '2px solid #efff42' : 'none', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default' }}>
           {isAdmin
             /* eslint-disable-next-line @next/next/no-img-element */
             ? <img src="/icon-desktop-512.png" alt="Flashttoo" style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
@@ -674,6 +786,9 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenAvailabilit
             : isStudio && post.studio_logo
             /* eslint-disable-next-line @next/next/no-img-element */
             ? <img src={post.studio_logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : isSponsor && post.sponsor_logo
+            /* eslint-disable-next-line @next/next/no-img-element */
+            ? <img src={post.sponsor_logo} alt="" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
             : <span>{post.client_emoji ?? '🙂'}</span>}
         </div>
 
@@ -681,9 +796,9 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenAvailabilit
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
               <span
-                style={{ fontSize: 13, fontWeight: 700, color: '#fff', cursor: (isArtist || isStudio) ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug) }}>
-                {isAdmin ? 'Flashttoo' : isArtist ? post.artist_name : isStudio ? post.studio_name : post.client_name}
+                style={{ fontSize: 13, fontWeight: 700, color: '#fff', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug); else if (isSponsor && post.sponsor_id) onOpenSponsor?.(post.sponsor_id) }}>
+                {isAdmin ? 'Flashttoo' : isArtist ? post.artist_name : isStudio ? post.studio_name : isSponsor ? post.sponsor_name : post.client_name}
               </span>
               {(isArtist || isStudio || isAdmin) && (
                 <span style={{ fontSize: 9, fontWeight: 700, color: isAdmin ? '#efff42' : isArtist ? 'rgba(239,255,66,0.55)' : 'rgba(100,200,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
@@ -693,7 +808,12 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenAvailabilit
             </div>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', flexShrink: 0, marginLeft: 8 }}>{timeAgo(post.created_at, nowLabel)}</span>
           </div>
-          {!isAdmin && (post.city || post.country) && (
+          {isSponsor && post.sponsor_description && (
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>
+              {post.sponsor_description}
+            </p>
+          )}
+          {!isAdmin && !isSponsor && (post.city || post.country) && (
             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>
               {[post.city, post.country].filter(Boolean).join(', ')}
             </p>
@@ -731,7 +851,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenAvailabilit
                 </button>
               </div>
             )
-            : <ReplyRow post={post} contact={contact} onOpenArtist={onOpenArtist} onOpenStudio={onOpenStudio} onShare={onShare} reporterId={reporterId} isOwn={isOwn} onDelete={onDelete} />
+            : <ReplyRow post={post} contact={contact} onOpenArtist={onOpenArtist} onOpenStudio={onOpenStudio} onOpenSponsor={onOpenSponsor} onShare={onShare} reporterId={reporterId} isOwn={isOwn} onDelete={onDelete} />
           }
         </div>
       </div>

@@ -50,5 +50,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ type: 'studio', studio, access_token, refresh_token: data.session?.refresh_token })
   }
 
+  // Check sponsors (marcas)
+  let { data: sponsor } = await sbAdmin.from('sponsors_v2')
+    .select('id, name, slug, auth_email, user_id, active, logo_url, expires_at')
+    .eq('user_id', data.user.id)
+    .single()
+
+  if (!sponsor) {
+    const { data: byEmail } = await sbAdmin.from('sponsors_v2')
+      .select('id, name, slug, auth_email, user_id, active, logo_url, expires_at')
+      .eq('auth_email', email.toLowerCase())
+      .single()
+    sponsor = byEmail
+  }
+
+  if (sponsor) {
+    return NextResponse.json({ type: 'sponsor', sponsor, access_token, refresh_token: data.session?.refresh_token })
+  }
+
   return NextResponse.json({ error: 'No encontramos un perfil vinculado a este mail' }, { status: 404 })
 }

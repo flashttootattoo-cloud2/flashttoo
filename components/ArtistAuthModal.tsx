@@ -6,14 +6,16 @@ import { useTranslation } from '@/contexts/TranslationContext'
 type View = 'menu' | 'login' | 'register' | 'registered' | 'forgot' | 'forgot_sent' | 'terms' | 'privacy'
 
 type StudioSession = { slug: string; name: string; auth_email: string | null; logo_url: string | null; visible: boolean }
+type SponsorSession = { slug: string; name: string; auth_email: string | null; logo_url: string | null; active: boolean; expires_at: string | null }
 
 type Props = {
   onClose: () => void
   onLoggedIn: (artist: { id: string; name: string; photo_url: string; edit_key: string; auth_email?: string | null; access_token?: string; refresh_token?: string }) => void
   onStudioLoggedIn?: (studio: StudioSession, access_token: string, refresh_token?: string) => void
+  onSponsorLoggedIn?: (sponsor: SponsorSession, access_token: string, refresh_token?: string) => void
 }
 
-export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn }: Props) {
+export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn, onSponsorLoggedIn }: Props) {
   const { t } = useTranslation()
   const [view, setView] = useState<View>('menu')
   const [email, setEmail] = useState('')
@@ -62,6 +64,10 @@ export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn 
     if (!r.ok) { setError(d.error); return }
     if (d.type === 'studio') {
       onStudioLoggedIn?.(d.studio, d.access_token, d.refresh_token)
+      return
+    }
+    if (d.type === 'sponsor') {
+      onSponsorLoggedIn?.(d.sponsor, d.access_token, d.refresh_token)
       return
     }
     onLoggedIn({ ...d.artist, access_token: d.access_token, refresh_token: d.refresh_token })

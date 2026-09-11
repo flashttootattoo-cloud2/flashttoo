@@ -51,7 +51,7 @@ type SponsorAdmin = {
 }
 
 type SponsorV2Admin = {
-  id: string; name: string; logo_url: string; bg_image_url: string | null
+  id: string; name: string; logo_url: string | null; bg_image_url: string | null
   detail_logo_url: string | null; detail_logo_mode: string | null
   description: string | null; link: string | null; level: string
   city: string | null; country: string | null; active: boolean
@@ -59,6 +59,7 @@ type SponsorV2Admin = {
   created_at: string; notes: string | null; clicks: number; logo_scale: number | null
   grid_logo_scale: number | null; whatsapp: string | null
   bio: string | null; instagram: string | null; bg_image_dark: number | null; logo_bg_color: string | null
+  slug: string | null; auth_email: string | null; linked_from: string | null
 }
 
 type Convention = {
@@ -1186,6 +1187,11 @@ export default function AdminPage() {
   const [bannerGap, setBannerGap]             = useState(8)
   const [savingBannerGap, setSavingBannerGap] = useState(false)
   const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', bio: '', instagram: '', whatsapp: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
+  const [editingPendingId, setEditingPendingId] = useState<string | null>(null)
+  const [pendingNameDraft, setPendingNameDraft] = useState('')
+  const [savingPendingName, setSavingPendingName] = useState(false)
+  const [linkTargetId, setLinkTargetId] = useState('')
+  const [linkingPending, setLinkingPending] = useState(false)
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
   const [sponsorV2LogoPreview, setSponsorV2LogoPreview] = useState<string | null>(null)
   const [sponsorV2ProfileLogo, setSponsorV2ProfileLogo] = useState<File | null>(null)
@@ -2976,6 +2982,172 @@ export default function AdminPage() {
           // ── SPONSORS V2 ───────────────────────────────────────────────────────
           <div className="flex flex-col gap-6" style={{ maxWidth: 600 }}>
 
+            {/* Link de registro para marcas */}
+            <div className="rounded-xl p-5 flex flex-col gap-3"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>REGISTRO DE MARCAS</p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+                Las marcas se registran solas con email y contraseña. Compartí este link.
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText('https://flashttoo.com/registrar-marca').catch(() => {})
+                  setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000)
+                }}
+                className="self-start font-bold text-sm py-2 px-5 rounded-full"
+                style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : '#efff42', color: keyCopied ? '#4ade80' : '#000', border: keyCopied ? '1px solid rgba(74,222,128,0.4)' : 'none', transition: 'all 0.2s' }}>
+                {keyCopied ? 'Copiado ✓' : 'Copiar link de registro'}
+              </button>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>flashttoo.com/registrar-marca</p>
+            </div>
+
+            {/* Registros pendientes — marcas que se registraron solas por el link */}
+            {sponsorsV2.some(sp => sp.auth_email) && (
+              <div className="rounded-xl p-5 flex flex-col gap-2"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>REGISTROS PENDIENTES</p>
+                <div className="flex flex-col">
+                  {sponsorsV2.filter(sp => sp.auth_email).map(sp => (
+                    <div key={sp.id} className="flex flex-col gap-2 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="shrink-0 rounded-lg flex items-center justify-center overflow-hidden"
+                            style={{ width: 44, height: 32, background: '#000', border: '1px solid rgba(255,255,255,0.07)' }}>
+                            {sp.logo_url ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={sp.logo_url} alt="" style={{ maxHeight: 24, maxWidth: 40, objectFit: 'contain' }} />
+                            ) : (
+                              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>Sin logo</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>{sp.auth_email}</p>
+                            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>{sp.name}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (editingPendingId === sp.id) { setEditingPendingId(null); return }
+                            setEditingPendingId(sp.id); setPendingNameDraft(sp.name); setLinkTargetId(sp.linked_from || '')
+                          }}
+                          className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg"
+                          style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
+                          {editingPendingId === sp.id ? 'Cancelar' : 'Editar'}
+                        </button>
+                      </div>
+                      {editingPendingId === sp.id && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={pendingNameDraft}
+                            onChange={e => setPendingNameDraft(e.target.value)}
+                            placeholder="Nombre del perfil"
+                            className="flex-1 px-3 py-2 rounded-lg text-sm"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+                          <button
+                            disabled={savingPendingName || !pendingNameDraft.trim()}
+                            onClick={async () => {
+                              setSavingPendingName(true)
+                              try {
+                                const r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
+                                  method: 'PATCH',
+                                  headers: { ...H(pass), 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ name: pendingNameDraft.trim() }),
+                                })
+                                const d = await r.json()
+                                if (r.ok) {
+                                  setSponsorsV2(prev => prev.map(x => x.id === sp.id ? d.sponsor : x))
+                                  setEditingPendingId(null)
+                                }
+                              } finally { setSavingPendingName(false) }
+                            }}
+                            className="shrink-0 text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
+                            style={{ background: '#efff42', color: '#000' }}>
+                            {savingPendingName ? 'Guardando...' : 'Guardar'}
+                          </button>
+                        </div>
+                      )}
+                      {editingPendingId === sp.id && (
+                        <div className="flex flex-col gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                            O vincular con una marca ya cargada (copia su logo, bio, redes, etc.)
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={linkTargetId}
+                              onChange={e => setLinkTargetId(e.target.value)}
+                              className="flex-1 px-3 py-2 rounded-lg text-sm"
+                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }}>
+                              <option value="">Elegir marca...</option>
+                              {sponsorsV2.filter(s => !s.auth_email).map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                              ))}
+                            </select>
+                            {(() => {
+                              const preview = sponsorsV2.find(s => s.id === linkTargetId)
+                              if (!preview) return null
+                              return (
+                                <div className="shrink-0 rounded-lg flex items-center justify-center overflow-hidden"
+                                  style={{ width: 44, height: 32, background: '#000', border: '1px solid rgba(239,255,66,0.3)' }}>
+                                  {preview.logo_url ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img src={preview.logo_url} alt="" style={{ maxHeight: 24, maxWidth: 40, objectFit: 'contain' }} />
+                                  ) : (
+                                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>Sin logo</span>
+                                  )}
+                                </div>
+                              )
+                            })()}
+                            <button
+                              disabled={linkingPending || !linkTargetId}
+                              onClick={async () => {
+                                const source = sponsorsV2.find(s => s.id === linkTargetId)
+                                if (!source) return
+                                setLinkingPending(true)
+                                try {
+                                  const r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
+                                    method: 'PATCH',
+                                    headers: { ...H(pass), 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      name: source.name, description: source.description, bio: source.bio,
+                                      instagram: source.instagram, link: source.link, whatsapp: source.whatsapp,
+                                      level: source.level, city: source.city, country: source.country,
+                                      keep_color: source.keep_color, logo_url: source.logo_url,
+                                      bg_image_url: source.bg_image_url, bg_image_dark: source.bg_image_dark,
+                                      logo_bg_color: source.logo_bg_color, detail_logo_url: source.detail_logo_url,
+                                      detail_logo_mode: source.detail_logo_mode, logo_scale: source.logo_scale,
+                                      grid_logo_scale: source.grid_logo_scale,
+                                      starts_at: source.starts_at, expires_at: source.expires_at,
+                                      active: true, linked_from: source.id,
+                                    }),
+                                  })
+                                  const d = await r.json()
+                                  if (r.ok) {
+                                    // Desactivar la marca original para que no quede duplicada en banner/grilla
+                                    await fetch(`/api/admin/sponsors-v2/${source.id}`, {
+                                      method: 'PATCH',
+                                      headers: { ...H(pass), 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ active: false }),
+                                    })
+                                    setSponsorsV2(prev => prev.map(x => x.id === sp.id ? d.sponsor : x.id === source.id ? { ...x, active: false } : x))
+                                    setEditingPendingId(null); setLinkTargetId('')
+                                  }
+                                } finally { setLinkingPending(false) }
+                              }}
+                              className="shrink-0 text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
+                              style={{ background: '#efff42', color: '#000' }}>
+                              {sp.linked_from
+                                ? (linkingPending ? 'Guardando...' : 'Guardar y vincular')
+                                : (linkingPending ? 'Vinculando...' : 'Vincular')}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Guía de proveedores */}
             <div className="rounded-xl p-4 flex items-center justify-between gap-4"
               style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.15)' }}>
@@ -3289,10 +3461,10 @@ export default function AdminPage() {
 
             {/* Lista sponsors v2 */}
             <div className="flex flex-col gap-3">
-              {sponsorsV2.length === 0 && (
+              {sponsorsV2.filter(sp => !sp.auth_email).length === 0 && (
                 <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.1)' }}>Sin marcas</p>
               )}
-              {sponsorsV2.map(sp => {
+              {sponsorsV2.filter(sp => !sp.auth_email).map(sp => {
                 const now = new Date()
                 const exp = sp.expires_at ? new Date(sp.expires_at) : null
                 const expired = exp && exp < now
@@ -3308,8 +3480,12 @@ export default function AdminPage() {
                       <div className="shrink-0 flex flex-col gap-1">
                         <div className="rounded-lg flex items-center justify-center overflow-hidden"
                           style={{ width: 80, height: 32, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={sp.logo_url} alt={sp.name} style={{ maxHeight: 26, maxWidth: 72, objectFit: 'contain', filter: sp.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sp.keep_color ? 1 : 0.6 }} />
+                          {sp.logo_url ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={sp.logo_url} alt={sp.name} style={{ maxHeight: 26, maxWidth: 72, objectFit: 'contain', filter: sp.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sp.keep_color ? 1 : 0.6 }} />
+                          ) : (
+                            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>Sin logo</span>
+                          )}
                         </div>
                         {sp.detail_logo_url && (
                           <div className="rounded-lg flex items-center justify-center overflow-hidden"
@@ -3327,6 +3503,11 @@ export default function AdminPage() {
                             {levelLabel}
                           </span>
                         </div>
+                        {sp.auth_email && (
+                          <p className="text-xs" style={{ color: 'rgba(239,255,66,0.6)' }}>
+                            {sp.auth_email}
+                          </p>
+                        )}
                         {sp.description && (
                           <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
                             {sp.description}

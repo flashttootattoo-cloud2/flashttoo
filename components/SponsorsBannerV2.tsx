@@ -255,6 +255,21 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Abrir el perfil de un sponsor desde afuera (ej. tocando su nombre en la comunidad)
+  useEffect(() => {
+    function onOpenSponsor(e: Event) {
+      const slug = (e as CustomEvent<string>).detail
+      if (!slug) return
+      const match = allRef.current.find(s => s.id === slug) || allRef.current.find(s => slugify(s.name) === slug)
+      if (!match) return
+      setSelectedId(match.id)
+      history.pushState({ sv2: 'detail' }, '')
+      histDepthRef.current++
+    }
+    window.addEventListener('open-sponsor', onOpenSponsor)
+    return () => window.removeEventListener('open-sponsor', onOpenSponsor)
+  }, [])
+
   // Re-filtrar con debounce cuando cambia la búsqueda, sin re-mezclar
   useEffect(() => {
     if (!allRef.current.length) return
