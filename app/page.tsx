@@ -14,6 +14,7 @@ import { useTranslation } from '@/contexts/TranslationContext'
 import { renderPhraseContent } from '@/components/PhraseContent'
 import CommunityPanel from '@/components/CommunityPanel'
 import InvitesModal from '@/components/InvitesModal'
+import SponsorOffersModal from '@/components/SponsorOffersModal'
 
 function BioText({ text, style }: { text: string; style?: React.CSSProperties }) {
   const parts = text.split(/(@[a-zA-Z0-9_.]{1,30})/g)
@@ -262,6 +263,7 @@ export default function Home() {
   const sponsorDeepLinkHandled = useRef(false)
   const [sponsorSubscriptionOpen, setSponsorSubscriptionOpen] = useState(false)
   const [studioSubscriptionOpen, setStudioSubscriptionOpen] = useState(false)
+  const [sponsorOffersOpen, setSponsorOffersOpen] = useState(false)
   const [showFlashDayModal, setShowFlashDayModal] = useState(false)
   const [fdFile, setFdFile] = useState<File | null>(null)
   const [fdPreview, setFdPreview] = useState<string | null>(null)
@@ -1371,6 +1373,11 @@ export default function Home() {
                       </button>
                     )}
                     <button
+                      onClick={() => { setSponsorMenuOpen(false); setSponsorOffersOpen(true) }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('sponsor_menu', 'offers', 'Pedido Flash')}
+                    </button>
+                    <button
                       onClick={() => {
                         try { localStorage.removeItem('flashttoo_sponsor_session') } catch {}
                         setLoggedSponsor(null)
@@ -2435,6 +2442,22 @@ export default function Home() {
             })
           }}
           onClose={() => setInvitesModalOpen(false)}
+        />
+      )}
+
+      {sponsorOffersOpen && loggedSponsor && (
+        <SponsorOffersModal
+          accessToken={loggedSponsor.access_token}
+          refreshToken={loggedSponsor.refresh_token}
+          onTokenRefreshed={tokens => {
+            setLoggedSponsor(prev => {
+              if (!prev) return prev
+              const updated = { ...prev, access_token: tokens.access_token, refresh_token: tokens.refresh_token }
+              try { localStorage.setItem('flashttoo_sponsor_session', JSON.stringify(updated)) } catch {}
+              return updated
+            })
+          }}
+          onClose={() => setSponsorOffersOpen(false)}
         />
       )}
 

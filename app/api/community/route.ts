@@ -86,6 +86,16 @@ export async function POST(req: NextRequest) {
     // País(es) de venta de la marca — ya vienen separados por coma desde su perfil,
     // se usan tal cual para la cercanía, sin que la marca los tipee en cada mensaje
     insert.country = sponsor.country || null
+
+    // Pedido Flash: adjunta una oferta ya guardada por la marca (elegida en el composer)
+    if (body.offer_id) {
+      const { data: offer } = await sb().from('sponsor_offers').select('sponsor_id, title, whatsapp, items').eq('id', body.offer_id).single()
+      if (offer && offer.sponsor_id === sponsor.id && Array.isArray(offer.items) && offer.items.length > 0) {
+        insert.offer_title = offer.title
+        insert.offer_items = offer.items
+        insert.sponsor_whatsapp = offer.whatsapp || null
+      }
+    }
   } else {
     if (!body.client_name?.trim()) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 })
     insert.client_name  = String(body.client_name).trim().slice(0, 60)

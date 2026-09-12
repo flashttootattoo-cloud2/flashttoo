@@ -27,6 +27,9 @@ type CommunityPost = {
   sponsor_logo: string | null
   sponsor_slug: string | null
   sponsor_description: string | null
+  sponsor_whatsapp: string | null
+  offer_title: string | null
+  offer_items: { name: string; price: number }[] | null
   created_at: string
 }
 
@@ -44,6 +47,15 @@ function timeAgo(iso: string, nowLabel = 'ahora'): string {
   if (diff < 3600) return `${Math.floor(diff / 60)}m`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`
   return `${Math.floor(diff / 86400)}d`
+}
+
+function popoverPos(btn: HTMLButtonElement | null, width = 260): { top?: number; bottom?: number; left: number } | null {
+  if (!btn) return null
+  const rect = btn.getBoundingClientRect()
+  const left = Math.min(rect.left, window.innerWidth - width - 12)
+  return rect.top < window.innerHeight / 2
+    ? { top: rect.bottom + 8, left }
+    : { bottom: window.innerHeight - rect.top + 8, left }
 }
 
 function contactLabel(type: string | null, val: string | null): { href: string } | null {
@@ -92,6 +104,10 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   const [filterCountry, setFilterCountry] = useState('')
   const [withFlashbook, setWithFlashbook] = useState(false)
   const [withAvailability, setWithAvailability] = useState(false)
+  const [showOfferPicker, setShowOfferPicker] = useState(false)
+  const [sponsorOffers, setSponsorOffers] = useState<{ id: string; title: string; items: { name: string; price: number }[] }[] | null>(null)
+  const [loadingOffers, setLoadingOffers] = useState(false)
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
   const [loggedHasFutureSlots, setLoggedHasFutureSlots] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -242,7 +258,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
       } else if (loggedStudio) {
         body = { ...body, type: 'studio', studio_slug: loggedStudio.slug, access_token: loggedStudio.access_token, city: loggedStudio.city || studioLocation?.city || null, country: loggedStudio.country || studioLocation?.country || null }
       } else if (loggedSponsor) {
-        body = { ...body, type: 'sponsor', sponsor_slug: loggedSponsor.slug, access_token: loggedSponsor.access_token }
+        body = { ...body, type: 'sponsor', sponsor_slug: loggedSponsor.slug, access_token: loggedSponsor.access_token, offer_id: selectedOfferId || undefined }
       } else {
         if (!clientName.trim()) return
         if (!clientCanPost()) return
@@ -269,6 +285,8 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
         setText('')
         setWithFlashbook(false)
         setWithAvailability(false)
+        setShowOfferPicker(false)
+        setSelectedOfferId(null)
         setClientName(''); setClientCity(''); setClientCountry(''); setContact('')
         setShowClientForm(false)
       } else if (!r.ok) {
@@ -357,6 +375,45 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
                     style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, border: `1px solid ${withAvailability ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: withAvailability ? 'rgba(239,255,66,0.1)' : 'transparent', color: withAvailability ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
                     {withAvailability ? t('comunidad','turnos_adjuntos','Turnos adjuntos') : t('comunidad','adjuntar_turnos','+ Adjuntar turnos libres')}
                   </button>
+                )}
+              </div>
+            )}
+            {loggedSponsor && !sponsorBlocked && (
+              <div style={{ marginTop: 8 }}>
+                <button type="button" onClick={async () => {
+                    const next = !showOfferPicker
+                    setShowOfferPicker(next)
+                    if (next && sponsorOffers === null) {
+                      setLoadingOffers(true)
+                      try {
+                        const r = await fetch(`/api/sponsor-offers?access_token=${encodeURIComponent(loggedSponsor.access_token)}`)
+                        const d = await r.json()
+                        setSponsorOffers(r.ok ? (d.offers ?? []) : [])
+                      } catch { setSponsorOffers([]) } finally { setLoadingOffers(false) }
+                    }
+                  }}
+                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, border: `1px solid ${selectedOfferId ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: selectedOfferId ? 'rgba(239,255,66,0.1)' : 'transparent', color: selectedOfferId ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
+                  {selectedOfferId ? `⚡ ${sponsorOffers?.find(o => o.id === selectedOfferId)?.title ?? t('comunidad', 'offer_title', 'Pedido Flash')}` : t('comunidad', 'attach_offer', '+ Agregar Pedido Flash')}
+                </button>
+                {showOfferPicker && (
+                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {loadingOffers ? (
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{t('offers', 'loading', 'Cargando...')}</p>
+                    ) : !sponsorOffers || sponsorOffers.length === 0 ? (
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
+                        {t('comunidad', 'no_offers_hint', 'Todavía no armaste ninguna oferta. Creá una desde tu menú → Pedido Flash.')}
+                      </p>
+                    ) : (
+                      sponsorOffers.map(offer => (
+                        <button key={offer.id} type="button"
+                          onClick={() => { setSelectedOfferId(prev => prev === offer.id ? null : offer.id); setShowOfferPicker(false) }}
+                          style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, padding: '8px 10px', borderRadius: 8, border: `1px solid ${selectedOfferId === offer.id ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.08)'}`, background: selectedOfferId === offer.id ? 'rgba(239,255,66,0.08)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', textAlign: 'left' }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{offer.title}</span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{offer.items.map(it => it.name).join(' · ')}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -535,6 +592,59 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   )
 }
 
+function OfferWidget({ items, whatsapp }: { items: { name: string; price: number }[]; whatsapp: string | null }) {
+  const { t } = useTranslation()
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+
+  const toggle = (i: number) => setSelected(prev => {
+    const next = new Set(prev)
+    next.has(i) ? next.delete(i) : next.add(i)
+    return next
+  })
+
+  const total = items.reduce((sum, it, i) => selected.has(i) ? sum + it.price : sum, 0)
+  const fmt = (n: number) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 })
+
+  const waHref = (() => {
+    if (!whatsapp || selected.size === 0) return null
+    const lines = items.filter((_, i) => selected.has(i)).map(it => `- ${it.name} ($${fmt(it.price)})`)
+    const text = `${t('comunidad', 'offer_wa_intro', 'Hola! Quiero pedir esto de tu Pedido Flash')}:\n${lines.join('\n')}\n${t('comunidad', 'offer_wa_total', 'Total')}: $${fmt(total)}`
+    return `https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`
+  })()
+
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, margin: '0 10px 10px', overflow: 'hidden' }}>
+      <div>
+        {items.map((it, i) => (
+          <button key={i} type="button" onClick={() => toggle(i)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderBottom: i < items.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', cursor: 'pointer', textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${selected.has(i) ? '#efff42' : 'rgba(255,255,255,0.25)'}`, background: selected.has(i) ? '#efff42' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {selected.has(i) && <span style={{ fontSize: 10, color: '#000', fontWeight: 900, lineHeight: 1 }}>✓</span>}
+              </div>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</span>
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.6)', flexShrink: 0, marginLeft: 8 }}>${fmt(it.price)}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'rgba(255,255,255,0.02)' }}>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{t('comunidad', 'offer_wa_total', 'Total')}: <strong style={{ color: '#fff' }}>${fmt(total)}</strong></span>
+        {waHref ? (
+          <a href={waHref} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+            style={{ fontSize: 11, fontWeight: 700, color: '#000', background: '#38bdf8', borderRadius: 20, padding: '5px 12px', textDecoration: 'none', letterSpacing: '0.02em' }}>
+            {t('comunidad', 'offer_wa_btn', 'Pedir por WhatsApp')}
+          </a>
+        ) : (
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>
+            {selected.size === 0 ? t('comunidad', 'offer_select_hint', 'Elegí algo') : t('comunidad', 'offer_no_wa', 'Sin WhatsApp')}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function CopyEmailButton({ email }: { email: string }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
@@ -569,15 +679,6 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onOpenSponsor, on
   const [menuPos, setMenuPos] = useState<{ bottom: number; right: number } | null>(null)
   const menuBtnRef = useRef<HTMLButtonElement>(null)
   const autoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  function popoverPos(btn: HTMLButtonElement | null): { top?: number; bottom?: number; left: number } | null {
-    if (!btn) return null
-    const rect = btn.getBoundingClientRect()
-    const left = Math.min(rect.left, window.innerWidth - 272)
-    return rect.top < window.innerHeight / 2
-      ? { top: rect.bottom + 8, left }
-      : { bottom: window.innerHeight - rect.top + 8, left }
-  }
   const [reported, setReported] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const isArtist = post.type === 'artist'
@@ -766,6 +867,9 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
   const isClient = post.type === 'client'
   const isAdmin  = post.type === 'admin'
   const contact  = contactLabel(post.contact_type, post.contact)
+  const [showOffer, setShowOffer] = useState(false)
+  const [offerPos, setOfferPos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
+  const offerBtnRef = useRef<HTMLButtonElement>(null)
 
   return (
     <div id={`cpost-${post.id}`} style={{
@@ -826,6 +930,42 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             {post.content}
           </p>
+
+          {isSponsor && post.offer_items && post.offer_items.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <button type="button" ref={offerBtnRef}
+                onClick={() => { if (showOffer) { setShowOffer(false); return } setOfferPos(popoverPos(offerBtnRef.current, 350)); setShowOffer(true) }}
+                style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', background: 'rgba(239,255,66,0.1)', border: 'none', borderRadius: 20, color: '#efff42', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                ⚡ {post.offer_title || t('comunidad', 'offer_title', 'Pedido Flash')}
+              </button>
+            </div>
+          )}
+
+          {showOffer && post.offer_items && offerPos && (
+            <>
+              <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+              <div onClick={() => setShowOffer(false)} style={{ position: 'fixed', inset: 0, zIndex: 129 }} />
+              <div
+                style={{ position: 'fixed', ...offerPos, zIndex: 130, width: 350, borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.9)', animation: 'slideUpModal 0.28s cubic-bezier(0.22,0.61,0.36,1)', overflow: 'hidden', background: 'rgba(18,18,20,0.92)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ padding: '16px 18px 10px', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    {post.sponsor_logo && (
+                      <div style={{ width: 22, height: 16, borderRadius: 4, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={post.sponsor_logo} alt="" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
+                      </div>
+                    )}
+                    <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                      ⚡ {post.offer_title || t('comunidad', 'offer_title', 'Pedido Flash')}
+                    </p>
+                  </div>
+                  <button onClick={() => setShowOffer(false)}
+                    style={{ flexShrink: 0, fontSize: 16, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                </div>
+                <OfferWidget items={post.offer_items} whatsapp={post.sponsor_whatsapp} />
+              </div>
+            </>
+          )}
 
           {(post.show_flashbook && post.flashbook_alias) || post.show_availability ? (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
