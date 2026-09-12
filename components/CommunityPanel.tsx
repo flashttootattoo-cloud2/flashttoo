@@ -56,19 +56,20 @@ function contactLabel(type: string | null, val: string | null): { href: string }
 
 type Props = {
   loggedArtist: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null } | null
-  loggedStudio: { slug: string; name: string; logo_url: string | null; city?: string; country?: string } | null
+  loggedStudio: { slug: string; name: string; logo_url: string | null; visible?: boolean; expires_at?: string | null; access_token?: string; refresh_token?: string; city?: string; country?: string } | null
   loggedSponsor?: { slug: string; name: string; logo_url: string | null; active: boolean; expires_at?: string | null; access_token: string; refresh_token?: string } | null
   onOpenArtist: (id: string) => void
   onOpenStudio: (slug: string) => void
   onOpenSponsor?: (slug: string) => void
   onOpenAvailability?: (artist_id: string, artist_name: string, artist_photo: string | null) => void
   onSponsorTokenRefreshed?: (tokens: { access_token: string; refresh_token?: string }) => void
+  onStudioTokenRefreshed?: (tokens: { access_token: string; refresh_token?: string }) => void
   onClose?: () => void
   lang?: string
   highlightPostId?: string
 }
 
-export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onClose, lang = 'es', highlightPostId }: Props) {
+export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onStudioTokenRefreshed, onClose, lang = 'es', highlightPostId }: Props) {
   const { t } = useTranslation()
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [loading, setLoading] = useState(true)
@@ -198,6 +199,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
 
   const isLoggedIn = !!(loggedArtist || loggedStudio || loggedSponsor)
   const sponsorBlocked = !!loggedSponsor && (!loggedSponsor.active || (!!loggedSponsor.expires_at && new Date(loggedSponsor.expires_at) < new Date()))
+  const studioBlocked = !!loggedStudio && (loggedStudio.visible === false || (!!loggedStudio.expires_at && new Date(loggedStudio.expires_at) < new Date()))
 
   const CLIENT_KEY = 'community_last_post'
   const clientCanPost = () => {
@@ -230,7 +232,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
 
   const submit = async () => {
     if (!text.trim()) return
-    if (sponsorBlocked) return
+    if (sponsorBlocked || studioBlocked) return
     setSending(true)
     setPostError('')
     try {
@@ -238,7 +240,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
       if (loggedArtist) {
         body = { ...body, type: 'artist', artist_id: loggedArtist.id, artist_name: loggedArtist.name, artist_photo: loggedArtist.photo_url, artist_slug: loggedArtist.slug || loggedArtist.id, city: loggedArtist.city || artistLocation?.city || null, country: loggedArtist.country || artistLocation?.country || null, show_flashbook: withFlashbook || null, flashbook_alias: withFlashbook ? (loggedArtist.flashbook_alias || null) : null, show_availability: withAvailability || null }
       } else if (loggedStudio) {
-        body = { ...body, type: 'studio', studio_id: loggedStudio.slug, studio_name: loggedStudio.name, studio_logo: loggedStudio.logo_url, studio_slug: loggedStudio.slug, city: loggedStudio.city || studioLocation?.city || null, country: loggedStudio.country || studioLocation?.country || null }
+        body = { ...body, type: 'studio', studio_slug: loggedStudio.slug, access_token: loggedStudio.access_token, city: loggedStudio.city || studioLocation?.city || null, country: loggedStudio.country || studioLocation?.country || null }
       } else if (loggedSponsor) {
         body = { ...body, type: 'sponsor', sponsor_slug: loggedSponsor.slug, access_token: loggedSponsor.access_token }
       } else {
@@ -248,12 +250,14 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
       }
       let r = await fetch('/api/community', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       let d = await r.json()
-      // Token de sponsor vencido — refrescar y reintentar una vez
-      if (r.status === 401 && loggedSponsor?.refresh_token) {
-        const ref = await fetch('/api/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: loggedSponsor.refresh_token }) })
+      // Token de sponsor/estudio vencido — refrescar y reintentar una vez
+      const refreshToken = loggedSponsor?.refresh_token || loggedStudio?.refresh_token
+      const onTokenRefreshed = loggedSponsor ? onSponsorTokenRefreshed : onStudioTokenRefreshed
+      if (r.status === 401 && refreshToken) {
+        const ref = await fetch('/api/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: refreshToken }) })
         if (ref.ok) {
           const tokens = await ref.json()
-          onSponsorTokenRefreshed?.(tokens)
+          onTokenRefreshed?.(tokens)
           body.access_token = tokens.access_token
           r = await fetch('/api/community', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
           d = await r.json()
@@ -324,7 +328,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
             <p style={{ fontSize: 11, fontWeight: 700, color: loggedArtist || loggedStudio || loggedSponsor ? '#efff42' : 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
               {loggedArtist ? loggedArtist.name : loggedStudio ? loggedStudio.name : loggedSponsor ? loggedSponsor.name : clientName || t('comunidad', 'you', 'Vos')}
             </p>
-            {sponsorBlocked ? (
+            {sponsorBlocked || studioBlocked ? (
               <p style={{ fontSize: 13, color: 'rgba(255,100,100,0.7)', lineHeight: 1.5, margin: 0 }}>
                 {t('comunidad', 'sponsor_blocked', 'Tu perfil está bloqueado — no podés publicar hasta que se reactive la suscripción.')}
               </p>
@@ -363,8 +367,8 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{text.length}/300</span>
               <button
                 onClick={() => isLoggedIn ? submit() : (text.trim() ? setShowClientForm(true) : null)}
-                disabled={sending || !text.trim() || sponsorBlocked}
-                style={{ fontSize: 12, fontWeight: 700, padding: '5px 14px', background: text.trim() && !sponsorBlocked ? '#efff42' : 'rgba(255,255,255,0.08)', color: text.trim() && !sponsorBlocked ? '#000' : 'rgba(255,255,255,0.3)', border: 'none', borderRadius: 20, cursor: text.trim() && !sponsorBlocked ? 'pointer' : 'default', transition: 'all 0.15s' }}>
+                disabled={sending || !text.trim() || sponsorBlocked || studioBlocked}
+                style={{ fontSize: 12, fontWeight: 700, padding: '5px 14px', background: text.trim() && !sponsorBlocked && !studioBlocked ? '#efff42' : 'rgba(255,255,255,0.08)', color: text.trim() && !sponsorBlocked && !studioBlocked ? '#000' : 'rgba(255,255,255,0.3)', border: 'none', borderRadius: 20, cursor: text.trim() && !sponsorBlocked && !studioBlocked ? 'pointer' : 'default', transition: 'all 0.15s' }}>
                 {sending ? '...' : t('comunidad', 'publish', 'Publicar')}
               </button>
             </div>

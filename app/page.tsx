@@ -236,7 +236,7 @@ export default function Home() {
     ? new URLSearchParams(window.location.search).get('post') ?? undefined
     : undefined
   const communitySwipeRef = useRef<{ startX: number; startY: number } | null>(null)
-  const [loggedStudio, setLoggedStudio] = useState<{ slug: string; name: string; logo_url: string | null; visible: boolean; access_token: string; refresh_token?: string; city?: string | null; country?: string | null } | null>(null)
+  const [loggedStudio, setLoggedStudio] = useState<{ slug: string; name: string; logo_url: string | null; visible: boolean; expires_at?: string | null; access_token: string; refresh_token?: string; city?: string | null; country?: string | null } | null>(null)
   const [studioMenuOpen, setStudioMenuOpen] = useState(false)
   const studioMenuRef = useRef<HTMLDivElement>(null)
   const [loggedSponsor, setLoggedSponsor] = useState<{ slug: string; name: string; logo_url: string | null; active: boolean; expires_at?: string | null; access_token: string; refresh_token?: string } | null>(null)
@@ -244,6 +244,7 @@ export default function Home() {
   const sponsorMenuRef = useRef<HTMLDivElement>(null)
   const sponsorDeepLinkHandled = useRef(false)
   const [sponsorSubscriptionOpen, setSponsorSubscriptionOpen] = useState(false)
+  const [studioSubscriptionOpen, setStudioSubscriptionOpen] = useState(false)
   const [showFlashDayModal, setShowFlashDayModal] = useState(false)
   const [fdFile, setFdFile] = useState<File | null>(null)
   const [fdPreview, setFdPreview] = useState<string | null>(null)
@@ -380,10 +381,10 @@ export default function Home() {
       if (savedStudio) {
         const s = JSON.parse(savedStudio)
         setLoggedStudio(s)
-        // Cargar ciudad/país del estudio
+        // Cargar ciudad/país y vencimiento del estudio
         fetch(`/api/studios/${s.slug}`).then(r => r.json()).then(d => {
-          if (d.studio?.city || d.studio?.country) {
-            setLoggedStudio((prev: typeof s | null) => prev ? { ...prev, city: d.studio.city, country: d.studio.country } : prev)
+          if (d.studio) {
+            setLoggedStudio((prev: typeof s | null) => prev ? { ...prev, city: d.studio.city, country: d.studio.country, expires_at: d.studio.expires_at ?? null } : prev)
           }
         }).catch(() => {})
       }
@@ -1238,6 +1239,13 @@ export default function Home() {
                         <p style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', marginTop: 2 }}>{t('phrases', 'studio_review_short', 'Perfil en revisión')}</p>
                       )}
                     </div>
+                    {loggedStudio.expires_at && (
+                      <button
+                        onClick={() => { setStudioMenuOpen(false); setStudioSubscriptionOpen(true) }}
+                        style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                        {t('sponsor_menu', 'subscription', 'Suscripción')}
+                      </button>
+                    )}
                     {/* Ver perfil */}
                     <button
                       onClick={() => { setStudioMenuOpen(false); openStudio(loggedStudio.slug) }}
@@ -2354,7 +2362,7 @@ export default function Home() {
           onStudioLoggedIn={(studio, access_token, refresh_token) => {
             setShowAuthModal(false)
             setStudioAuth({ slug: studio.slug, auth_email: studio.auth_email, access_token })
-            const ss = { slug: studio.slug, name: studio.name, logo_url: studio.logo_url ?? null, visible: studio.visible ?? false, access_token, refresh_token: refresh_token ?? '' }
+            const ss = { slug: studio.slug, name: studio.name, logo_url: studio.logo_url ?? null, visible: studio.visible ?? false, expires_at: studio.expires_at ?? null, access_token, refresh_token: refresh_token ?? '' }
             try { localStorage.setItem('flashttoo_studio_session', JSON.stringify(ss)) } catch {}
             setLoggedStudio(ss)
             setStudioMenuOpen(true)
@@ -3105,6 +3113,32 @@ export default function Home() {
         </div>
       )}
 
+      {/* Modal suscripción del estudio */}
+      {studioSubscriptionOpen && loggedStudio?.expires_at && (
+        <div style={{ position:'fixed', inset:0, zIndex:120, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 12px' }}
+          onClick={() => setStudioSubscriptionOpen(false)}>
+          <style>{`@keyframes slideUpModal{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+          <div onClick={e => e.stopPropagation()}
+            style={{ width:'100%', maxWidth:360, borderRadius:20, boxShadow:'0 24px 60px rgba(0,0,0,0.9)', animation:'slideUpModal 0.38s cubic-bezier(0.22,0.61,0.36,1)', overflow:'hidden', background:'rgba(18,18,20,0.78)', backdropFilter:'blur(40px)', WebkitBackdropFilter:'blur(40px)', border:'1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ padding:'16px 18px 10px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <p style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.9)', margin:0, fontFamily:'-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{t('sponsor_menu', 'subscription', 'Suscripción')}</p>
+              <button onClick={() => setStudioSubscriptionOpen(false)}
+                style={{ fontSize:16, color:'rgba(255,255,255,0.4)', background:'rgba(255,255,255,0.08)', border:'none', borderRadius:'50%', width:28, height:28, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+            </div>
+            <div style={{ padding: '4px 18px 22px' }}>
+              <p style={{ fontSize: 14, fontWeight: 300, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                {new Date(loggedStudio.expires_at) < new Date()
+                  ? t('sponsor_menu', 'subscription_expired', 'Su suscripción venció el')
+                  : t('sponsor_menu', 'subscription_ends', 'Su suscripción se cancelará el')}{' '}
+                <span style={{ fontWeight: 700, color: '#efff42' }}>
+                  {new Date(loggedStudio.expires_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {turnosOpen && loggedArtist && (() => {
         const la = loggedArtist!
         const MES_K2 = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -3738,13 +3772,21 @@ export default function Home() {
                 lang={language}
                 highlightPostId={highlightPostId}
                 loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: loggedArtist.city ?? undefined, country: loggedArtist.country ?? undefined, flashbook_alias: loggedArtist.flashbook_alias } : null}
-                loggedStudio={loggedStudio ? { slug: loggedStudio.slug, name: loggedStudio.name, logo_url: loggedStudio.logo_url, city: loggedStudio.city ?? undefined, country: loggedStudio.country ?? undefined } : null}
+                loggedStudio={loggedStudio ? { slug: loggedStudio.slug, name: loggedStudio.name, logo_url: loggedStudio.logo_url, visible: loggedStudio.visible, expires_at: loggedStudio.expires_at ?? null, access_token: loggedStudio.access_token, refresh_token: loggedStudio.refresh_token, city: loggedStudio.city ?? undefined, country: loggedStudio.country ?? undefined } : null}
                 loggedSponsor={loggedSponsor}
                 onSponsorTokenRefreshed={tokens => {
                   setLoggedSponsor(prev => {
                     if (!prev) return prev
                     const updated = { ...prev, access_token: tokens.access_token, refresh_token: tokens.refresh_token }
                     try { localStorage.setItem('flashttoo_sponsor_session', JSON.stringify(updated)) } catch {}
+                    return updated
+                  })
+                }}
+                onStudioTokenRefreshed={tokens => {
+                  setLoggedStudio(prev => {
+                    if (!prev) return prev
+                    const updated = { ...prev, access_token: tokens.access_token, refresh_token: tokens.refresh_token }
+                    try { localStorage.setItem('flashttoo_studio_session', JSON.stringify(updated)) } catch {}
                     return updated
                   })
                 }}

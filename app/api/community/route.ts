@@ -59,10 +59,17 @@ export async function POST(req: NextRequest) {
     insert.flashbook_alias = body.show_flashbook === true ? (body.flashbook_alias || null) : null
     insert.show_availability = body.show_availability === true ? true : null
   } else if (type === 'studio') {
-    insert.studio_id   = body.studio_id || null
-    insert.studio_name = body.studio_name || null
-    insert.studio_logo = body.studio_logo || null
-    insert.studio_slug = body.studio_slug || null
+    if (!body.studio_slug || !body.access_token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const { data: studio } = await sb().from('studios').select('id, user_id, name, logo_url, slug, visible, expires_at').eq('slug', body.studio_slug).single()
+    if (!studio) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const { data: { user } } = await sbAnon().auth.getUser(body.access_token)
+    if (!user || user.id !== studio.user_id) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const blocked = studio.visible === false || (studio.expires_at && new Date(studio.expires_at) < new Date())
+    if (blocked) return NextResponse.json({ error: 'Tu perfil está bloqueado, no podés publicar' }, { status: 403 })
+    insert.studio_id   = studio.slug
+    insert.studio_name = studio.name
+    insert.studio_logo = studio.logo_url
+    insert.studio_slug = studio.slug
   } else if (type === 'sponsor') {
     if (!body.sponsor_slug || !body.access_token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     const { data: sponsor } = await sb().from('sponsors_v2').select('id, user_id, name, logo_url, slug, description, country, active, expires_at').eq('slug', body.sponsor_slug).single()

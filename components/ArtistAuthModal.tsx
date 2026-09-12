@@ -5,7 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext'
 
 type View = 'menu' | 'login' | 'register' | 'registered' | 'forgot' | 'forgot_sent' | 'terms' | 'privacy'
 
-type StudioSession = { slug: string; name: string; auth_email: string | null; logo_url: string | null; visible: boolean }
+type StudioSession = { slug: string; name: string; auth_email: string | null; logo_url: string | null; visible: boolean; expires_at?: string | null }
 type SponsorSession = { slug: string; name: string; auth_email: string | null; logo_url: string | null; active: boolean; expires_at: string | null }
 
 type Props = {
