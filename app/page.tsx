@@ -2323,7 +2323,7 @@ export default function Home() {
 
           {selectedInvitedBy?.name && (
             <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.14)', textAlign: 'center', marginTop: 18 }}>
-              {t('artista', 'invited_by', 'Invitado por')} {selectedInvitedBy.admin ? 'Flashttoo' : selectedInvitedBy.name}
+              {t('artista', 'invited_by', 'Perfil invitado por')} {selectedInvitedBy.admin ? 'Flashttoo' : selectedInvitedBy.name}
             </p>
           )}
           </div>

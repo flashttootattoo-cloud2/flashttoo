@@ -8,7 +8,7 @@ INSERT INTO translations (language_code, section, key, value) VALUES
 -- ==========================================
 ('es', 'ingresar',     'invite_only_note', 'El registro es solo por invitación de otro tatuador o de Flashttoo.'),
 ('es', 'artist_menu',  'gift_invite',      'Regalar pase a Flashttoo'),
-('es', 'artista',      'invited_by',       'Invitado por'),
+('es', 'artista',      'invited_by',       'Perfil invitado por'),
 
 ('es', 'invites', 'title',          'Regalar pase a Flashttoo'),
 ('es', 'invites', 'loading',        'Cargando...'),
@@ -52,7 +52,7 @@ INSERT INTO translations (language_code, section, key, value) VALUES
 -- ==========================================
 ('pt', 'ingresar',     'invite_only_note', 'O cadastro é somente por convite de outro tatuador ou da Flashttoo.'),
 ('pt', 'artist_menu',  'gift_invite',      'Presentear passe da Flashttoo'),
-('pt', 'artista',      'invited_by',       'Convidado por'),
+('pt', 'artista',      'invited_by',       'Perfil convidado por'),
 
 ('pt', 'invites', 'title',          'Presentear passe da Flashttoo'),
 ('pt', 'invites', 'loading',        'Carregando...'),

@@ -543,7 +543,7 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey,
                 )}
                 {a.invited_by_name && (
                   <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                    Invitado por {a.invited_by_admin ? 'Flashttoo' : a.invited_by_name}
+                    Perfil invitado por {a.invited_by_admin ? 'Flashttoo' : a.invited_by_name}
                   </p>
                 )}
                 {isDupe(a) && <p className="text-xs font-bold" style={{ color: '#f87171' }}>⚠ duplicado</p>}

@@ -8,9 +8,13 @@ export async function POST(req: NextRequest) {
 
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-  // Verificar que existe un artista con ese mail
-  const { data: artist } = await sb.from('artists').select('id').eq('auth_email', email.toLowerCase()).limit(1)
-  if (!artist?.length) return NextResponse.json({ error: 'error_no_account' }, { status: 404 })
+  // Verificar que existe una cuenta con ese mail (artista, estudio o marca)
+  const [{ data: artist }, { data: studio }, { data: sponsor }] = await Promise.all([
+    sb.from('artists').select('id').eq('auth_email', email.toLowerCase()).limit(1),
+    sb.from('studios').select('id').eq('auth_email', email.toLowerCase()).limit(1),
+    sb.from('sponsors_v2').select('id').eq('auth_email', email.toLowerCase()).limit(1),
+  ])
+  if (!artist?.length && !studio?.length && !sponsor?.length) return NextResponse.json({ error: 'error_no_account' }, { status: 404 })
 
   const { data } = await sb.auth.admin.generateLink({
     type: 'recovery',
