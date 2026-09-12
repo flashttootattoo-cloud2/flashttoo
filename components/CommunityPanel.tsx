@@ -421,7 +421,9 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
               <p style={{ fontSize: 12, color: 'rgba(255,100,100,0.8)', marginTop: 6, marginBottom: 0 }}>{postError}</p>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{text.length}/300</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>
+                {text.length}/300 · {t('comunidad', 'expires_hint', 'se borra a los 7 días')}
+              </span>
               <button
                 onClick={() => isLoggedIn ? submit() : (text.trim() ? setShowClientForm(true) : null)}
                 disabled={sending || !text.trim() || sponsorBlocked || studioBlocked}
