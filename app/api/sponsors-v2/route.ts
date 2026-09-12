@@ -11,7 +11,7 @@ function svc() {
 }
 
 export async function POST(req: NextRequest) {
-  const { user_id, email, name } = await req.json()
+  const { user_id, email, name, invite_token } = await req.json()
   if (!user_id || !email) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
 
   const sb = svc()
@@ -43,6 +43,11 @@ export async function POST(req: NextRequest) {
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (invite_token) {
+    await sb.from('sponsor_invites').update({ used_by_sponsor_id: sponsor.id, used_at: new Date().toISOString() }).eq('token', invite_token)
+  }
+
   return NextResponse.json({ sponsor })
 }
 

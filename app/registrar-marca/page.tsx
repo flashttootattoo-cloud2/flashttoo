@@ -8,6 +8,8 @@ type View = 'register' | 'registered' | 'terms' | 'privacy'
 export default function RegistrarMarca() {
   const { t, language, setLanguage, languages } = useTranslation()
   const [view, setView] = useState<View>('register')
+  const [inviteToken, setInviteToken] = useState<string | null>(null)
+  const [checkedInvite, setCheckedInvite] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [tyc, setTyc] = useState(false)
@@ -16,6 +18,11 @@ export default function RegistrarMarca() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuLangOpen, setMenuLangOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setInviteToken(new URLSearchParams(window.location.search).get('invite'))
+    setCheckedInvite(true)
+  }, [])
 
   useEffect(() => {
     if (view === 'terms' || view === 'privacy') {
@@ -44,7 +51,7 @@ export default function RegistrarMarca() {
     const r = await fetch('/api/auth/register-sponsor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, invite_token: inviteToken }),
     })
     const d = await r.json()
     setLoading(false)
@@ -119,7 +126,19 @@ export default function RegistrarMarca() {
         <div className="w-full max-w-sm">
           <div className="rounded-2xl p-6" style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}>
 
-            {view === 'register' && (
+            {view === 'register' && checkedInvite && !inviteToken && (
+              <div className="flex flex-col gap-3 text-center">
+                <p className="text-sm font-bold text-white">{t('ingresar', 'sponsor_invite_title', 'Registro por invitación')}</p>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                  {t('ingresar', 'sponsor_invite_desc', 'El registro de marcas es solo por invitación. Pedile un link a Flashttoo.')}
+                </p>
+                <a href="/" className="text-xs text-center block mt-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {t('ingresar', 'back_btn', 'Volver')}
+                </a>
+              </div>
+            )}
+
+            {view === 'register' && checkedInvite && inviteToken && (
               <div className="flex flex-col gap-3">
                 <p className="text-xs text-center mb-1" style={{ color: '#efff42', letterSpacing: '0.06em' }}>
                   {t('ingresar', 'solo_marcas', 'Registro de marcas')}

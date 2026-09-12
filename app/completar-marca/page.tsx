@@ -47,7 +47,7 @@ function CompletarMarcaForm() {
     const r = await fetch('/api/sponsors-v2', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, email, name: nameFromEmail(email) }),
+      body: JSON.stringify({ user_id: userId, email, name: nameFromEmail(email), invite_token: params.get('invite') }),
     })
     const d = await r.json()
 
