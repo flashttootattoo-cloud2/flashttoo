@@ -72,12 +72,19 @@ export async function POST(req: NextRequest) {
     insert.studio_slug = studio.slug
   } else if (type === 'sponsor') {
     if (!body.sponsor_slug || !body.access_token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    const { data: sponsor } = await sb().from('sponsors_v2').select('id, user_id, name, logo_url, slug, description, country, active, expires_at').eq('slug', body.sponsor_slug).single()
+    const { data: sponsor } = await sb().from('sponsors_v2').select('id, user_id, name, logo_url, slug, description, country, active, expires_at, daily_post_limit').eq('slug', body.sponsor_slug).single()
     if (!sponsor) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     const { data: { user } } = await sbAnon().auth.getUser(body.access_token)
     if (!user || user.id !== sponsor.user_id) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     const blocked = !sponsor.active || (sponsor.expires_at && new Date(sponsor.expires_at) < new Date())
     if (blocked) return NextResponse.json({ error: 'Tu perfil está bloqueado, no podés publicar' }, { status: 403 })
+    if (sponsor.daily_post_limit != null) {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { count } = await sb().from('community_posts').select('id', { count: 'exact', head: true }).eq('sponsor_id', sponsor.id).gte('created_at', since)
+      if ((count ?? 0) >= sponsor.daily_post_limit) {
+        return NextResponse.json({ error: `Alcanzaste el límite de ${sponsor.daily_post_limit} mensajes por día` }, { status: 429 })
+      }
+    }
     insert.sponsor_id   = sponsor.id
     insert.sponsor_name = sponsor.name
     insert.sponsor_logo = sponsor.logo_url

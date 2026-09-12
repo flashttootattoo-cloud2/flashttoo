@@ -61,6 +61,7 @@ type SponsorV2Admin = {
   grid_logo_scale: number | null; whatsapp: string | null
   bio: string | null; instagram: string | null; bg_image_dark: number | null; logo_bg_color: string | null
   slug: string | null; auth_email: string | null; linked_from: string | null
+  daily_post_limit: number | null
 }
 
 type Convention = {
@@ -87,6 +88,43 @@ function monthLabel(key: string) {
 }
 
 const H = (pass: string) => ({ 'x-admin-pass': pass })
+
+function SponsorDailyLimitEditor({ sponsorId, value, pass, onSaved }: { sponsorId: string; value: number | null; pass: string; onSaved: (v: number | null) => void }) {
+  const [draft, setDraft] = useState(value == null ? '' : String(value))
+  const [saving, setSaving] = useState(false)
+
+  const save = async () => {
+    const parsed = draft.trim() === '' ? null : parseInt(draft, 10)
+    const clean = parsed !== null && Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+    setSaving(true)
+    try {
+      const r = await fetch(`/api/admin/sponsors-v2/${sponsorId}`, {
+        method: 'PATCH',
+        headers: { ...H(pass), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ daily_post_limit: clean }),
+      })
+      if (r.ok) { onSaved(clean); setDraft(clean == null ? '' : String(clean)) }
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>Límite de mensajes/día</span>
+      <input
+        type="number" min={0} value={draft} placeholder="sin límite"
+        onChange={e => setDraft(e.target.value)}
+        className="w-20 px-2 py-1 rounded-lg text-xs"
+        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+      <button
+        disabled={saving}
+        onClick={save}
+        className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+        style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
+        {saving ? '...' : 'Guardar'}
+      </button>
+    </div>
+  )
+}
 
 function SuggestInput({ value, onChange, suggestions, className, style, placeholder, required }: {
   value: string
@@ -3084,6 +3122,11 @@ export default function AdminPage() {
                           {editingPendingId === sp.id ? 'Cancelar' : 'Editar'}
                         </button>
                       </div>
+                      <SponsorDailyLimitEditor
+                        sponsorId={sp.id}
+                        value={sp.daily_post_limit}
+                        pass={pass}
+                        onSaved={v => setSponsorsV2(prev => prev.map(x => x.id === sp.id ? { ...x, daily_post_limit: v } : x))} />
                       {editingPendingId === sp.id && (
                         <div className="flex items-center gap-2">
                           <input
