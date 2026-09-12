@@ -13,8 +13,10 @@ async function verifyToken(token: string, userId: string) {
   return user?.id === userId
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
+// Nota: pese al nombre de carpeta [id] (para no chocar con /api/sponsors-v2/[id]/click|event,
+// que ya usaban ese nombre de segmento), acá el valor recibido es el slug del sponsor.
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: slug } = await params
   const sb = sbAdmin()
   const { data: sponsor, error } = await sb.from('sponsors_v2').select('*').eq('slug', slug).single()
   if (error || !sponsor) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
