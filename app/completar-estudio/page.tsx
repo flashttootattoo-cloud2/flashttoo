@@ -48,7 +48,7 @@ function CompletarEstudioForm() {
     const r = await fetch('/api/studios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, email, name: nameFromEmail(email) }),
+      body: JSON.stringify({ user_id: userId, email, name: nameFromEmail(email), invite_token: params.get('invite') }),
     })
     const d = await r.json()
 

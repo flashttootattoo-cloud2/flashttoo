@@ -8,7 +8,7 @@ function slugify(name: string) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { user_id, email, name, city, country, instagram, whatsapp, website, description } = body
+  const { user_id, email, name, city, country, instagram, whatsapp, website, description, invite_token } = body
   if (!user_id || !email) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
   if (!name?.trim()) return NextResponse.json({ error: 'El nombre del estudio es requerido' }, { status: 400 })
 
@@ -51,6 +51,11 @@ export async function POST(req: NextRequest) {
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (invite_token) {
+    await sbSvc.from('studio_invites').update({ used_by_studio_id: studio.id, used_at: new Date().toISOString() }).eq('token', invite_token)
+  }
+
   return NextResponse.json({ studio })
 }
 

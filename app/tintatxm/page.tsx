@@ -4065,18 +4065,21 @@ export default function AdminPage() {
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>REGISTRO DE ESTUDIOS</p>
               <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
-                Los estudios se registran solos con email y contraseña. Compartí este link.
+                El registro es solo por invitación. Generá un link único de un solo uso para cada estudio que quieras invitar.
               </p>
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText('https://flashttoo.com/registrar-estudio').catch(() => {})
-                  setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000)
+                onClick={async () => {
+                  const r = await fetch('/api/admin/studio-invites', { method: 'POST', headers: H(pass) })
+                  const d = await r.json()
+                  if (d.url) {
+                    await navigator.clipboard.writeText(d.url).catch(() => {})
+                    setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000)
+                  }
                 }}
                 className="self-start font-bold text-sm py-2 px-5 rounded-full"
                 style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : '#efff42', color: keyCopied ? '#4ade80' : '#000', border: keyCopied ? '1px solid rgba(74,222,128,0.4)' : 'none', transition: 'all 0.2s' }}>
-                {keyCopied ? 'Copiado ✓' : 'Copiar link de registro'}
+                {keyCopied ? 'Copiado ✓' : 'Generar link'}
               </button>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>flashttoo.com/registrar-estudio</p>
             </div>
 
             {/* Lista de estudios */}
