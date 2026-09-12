@@ -619,12 +619,12 @@ function OfferWidget({ items, whatsapp }: { items: { name: string; price: number
       <div>
         {items.map((it, i) => (
           <button key={i} type="button" onClick={() => toggle(i)}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderBottom: i < items.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', cursor: 'pointer', textAlign: 'left' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${selected.has(i) ? '#efff42' : 'rgba(255,255,255,0.25)'}`, background: selected.has(i) ? '#efff42' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderBottom: i < items.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', cursor: 'pointer', textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
+              <div style={{ width: 16, height: 16, marginTop: 2, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${selected.has(i) ? '#efff42' : 'rgba(255,255,255,0.25)'}`, background: selected.has(i) ? '#efff42' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {selected.has(i) && <span style={{ fontSize: 10, color: '#000', fontWeight: 900, lineHeight: 1 }}>✓</span>}
               </div>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', wordBreak: 'break-word', lineHeight: 1.4 }}>{it.name}</span>
             </div>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.6)', flexShrink: 0, marginLeft: 8 }}>${fmt(it.price)}</span>
           </button>
