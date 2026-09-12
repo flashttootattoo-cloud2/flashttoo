@@ -1006,10 +1006,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       {/* Banner fijo — solo cuando insumos está activo */}
       {showInsumos && (
         <div
-          onTouchStart={e => startDrag(e.touches[0].clientX)}
-          onTouchMove={e => moveDrag(e.touches[0].clientX)}
-          onTouchEnd={endDrag}
-          onTouchCancel={endDrag}
+          onTouchStart={e => { e.stopPropagation(); startDrag(e.touches[0].clientX) }}
+          onTouchMove={e => { e.stopPropagation(); moveDrag(e.touches[0].clientX) }}
+          onTouchEnd={e => { e.stopPropagation(); endDrag() }}
+          onTouchCancel={e => { e.stopPropagation(); endDrag() }}
           onMouseDown={e => startDrag(e.clientX)}
           onMouseMove={e => moveDrag(e.clientX)}
           onMouseUp={endDrag}
@@ -1287,6 +1287,9 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             return (<>
             {allVideoTags.length > 0 && (
               <div style={{ overflowX: 'auto', display: 'flex', gap: 0, padding: '10px 16px 0', scrollbarWidth: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'grab', userSelect: 'none' }}
+                onTouchStart={e => e.stopPropagation()}
+                onTouchMove={e => e.stopPropagation()}
+                onTouchEnd={e => e.stopPropagation()}
                 onWheel={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).scrollLeft += e.deltaY }}
                 onMouseDown={e => { const el = e.currentTarget; const startX = e.pageX - el.offsetLeft; const sl = el.scrollLeft; const onMove = (ev: MouseEvent) => { el.scrollLeft = sl - (ev.pageX - el.offsetLeft - startX) }; const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp) }}>
                 {[null, ...allVideoTags].map(tag => {
@@ -1306,6 +1309,9 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', padding: '0 16px', marginBottom: 10 }}>{t('cultura', 'carousel_title', 'Últimas 7 portadas')}</p>
               <div
                 style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x', cursor: 'grab', userSelect: 'none' }}
+                onTouchStart={e => e.stopPropagation()}
+                onTouchMove={e => e.stopPropagation()}
+                onTouchEnd={e => e.stopPropagation()}
                 onWheel={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).scrollLeft += e.deltaY + e.deltaX }}
                 onMouseDown={e => { culturaCarouselDragging.current = false; const el = e.currentTarget; el.style.cursor = 'grabbing'; const startX = e.pageX - el.offsetLeft; const sl = el.scrollLeft; const onMove = (ev: MouseEvent) => { if (Math.abs(ev.pageX - el.offsetLeft - startX) > 4) culturaCarouselDragging.current = true; el.scrollLeft = sl - (ev.pageX - el.offsetLeft - startX) }; const onUp = () => { el.style.cursor = 'grab'; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp) }}
               >
