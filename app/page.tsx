@@ -13,6 +13,7 @@ import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 import { useTranslation } from '@/contexts/TranslationContext'
 import { renderPhraseContent } from '@/components/PhraseContent'
 import CommunityPanel from '@/components/CommunityPanel'
+import InvitesModal from '@/components/InvitesModal'
 
 function BioText({ text, style }: { text: string; style?: React.CSSProperties }) {
   const parts = text.split(/(@[a-zA-Z0-9_.]{1,30})/g)
@@ -135,6 +136,7 @@ export default function Home() {
   const stylesRef = useRef<HTMLDivElement>(null)
   const deepLinkHandled = useRef(false)
   const [selected, setSelected]   = useState<Artist | null>(null)
+  const [selectedInvitedBy, setSelectedInvitedBy] = useState<{ name: string | null; admin: boolean } | null>(null)
   const [selectedHasAvail, setSelectedHasAvail] = useState(false)
   const [selectedAvailSlots, setSelectedAvailSlots] = useState<{date:string;times:string[]}[]>([])
   const [availPopOpen, setAvailPopOpen] = useState(false)
@@ -219,10 +221,12 @@ export default function Home() {
   const [insumoOpen, setInsumoOpen] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authInviteToken, setAuthInviteToken] = useState<string | undefined>(undefined)
+  const [invitesModalOpen, setInvitesModalOpen] = useState(false)
   const [studioAuth, setStudioAuth] = useState<{ slug: string; auth_email: string | null; access_token: string } | null>(null)
   const [showContactInfo, setShowContactInfo] = useState(true)
   const [showClickCounters, setShowClickCounters] = useState(false)
-  const [loggedArtist, setLoggedArtist] = useState<{ id: string; name: string; photo_url: string | null; slug: string; city: string | null; country: string | null; access_token: string; flashbook_alias: string | null } | null>(null)
+  const [loggedArtist, setLoggedArtist] = useState<{ id: string; name: string; photo_url: string | null; slug: string; city: string | null; country: string | null; access_token: string; refresh_token?: string; flashbook_alias: string | null } | null>(null)
   const [artistMenuOpen, setArtistMenuOpen] = useState(false)
   const [communityOpen, setCommunityOpen] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -748,6 +752,14 @@ export default function Home() {
     } catch { /* ignorar */ }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Deep link: link de invitación de tatuador — abre el registro directo con el token
+  useEffect(() => {
+    const invite = new URLSearchParams(window.location.search).get('invite')
+    if (!invite) return
+    setAuthInviteToken(invite)
+    setShowAuthModal(true)
+  }, [])
+
   // Deep link: abre el modal si la URL tiene ?artista=ID
   useEffect(() => {
     if (deepLinkHandled.current) return
@@ -806,6 +818,16 @@ export default function Home() {
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d && d.count > 0) setFlashPreview(d) })
       .catch(() => {})
+  }, [selected?.id])
+
+  // Traer quién invitó a este artista, para el pie del perfil
+  useEffect(() => {
+    setSelectedInvitedBy(null)
+    if (!selected?.id) return
+    supabase.from('artists').select('invited_by_name, invited_by_admin').eq('id', selected.id).single()
+      .then(({ data }) => {
+        if (data?.invited_by_name) setSelectedInvitedBy({ name: data.invited_by_name, admin: !!data.invited_by_admin })
+      })
   }, [selected?.id])
 
   useEffect(() => {
@@ -1429,6 +1451,11 @@ export default function Home() {
                       }}
                       style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
                       {t('artist_menu', 'turnos_libres', 'Turnos libres')}
+                    </button>
+                    <button
+                      onClick={() => { setArtistMenuOpen(false); setInvitesModalOpen(true) }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('artist_menu', 'gift_invite', 'Regalar pase a Flashttoo')}
                     </button>
                     <button
                       onClick={() => {
@@ -2293,6 +2320,12 @@ export default function Home() {
               </div>
             )
           })()}
+
+          {selectedInvitedBy?.name && (
+            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.14)', textAlign: 'center', marginTop: 18 }}>
+              {t('artista', 'invited_by', 'Invitado por')} {selectedInvitedBy.admin ? 'Flashttoo' : selectedInvitedBy.name}
+            </p>
+          )}
           </div>
           </div>
         </div>
@@ -2316,7 +2349,8 @@ export default function Home() {
       {/* ── AUTH MODAL ───────────────────────────────────────── */}
       {showAuthModal && (
         <ArtistAuthModal
-          onClose={() => setShowAuthModal(false)}
+          inviteToken={authInviteToken}
+          onClose={() => { setShowAuthModal(false); setAuthInviteToken(undefined) }}
           onStudioLoggedIn={(studio, access_token, refresh_token) => {
             setShowAuthModal(false)
             setStudioAuth({ slug: studio.slug, auth_email: studio.auth_email, access_token })
@@ -2356,6 +2390,22 @@ export default function Home() {
               setArtistMenuOpen(true)
             }
           }}
+        />
+      )}
+
+      {invitesModalOpen && loggedArtist && (
+        <InvitesModal
+          accessToken={loggedArtist.access_token}
+          refreshToken={loggedArtist.refresh_token}
+          onTokenRefreshed={tokens => {
+            setLoggedArtist(prev => {
+              if (!prev) return prev
+              const updated = { ...prev, access_token: tokens.access_token, refresh_token: tokens.refresh_token }
+              try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(updated)) } catch {}
+              return updated
+            })
+          }}
+          onClose={() => setInvitesModalOpen(false)}
         />
       )}
 

@@ -57,4 +57,6 @@ export type Artist = {
   auth_email?: string | null
   show_email?: boolean | null
   flashbook_alias?: string | null
+  invited_by_name?: string | null
+  invited_by_admin?: boolean | null
 }

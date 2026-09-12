@@ -24,6 +24,7 @@ type Artist = {
   edit_key: string; visible: boolean; created_at: string; status: string
   pending_reason: string | null; migrated_at: string | null
   flashbook_alias: string | null
+  invited_by_name: string | null; invited_by_admin: boolean; invites_disabled: boolean
 }
 
 function fmtN(n: number): string {
@@ -482,7 +483,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
 }
 
 
-function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void; onUpdateKey: (id: string, key: string) => void }) {
+function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey, onToggleInvites }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void; onUpdateKey: (id: string, key: string) => void; onToggleInvites?: (id: string, invites_disabled: boolean) => void }) {
   const [editingKey, setEditingKey] = useState<{ id: string; value: string } | null>(null)
   const [savingKey, setSavingKey] = useState(false)
   const [marked, setMarked] = useState<Set<string>>(() => {
@@ -540,6 +541,11 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
                     ✓ migró
                   </span>
                 )}
+                {a.invited_by_name && (
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    Invitado por {a.invited_by_admin ? 'Flashttoo' : a.invited_by_name}
+                  </p>
+                )}
                 {isDupe(a) && <p className="text-xs font-bold" style={{ color: '#f87171' }}>⚠ duplicado</p>}
               </div>
               <div className="flex gap-1.5 shrink-0">
@@ -548,6 +554,14 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey 
                   style={{ border: `1px solid ${a.visible === false ? 'rgba(255,200,0,0.3)' : 'rgba(255,255,255,0.1)'}`, color: a.visible === false ? 'rgba(255,200,0,0.7)' : 'rgba(255,255,255,0.3)' }}>
                   {a.visible === false ? 'mostrar' : 'ocultar'}
                 </button>
+                {onToggleInvites && (
+                  <button onClick={() => onToggleInvites(a.id, !a.invites_disabled)}
+                    className="text-xs px-2.5 py-1 rounded-lg"
+                    style={{ border: `1px solid ${a.invites_disabled ? 'rgba(255,80,80,0.3)' : 'rgba(255,255,255,0.1)'}`, color: a.invites_disabled ? 'rgba(255,100,100,0.7)' : 'rgba(255,255,255,0.3)' }}
+                    title="Cortar o reactivar la posibilidad de este tatuador de generar invitaciones">
+                    {a.invites_disabled ? 'reactivar inv.' : 'cortar inv.'}
+                  </button>
+                )}
                 <button onClick={() => onDelete(a.id)} disabled={deleting === a.id}
                   className="text-xs px-2.5 py-1 rounded-lg"
                   style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.6)' }}>
@@ -1804,6 +1818,15 @@ export default function AdminPage() {
     patchArtistInLists(id, { visible })
   }
 
+  const toggleInvites = async (id: string, invites_disabled: boolean) => {
+    await fetch(`/api/admin/artists/${id}`, {
+      method: 'PATCH',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invites_disabled }),
+    })
+    patchArtistInLists(id, { invites_disabled })
+  }
+
   const deleteAd = async (id: string) => {
     if (!confirm('¿Borrar este aviso?')) return
     setDeleting(id)
@@ -1937,7 +1960,7 @@ export default function AdminPage() {
           onChange={e => setPass(e.target.value)} autoFocus
           className="py-2.5 px-4 text-sm text-white outline-none rounded-lg"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
-        <input type="password" placeholder="pin" value={pin}
+        <input type="password" placeholder="contraseña" value={pin}
           onChange={e => setPin(e.target.value)}
           className="py-2.5 px-4 text-sm text-white outline-none rounded-lg"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
@@ -2042,6 +2065,29 @@ export default function AdminPage() {
 
           // ── ARTISTAS ──────────────────────────────────────────────────────
           <div className="flex flex-col gap-3">
+
+            {/* Invitación de admin — sin límite */}
+            <div className="rounded-xl p-4 flex items-center justify-between gap-3"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div>
+                <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>INVITAR TATUADOR</p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>El registro es solo por invitación. Como admin, tenés invitaciones ilimitadas.</p>
+              </div>
+              <button
+                onClick={async () => {
+                  const r = await fetch('/api/admin/artist-invites', { method: 'POST', headers: H(pass) })
+                  const d = await r.json()
+                  if (d.url) {
+                    await navigator.clipboard.writeText(d.url).catch(() => {})
+                    setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000)
+                  }
+                }}
+                className="shrink-0 font-bold text-xs py-2 px-4 rounded-full"
+                style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : '#efff42', color: keyCopied ? '#4ade80' : '#000', border: keyCopied ? '1px solid rgba(74,222,128,0.4)' : 'none' }}>
+                {keyCopied ? 'Copiado ✓' : 'Generar link'}
+              </button>
+            </div>
+
             <div className="flex items-center justify-between gap-2">
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>Tatuadores ({artistsTotal})</p>
               <div className="flex items-center gap-2">
@@ -2092,13 +2138,13 @@ export default function AdminPage() {
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
                   {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} para &quot;{artistSearch}&quot;
                 </p>
-                <ArtistGrid artists={searchResults} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
+                <ArtistGrid artists={searchResults} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onToggleInvites={toggleInvites} />
               </>
             ) : showMigrated ? (
               <>
                 {loadingMigrated
                   ? <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando migrados...</p>
-                  : <ArtistGrid artists={[...migratedArtists].sort((a, b) => new Date(b.migrated_at!).getTime() - new Date(a.migrated_at!).getTime())} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
+                  : <ArtistGrid artists={[...migratedArtists].sort((a, b) => new Date(b.migrated_at!).getTime() - new Date(a.migrated_at!).getTime())} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onToggleInvites={toggleInvites} />
                 }
               </>
             ) : (
@@ -2113,7 +2159,7 @@ export default function AdminPage() {
                   if (!aRecent && bRecent) return 1
                   if (aRecent && bRecent) return bM - aM
                   return 0
-                })} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} />
+                })} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onToggleInvites={toggleInvites} />
                 {artists.length < artistsTotal && (
                   <button
                     onClick={loadMoreArtists}

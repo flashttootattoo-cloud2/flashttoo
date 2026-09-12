@@ -7,9 +7,14 @@ function sb() {
 }
 
 export async function POST(req: NextRequest) {
-  const { email, password } = await req.json()
+  const { email, password, invite_token } = await req.json()
   if (!email || !password) return NextResponse.json({ error: 'Email y contraseña requeridos' }, { status: 400 })
   if (password.length < 8) return NextResponse.json({ error: 'La contraseña debe tener al menos 8 caracteres' }, { status: 400 })
+
+  // El registro es solo por invitación
+  if (!invite_token) return NextResponse.json({ error: 'Necesitás un link de invitación para registrarte' }, { status: 400 })
+  const { data: invite } = await sb().from('artist_invites').select('id, used_by_artist_id').eq('token', invite_token).single()
+  if (!invite || invite.used_by_artist_id) return NextResponse.json({ error: 'La invitación no es válida o ya fue usada' }, { status: 400 })
 
   // Verificar que no haya ya un artista con ese mail
   const { data: existing } = await sb().from('artists').select('id').eq('auth_email', email.toLowerCase()).limit(1)
@@ -36,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   if (!authUser) return NextResponse.json({ error: 'No se pudo crear la cuenta' }, { status: 400 })
 
-  const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/agregar?user_id=${authUser.id}&email=${encodeURIComponent(email.toLowerCase())}`
+  const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/agregar?user_id=${authUser.id}&email=${encodeURIComponent(email.toLowerCase())}&invite=${invite_token}`
 
   const resend = new Resend(process.env.RESEND_API_KEY)
   const emailResult = await resend.emails.send({

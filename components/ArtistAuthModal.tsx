@@ -13,11 +13,12 @@ type Props = {
   onLoggedIn: (artist: { id: string; name: string; photo_url: string; edit_key: string; auth_email?: string | null; access_token?: string; refresh_token?: string }) => void
   onStudioLoggedIn?: (studio: StudioSession, access_token: string, refresh_token?: string) => void
   onSponsorLoggedIn?: (sponsor: SponsorSession, access_token: string, refresh_token?: string) => void
+  inviteToken?: string
 }
 
-export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn, onSponsorLoggedIn }: Props) {
+export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn, onSponsorLoggedIn, inviteToken }: Props) {
   const { t } = useTranslation()
-  const [view, setView] = useState<View>('menu')
+  const [view, setView] = useState<View>(inviteToken ? 'register' : 'menu')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [tyc, setTyc] = useState(false)
@@ -43,7 +44,7 @@ export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn,
     const r = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, invite_token: inviteToken }),
     })
     const d = await r.json()
     setLoading(false)
@@ -122,12 +123,9 @@ export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn,
         {/* MENU */}
         {view === 'menu' && (
           <div className="flex flex-col gap-3">
-            <p className="text-xs text-center mb-1" style={{ color: '#efff42', letterSpacing: '0.06em' }}>{t('ingresar', 'solo_tatuadores', 'Solo para tatuadores')}</p>
-            <button onClick={() => { reset(); setView('register') }}
-              className="w-full py-3 rounded-xl text-sm font-bold"
-              style={{ background: '#efff42', color: '#000' }}>
-              {t('ingresar', 'register_btn', 'Registrar mi perfil')}
-            </button>
+            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6, marginBottom: 4 }}>
+              {t('ingresar', 'invite_only_note', 'El registro es solo por invitación de otro tatuador o de Flashttoo.')}
+            </p>
             <button onClick={() => { reset(); setView('login') }}
               className="w-full py-3 rounded-xl text-sm font-bold"
               style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>

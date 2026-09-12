@@ -213,7 +213,7 @@ export default function AgregarPage() {
       }
 
       // Insertar artista
-      const { error: insErr } = await supabase.from('artists').insert({
+      const { data: inserted, error: insErr } = await supabase.from('artists').insert({
         name:      form.name.trim(),
         city:      form.city.trim(),
         country:   form.country.trim(),
@@ -235,7 +235,7 @@ export default function AgregarPage() {
         gallery_photo_2_styles: galleryPhotoStyles[1],
         gallery_photo_3_styles: galleryPhotoStyles[2],
         ...(submitUserId ? { user_id: submitUserId, auth_email: submitAuthEmail, tyc_accepted_at: new Date().toISOString() } : {}),
-      })
+      }).select('id').single()
       if (insErr) {
         setError(`Error al guardar: ${insErr.message}`)
         setLoading(false)
@@ -252,6 +252,14 @@ export default function AgregarPage() {
             auth_email: submitAuthEmail,
           }),
         })
+        const inviteToken = p.get('invite')
+        if (inviteToken && inserted?.id) {
+          await fetch('/api/artist-invites/redeem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: inviteToken, artist_id: inserted.id }),
+          }).catch(() => {})
+        }
       }
 
       setDone((moderation || !!submitUserId) ? 'pending' : 'active')
