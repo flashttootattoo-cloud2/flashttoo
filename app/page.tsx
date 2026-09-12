@@ -72,6 +72,23 @@ function phraseReadingTime(desc: string | null): number | null {
 function formatPhraseDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })
 }
+// GET autenticado con reintento: si el access_token venció, lo refresca con el refresh_token y reintenta una vez.
+async function fetchWithAuthRefresh(url: string, accessToken: string, refreshToken?: string): Promise<{ data: Record<string, unknown> | null; access_token: string; refresh_token?: string }> {
+  let token = accessToken
+  let refresh = refreshToken
+  let r = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!r.ok && refresh) {
+    const ref = await fetch('/api/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: refresh }) })
+    if (ref.ok) {
+      const tokens = await ref.json()
+      token = tokens.access_token
+      refresh = tokens.refresh_token
+      r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    }
+  }
+  const data = await r.json().catch(() => null)
+  return { data: r.ok ? data : null, access_token: token, refresh_token: refresh }
+}
 type PhraseComment = {
   id: string; artist_id: string | null; studio_id: string | null; guest_name: string | null; guest_emoji: string | null
   content: string; created_at: string
@@ -381,10 +398,13 @@ export default function Home() {
       if (savedStudio) {
         const s = JSON.parse(savedStudio)
         setLoggedStudio(s)
-        // Cargar ciudad/país y vencimiento del estudio
-        fetch(`/api/studios/${s.slug}`).then(r => r.json()).then(d => {
-          if (d.studio) {
-            setLoggedStudio((prev: typeof s | null) => prev ? { ...prev, city: d.studio.city, country: d.studio.country, expires_at: d.studio.expires_at ?? null } : prev)
+        // Cargar ciudad/país, visibilidad y vencimiento del estudio (con reintento si el token venció)
+        fetchWithAuthRefresh(`/api/studios/${s.slug}`, s.access_token, s.refresh_token).then(({ data, access_token, refresh_token }) => {
+          const studio = data?.studio as { city?: string; country?: string; visible?: boolean; expires_at?: string | null } | undefined
+          if (studio) {
+            const updated = { ...s, city: studio.city, country: studio.country, visible: studio.visible, expires_at: studio.expires_at ?? null, access_token, refresh_token }
+            setLoggedStudio(updated)
+            try { localStorage.setItem('flashttoo_studio_session', JSON.stringify(updated)) } catch {}
           }
         }).catch(() => {})
       }
@@ -394,10 +414,11 @@ export default function Home() {
       if (savedSponsor) {
         const s = JSON.parse(savedSponsor)
         setLoggedSponsor(s)
-        // Refrescar datos del sponsor (logo, estado, vencimiento) contra el servidor
-        fetch(`/api/sponsors-v2/${s.slug}`, { headers: { Authorization: `Bearer ${s.access_token}` } }).then(r => r.json()).then(d => {
-          if (d.sponsor) {
-            const updated = { ...s, name: d.sponsor.name, logo_url: d.sponsor.logo_url, active: d.sponsor.active, expires_at: d.sponsor.expires_at }
+        // Refrescar datos del sponsor (logo, estado, vencimiento) contra el servidor, con reintento si el token venció
+        fetchWithAuthRefresh(`/api/sponsors-v2/${s.slug}`, s.access_token, s.refresh_token).then(({ data, access_token, refresh_token }) => {
+          const sponsor = data?.sponsor as { name?: string; logo_url?: string | null; active?: boolean; expires_at?: string | null } | undefined
+          if (sponsor) {
+            const updated = { ...s, name: sponsor.name, logo_url: sponsor.logo_url, active: sponsor.active, expires_at: sponsor.expires_at, access_token, refresh_token }
             setLoggedSponsor(updated)
             try { localStorage.setItem('flashttoo_sponsor_session', JSON.stringify(updated)) } catch {}
           }
