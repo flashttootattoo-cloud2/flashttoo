@@ -3413,6 +3413,7 @@ export default function Home() {
           onSearch={(c, ci, styles) => {
             setCountry(c); setCity(ci); setStyles(styles)
             setShowSearchWizard(false)
+            window.dispatchEvent(new CustomEvent('close-search-overlays'))
             window.scrollTo({ top: 0, behavior: 'smooth' })
           }}
         />

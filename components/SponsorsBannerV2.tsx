@@ -270,6 +270,17 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     return () => window.removeEventListener('open-sponsor', onOpenSponsor)
   }, [])
 
+  // Al buscar desde el asistente estando en cultura/galería/insumos, cerrar todo
+  // y volver a home (mismo reset que hace el botón Home de esta misma barra)
+  useEffect(() => {
+    function onCloseOverlays() {
+      setExpanded(false); setShowGallery(false); setShowCultura(false); setSelectedPhoto(null)
+      photoStackRef.current = []; histDepthRef.current = 0
+    }
+    window.addEventListener('close-search-overlays', onCloseOverlays)
+    return () => window.removeEventListener('close-search-overlays', onCloseOverlays)
+  }, [])
+
   // Re-filtrar con debounce cuando cambia la búsqueda, sin re-mezclar
   useEffect(() => {
     if (!allRef.current.length) return
