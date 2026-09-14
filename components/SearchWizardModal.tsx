@@ -131,7 +131,7 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
   if (passed('country')) rows.push({ key: 'loc', text: [city, country].filter(Boolean).join(', ') || country, icon: IconPin, onClick: () => setStep('country') })
 
   return (
-    <div onClick={close} style={{ position: 'fixed', inset: 0, zIndex: 210, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'transparent', padding: '20px 20px 50vh', overflowY: 'auto' }}>
+    <div onClick={close} style={{ position: 'fixed', inset: 0, zIndex: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', padding: '20px', overflowY: 'auto' }}>
       <style>{`@keyframes centerModalIn{from{opacity:0;transform:scale(0.95) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}.ftx-describe::placeholder{color:rgba(255,255,255,0.22)}`}</style>
       <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 420, maxHeight: '88vh', display: 'flex', flexDirection: 'column', borderRadius: 24, boxShadow: '0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(239,255,66,0.06), 0 0 50px rgba(239,255,66,0.07)', animation: 'centerModalIn 0.4s cubic-bezier(0.22,0.61,0.36,1)', overflow: 'hidden', background: 'rgba(14,14,14,0.72)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', border: '1px solid rgba(255,255,255,0.12)' }}>
 
