@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from '@/contexts/TranslationContext'
 
@@ -28,6 +28,41 @@ type Props = {
 
 export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onSearch }: Props) {
   const { t } = useTranslation()
+
+  // Bloquea el scroll del feed de fondo mientras el modal está abierto — sin esto,
+  // al enfocar un input el navegador mobile scrollea la página entera (el feed y
+  // el logo se corren) para llevar el input a la vista.
+  useEffect(() => {
+    const scrollY = window.scrollY
+    const body = document.body
+    const prev = { overflow: body.style.overflow, position: body.style.position, top: body.style.top, width: body.style.width }
+    body.style.overflow = 'hidden'
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.width = '100%'
+    return () => {
+      body.style.overflow = prev.overflow
+      body.style.position = prev.position
+      body.style.top = prev.top
+      body.style.width = prev.width
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
+
+  // Sigue el tamaño real de pantalla visible (visualViewport) en vez de 100vh fijo,
+  // así el modal se achica solo cuando aparece el teclado, sin que nada de atrás se mueva.
+  const [viewport, setViewport] = useState<{ height: number; top: number }>(() => ({
+    height: typeof window !== 'undefined' ? window.innerHeight : 0, top: 0,
+  }))
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const onResize = () => setViewport({ height: vv.height, top: vv.offsetTop })
+    onResize()
+    vv.addEventListener('resize', onResize)
+    vv.addEventListener('scroll', onResize)
+    return () => { vv.removeEventListener('resize', onResize); vv.removeEventListener('scroll', onResize) }
+  }, [])
   const [step, setStep] = useState<Step>('country')
   const [country, setCountry] = useState('')
   const [city, setCity] = useState('')
@@ -131,9 +166,9 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
   if (passed('country')) rows.push({ key: 'loc', text: [city, country].filter(Boolean).join(', ') || country, icon: IconPin, onClick: () => setStep('country') })
 
   return (
-    <div onClick={close} style={{ position: 'fixed', inset: 0, zIndex: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', padding: '20px', overflowY: 'auto' }}>
+    <div onClick={close} style={{ position: 'fixed', left: 0, width: '100%', top: viewport.top, height: viewport.height, zIndex: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', padding: '20px', overflowY: 'auto', boxSizing: 'border-box' }}>
       <style>{`@keyframes centerModalIn{from{opacity:0;transform:scale(0.95) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}.ftx-describe::placeholder{color:rgba(255,255,255,0.22)}`}</style>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 420, maxHeight: '88vh', display: 'flex', flexDirection: 'column', borderRadius: 24, boxShadow: '0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(239,255,66,0.06), 0 0 50px rgba(239,255,66,0.07)', animation: 'centerModalIn 0.4s cubic-bezier(0.22,0.61,0.36,1)', overflow: 'hidden', background: 'rgba(14,14,14,0.72)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 420, maxHeight: '100%', display: 'flex', flexDirection: 'column', borderRadius: 24, boxShadow: '0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(239,255,66,0.06), 0 0 50px rgba(239,255,66,0.07)', animation: 'centerModalIn 0.4s cubic-bezier(0.22,0.61,0.36,1)', overflow: 'hidden', background: 'rgba(14,14,14,0.72)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', border: '1px solid rgba(255,255,255,0.12)' }}>
 
         <div style={{ padding: '18px 20px 8px', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
           {stepIdx > 0 ? (
