@@ -5669,6 +5669,8 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [loadingPosts, setLoadingPosts] = useState(true)
   const [searchLimitDraft, setSearchLimitDraft] = useState('')
   const [savingSearchLimit, setSavingSearchLimit] = useState(false)
+  const [searchExpiryDraft, setSearchExpiryDraft] = useState('')
+  const [savingSearchExpiry, setSavingSearchExpiry] = useState(false)
 
   const loadPosts = async () => {
     setLoadingPosts(true)
@@ -5686,7 +5688,10 @@ function AdminCommunity({ pass }: { pass: string }) {
     loadPosts()
     fetch('/api/admin/settings', { headers: { 'x-admin-pass': pass } })
       .then(r => r.json())
-      .then(d => setSearchLimitDraft(String(d?.settings?.search_wizard_daily_limit ?? '15')))
+      .then(d => {
+        setSearchLimitDraft(String(d?.settings?.search_wizard_daily_limit ?? '15'))
+        setSearchExpiryDraft(String(d?.settings?.search_wizard_expiry_days ?? '7'))
+      })
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -5700,6 +5705,18 @@ function AdminCommunity({ pass }: { pass: string }) {
         body: JSON.stringify({ key: 'search_wizard_daily_limit', value: String(n) }),
       })
     } finally { setSavingSearchLimit(false) }
+  }
+
+  const saveSearchExpiry = async () => {
+    const n = parseInt(searchExpiryDraft, 10)
+    if (!Number.isFinite(n) || n < 1) return
+    setSavingSearchExpiry(true)
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
+        body: JSON.stringify({ key: 'search_wizard_expiry_days', value: String(n) }),
+      })
+    } finally { setSavingSearchExpiry(false) }
   }
 
   const deletePost = async (id: string) => {
@@ -5808,6 +5825,15 @@ function AdminCommunity({ pass }: { pass: string }) {
               className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
               style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.25)' }}>
               {savingSearchLimit ? '...' : 'Guardar'}
+            </button>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginLeft: 10 }}>Días que permanecen</span>
+            <input type="number" min={1} value={searchExpiryDraft} onChange={e => setSearchExpiryDraft(e.target.value)}
+              className="w-16 px-2 py-1 rounded-lg text-xs"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+            <button onClick={saveSearchExpiry} disabled={savingSearchExpiry}
+              className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+              style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.25)' }}>
+              {savingSearchExpiry ? '...' : 'Guardar'}
             </button>
           </div>
         </div>

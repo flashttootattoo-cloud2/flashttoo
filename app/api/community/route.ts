@@ -106,9 +106,13 @@ export async function POST(req: NextRequest) {
   } else if (type === 'search') {
     if (!insert.country) return NextResponse.json({ error: 'País requerido' }, { status: 400 })
     const deviceId = typeof body.device_id === 'string' ? body.device_id.trim().slice(0, 80) : null
+
+    const { data: settingsRows } = await sb().from('settings').select('key, value').in('key', ['search_wizard_daily_limit', 'search_wizard_expiry_days'])
+    const settingsMap: Record<string, unknown> = {}
+    for (const row of settingsRows || []) settingsMap[row.key] = row.value
+
     if (deviceId) {
-      const { data: setting } = await sb().from('settings').select('value').eq('key', 'search_wizard_daily_limit').single()
-      const limit = parseInt(String(setting?.value ?? '15'), 10)
+      const limit = parseInt(String(settingsMap.search_wizard_daily_limit ?? '15'), 10)
       if (Number.isFinite(limit) && limit > 0) {
         const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
         const { count } = await sb().from('community_posts').select('id', { count: 'exact', head: true })
@@ -118,6 +122,11 @@ export async function POST(req: NextRequest) {
         }
       }
     }
+
+    // Vigencia propia, configurable desde el admin (separada de los 7 días del resto de la comunidad)
+    const expiryDays = parseInt(String(settingsMap.search_wizard_expiry_days ?? '7'), 10)
+    insert.expires_at = new Date(Date.now() + (Number.isFinite(expiryDays) && expiryDays > 0 ? expiryDays : 7) * 24 * 60 * 60 * 1000).toISOString()
+
     insert.device_id          = deviceId
     insert.search_category    = ['parche', 'pieza'].includes(body.search_category) ? body.search_category : null
     insert.search_size        = ['chico', 'mediano', 'grande'].includes(body.search_size) ? body.search_size : null
