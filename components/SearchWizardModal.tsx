@@ -32,16 +32,11 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
   const [country, setCountry] = useState('')
   const [city, setCity] = useState('')
   const [describe, setDescribe] = useState('')
-  const [category, setCategory] = useState<'parche' | 'pieza' | null>(null)
-  const [size, setSize] = useState<'chico' | 'mediano' | 'grande' | null>(null)
   const [style, setStyle] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
   const [stylePos, setStylePos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
   const styleBtnRef = useRef<HTMLButtonElement>(null)
-  const [typeOpen, setTypeOpen] = useState(false)
-  const [typePos, setTypePos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
-  const typeBtnRef = useRef<HTMLButtonElement>(null)
 
   function dropdownPos(btn: HTMLButtonElement | null, width: number): { top?: number; bottom?: number; left: number } | null {
     if (!btn) return null
@@ -63,24 +58,18 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
     try {
       const loc = [city, country].filter(Boolean).join(', ')
       const description = !skipRest ? describe.trim() : ''
-      const cat = !skipRest ? category : null
-      const sz = !skipRest && cat === 'parche' ? size : null
       const st = !skipRest ? style : null
 
       const extra: string[] = []
-      if (cat) {
-        extra.push(sz ? t('buscador', `size_${sz}`, sz) : t('buscador', 'cat_pieza', 'Pieza completa'))
-      }
       if (st) extra.push(st)
 
+      // Sin texto propio no hay nada concreto para que un tatuador se interese en particular
+      // (se muestra como notificación general, sin el sistema de "me interesa" — ver
+      // isMinimalSearch en CommunityPanel), pero tamaño/estilo igual valen como dato.
       let content: string
       if (description) {
         // El textarea tiene margen (250) para que esto nunca se pase de 300 y se corte.
-        if (extra.length > 0) {
-          content = `${description} (${extra.join(', ')})`
-        } else {
-          content = description
-        }
+        content = extra.length > 0 ? `${description} (${extra.join(', ')})` : description
       } else if (extra.length > 0) {
         content = t('buscador', 'msg_detailed', 'Alguien busca {detail} — {loc}').replace('{detail}', extra.join(', ')).replace('{loc}', loc || country)
       } else {
@@ -93,8 +82,6 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
           type: 'search', content, country, city: city || null, lang,
           device_id: getDeviceId(),
           search_description: description || null,
-          search_category: cat,
-          search_size: sz,
           search_style: st,
         }),
       }).catch(() => {})
@@ -178,38 +165,9 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
                   onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                   style={{ ...underlineInputStyle, marginTop: 4 }} />
               )}
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginTop: 10, marginBottom: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-                {t('buscador', 'subheadline', 'Te mostramos tatuadores según lo que elijas.')}
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 14, marginTop: 10 }}>
-                <button onClick={goNext} disabled={!country.trim()} style={ctaStyle(!!country.trim())}>
-                  {t('buscador', 'continue', 'Continuar')}
-                </button>
-              </div>
-            </div>
-          )}
 
-          {step === 'describe' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: rows.length ? 6 : 0 }}>
-              <p style={headlineStyle}>{t('buscador', 'q_describe', 'Contanos qué te querés tatuar')}</p>
-              <textarea autoFocus value={describe} onChange={e => setDescribe(e.target.value)} maxLength={250} rows={4}
-                className="ftx-describe"
-                placeholder={t('buscador', 'describe_placeholder', 'ej: quiero una rosa en el cuello a color')}
-                onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                style={{ background: 'transparent', border: 'none', borderRadius: 0, padding: '4px 0', color: '#fff', fontSize: 15, lineHeight: 1.55, outline: 'none', width: '100%', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-
-              {/* Detalles opcionales, todo acá mismo, sin más pasos — mismo estilo de tag que en los perfiles */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-                <button ref={typeBtnRef} style={profileTagStyle}
-                  onClick={() => {
-                    if (typeOpen) { setTypeOpen(false); return }
-                    setTypePos(dropdownPos(typeBtnRef.current, 200))
-                    setTypeOpen(true)
-                  }}>
-                  {category
-                    ? (category === 'parche' && size ? t('buscador', `size_${size}`, size) : category === 'parche' ? t('buscador', 'cat_parche', 'Parche') : t('buscador', 'cat_pieza', 'Pieza completa'))
-                    : t('buscador', 'type_placeholder', 'Tamaño de tatuaje')} {typeOpen ? '▲' : '▼'}
-                </button>
+              {/* Opcional — solo filtra la búsqueda, no genera una publicación "detallada" en comunidad */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                 <button ref={styleBtnRef} style={profileTagStyle}
                   onClick={() => {
                     if (styleOpen) { setStyleOpen(false); return }
@@ -219,33 +177,6 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
                   {style || t('inicio', 'styles_placeholder', 'Estilos de tatuaje')} {styleOpen ? '▲' : '▼'}
                 </button>
               </div>
-
-              {typeOpen && typePos && createPortal(
-                <>
-                  <div onClick={e => { e.stopPropagation(); setTypeOpen(false) }} style={{ position: 'fixed', inset: 0, zIndex: 229 }} />
-                  <div className="rounded-xl overflow-y-auto"
-                    style={{ position: 'fixed', ...typePos, zIndex: 230, width: 200, background: 'rgba(14,14,14,0.75)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)', maxHeight: 250 }}>
-                    <div className="flex flex-col">
-                      {([
-                        { cat: 'parche' as const, sz: 'chico' as const, label: t('buscador', 'size_chico', 'Chico') },
-                        { cat: 'parche' as const, sz: 'mediano' as const, label: t('buscador', 'size_mediano', 'Mediano') },
-                        { cat: 'parche' as const, sz: 'grande' as const, label: t('buscador', 'size_grande', 'Grande') },
-                        { cat: 'pieza' as const, sz: null, label: t('buscador', 'cat_pieza', 'Pieza completa') },
-                      ]).map(opt => {
-                        const on = category === opt.cat && size === opt.sz
-                        return (
-                          <button key={opt.label} onClick={() => { setCategory(prev => on ? null : opt.cat); setSize(prev => on ? null : opt.sz); setTypeOpen(false) }}
-                            className="flex items-center justify-between px-3 py-2.5 transition-all text-left"
-                            style={{ fontSize: 12.5, background: on ? 'rgba(239,255,66,0.1)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                            <span style={{ color: on ? '#efff42' : 'rgba(255,255,255,0.55)', fontWeight: on ? 700 : 400 }}>{opt.label}</span>
-                            {on && <span style={{ color: '#efff42', fontSize: 11 }}>✓</span>}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </>, document.body
-              )}
 
               {styleOpen && stylePos && createPortal(
                 <>
@@ -268,6 +199,29 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
                   </div>
                 </>, document.body
               )}
+
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginTop: 10, marginBottom: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                {t('buscador', 'subheadline', 'Te mostramos tatuadores según lo que elijas.')}
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 14, marginTop: 10 }}>
+                <button onClick={goNext} disabled={!country.trim()} style={ctaStyle(!!country.trim())}>
+                  {t('buscador', 'continue', 'Continuar')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 'describe' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: rows.length ? 6 : 0 }}>
+              <p style={{ ...headlineStyle, marginBottom: 4 }}>{t('buscador', 'q_describe', 'Contanos qué te querés tatuar')}</p>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '0 0 8px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                {t('buscador', 'describe_hint_size_zone', 'Contá tamaño y zona del cuerpo')}
+              </p>
+              <textarea autoFocus value={describe} onChange={e => setDescribe(e.target.value)} maxLength={250} rows={4}
+                className="ftx-describe"
+                placeholder={t('buscador', 'describe_placeholder', 'ej: quiero una rosa mediana en el antebrazo, a color')}
+                onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                style={{ background: 'transparent', border: 'none', borderRadius: 0, padding: '4px 0', color: '#fff', fontSize: 15, lineHeight: 1.55, outline: 'none', width: '100%', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
 
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginTop: 10, marginBottom: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
                 {t('buscador', 'describe_community_hint', 'Esto se publica en la comunidad — tatuadores de tu zona lo van a ver y pueden querer ayudarte. Después volvé y buscá el mensaje para ver qué tatuador puede tener disponibilidad.')}

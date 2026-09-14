@@ -1011,7 +1011,10 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
   const [offerPos, setOfferPos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
   const offerBtnRef = useRef<HTMLButtonElement>(null)
 
-  const isMinimalSearch = isSearch && !post.search_description && !post.search_category && !post.search_size && !post.search_style
+  // Sin texto propio no hay nada concreto para que un tatuador se interese —
+  // se muestra como notificación genérica, sin el sistema de "me interesa",
+  // aunque haya tamaño/estilo elegidos (esos solo filtran la búsqueda).
+  const isMinimalSearch = isSearch && !post.search_description
 
   if (isMinimalSearch) {
     return (
@@ -1027,10 +1030,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
             </svg>
             {post.content}
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            <SearchHelpers post={post} loggedArtist={loggedArtist} onOpenArtist={onOpenArtist} compact />
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{timeAgo(post.created_at, nowLabel)}</span>
-          </div>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>{timeAgo(post.created_at, nowLabel)}</span>
         </div>
       </div>
     )
