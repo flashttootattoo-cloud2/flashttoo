@@ -13,6 +13,7 @@ import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 import { useTranslation } from '@/contexts/TranslationContext'
 import { renderPhraseContent } from '@/components/PhraseContent'
 import CommunityPanel from '@/components/CommunityPanel'
+import SearchWizardModal, { SEARCH_WIZARD_SEEN_KEY } from '@/components/SearchWizardModal'
 import InvitesModal from '@/components/InvitesModal'
 import SponsorOffersModal from '@/components/SponsorOffersModal'
 
@@ -246,6 +247,10 @@ export default function Home() {
   const [showClickCounters, setShowClickCounters] = useState(false)
   const [loggedArtist, setLoggedArtist] = useState<{ id: string; name: string; photo_url: string | null; slug: string; city: string | null; country: string | null; access_token: string; refresh_token?: string; flashbook_alias: string | null } | null>(null)
   const [artistMenuOpen, setArtistMenuOpen] = useState(false)
+  const [showSearchWizard, setShowSearchWizard] = useState(false)
+  const [searchWizardSeen, setSearchWizardSeen] = useState(() => {
+    try { return !!localStorage.getItem(SEARCH_WIZARD_SEEN_KEY) } catch { return false }
+  })
   const [communityOpen, setCommunityOpen] = useState(() => {
     if (typeof window === 'undefined') return false
     return new URLSearchParams(window.location.search).get('comunidad') === '1'
@@ -328,6 +333,8 @@ export default function Home() {
   const seedRef        = useRef(Math.random() * 2 - 1)
   const filterRef      = useRef({ country, city, styles: activeStyles })
   filterRef.current = { country, city, styles: activeStyles }
+  const loggedAnyRef = useRef({ artist: loggedArtist, studio: loggedStudio, sponsor: loggedSponsor })
+  loggedAnyRef.current = { artist: loggedArtist, studio: loggedStudio, sponsor: loggedSponsor }
   const [selectedContent, setSelectedContent] = useState<ContentCard | null>(null)
   const [selectedAd, setSelectedAd]           = useState<Ad | null>(null)
   const [adEditSection, setAdEditSection]     = useState(false)
@@ -488,6 +495,18 @@ export default function Home() {
   useEffect(() => { try { sessionStorage.setItem('s_country', country.trim()) } catch {} }, [country])
   useEffect(() => { try { sessionStorage.setItem('s_city', city.trim()) } catch {} }, [city])
   useEffect(() => { try { sessionStorage.setItem('s_styles', JSON.stringify(activeStyles)) } catch {} }, [activeStyles])
+
+  // Asistente de búsqueda: se abre una vez por dispositivo para visitantes no logueados,
+  // después de que se resuelve el video de portada (se muestre o no)
+  useEffect(() => {
+    function onPortadaResuelta() {
+      if (loggedAnyRef.current.artist || loggedAnyRef.current.studio || loggedAnyRef.current.sponsor) return
+      try { if (localStorage.getItem('flashttoo_search_wizard_seen')) return } catch {}
+      setShowSearchWizard(true)
+    }
+    window.addEventListener('portada-resuelta', onPortadaResuelta)
+    return () => window.removeEventListener('portada-resuelta', onPortadaResuelta)
+  }, [])
 
   // Guardar posición de scroll mientras navega
   useEffect(() => {
@@ -1567,91 +1586,81 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Búsqueda + estilos apilados */}
+        {/* Búsqueda + estilos apilados — solo aparece cuando ya hay una búsqueda activa (viene del asistente) */}
+        {hasFilters && (
         <div className="max-w-7xl mx-auto px-5 pb-3 flex flex-col gap-2">
 
-          <input type="text" placeholder={t('inicio', 'country_placeholder', 'país')} value={country}
-            onChange={e => { setCountry(e.target.value); setCity('') }}
-            className="w-full py-2 px-4 text-sm text-white outline-none transition-all rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-            onFocus={e => (e.currentTarget.style.borderColor = 'rgba(239,255,66,0.5)')}
-            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')} />
+          {(country || city) && (
+            <p style={{ fontSize: 13, color: '#38bdf8', lineHeight: 1.7, padding: '4px 2px', margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+              {[city, country].filter(Boolean).join(', ')}
+            </p>
+          )}
 
-          <input type="text"
-            placeholder={country.trim() ? `${t('inicio', 'city_with_country', 'ciudad en')} ${country.trim()}` : t('inicio', 'city_placeholder', 'ciudad (primero elegí un país)')}
-            value={city}
-            disabled={!country.trim()}
-            onChange={e => setCity(e.target.value)}
-            className="w-full py-2 px-4 text-sm outline-none transition-all rounded-lg"
-            style={{
-              background: country.trim() ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: country.trim() ? '#fff' : 'rgba(255,255,255,0.2)',
-              cursor: country.trim() ? 'text' : 'not-allowed',
-            }}
-            onFocus={e => { if (country.trim()) e.currentTarget.style.borderColor = 'rgba(239,255,66,0.5)' }}
-            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')} />
-
-          {/* Dropdown estilos — mismo tamaño que el input */}
-          <div ref={stylesRef} className="relative w-full">
-            <button onClick={() => setStylesOpen(v => !v)}
-              className="w-full flex items-center justify-between py-2 px-4 text-sm transition-all rounded-lg"
-              style={{
-                background: activeStyles.length > 0 ? 'rgba(239,255,66,0.07)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${stylesOpen || activeStyles.length > 0 ? 'rgba(239,255,66,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                color: activeStyles.length > 0 ? '#efff42' : 'rgba(255,255,255,0.35)',
-              }}>
-              <span>{activeStyles.length > 0 ? activeStyles[0] : t('inicio', 'styles_placeholder', 'Estilos de tatuaje')}</span>
-              <span style={{ fontSize: 9, opacity: 0.5 }}>{stylesOpen ? '▲' : '▼'}</span>
-            </button>
-
-            {stylesOpen && (
-              <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-xl overflow-y-auto"
-                style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)', maxHeight: 300 }}>
-                <div className="grid grid-cols-2">
-                  {allStyles.map(s => {
-                    const on = activeStyles.includes(s)
-                    return (
-                      <button key={s} onClick={() => toggleStyle(s)}
-                        className="flex items-center justify-between px-4 py-2.5 text-sm transition-all text-left"
-                        style={{ background: on ? 'rgba(239,255,66,0.1)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)', borderRight: '1px solid rgba(255,255,255,0.04)' }}
-                        onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
-                        onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent' }}>
-                        <span style={{ color: on ? '#efff42' : 'rgba(255,255,255,0.55)', fontWeight: on ? 700 : 400 }}>{s}</span>
-                        {on && <span style={{ color: '#efff42', fontSize: 12 }}>✓</span>}
-                      </button>
-                    )
-                  })}
-                </div>
-                {activeStyles.length > 0 && (
-                  <button onClick={() => setStyles([])}
-                    className="w-full py-2 text-xs transition-all"
-                    style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,100,100,0.6)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,80,80,0.05)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                    {t('inicio', 'clear_style', 'quitar estilo')}
-                  </button>
+          <div className="flex items-center justify-between gap-3">
+            {/* Dropdown estilos */}
+            <div ref={stylesRef} className="relative">
+              <button onClick={() => setStylesOpen(v => !v)} className="flex items-center flex-wrap gap-1.5">
+                {activeStyles.length > 0 ? activeStyles.map(s => (
+                  <span key={s} style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 5, background: 'transparent', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>
+                    {s}
+                  </span>
+                )) : (
+                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 5, background: 'transparent', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>
+                    {t('inicio', 'styles_placeholder', 'Estilos de tatuaje')}
+                  </span>
                 )}
-              </div>
+                <span style={{ fontSize: 9, color: '#efff42' }}>{stylesOpen ? '▲' : '▼'}</span>
+              </button>
+
+              {stylesOpen && (
+                <div className="absolute top-full left-0 z-50 mt-1 rounded-xl overflow-y-auto"
+                  style={{ width: 260, background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)', maxHeight: 300 }}>
+                  <div className="grid grid-cols-2">
+                    {allStyles.map(s => {
+                      const on = activeStyles.includes(s)
+                      return (
+                        <button key={s} onClick={() => { toggleStyle(s); setStylesOpen(false) }}
+                          className="flex items-center justify-between px-4 py-2.5 text-sm transition-all text-left"
+                          style={{ background: on ? 'rgba(239,255,66,0.1)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)', borderRight: '1px solid rgba(255,255,255,0.04)' }}
+                          onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                          onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent' }}>
+                          <span style={{ color: on ? '#efff42' : 'rgba(255,255,255,0.55)', fontWeight: on ? 700 : 400 }}>{s}</span>
+                          {on && <span style={{ color: '#efff42', fontSize: 12 }}>✓</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {activeStyles.length > 0 && (
+                    <button onClick={() => setStyles([])}
+                      className="w-full py-2 text-xs transition-all"
+                      style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,100,100,0.6)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,80,80,0.05)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      {t('inicio', 'clear_style', 'quitar estilo')}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {hasFilters && (
+              <button onClick={() => {
+                try {
+                  sessionStorage.removeItem('s_country')
+                  sessionStorage.removeItem('s_city')
+                  sessionStorage.removeItem('s_styles')
+                  sessionStorage.removeItem('s_scroll')
+                } catch {}
+                setCountry(''); setCity(''); setStyles([])
+              }}
+                className="text-xs px-3 py-1 rounded-full transition-all"
+                style={{ border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.5)' }}>
+                {t('inicio', 'clear_filters', 'limpiar todo')}
+              </button>
             )}
           </div>
-
-          {hasFilters && (
-            <button onClick={() => {
-              try {
-                sessionStorage.removeItem('s_country')
-                sessionStorage.removeItem('s_city')
-                sessionStorage.removeItem('s_styles')
-                sessionStorage.removeItem('s_scroll')
-              } catch {}
-              window.location.href = '/'
-            }}
-              className="self-start text-xs px-3 py-1 rounded-full transition-all"
-              style={{ border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.5)' }}>
-              {t('inicio', 'clear_filters', 'limpiar todo')}
-            </button>
-          )}
         </div>
+        )}
       </header>
 
       {!loading && showCount && totalActiveArtists !== null && (
@@ -3395,8 +3404,22 @@ export default function Home() {
       )}
 
       <CulturaVideoModal />
+
+      {showSearchWizard && (
+        <SearchWizardModal
+          allStyles={allStyles}
+          lang={language}
+          onClose={() => { setShowSearchWizard(false); setSearchWizardSeen(true) }}
+          onSearch={(c, ci, styles) => {
+            setCountry(c); setCity(ci); setStyles(styles)
+            setShowSearchWizard(false)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+        />
+      )}
+
       {/* ConventionModal desactivado temporalmente */}
-      <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} onOverlayChange={setInsumoOpen} />
+      <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} onOverlayChange={setInsumoOpen} onOpenSearchWizard={!loggedArtist && !loggedStudio && !loggedSponsor ? () => setShowSearchWizard(true) : undefined} pulseSearchWizard={!searchWizardSeen} />
 
       {/* ── MODAL FRASE ─────────────────────────────────────────── */}
       {phraseOpen && phrase && !!phrase.tags?.length && (
@@ -3791,12 +3814,13 @@ export default function Home() {
       {!communityOpen && !insumoOpen && !showReport && !selectedStudioSlug && (
         <button
           onClick={() => setCommunityOpen(true)}
-          style={{ position: 'fixed', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 65, background: 'rgba(239,255,66,0.22)', border: '1px solid rgba(239,255,66,0.35)', borderRight: 'none', borderRadius: '12px 0 0 12px', padding: '14px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+          style={{ position: 'fixed', right: 0, top: '58%', transform: 'translateY(-50%)', zIndex: 65, background: 'rgba(239,255,66,0.22)', border: '1px solid rgba(239,255,66,0.35)', borderRight: 'none', borderRadius: '12px 0 0 12px', padding: '14px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
         </button>
       )}
+
 
       {communityOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex' }}
@@ -3815,7 +3839,7 @@ export default function Home() {
                 onClose={() => setCommunityOpen(false)}
                 lang={language}
                 highlightPostId={highlightPostId}
-                loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: loggedArtist.city ?? undefined, country: loggedArtist.country ?? undefined, flashbook_alias: loggedArtist.flashbook_alias } : null}
+                loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: loggedArtist.city ?? undefined, country: loggedArtist.country ?? undefined, flashbook_alias: loggedArtist.flashbook_alias, access_token: loggedArtist.access_token } : null}
                 loggedStudio={loggedStudio ? { slug: loggedStudio.slug, name: loggedStudio.name, logo_url: loggedStudio.logo_url, visible: loggedStudio.visible, expires_at: loggedStudio.expires_at ?? null, access_token: loggedStudio.access_token, refresh_token: loggedStudio.refresh_token, city: loggedStudio.city ?? undefined, country: loggedStudio.country ?? undefined } : null}
                 loggedSponsor={loggedSponsor}
                 onSponsorTokenRefreshed={tokens => {

@@ -132,7 +132,7 @@ function CulturaVideoPlayer({ src, poster, forceMuted }: { src: string; poster: 
   )
 }
 
-export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false, showInsumos = true, onOverlayChange }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean; showInsumos?: boolean; onOverlayChange?: (open: boolean) => void }) {
+export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false, showInsumos = true, onOverlayChange, onOpenSearchWizard, pulseSearchWizard = false }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean; showInsumos?: boolean; onOverlayChange?: (open: boolean) => void; onOpenSearchWizard?: () => void; pulseSearchWizard?: boolean }) {
   const { t, language } = useTranslation()
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [bannerGap, setBannerGap] = useState(8)
@@ -527,8 +527,6 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     : allRef.current
   const gridSponsors = allGridSponsors.slice(0, gridPage * GRID_PAGE_SIZE)
   const hasMore = gridSponsors.length < allGridSponsors.length
-
-  if (!sponsors.length) return null
 
   return (
     <>
@@ -1003,8 +1001,8 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         )
       })()}
 
-      {/* Banner fijo — solo cuando insumos está activo */}
-      {showInsumos && (
+      {/* Banner fijo — solo cuando insumos está activo y hay marcas para mostrar */}
+      {showInsumos && sponsors.length > 0 && (
         <div
           onTouchStart={e => { e.stopPropagation(); startDrag(e.touches[0].clientX) }}
           onTouchMove={e => { e.stopPropagation(); moveDrag(e.touches[0].clientX) }}
@@ -1037,7 +1035,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       )}
 
       {/* Botones flotantes — Glass Pill */}
-      <style>{`.ftpill{display:flex;align-items:center;justify-content:center;gap:0;height:44px;min-width:44px;padding:0 12px;border-radius:999px;border:none;cursor:pointer;font-size:10.5px;font-weight:700;letter-spacing:0.06em;white-space:nowrap;overflow:hidden;transition:background .22s,color .22s,gap .26s,padding .26s;-webkit-tap-highlight-color:transparent}.ftpill svg{flex-shrink:0;transition:transform .22s}.ftpill.fton svg{transform:scale(1.15)}.ftpill-lbl{max-width:0;overflow:hidden;opacity:0;transition:max-width .28s ease,opacity .2s}.ftpill.fton .ftpill-lbl{max-width:76px;opacity:1}.ftpill.fton{gap:7px;padding:0 16px 0 12px}`}</style>
+      <style>{`.ftpill{display:flex;align-items:center;justify-content:center;gap:0;height:44px;min-width:44px;padding:0 12px;border-radius:999px;border:none;cursor:pointer;font-size:10.5px;font-weight:700;letter-spacing:0.06em;white-space:nowrap;overflow:hidden;transition:background .22s,color .22s,gap .26s,padding .26s;-webkit-tap-highlight-color:transparent}.ftpill svg{flex-shrink:0;transition:transform .22s}.ftpill.fton svg{transform:scale(1.15)}.ftpill-lbl{max-width:0;overflow:hidden;opacity:0;transition:max-width .28s ease,opacity .2s}.ftpill.fton .ftpill-lbl{max-width:76px;opacity:1}.ftpill.fton{gap:7px;padding:0 16px 0 12px}@keyframes ftpillPulse{0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,0.55)}50%{box-shadow:0 0 0 7px rgba(56,189,248,0)}}.ftpill-pulse{animation:ftpillPulse 1.8s ease-in-out infinite}`}</style>
       <div style={{ position: 'fixed', bottom: 76, left: 0, right: 0, zIndex: selectedPhoto ? 75 : (showGallery || expanded) ? 65 : showCultura ? 41 : 41, pointerEvents: 'none', display: selectedId ? 'none' : 'flex', justifyContent: 'center', padding: '0 20px' }}>
         <div style={{ maxWidth: '80rem', width: '100%', display: 'flex', justifyContent: 'center', pointerEvents: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(12,12,12,0.62)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 999, padding: 5, boxShadow: '0 4px 28px rgba(0,0,0,0.5)' }}>
@@ -1105,6 +1103,13 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               <span className="ftpill-lbl">{t('inicio', 'events_btn', 'Eventos')}</span>
             </button>
+            {/* Asistente de búsqueda */}
+            {onOpenSearchWizard && (
+              <button className={`ftpill${pulseSearchWizard ? ' ftpill-pulse' : ''}`} style={{ background: '#38bdf8', color: '#000' }}
+                onClick={onOpenSearchWizard}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </button>
+            )}
           </div>
         </div>
       </div>

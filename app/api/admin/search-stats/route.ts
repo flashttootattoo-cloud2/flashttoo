@@ -10,7 +10,7 @@ function checkAuth(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  await sb().from('search_stats').update({ count: 0 }).gte('count', 0)
+  await sb().from('search_stats').delete().gte('count', 0)
   return NextResponse.json({ ok: true })
 }
 

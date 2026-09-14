@@ -12,14 +12,16 @@ function auth(req: NextRequest) {
 export async function GET(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  const [adminPosts, reportedPosts] = await Promise.all([
+  const [adminPosts, reportedPosts, searchPosts] = await Promise.all([
     sb().from('community_posts').select('*').eq('type', 'admin').order('created_at', { ascending: false }),
     sb().from('community_posts').select('*').gte('report_count', 1).neq('type', 'admin').order('report_count', { ascending: false }),
+    sb().from('community_posts').select('*').eq('type', 'search').order('created_at', { ascending: false }),
   ])
 
   return NextResponse.json({
     adminPosts: adminPosts.data ?? [],
     reportedPosts: reportedPosts.data ?? [],
+    searchPosts: searchPosts.data ?? [],
   })
 }
 

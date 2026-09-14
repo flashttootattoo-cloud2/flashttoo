@@ -26,24 +26,25 @@ export default function CulturaVideoModal() {
   const historyPushedRef        = useRef(false)
 
   useEffect(() => {
-    try { if (sessionStorage.getItem('cultura_video_closed')) return } catch {}
+    const notShowing = () => window.dispatchEvent(new CustomEvent('portada-resuelta'))
+    try { if (sessionStorage.getItem('cultura_video_closed')) { notShowing(); return } } catch {}
     // No mostrar el video de portada si se entró por un link que ya abre otro contenido
     // (insumo, artista, estudio, frase, post de comunidad) — evita pisar ese historial y tapar lo compartido
     const params = new URLSearchParams(window.location.search)
-    if (params.has('insumo') || params.has('artista') || params.has('estudio') || params.has('frase') || params.has('comunidad') || params.has('post')) return
+    if (params.has('insumo') || params.has('artista') || params.has('estudio') || params.has('frase') || params.has('comunidad') || params.has('post')) { notShowing(); return }
     fetch(`/api/cultura-videos`)
       .then(r => r.json())
       .then(d => {
         const videos: CulturaVideo[] = d?.videos ?? []
-        if (!videos.length) return
+        if (!videos.length) { notShowing(); return }
         const recent = videos[0]
-        if (!recent.published_at) return
+        if (!recent.published_at) { notShowing(); return }
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-        if (new Date(recent.published_at).getTime() < sevenDaysAgo) return
+        if (new Date(recent.published_at).getTime() < sevenDaysAgo) { notShowing(); return }
         setVideo(recent)
         setVisible(true)
       })
-      .catch(() => {})
+      .catch(() => notShowing())
   }, [])
 
   // Empujar historial cuando el modal se abre
@@ -62,6 +63,7 @@ export default function CulturaVideoModal() {
         setVisible(false)
         try { sessionStorage.setItem('cultura_video_closed', '1') } catch {}
         if (videoRef.current) videoRef.current.pause()
+        window.dispatchEvent(new CustomEvent('portada-resuelta'))
       }
     }
     window.addEventListener('popstate', onPop)
@@ -76,6 +78,7 @@ export default function CulturaVideoModal() {
       historyPushedRef.current = false
       history.back()
     }
+    window.dispatchEvent(new CustomEvent('portada-resuelta'))
   }
 
   function toggleSound(e: React.MouseEvent) {

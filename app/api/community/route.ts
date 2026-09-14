@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   }
 
   const content = String(body.content).trim().slice(0, 300)
-  const type = body.type === 'artist' ? 'artist' : body.type === 'studio' ? 'studio' : body.type === 'sponsor' ? 'sponsor' : 'client'
+  const type = body.type === 'artist' ? 'artist' : body.type === 'studio' ? 'studio' : body.type === 'sponsor' ? 'sponsor' : body.type === 'search' ? 'search' : 'client'
 
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
   const lang = typeof body.lang === 'string' && body.lang ? body.lang : 'es'
@@ -103,6 +103,26 @@ export async function POST(req: NextRequest) {
         insert.sponsor_whatsapp = offer.whatsapp || null
       }
     }
+  } else if (type === 'search') {
+    if (!insert.country) return NextResponse.json({ error: 'País requerido' }, { status: 400 })
+    const deviceId = typeof body.device_id === 'string' ? body.device_id.trim().slice(0, 80) : null
+    if (deviceId) {
+      const { data: setting } = await sb().from('settings').select('value').eq('key', 'search_wizard_daily_limit').single()
+      const limit = parseInt(String(setting?.value ?? '15'), 10)
+      if (Number.isFinite(limit) && limit > 0) {
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        const { count } = await sb().from('community_posts').select('id', { count: 'exact', head: true })
+          .eq('type', 'search').eq('device_id', deviceId).gte('created_at', since)
+        if ((count ?? 0) >= limit) {
+          return NextResponse.json({ error: 'Ya alcanzaste el límite de búsquedas de hoy' }, { status: 429 })
+        }
+      }
+    }
+    insert.device_id          = deviceId
+    insert.search_category    = ['parche', 'pieza'].includes(body.search_category) ? body.search_category : null
+    insert.search_size        = ['chico', 'mediano', 'grande'].includes(body.search_size) ? body.search_size : null
+    insert.search_style       = body.search_style?.trim().slice(0, 60) || null
+    insert.search_description = body.search_description?.trim().slice(0, 300) || null
   } else {
     if (!body.client_name?.trim()) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 })
     insert.client_name  = String(body.client_name).trim().slice(0, 60)

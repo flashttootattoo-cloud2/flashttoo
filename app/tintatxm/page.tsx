@@ -5655,7 +5655,7 @@ function AdField({ label, children }: { label: string; children: React.ReactNode
   )
 }
 
-type AdminPost = { id: string; content: string; lang: string; created_at: string; type: string; client_name?: string; artist_name?: string; studio_name?: string; report_count?: number; city?: string; country?: string }
+type AdminPost = { id: string; content: string; lang: string; created_at: string; type: string; client_name?: string; artist_name?: string; studio_name?: string; report_count?: number; city?: string; country?: string; search_category?: string | null; search_size?: string | null; search_zones?: string[] | null; search_style?: string | null; contact_type?: string | null; contact?: string | null }
 
 function AdminCommunity({ pass }: { pass: string }) {
   const LANGS = ['es', 'en', 'pt', 'fr', 'de', 'it']
@@ -5665,7 +5665,10 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [result, setResult] = useState<'ok' | 'error' | null>(null)
   const [adminPosts, setAdminPosts] = useState<AdminPost[]>([])
   const [reportedPosts, setReportedPosts] = useState<AdminPost[]>([])
+  const [searchPosts, setSearchPosts] = useState<AdminPost[]>([])
   const [loadingPosts, setLoadingPosts] = useState(true)
+  const [searchLimitDraft, setSearchLimitDraft] = useState('')
+  const [savingSearchLimit, setSavingSearchLimit] = useState(false)
 
   const loadPosts = async () => {
     setLoadingPosts(true)
@@ -5674,16 +5677,36 @@ function AdminCommunity({ pass }: { pass: string }) {
       const d = await r.json()
       setAdminPosts(d.adminPosts ?? [])
       setReportedPosts(d.reportedPosts ?? [])
+      setSearchPosts(d.searchPosts ?? [])
     }
     setLoadingPosts(false)
   }
 
-  useEffect(() => { loadPosts() }, [])
+  useEffect(() => {
+    loadPosts()
+    fetch('/api/admin/settings', { headers: { 'x-admin-pass': pass } })
+      .then(r => r.json())
+      .then(d => setSearchLimitDraft(String(d?.settings?.search_wizard_daily_limit ?? '15')))
+      .catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveSearchLimit = async () => {
+    const n = parseInt(searchLimitDraft, 10)
+    if (!Number.isFinite(n) || n < 0) return
+    setSavingSearchLimit(true)
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
+        body: JSON.stringify({ key: 'search_wizard_daily_limit', value: String(n) }),
+      })
+    } finally { setSavingSearchLimit(false) }
+  }
 
   const deletePost = async (id: string) => {
     await fetch('/api/admin/community', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass }, body: JSON.stringify({ id }) })
     setAdminPosts(prev => prev.filter(p => p.id !== id))
     setReportedPosts(prev => prev.filter(p => p.id !== id))
+    setSearchPosts(prev => prev.filter(p => p.id !== id))
   }
 
   const send = async () => {
@@ -5760,6 +5783,46 @@ function AdminCommunity({ pass }: { pass: string }) {
                 <div className="flex items-center gap-2 mb-1">
                   <span style={{ fontSize: 10, color: '#efff42', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.lang}</span>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
+                </div>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
+              </div>
+              <button onClick={() => deletePost(p.id)}
+                style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
+                Borrar
+              </button>
+            </div>
+          ))}
+      </div>
+
+      {/* Búsquedas del asistente */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(251,146,60,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>🔍 Búsquedas ({searchPosts.length})</p>
+          <button onClick={loadPosts} style={{ fontSize: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0 }}>↻ actualizar</button>
+          <div className="flex items-center gap-2" style={{ marginLeft: 'auto' }}>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Máx. por dispositivo/día</span>
+            <input type="number" min={0} value={searchLimitDraft} onChange={e => setSearchLimitDraft(e.target.value)}
+              className="w-16 px-2 py-1 rounded-lg text-xs"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+            <button onClick={saveSearchLimit} disabled={savingSearchLimit}
+              className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+              style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.25)' }}>
+              {savingSearchLimit ? '...' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+        {loadingPosts ? null : searchPosts.length === 0
+          ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin búsquedas todavía.</p>
+          : searchPosts.map(p => (
+            <div key={p.id} className="rounded-xl p-4 flex gap-3"
+              style={{ background: 'rgba(251,146,60,0.04)', border: '1px solid rgba(251,146,60,0.15)' }}>
+              <div style={{ flex: 1 }}>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.lang}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
+                  {p.contact && (
+                    <span style={{ fontSize: 10, color: '#38bdf8' }}>· {p.contact_type}: {p.contact}</span>
+                  )}
                 </div>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
               </div>
