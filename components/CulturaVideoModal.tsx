@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from '@/contexts/TranslationContext'
 
 type CulturaVideo = {
   id: string
@@ -18,13 +19,16 @@ type CulturaVideo = {
 }
 
 export default function CulturaVideoModal() {
+  const { t } = useTranslation()
   const [visible, setVisible]   = useState(false)
   const [video, setVideo]       = useState<CulturaVideo | null>(null)
   const [muted, setMuted]       = useState(true)
   const [playing, setPlaying]   = useState(true)
+  const [showExitHint, setShowExitHint] = useState(false)
   const videoRef                = useRef<HTMLVideoElement>(null)
   const historyPushedRef        = useRef(false)
   const extraPushesRef          = useRef(0)
+  const hintTimerRef            = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const notShowing = () => window.dispatchEvent(new CustomEvent('portada-resuelta'))
@@ -56,16 +60,20 @@ export default function CulturaVideoModal() {
   // muy rápido (típico al querer saltear el video) se quedaba sin nada que
   // consumir y el shell nativo (PWA/APK) cerraba la app entera. Más simple y
   // a prueba de esa carrera: cada intento de "atrás" se vuelve a empujar,
-  // así nunca hay nada real para consumir.
+  // así nunca hay nada real para consumir — el segundo toque NO cierra nada
+  // de verdad, el aviso es solo para que dejen de intentarlo y usen la X.
   useEffect(() => {
     function onPop() {
       if (historyPushedRef.current) {
         extraPushesRef.current++
         history.pushState({ culturaModal: true }, '')
+        setShowExitHint(true)
+        if (hintTimerRef.current) clearTimeout(hintTimerRef.current)
+        hintTimerRef.current = setTimeout(() => setShowExitHint(false), 2000)
       }
     }
     window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
+    return () => { window.removeEventListener('popstate', onPop); if (hintTimerRef.current) clearTimeout(hintTimerRef.current) }
   }, [])
 
   function dismiss() {
@@ -114,6 +122,7 @@ export default function CulturaVideoModal() {
     >
       <style>{`
         @keyframes cvIn { from { opacity:0; transform:scale(0.93) translateY(16px) } to { opacity:1; transform:scale(1) translateY(0) } }
+        @keyframes cvHintIn { from { opacity:0; transform:translateX(-50%) translateY(6px) } to { opacity:1; transform:translateX(-50%) translateY(0) } }
       `}</style>
 
       <div
@@ -197,6 +206,18 @@ export default function CulturaVideoModal() {
           }}
         >✕</button>
       </div>
+
+      {showExitHint && (
+        <div onClick={e => e.stopPropagation()} style={{
+          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+          padding: '9px 18px', borderRadius: 20, background: 'rgba(20,20,20,0.95)',
+          border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: 12.5, fontWeight: 600,
+          whiteSpace: 'nowrap', boxShadow: '0 10px 30px rgba(0,0,0,0.6)', zIndex: 71,
+          animation: 'cvHintIn 0.2s ease',
+        }}>
+          {t('cultura', 'video_back_hint', 'Tocá de nuevo para salir')}
+        </div>
+      )}
     </div>
   )
 }
