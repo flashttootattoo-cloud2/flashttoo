@@ -5655,12 +5655,15 @@ function AdField({ label, children }: { label: string; children: React.ReactNode
   )
 }
 
-type AdminPost = { id: string; content: string; lang: string; created_at: string; type: string; client_name?: string; artist_name?: string; studio_name?: string; report_count?: number; city?: string; country?: string; search_category?: string | null; search_size?: string | null; search_zones?: string[] | null; search_style?: string | null; contact_type?: string | null; contact?: string | null }
+type AdminPost = { id: string; content: string; lang: string; created_at: string; expires_at?: string; type: string; client_name?: string; artist_name?: string; studio_name?: string; report_count?: number; city?: string; country?: string; search_category?: string | null; search_size?: string | null; search_zones?: string[] | null; search_style?: string | null; contact_type?: string | null; contact?: string | null; link?: string | null }
 
 function AdminCommunity({ pass }: { pass: string }) {
   const LANGS = ['es', 'en', 'pt', 'fr', 'de', 'it']
   const [text, setText] = useState('')
   const [lang, setLang] = useState('es')
+  const [kind, setKind] = useState<'admin' | 'news'>('admin')
+  const [link, setLink] = useState('')
+  const [customExpiry, setCustomExpiry] = useState('')
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<'ok' | 'error' | null>(null)
   const [adminPosts, setAdminPosts] = useState<AdminPost[]>([])
@@ -5747,10 +5750,14 @@ function AdminCommunity({ pass }: { pass: string }) {
     const r = await fetch('/api/admin/community', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
-      body: JSON.stringify({ content: text, lang }),
+      body: JSON.stringify({
+        content: text, lang, kind,
+        link: link.trim() || undefined,
+        expires_at: customExpiry ? new Date(customExpiry).toISOString() : undefined,
+      }),
     }).catch(() => null)
     setSending(false)
-    if (r?.ok) { setText(''); setResult('ok'); loadPosts() }
+    if (r?.ok) { setText(''); setLink(''); setCustomExpiry(''); setResult('ok'); loadPosts() }
     else setResult('error')
   }
 
@@ -5768,12 +5775,30 @@ function AdminCommunity({ pass }: { pass: string }) {
       {/* Composer */}
       <div className="rounded-xl p-5 flex flex-col gap-4"
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex gap-2">
+          <button onClick={() => setKind('admin')}
+            style={{ padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, border: `1px solid ${kind === 'admin' ? '#efff42' : 'rgba(255,255,255,0.1)'}`, background: kind === 'admin' ? 'rgba(239,255,66,0.1)' : 'transparent', color: kind === 'admin' ? '#efff42' : 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
+            Oficial
+          </button>
+          <button onClick={() => setKind('news')}
+            style={{ padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, border: `1px solid ${kind === 'news' ? '#f472b6' : 'rgba(255,255,255,0.1)'}`, background: kind === 'news' ? 'rgba(244,114,182,0.1)' : 'transparent', color: kind === 'news' ? '#f472b6' : 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
+            Noticias / Info
+          </button>
+        </div>
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon-desktop-512.png" alt="Flashttoo" style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid #efff42', background: '#000', objectFit: 'contain', padding: 4 }} />
+          {kind === 'admin' ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src="/icon-desktop-512.png" alt="Flashttoo" style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid #efff42', background: '#000', objectFit: 'contain', padding: 4 }} />
+          ) : (
+            <div style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid #f472b6', background: 'rgba(244,114,182,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f472b6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 0 1-5.8-1.4"/></svg>
+            </div>
+          )}
           <div>
-            <p style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Flashttoo</p>
-            <p style={{ fontSize: 10, fontWeight: 700, color: '#efff42', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Oficial</p>
+            <p style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{kind === 'admin' ? 'Flashttoo' : 'Novedades'}</p>
+            <p style={{ fontSize: 10, fontWeight: 700, color: kind === 'admin' ? '#efff42' : '#f472b6', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              {kind === 'admin' ? 'Oficial' : 'Novedad'}
+            </p>
           </div>
         </div>
         <textarea
@@ -5784,6 +5809,20 @@ function AdminCommunity({ pass }: { pass: string }) {
           rows={4}
           style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.55 }}
         />
+        <div className="flex items-center gap-3 flex-wrap">
+          <input type="url" value={link} onChange={e => setLink(e.target.value)}
+            placeholder="Link opcional (ej. a la publicación de Instagram)"
+            style={{ flex: '1 1 260px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Vence el</span>
+            <input type="datetime-local" value={customExpiry} onChange={e => setCustomExpiry(e.target.value)}
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 8px', color: '#fff', fontSize: 12, outline: 'none', colorScheme: 'dark' }} />
+            {customExpiry && (
+              <button onClick={() => setCustomExpiry('')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+            )}
+          </div>
+          {!customExpiry && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>(default: 7 días)</span>}
+        </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex gap-2 flex-wrap">
             {LANGS.map(l => (
@@ -5810,13 +5849,25 @@ function AdminCommunity({ pass }: { pass: string }) {
           ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin publicaciones aún.</p>
           : adminPosts.map(p => (
             <div key={p.id} className="rounded-xl p-4 flex gap-3"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(239,255,66,0.1)' }}>
+              style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${p.type === 'news' ? 'rgba(244,114,182,0.15)' : 'rgba(239,255,66,0.1)'}` }}>
               <div style={{ flex: 1 }}>
                 <div className="flex items-center gap-2 mb-1">
-                  <span style={{ fontSize: 10, color: '#efff42', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.lang}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: p.type === 'news' ? '#f472b6' : '#efff42', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.type === 'news' ? 'Novedad' : 'Oficial'}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.lang}</span>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
                 </div>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
+                {p.link && (
+                  <a href={p.link} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 11, color: '#38bdf8', textDecoration: 'none' }}>
+                    🔗 {p.link}
+                  </a>
+                )}
+                {p.expires_at && (
+                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>
+                    Vence: {new Date(p.expires_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
               </div>
               <button onClick={() => deletePost(p.id)}
                 style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>

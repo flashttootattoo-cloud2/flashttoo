@@ -4,7 +4,7 @@ import { useTranslation } from '@/contexts/TranslationContext'
 
 type CommunityPost = {
   id: string
-  type: 'artist' | 'studio' | 'sponsor' | 'client' | 'admin' | 'search'
+  type: 'artist' | 'studio' | 'sponsor' | 'client' | 'admin' | 'search' | 'news'
   content: string
   city: string | null
   country: string | null
@@ -35,6 +35,7 @@ type CommunityPost = {
   search_style: string | null
   search_description: string | null
   helper_ids: string[] | null
+  link: string | null
   created_at: string
 }
 
@@ -311,7 +312,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
 
   const share = async (post: CommunityPost) => {
     const url = `${window.location.origin}?comunidad=1&post=${post.id}`
-    const name = post.type === 'admin' ? 'Flashttoo' : post.type === 'artist' ? post.artist_name : post.type === 'studio' ? post.studio_name : post.type === 'sponsor' ? post.sponsor_name : post.client_name
+    const name = post.type === 'admin' ? 'Flashttoo' : post.type === 'news' ? t('comunidad', 'badge_news', 'Novedades') : post.type === 'artist' ? post.artist_name : post.type === 'studio' ? post.studio_name : post.type === 'sponsor' ? post.sponsor_name : post.client_name
     const location = [post.city, post.country].filter(Boolean).join(', ')
     const shareText = `${name ? `${name}${location ? ` · ${location}` : ''}\n` : ''}${post.content}\n\n${url}`
     if (navigator.share) {
@@ -374,7 +375,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
     ? t('comunidad', 'placeholder_sponsor', '¿Qué novedad tenés hoy?')
     : isLoggedIn
     ? t('comunidad', 'placeholder_artist', '¿Qué novedad tenés hoy para quien se quiere tatuar?')
-    : t('comunidad', 'placeholder_client', '¿Qué estás buscando?')
+    : t('comunidad', 'placeholder_client', 'Contanos qué te querés tatuar')
 
   const nowLabel = t('comunidad', 'time_now', 'ahora')
 
@@ -1093,6 +1094,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
   const isSponsor = post.type === 'sponsor'
   const isClient = post.type === 'client'
   const isAdmin  = post.type === 'admin'
+  const isNews   = post.type === 'news'
   const isSearch = post.type === 'search'
   const contact  = contactLabel(post.contact_type, post.contact)
   const [showOffer, setShowOffer] = useState(false)
@@ -1128,8 +1130,8 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
     <div id={`cpost-${post.id}`} style={{
       padding: '14px 16px',
       borderBottom: '1px solid rgba(255,255,255,0.05)',
-      background: highlighted ? 'rgba(239,255,66,0.10)' : isAdmin ? 'rgba(239,255,66,0.04)' : 'transparent',
-      borderLeft: isAdmin || nearby === 'full' || highlighted ? '3px solid #efff42' : nearby === 'country' ? '1px solid rgba(239,255,66,0.4)' : '3px solid transparent',
+      background: highlighted ? 'rgba(239,255,66,0.10)' : isAdmin ? 'rgba(239,255,66,0.04)' : isNews ? 'rgba(244,114,182,0.04)' : 'transparent',
+      borderLeft: isAdmin || nearby === 'full' || highlighted ? '3px solid #efff42' : isNews ? '3px solid #f472b6' : nearby === 'country' ? '1px solid rgba(239,255,66,0.4)' : '3px solid transparent',
       transition: 'background 1.5s ease, border-left-color 1.5s ease',
     }}>
 
@@ -1137,10 +1139,12 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
 
         <div
           onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug); else if (isSponsor && post.sponsor_id) onOpenSponsor?.(post.sponsor_id) }}
-          style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: isAdmin || isSponsor ? '#000' : isSearch ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: isArtist ? '2px solid #efff42' : isStudio ? '2px solid #4dcfff' : isSponsor ? '2px solid #c084fc' : isAdmin ? '2px solid #efff42' : isSearch ? '2px solid #38bdf8' : 'none', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default' }}>
+          style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: isAdmin || isSponsor ? '#000' : isNews ? 'rgba(244,114,182,0.12)' : isSearch ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: isArtist ? '2px solid #efff42' : isStudio ? '2px solid #4dcfff' : isSponsor ? '2px solid #c084fc' : isAdmin ? '2px solid #efff42' : isNews ? '2px solid #f472b6' : isSearch ? '2px solid #38bdf8' : 'none', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default' }}>
           {isAdmin
             /* eslint-disable-next-line @next/next/no-img-element */
             ? <img src="/icon-desktop-512.png" alt="Flashttoo" style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
+            : isNews
+            ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f472b6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 0 1-5.8-1.4"/></svg>
             : isSearch
             ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             : isArtist && post.artist_photo
@@ -1159,13 +1163,13 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
               <span
-                style={{ fontSize: 13, fontWeight: 700, color: isSearch ? '#38bdf8' : '#fff', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                style={{ fontSize: 13, fontWeight: 700, color: isSearch ? '#38bdf8' : isNews ? '#f472b6' : '#fff', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug); else if (isSponsor && post.sponsor_id) onOpenSponsor?.(post.sponsor_id) }}>
-                {isAdmin ? 'Flashttoo' : isArtist ? post.artist_name : isStudio ? post.studio_name : isSponsor ? post.sponsor_name : isSearch ? t('comunidad', 'badge_search', 'Búsqueda') : post.client_name}
+                {isAdmin ? 'Flashttoo' : isNews ? t('comunidad', 'badge_news', 'Novedades') : isArtist ? post.artist_name : isStudio ? post.studio_name : isSponsor ? post.sponsor_name : isSearch ? t('comunidad', 'badge_search', 'Búsqueda') : post.client_name}
               </span>
-              {(isArtist || isStudio || isAdmin) && (
-                <span style={{ fontSize: 9, fontWeight: 700, color: isAdmin ? '#efff42' : isArtist ? 'rgba(239,255,66,0.55)' : 'rgba(100,200,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
-                  {isAdmin ? t('comunidad', 'badge_official', 'Oficial') : isArtist ? t('comunidad', 'badge_artist', 'Tattoo Artist') : t('comunidad', 'badge_studio', 'Estudio')}
+              {(isArtist || isStudio || isAdmin || isNews) && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: isAdmin ? '#efff42' : isNews ? '#f472b6' : isArtist ? 'rgba(239,255,66,0.55)' : 'rgba(100,200,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
+                  {isAdmin ? t('comunidad', 'badge_official', 'Oficial') : isNews ? t('comunidad', 'badge_news_tag', 'Novedad') : isArtist ? t('comunidad', 'badge_artist', 'Tattoo Artist') : t('comunidad', 'badge_studio', 'Estudio')}
                 </span>
               )}
             </div>
@@ -1176,7 +1180,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
               {post.sponsor_description}
             </p>
           )}
-          {!isAdmin && !isSponsor && (!isSearch || post.search_description) && (post.city || post.country) && (
+          {!isAdmin && !isNews && !isSponsor && (!isSearch || post.search_description) && (post.city || post.country) && (
             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>
               {[post.city, post.country].filter(Boolean).join(', ')}
             </p>
@@ -1185,6 +1189,13 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             {post.content}
           </p>
+
+          {(isAdmin || isNews) && post.link && (
+            <a href={post.link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+              style={{ marginTop: 8, fontSize: 12, fontWeight: 700, padding: '6px 14px', background: isNews ? 'rgba(244,114,182,0.1)' : 'rgba(56,189,248,0.1)', borderRadius: 20, color: isNews ? '#f472b6' : '#38bdf8', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
+              🔗 {t('comunidad', 'view_post', 'Ver publicación')}
+            </a>
+          )}
 
           {isSponsor && post.offer_items && post.offer_items.length > 0 && (
             <div style={{ marginTop: 10 }}>
@@ -1240,7 +1251,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
             </div>
           ) : null}
 
-          {isAdmin
+          {(isAdmin || isNews)
             ? (
               <div style={{ marginTop: 12 }}>
                 <button

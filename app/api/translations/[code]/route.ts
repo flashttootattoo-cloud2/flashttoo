@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
@@ -30,5 +33,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ cod
     }
   }
 
-  return NextResponse.json({ translations: result })
+  const res = NextResponse.json({ translations: result })
+  res.headers.set('Cache-Control', 'no-store')
+  return res
 }
