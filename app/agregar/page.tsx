@@ -82,6 +82,11 @@ export default function AgregarPage() {
   const [interview, setInterview] = useState<Record<string, string>>({})
   const [interviewOpen, setInterviewOpen] = useState(false)
   const [loading, setLoading]   = useState(false)
+  // Guard sincrónico contra doble-submit: `loading` (estado de React) se actualiza
+  // en un re-render posterior, así que un doble-toque muy rápido puede disparar
+  // handleSubmit dos veces antes de que el botón llegue a deshabilitarse — eso
+  // hacía que dos inserts con el mismo user_id chocaran contra la constraint unique.
+  const submittingRef = useRef(false)
   const [done, setDone]         = useState<false | 'active' | 'pending'>(false)
   const [error, setError]       = useState('')
   const [galleryEnabled, setGalleryEnabled] = useState(false)
@@ -164,17 +169,20 @@ export default function AgregarPage() {
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
+    if (submittingRef.current) return
+    submittingRef.current = true
     setError('')
     const p = new URLSearchParams(window.location.search)
     const submitUserId = p.get('user_id') || ''
     const submitAuthEmail = p.get('email') || ''
-    if (!photo) { setError(t('agregar', 'error_photo', 'Agregá una foto')); return }
-    if (styles.length === 0) { setError(t('agregar', 'error_styles', 'Elegí al menos un estilo')); return }
-    if (!form.instagram.trim()) { setError(t('agregar', 'error_instagram', 'Ingresá tu usuario de Instagram')); return }
+    if (!photo) { setError(t('agregar', 'error_photo', 'Agregá una foto')); submittingRef.current = false; return }
+    if (styles.length === 0) { setError(t('agregar', 'error_styles', 'Elegí al menos un estilo')); submittingRef.current = false; return }
+    if (!form.instagram.trim()) { setError(t('agregar', 'error_instagram', 'Ingresá tu usuario de Instagram')); submittingRef.current = false; return }
     for (let i = 0; i < 3; i++) {
       if (galleryPreviews[i] && galleryPhotoStyles[i].length === 0) {
         const msg = t('edit', 'gallery_tag_required', 'La foto {n} de galería necesita al menos una etiqueta de estilo.')
         setError(msg.replace('{n}', String(i + 1)))
+        submittingRef.current = false
         return
       }
     }
@@ -237,7 +245,11 @@ export default function AgregarPage() {
         ...(submitUserId ? { user_id: submitUserId, auth_email: submitAuthEmail, tyc_accepted_at: new Date().toISOString() } : {}),
       }).select('id').single()
       if (insErr) {
-        setError(`Error al guardar: ${insErr.message}`)
+        // user_id duplicado (ej. la invitación se envió dos veces) — mensaje claro
+        // en vez del error técnico de Postgres
+        setError(insErr.message.includes('artists_user_id')
+          ? t('agregar', 'error_already_registered', 'Ya completaste tu perfil con esta cuenta. Iniciá sesión en vez de volver a registrarte.')
+          : `Error al guardar: ${insErr.message}`)
         setLoading(false)
         return
       }
@@ -268,6 +280,7 @@ export default function AgregarPage() {
       setError(`Error inesperado: ${msg}`)
     } finally {
       setLoading(false)
+      submittingRef.current = false
     }
   }
 
