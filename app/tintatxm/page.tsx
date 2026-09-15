@@ -5839,25 +5839,29 @@ function AdminCommunity({ pass }: { pass: string }) {
         </div>
         {loadingPosts ? null : searchPosts.length === 0
           ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin búsquedas todavía.</p>
-          : searchPosts.map(p => (
-            <div key={p.id} className="rounded-xl p-4 flex gap-3"
-              style={{ background: 'rgba(251,146,60,0.04)', border: '1px solid rgba(251,146,60,0.15)' }}>
-              <div style={{ flex: 1 }}>
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.lang}</span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
-                  {p.contact && (
-                    <span style={{ fontSize: 10, color: '#38bdf8' }}>· {p.contact_type}: {p.contact}</span>
-                  )}
+          : (
+            <div className="flex flex-col gap-3" style={{ maxHeight: 480, overflowY: 'auto', paddingRight: 4 }}>
+              {searchPosts.map(p => (
+                <div key={p.id} className="rounded-xl p-4 flex gap-3"
+                  style={{ background: 'rgba(251,146,60,0.04)', border: '1px solid rgba(251,146,60,0.15)' }}>
+                  <div style={{ flex: 1 }}>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.lang}</span>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
+                      {p.contact && (
+                        <span style={{ fontSize: 10, color: '#38bdf8' }}>· {p.contact_type}: {p.contact}</span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
+                  </div>
+                  <button onClick={() => deletePost(p.id)}
+                    style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
+                    Borrar
+                  </button>
                 </div>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
-              </div>
-              <button onClick={() => deletePost(p.id)}
-                style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
-                Borrar
-              </button>
+              ))}
             </div>
-          ))}
+          )}
       </div>
 
       {/* Reportados */}
