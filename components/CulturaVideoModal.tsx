@@ -43,17 +43,16 @@ export default function CulturaVideoModal() {
         if (new Date(recent.published_at).getTime() < sevenDaysAgo) { notShowing(); return }
         setVideo(recent)
         setVisible(true)
+        // Empujar el historial ACÁ MISMO, no en un useEffect aparte reaccionando a
+        // `visible` — ese hueco entre "se muestra" y "se atrapa el botón atrás" es
+        // suficiente para que alguien apretando atrás justo ahí (típico si quiere
+        // saltear el video) se quede sin nada que consumir, y el shell nativo
+        // (PWA/APK) interprete "no hay más historial" y cierre la app entera.
+        history.pushState({ culturaModal: true }, '')
+        historyPushedRef.current = true
       })
       .catch(() => notShowing())
   }, [])
-
-  // Empujar historial cuando el modal se abre
-  useEffect(() => {
-    if (visible) {
-      history.pushState({ culturaModal: true }, '')
-      historyPushedRef.current = true
-    }
-  }, [visible])
 
   // Capturar botón atrás del celular
   useEffect(() => {
