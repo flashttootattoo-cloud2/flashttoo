@@ -1130,8 +1130,8 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
     <div id={`cpost-${post.id}`} style={{
       padding: '14px 16px',
       borderBottom: '1px solid rgba(255,255,255,0.05)',
-      background: highlighted ? 'rgba(239,255,66,0.10)' : isAdmin ? 'rgba(239,255,66,0.04)' : isNews ? 'rgba(244,114,182,0.04)' : 'transparent',
-      borderLeft: isAdmin || nearby === 'full' || highlighted ? '3px solid #efff42' : isNews ? '3px solid #f472b6' : nearby === 'country' ? '1px solid rgba(239,255,66,0.4)' : '3px solid transparent',
+      background: highlighted ? 'rgba(239,255,66,0.10)' : isAdmin ? 'rgba(239,255,66,0.04)' : 'transparent',
+      borderLeft: isAdmin || nearby === 'full' || highlighted ? '3px solid #efff42' : nearby === 'country' ? '1px solid rgba(239,255,66,0.4)' : '3px solid transparent',
       transition: 'background 1.5s ease, border-left-color 1.5s ease',
     }}>
 

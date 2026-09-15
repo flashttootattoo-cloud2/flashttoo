@@ -24,6 +24,7 @@ export default function CulturaVideoModal() {
   const [playing, setPlaying]   = useState(true)
   const videoRef                = useRef<HTMLVideoElement>(null)
   const historyPushedRef        = useRef(false)
+  const extraPushesRef          = useRef(0)
 
   useEffect(() => {
     const notShowing = () => window.dispatchEvent(new CustomEvent('portada-resuelta'))
@@ -43,26 +44,24 @@ export default function CulturaVideoModal() {
         if (new Date(recent.published_at).getTime() < sevenDaysAgo) { notShowing(); return }
         setVideo(recent)
         setVisible(true)
-        // Empujar el historial ACÁ MISMO, no en un useEffect aparte reaccionando a
-        // `visible` — ese hueco entre "se muestra" y "se atrapa el botón atrás" es
-        // suficiente para que alguien apretando atrás justo ahí (típico si quiere
-        // saltear el video) se quede sin nada que consumir, y el shell nativo
-        // (PWA/APK) interprete "no hay más historial" y cierre la app entera.
         history.pushState({ culturaModal: true }, '')
         historyPushedRef.current = true
       })
       .catch(() => notShowing())
   }, [])
 
-  // Capturar botón atrás del celular
+  // El botón atrás no hace nada mientras el video está abierto — se cierra solo
+  // con la X o tocando el fondo. Antes cerraba con atrás, pero dependía de que
+  // el pushState llegara a tiempo antes del toque; si alguien apretaba atrás
+  // muy rápido (típico al querer saltear el video) se quedaba sin nada que
+  // consumir y el shell nativo (PWA/APK) cerraba la app entera. Más simple y
+  // a prueba de esa carrera: cada intento de "atrás" se vuelve a empujar,
+  // así nunca hay nada real para consumir.
   useEffect(() => {
     function onPop() {
       if (historyPushedRef.current) {
-        historyPushedRef.current = false
-        setVisible(false)
-        try { sessionStorage.setItem('cultura_video_closed', '1') } catch {}
-        if (videoRef.current) videoRef.current.pause()
-        window.dispatchEvent(new CustomEvent('portada-resuelta'))
+        extraPushesRef.current++
+        history.pushState({ culturaModal: true }, '')
       }
     }
     window.addEventListener('popstate', onPop)
@@ -75,7 +74,8 @@ export default function CulturaVideoModal() {
     if (videoRef.current) videoRef.current.pause()
     if (historyPushedRef.current) {
       historyPushedRef.current = false
-      history.back()
+      history.go(-(extraPushesRef.current + 1))
+      extraPushesRef.current = 0
     }
     window.dispatchEvent(new CustomEvent('portada-resuelta'))
   }
