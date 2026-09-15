@@ -15,12 +15,24 @@ export async function GET(req: NextRequest) {
   const lang   = searchParams.get('lang') || 'es'
   const offset = parseInt(searchParams.get('offset') || '0', 10)
   const now = new Date().toISOString()
-  const { data, error } = await sb()
+
+  const { data: tickerSetting } = await sb().from('settings').select('value').eq('key', 'search_ticker_mode').single()
+  const tickerMode = tickerSetting?.value === true
+
+  let query = sb()
     .from('community_posts')
     .select('*')
     .gt('expires_at', now)
     .lt('report_count', 3)
     .eq('lang', lang)
+
+  // Con el ticker activo, las búsquedas sin texto (search_description null) se
+  // muestran arriba del todo en vivo en vez de ocupar lugar en el feed normal
+  if (tickerMode) {
+    query = query.or('type.neq.search,search_description.not.is.null')
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .range(offset, offset + PAGE - 1)
 

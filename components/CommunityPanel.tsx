@@ -71,6 +71,63 @@ function contactLabel(type: string | null, val: string | null): { href: string }
   return null
 }
 
+// Búsquedas sin texto propio, en modo ticker (activable desde el admin) — se
+// muestran arriba del todo del feed en vez de ocupar lugar en la lista. Una
+// sola línea a la vez: cuando aparece una búsqueda nueva, recorre rápido las
+// últimas 3 (vieja → nueva) y se queda quieta en la última hasta que llegue
+// otra de verdad — no hay rotación por timer sin motivo real.
+function SearchTicker({ lang }: { lang: string }) {
+  const [sequence, setSequence] = useState<{ id: string; content: string }[]>([])
+  const [displayIndex, setDisplayIndex] = useState(0)
+  const [visible, setVisible] = useState(true)
+  const lastTopIdRef = useRef<string | null>(null)
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = () => {
+      fetch(`/api/community/ticker?lang=${encodeURIComponent(lang)}`)
+        .then(r => r.json())
+        .then(d => {
+          if (cancelled || !Array.isArray(d.items)) return
+          const top3: { id: string; content: string }[] = d.items.slice(0, 3)
+          const topId = top3[0]?.id ?? null
+          if (!topId || topId === lastTopIdRef.current) return
+          lastTopIdRef.current = topId
+
+          timersRef.current.forEach(clearTimeout)
+          timersRef.current = []
+          const oldestToNewest = [...top3].reverse()
+          setSequence(oldestToNewest)
+          oldestToNewest.forEach((_, i) => {
+            const t = setTimeout(() => {
+              setVisible(false)
+              setTimeout(() => { setDisplayIndex(i); setVisible(true) }, 350)
+            }, i * 3000)
+            timersRef.current.push(t)
+          })
+        })
+        .catch(() => {})
+    }
+    load()
+    const poll = setInterval(load, 12000)
+    return () => { cancelled = true; clearInterval(poll); timersRef.current.forEach(clearTimeout) }
+  }, [lang])
+
+  if (sequence.length === 0) return null
+  const current = sequence[Math.min(displayIndex, sequence.length - 1)]
+
+  return (
+    <div style={{ padding: '8px 16px', borderBottom: '1px solid rgba(56,189,248,0.15)', background: 'rgba(56,189,248,0.05)', flexShrink: 0, overflow: 'hidden' }}>
+      <style>{`@keyframes ftickerPulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: visible ? 1 : 0, transition: 'opacity 0.3s ease' }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#38bdf8', flexShrink: 0, animation: 'ftickerPulse 1.6s ease-in-out infinite' }} />
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current?.content}</span>
+      </div>
+    </div>
+  )
+}
+
 type Props = {
   loggedArtist: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string; refresh_token?: string } | null
   loggedStudio: { slug: string; name: string; logo_url: string | null; visible?: boolean; expires_at?: string | null; access_token?: string; refresh_token?: string; city?: string; country?: string } | null
@@ -91,6 +148,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   const { t } = useTranslation()
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [loading, setLoading] = useState(true)
+  const [tickerMode, setTickerMode] = useState(false)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [postError, setPostError] = useState('')
@@ -216,6 +274,10 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   }, [lang, loadingMore])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    fetch('/api/config').then(r => r.json()).then(d => setTickerMode(!!d.search_ticker_mode)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!highlightedId || loading) return
@@ -518,6 +580,8 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
           )}
         </div>
       )}
+
+      {tickerMode && <SearchTicker lang={lang} />}
 
       {/* Feed */}
       <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>

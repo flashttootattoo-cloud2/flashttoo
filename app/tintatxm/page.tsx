@@ -5671,6 +5671,8 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [savingSearchLimit, setSavingSearchLimit] = useState(false)
   const [searchExpiryDraft, setSearchExpiryDraft] = useState('')
   const [savingSearchExpiry, setSavingSearchExpiry] = useState(false)
+  const [tickerMode, setTickerMode] = useState(false)
+  const [savingTickerMode, setSavingTickerMode] = useState(false)
 
   const loadPosts = async () => {
     setLoadingPosts(true)
@@ -5691,9 +5693,22 @@ function AdminCommunity({ pass }: { pass: string }) {
       .then(d => {
         setSearchLimitDraft(String(d?.settings?.search_wizard_daily_limit ?? '15'))
         setSearchExpiryDraft(String(d?.settings?.search_wizard_expiry_days ?? '7'))
+        setTickerMode(d?.settings?.search_ticker_mode === true)
       })
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleTickerMode = async () => {
+    const next = !tickerMode
+    setSavingTickerMode(true)
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
+        body: JSON.stringify({ key: 'search_ticker_mode', value: next }),
+      })
+      setTickerMode(next)
+    } finally { setSavingTickerMode(false) }
+  }
 
   const saveSearchLimit = async () => {
     const n = parseInt(searchLimitDraft, 10)
@@ -5836,6 +5851,17 @@ function AdminCommunity({ pass }: { pass: string }) {
               {savingSearchExpiry ? '...' : 'Guardar'}
             </button>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={toggleTickerMode} disabled={savingTickerMode}
+            className="relative rounded-full transition-colors disabled:opacity-50"
+            style={{ width: 36, height: 20, background: tickerMode ? '#fb923c' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
+            <span className="absolute rounded-full bg-white transition-transform"
+              style={{ width: 16, height: 16, top: 2, left: tickerMode ? 18 : 2 }} />
+          </button>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+            Modo ticker — las búsquedas sin texto salen arriba del todo del chat, de a una, en vez de ocupar lugar en la lista
+          </span>
         </div>
         {loadingPosts ? null : searchPosts.length === 0
           ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin búsquedas todavía.</p>
