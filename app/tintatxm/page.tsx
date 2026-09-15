@@ -5795,9 +5795,9 @@ function AdminCommunity({ pass }: { pass: string }) {
             </div>
           )}
           <div>
-            <p style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{kind === 'admin' ? 'Flashttoo' : 'Novedades'}</p>
+            <p style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Flashttoo</p>
             <p style={{ fontSize: 10, fontWeight: 700, color: kind === 'admin' ? '#efff42' : '#f472b6', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              {kind === 'admin' ? 'Oficial' : 'Novedad'}
+              {kind === 'admin' ? 'Oficial' : 'Info'}
             </p>
           </div>
         </div>
@@ -5852,7 +5852,7 @@ function AdminCommunity({ pass }: { pass: string }) {
               style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${p.type === 'news' ? 'rgba(244,114,182,0.15)' : 'rgba(239,255,66,0.1)'}` }}>
               <div style={{ flex: 1 }}>
                 <div className="flex items-center gap-2 mb-1">
-                  <span style={{ fontSize: 9, fontWeight: 700, color: p.type === 'news' ? '#f472b6' : '#efff42', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.type === 'news' ? 'Novedad' : 'Oficial'}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: p.type === 'news' ? '#f472b6' : '#efff42', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.type === 'news' ? 'Info' : 'Oficial'}</span>
                   <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.lang}</span>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
                 </div>

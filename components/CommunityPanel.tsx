@@ -312,7 +312,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
 
   const share = async (post: CommunityPost) => {
     const url = `${window.location.origin}?comunidad=1&post=${post.id}`
-    const name = post.type === 'admin' ? 'Flashttoo' : post.type === 'news' ? t('comunidad', 'badge_news', 'Novedades') : post.type === 'artist' ? post.artist_name : post.type === 'studio' ? post.studio_name : post.type === 'sponsor' ? post.sponsor_name : post.client_name
+    const name = post.type === 'admin' || post.type === 'news' ? 'Flashttoo' : post.type === 'artist' ? post.artist_name : post.type === 'studio' ? post.studio_name : post.type === 'sponsor' ? post.sponsor_name : post.client_name
     const location = [post.city, post.country].filter(Boolean).join(', ')
     const shareText = `${name ? `${name}${location ? ` · ${location}` : ''}\n` : ''}${post.content}\n\n${url}`
     if (navigator.share) {
@@ -1165,11 +1165,11 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
               <span
                 style={{ fontSize: 13, fontWeight: 700, color: isSearch ? '#38bdf8' : isNews ? '#f472b6' : '#fff', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug); else if (isSponsor && post.sponsor_id) onOpenSponsor?.(post.sponsor_id) }}>
-                {isAdmin ? 'Flashttoo' : isNews ? t('comunidad', 'badge_news', 'Novedades') : isArtist ? post.artist_name : isStudio ? post.studio_name : isSponsor ? post.sponsor_name : isSearch ? t('comunidad', 'badge_search', 'Búsqueda') : post.client_name}
+                {isAdmin || isNews ? 'Flashttoo' : isArtist ? post.artist_name : isStudio ? post.studio_name : isSponsor ? post.sponsor_name : isSearch ? t('comunidad', 'badge_search', 'Búsqueda') : post.client_name}
               </span>
               {(isArtist || isStudio || isAdmin || isNews) && (
                 <span style={{ fontSize: 9, fontWeight: 700, color: isAdmin ? '#efff42' : isNews ? '#f472b6' : isArtist ? 'rgba(239,255,66,0.55)' : 'rgba(100,200,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
-                  {isAdmin ? t('comunidad', 'badge_official', 'Oficial') : isNews ? t('comunidad', 'badge_news_tag', 'Novedad') : isArtist ? t('comunidad', 'badge_artist', 'Tattoo Artist') : t('comunidad', 'badge_studio', 'Estudio')}
+                  {isAdmin ? t('comunidad', 'badge_official', 'Oficial') : isNews ? t('comunidad', 'badge_news_tag', 'Info') : isArtist ? t('comunidad', 'badge_artist', 'Tattoo Artist') : t('comunidad', 'badge_studio', 'Estudio')}
                 </span>
               )}
             </div>
