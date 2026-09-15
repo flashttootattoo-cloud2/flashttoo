@@ -563,31 +563,31 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         )}
 
         <div style={{ height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 2 }}>
-          <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '28px 20px 100px' }}>
-            {/* Header */}
-            <p style={{ textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', marginBottom: 20 }}>
+          {/* Header — mismo patrón que cultura/galería, para que quede consistente y sirva de referencia al anclar el buscador */}
+          <div className="ft-topbar" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/Logoprincipal.svg" alt="Flashttoo" onClick={closeAll} style={{ height: 28, opacity: 0.9, flex: '0 0 auto', cursor: 'pointer' }} />
+            <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', pointerEvents: 'none' }}>
               {convView ? t('inicio', 'events_title', 'Eventos') : t('inicio', 'insumos_title', 'Insumos')}
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, position: 'relative' }}>
-              <div />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setShowInfo(v => !v)} style={{
-                  width: 32, height: 32, borderRadius: '50%',
-                  background: showInfo ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.07)',
-                  border: `1px solid ${showInfo ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', fontSize: 14, color: showInfo ? '#efff42' : 'rgba(255,255,255,0.45)',
-                }}>i</button>
-                <button onClick={closeAll} style={{
-                  width: 32, height: 32, borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.08)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,0.45)',
-                }}>✕</button>
-              </div>
-
+            </span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowInfo(v => !v)} style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: showInfo ? 'rgba(239,255,66,0.15)' : 'rgba(255,255,255,0.07)',
+                border: `1px solid ${showInfo ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', fontSize: 14, color: showInfo ? '#efff42' : 'rgba(255,255,255,0.45)', flexShrink: 0,
+              }}>i</button>
+              <button onClick={closeAll} style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', fontSize: 18, color: 'rgba(255,255,255,0.6)', flexShrink: 0,
+              }}>×</button>
             </div>
+          </div>
 
+          <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '20px 20px 100px' }}>
             {/* Vista Insumos */}
             {!convView && (
               <div>
@@ -1130,7 +1130,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       {showGallery && (
         <div ref={galleryContainerRef} style={{ position: 'fixed', top: 0, bottom: 0, left: 'max(0px, calc(50% - 40rem))', right: 'max(0px, calc(50% - 40rem))', zIndex: 60, background: '#000', overflowY: 'auto', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {/* Header */}
-          <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(0,0,0,0.92)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="ft-topbar" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(0,0,0,0.92)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/Logoprincipal.svg" alt="Flashttoo" onClick={closeGallery} style={{ height: 28, opacity: 0.9, flex: '0 0 auto', cursor: 'pointer' }} />
             <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', pointerEvents: 'none' }}>{t('inicio', 'gallery_btn', 'Galería')}</span>
@@ -1288,7 +1288,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       {showCultura && (
         <div style={{ position: 'fixed', top: 0, bottom: 0, left: 'max(0px, calc(50% - 40rem))', right: 'max(0px, calc(50% - 40rem))', zIndex: selectedCulturaVideo ? 95 : 39, background: '#0a0a0a', overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {/* Header */}
-          <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="ft-topbar" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/Logoprincipal.svg" alt="Flashttoo" onClick={() => setShowCultura(false)} style={{ height: 28, opacity: 0.9, flex: '0 0 auto', cursor: 'pointer' }} />
             <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: 13, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#efff42', pointerEvents: 'none' }}>{t('cultura', 'nav_btn', 'cultura')}</span>

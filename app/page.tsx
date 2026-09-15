@@ -1250,7 +1250,7 @@ export default function Home() {
     >
 
       {/* ── HEADER ─────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30"
+      <header className="ft-topbar sticky top-0 z-30"
         style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
 
         {/* Logo + agregar + idioma */}

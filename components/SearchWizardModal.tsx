@@ -63,6 +63,36 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
     vv.addEventListener('scroll', onResize)
     return () => { vv.removeEventListener('resize', onResize); vv.removeEventListener('scroll', onResize) }
   }, [])
+
+  // Alto real de la barra superior activa — el panel se ancla justo debajo, a todo
+  // el ancho, como si fuera una extensión de esa barra. Puede haber más de un
+  // .ft-topbar en el DOM a la vez (ej. la de insumos/eventos no se desmonta, solo
+  // se desliza fuera de pantalla con transform) — se descartan las que no están
+  // realmente a la vista (su top no está pegado arriba) y se toma la última que sí.
+  const [headerH, setHeaderH] = useState(0)
+  useEffect(() => {
+    const findVisibleBar = () => {
+      const bars = Array.from(document.querySelectorAll<HTMLElement>('.ft-topbar'))
+        .filter(el => el.getBoundingClientRect().top > -10 && el.getBoundingClientRect().top < 10)
+      return bars[bars.length - 1] ?? null
+    }
+    let bar = findVisibleBar()
+    if (!bar) return
+    const measure = () => setHeaderH(bar!.getBoundingClientRect().height)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(bar)
+    window.addEventListener('resize', measure)
+    // Reintenta un instante después por si la barra correcta todavía estaba en
+    // transición (ej. insumos/eventos deslizándose) cuando se montó el buscador
+    const retry = setTimeout(() => {
+      const found = findVisibleBar()
+      if (found && found !== bar) { ro.disconnect(); bar = found; ro.observe(bar); measure() }
+      else measure()
+    }, 120)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); clearTimeout(retry) }
+  }, [])
+
   const [step, setStep] = useState<Step>('country')
   const [country, setCountry] = useState('')
   const [city, setCity] = useState('')
@@ -166,18 +196,19 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
   if (passed('country')) rows.push({ key: 'loc', text: [city, country].filter(Boolean).join(', ') || country, icon: IconPin, onClick: () => setStep('country') })
 
   return (
-    <div onClick={close} style={{ position: 'fixed', left: 0, width: '100%', top: viewport.top, height: viewport.height, zIndex: 210, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', padding: '20px', overflowY: 'auto', boxSizing: 'border-box' }}>
-      <style>{`@keyframes centerModalIn{from{opacity:0;transform:scale(0.95) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}.ftx-describe::placeholder{color:rgba(255,255,255,0.22)}`}</style>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 420, maxHeight: '100%', display: 'flex', flexDirection: 'column', borderRadius: 24, boxShadow: '0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(239,255,66,0.06), 0 0 50px rgba(239,255,66,0.07)', animation: 'centerModalIn 0.4s cubic-bezier(0.22,0.61,0.36,1)', overflow: 'hidden', background: 'rgba(14,14,14,0.72)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+    <>
+      <style>{`@keyframes dropModalIn{from{opacity:0;transform:translateX(-50%) translateY(-14px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}.ftx-describe::placeholder{color:rgba(255,255,255,0.22)}`}</style>
+      <div onClick={close} style={{ position: 'fixed', left: 0, width: '100%', top: viewport.top, height: viewport.height, zIndex: 209, background: 'transparent' }} />
+      <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 1280, top: headerH, maxHeight: Math.max(160, viewport.height - headerH), zIndex: 210, display: 'flex', flexDirection: 'column', borderRadius: '0 0 24px 24px', boxShadow: '0 30px 80px rgba(0,0,0,0.9)', animation: 'dropModalIn 0.5s cubic-bezier(0.22,0.61,0.36,1)', overflow: 'hidden', background: 'rgba(14,14,14,0.85)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', borderLeft: '1px solid rgba(255,255,255,0.12)', borderRight: '1px solid rgba(255,255,255,0.12)', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+        <div style={{ width: '100%', maxWidth: 420, margin: '0 auto', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
 
-        <div style={{ padding: '18px 20px 8px', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
-          {stepIdx > 0 ? (
+        {stepIdx > 0 && (
+          <div style={{ padding: '18px 20px 0' }}>
             <button onClick={goBack} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', padding: 0 }}>←</button>
-          ) : <span />}
-          <button onClick={close} style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-        </div>
+          </div>
+        )}
 
-        <div style={{ padding: '14px 24px 28px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: '14px 24px 28px', display: 'flex', flexDirection: 'column', gap: 8 }}>
 
           {/* Respuestas ya dadas, colapsadas */}
           {rows.map(r => (
@@ -248,18 +279,15 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
 
           {step === 'describe' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: rows.length ? 6 : 0 }}>
-              <p style={{ ...headlineStyle, marginBottom: 4 }}>{t('buscador', 'q_describe', 'Contanos qué te querés tatuar')}</p>
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '0 0 8px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-                {t('buscador', 'describe_hint_size_zone', 'Contá tamaño y zona del cuerpo')}
-              </p>
+              <p style={headlineStyle}>{t('buscador', 'q_describe', 'Contanos qué te querés tatuar')}</p>
               <textarea autoFocus value={describe} onChange={e => setDescribe(e.target.value)} maxLength={250} rows={4}
                 className="ftx-describe"
                 placeholder={t('buscador', 'describe_placeholder', 'ej: quiero una rosa mediana en el antebrazo, a color')}
                 onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                style={{ background: 'transparent', border: 'none', borderRadius: 0, padding: '4px 0', color: '#fff', fontSize: 15, lineHeight: 1.55, outline: 'none', width: '100%', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 14px', color: '#fff', fontSize: 15, lineHeight: 1.55, outline: 'none', width: '100%', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
 
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginTop: 10, marginBottom: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-                {t('buscador', 'describe_community_hint', 'Esto se publica en la comunidad — tatuadores de tu zona lo van a ver y pueden querer ayudarte. Después volvé y buscá el mensaje para ver qué tatuador puede tener disponibilidad.')}
+                {t('buscador', 'describe_community_hint', 'Esto se publica en la comunidad — tatuadores de tu zona lo van a ver y pueden ayudarte.')}
               </p>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
@@ -273,7 +301,8 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
             </div>
           )}
         </div>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
