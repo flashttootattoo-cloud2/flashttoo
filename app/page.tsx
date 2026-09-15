@@ -3231,11 +3231,19 @@ export default function Home() {
               headers: {'Content-Type':'application/json'},
               body: JSON.stringify({access_token: token, artist_id: la.id, slots: turnosSlots}),
             })
-            if (r.status === 401) {
-              const { data: { session } } = await supabase.auth.getSession()
-              if (session?.access_token) {
-                token = session.access_token
-                const updated = { ...la, access_token: token }
+            if (r.status === 401 && la.refresh_token) {
+              // Esta app no usa la sesión del cliente supabase (el login es server-side
+              // y el token vencido se refresca a mano vía /api/auth/refresh, mismo
+              // patrón que ya usan community/studio/sponsor) — sin esto, el único
+              // modo de recuperarse de un token vencido era cerrar sesión y volver a entrar.
+              const ref = await fetch('/api/auth/refresh', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh_token: la.refresh_token }),
+              })
+              if (ref.ok) {
+                const tokens = await ref.json()
+                token = tokens.access_token
+                const updated = { ...la, access_token: tokens.access_token, refresh_token: tokens.refresh_token }
                 setLoggedArtist(updated)
                 try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(updated)) } catch {}
                 r = await fetch('/api/flash/availability', {
@@ -3840,9 +3848,17 @@ export default function Home() {
                 onClose={() => setCommunityOpen(false)}
                 lang={language}
                 highlightPostId={highlightPostId}
-                loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: loggedArtist.city ?? undefined, country: loggedArtist.country ?? undefined, flashbook_alias: loggedArtist.flashbook_alias, access_token: loggedArtist.access_token } : null}
+                loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: loggedArtist.city ?? undefined, country: loggedArtist.country ?? undefined, flashbook_alias: loggedArtist.flashbook_alias, access_token: loggedArtist.access_token, refresh_token: loggedArtist.refresh_token } : null}
                 loggedStudio={loggedStudio ? { slug: loggedStudio.slug, name: loggedStudio.name, logo_url: loggedStudio.logo_url, visible: loggedStudio.visible, expires_at: loggedStudio.expires_at ?? null, access_token: loggedStudio.access_token, refresh_token: loggedStudio.refresh_token, city: loggedStudio.city ?? undefined, country: loggedStudio.country ?? undefined } : null}
                 loggedSponsor={loggedSponsor}
+                onArtistTokenRefreshed={tokens => {
+                  setLoggedArtist(prev => {
+                    if (!prev) return prev
+                    const updated = { ...prev, access_token: tokens.access_token, refresh_token: tokens.refresh_token }
+                    try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(updated)) } catch {}
+                    return updated
+                  })
+                }}
                 onSponsorTokenRefreshed={tokens => {
                   setLoggedSponsor(prev => {
                     if (!prev) return prev

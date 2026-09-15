@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from '@/contexts/TranslationContext'
-import { supabase } from '@/lib/supabase'
 
 type CommunityPost = {
   id: string
@@ -73,7 +72,7 @@ function contactLabel(type: string | null, val: string | null): { href: string }
 }
 
 type Props = {
-  loggedArtist: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string } | null
+  loggedArtist: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string; refresh_token?: string } | null
   loggedStudio: { slug: string; name: string; logo_url: string | null; visible?: boolean; expires_at?: string | null; access_token?: string; refresh_token?: string; city?: string; country?: string } | null
   loggedSponsor?: { slug: string; name: string; logo_url: string | null; active: boolean; expires_at?: string | null; access_token: string; refresh_token?: string } | null
   onOpenArtist: (id: string) => void
@@ -82,12 +81,13 @@ type Props = {
   onOpenAvailability?: (artist_id: string, artist_name: string, artist_photo: string | null) => void
   onSponsorTokenRefreshed?: (tokens: { access_token: string; refresh_token?: string }) => void
   onStudioTokenRefreshed?: (tokens: { access_token: string; refresh_token?: string }) => void
+  onArtistTokenRefreshed?: (tokens: { access_token: string; refresh_token?: string }) => void
   onClose?: () => void
   lang?: string
   highlightPostId?: string
 }
 
-export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onStudioTokenRefreshed, onClose, lang = 'es', highlightPostId }: Props) {
+export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onStudioTokenRefreshed, onArtistTokenRefreshed, onClose, lang = 'es', highlightPostId }: Props) {
   const { t } = useTranslation()
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [loading, setLoading] = useState(true)
@@ -101,6 +101,15 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   const [clientCountry, setClientCountry] = useState('')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // El textarea del composer era de altura fija (2 filas) sin crecer — con texto
+  // largo el final quedaba oculto/scrolleable sin que se notara. Se expande solo
+  // hasta un tope, y de ahí en más scrollea adentro.
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px'
+  }, [text])
   const [studioLocation, setStudioLocation] = useState<{ city?: string; country?: string } | null>(null)
   const [artistLocation, setArtistLocation] = useState<{ city?: string; country?: string } | null>(null)
   const [highlightedId, setHighlightedId] = useState<string | undefined>(highlightPostId)
@@ -362,7 +371,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
                 placeholder={placeholder}
                 maxLength={300}
                 rows={2}
-                style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, resize: 'none', lineHeight: 1.5, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', caretColor: '#efff42' }}
+                style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, resize: 'none', lineHeight: 1.5, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', caretColor: '#efff42', maxHeight: 160, overflowY: 'auto' }}
                 className="community-textarea"
               />
             )}
@@ -565,6 +574,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
                 highlighted={post.id === highlightedId}
                 nowLabel={nowLabel}
                 loggedArtist={loggedArtist}
+                onArtistTokenRefreshed={onArtistTokenRefreshed}
                 onDelete={id => setPosts(prev => prev.filter(p => p.id !== id))} />
             )
           })
@@ -650,7 +660,7 @@ function CopyEmailButton({ email }: { email: string }) {
   )
 }
 
-function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onOpenSponsor, onShare, reporterId, isOwn, onDelete, loggedArtist }: {
+function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onOpenSponsor, onShare, reporterId, isOwn, onDelete, loggedArtist, onArtistTokenRefreshed }: {
   post: CommunityPost
   contact: { href: string } | null
   onOpenArtist: (id: string) => void
@@ -660,7 +670,8 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onOpenSponsor, on
   reporterId: string | null
   isOwn: boolean
   onDelete: (id: string) => void
-  loggedArtist?: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string } | null
+  loggedArtist?: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string; refresh_token?: string } | null
+  onArtistTokenRefreshed?: (tokens: { access_token: string; refresh_token?: string }) => void
 }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -715,7 +726,7 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onOpenSponsor, on
             </svg>
           </button>
         )}
-        {showHelpersBtn && <SearchHelpers post={post} loggedArtist={loggedArtist} onOpenArtist={onOpenArtist} />}
+        {showHelpersBtn && <SearchHelpers post={post} loggedArtist={loggedArtist} onOpenArtist={onOpenArtist} onArtistTokenRefreshed={onArtistTokenRefreshed} />}
         <button
           onClick={() => onShare(post)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', padding: 0 }}>
@@ -847,11 +858,12 @@ function ReplyRow({ post, contact, onOpenArtist, onOpenStudio, onOpenSponsor, on
   )
 }
 
-function SearchHelpers({ post, loggedArtist, onOpenArtist, compact }: {
+function SearchHelpers({ post, loggedArtist, onOpenArtist, compact, onArtistTokenRefreshed }: {
   post: CommunityPost
-  loggedArtist?: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string } | null
+  loggedArtist?: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string; refresh_token?: string } | null
   onOpenArtist: (id: string) => void
   compact?: boolean
+  onArtistTokenRefreshed?: (tokens: { access_token: string; refresh_token?: string }) => void
 }) {
   const { t } = useTranslation()
   const [showHelpers, setShowHelpers] = useState(false)
@@ -890,20 +902,31 @@ function SearchHelpers({ post, loggedArtist, onOpenArtist, compact }: {
     setTogglingHelp(true)
     setHelperError(null)
     try {
-      // Pide un token fresco (uno vencido rompía el toggle en silencio), pero con límite:
-      // si getSession() se cuelga, no puede trabar el botón para siempre.
-      let access_token = loggedArtist.access_token || ''
-      try {
-        const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 3000))
-        const result = await Promise.race([supabase.auth.getSession(), timeout])
-        if (result?.data?.session?.access_token) access_token = result.data.session.access_token
-      } catch {}
+      const access_token = loggedArtist.access_token || ''
       if (!access_token) { setHelperError(t('comunidad', 'help_err_session', 'Volvé a iniciar sesión para responder')); return }
-      const r = await fetch(`/api/community/${post.id}/helpers`, {
+      let r = await fetch(`/api/community/${post.id}/helpers`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ artist_id: loggedArtist.id, access_token, action: iAmHelping ? 'remove' : 'add' }),
       })
+      // Esta app no usa la sesión del cliente supabase — el login es server-side y
+      // un token vencido se refresca a mano vía /api/auth/refresh (mismo patrón que
+      // el resto de la app), no con supabase.auth.getSession() (nunca tiene sesión).
+      if (r.status === 401 && loggedArtist.refresh_token) {
+        const ref = await fetch('/api/auth/refresh', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: loggedArtist.refresh_token }),
+        })
+        if (ref.ok) {
+          const tokens = await ref.json()
+          onArtistTokenRefreshed?.(tokens)
+          r = await fetch(`/api/community/${post.id}/helpers`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ artist_id: loggedArtist.id, access_token: tokens.access_token, action: iAmHelping ? 'remove' : 'add' }),
+          })
+        }
+      }
       const d = await r.json().catch(() => null)
       if (!r.ok || !d?.helpers) {
         setHelperError(d?.error || t('comunidad', 'help_err_generic', 'No se pudo registrar, probá de nuevo'))
@@ -984,7 +1007,7 @@ function SearchHelpers({ post, loggedArtist, onOpenArtist, compact }: {
   )
 }
 
-function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, reporterId, nearby, isOwn, highlighted, nowLabel, onDelete, loggedArtist }: {
+function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, reporterId, nearby, isOwn, highlighted, nowLabel, onDelete, loggedArtist, onArtistTokenRefreshed }: {
   post: CommunityPost
   onShare: (p: CommunityPost) => void
   onOpenArtist: (slug: string) => void
@@ -997,7 +1020,8 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
   highlighted?: boolean
   nowLabel: string
   onDelete: (id: string) => void
-  loggedArtist?: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string } | null
+  loggedArtist?: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string; refresh_token?: string } | null
+  onArtistTokenRefreshed?: (tokens: { access_token: string; refresh_token?: string }) => void
 }) {
   const { t } = useTranslation()
   const isArtist = post.type === 'artist'
@@ -1162,7 +1186,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
                 </button>
               </div>
             )
-            : <ReplyRow post={post} contact={contact} onOpenArtist={onOpenArtist} onOpenStudio={onOpenStudio} onOpenSponsor={onOpenSponsor} onShare={onShare} reporterId={reporterId} isOwn={isOwn} onDelete={onDelete} loggedArtist={loggedArtist} />
+            : <ReplyRow post={post} contact={contact} onOpenArtist={onOpenArtist} onOpenStudio={onOpenStudio} onOpenSponsor={onOpenSponsor} onShare={onShare} reporterId={reporterId} isOwn={isOwn} onDelete={onDelete} loggedArtist={loggedArtist} onArtistTokenRefreshed={onArtistTokenRefreshed} />
           }
         </div>
       </div>
