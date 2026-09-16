@@ -368,6 +368,20 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const offsetRef = useRef(0)
+  // El composer ocupaba espacio fijo arriba del feed todo el tiempo. Ahora se
+  // contrae a una barra angosta apenas se scrollea el feed hacia abajo, y con
+  // un toque se vuelve a abrir sin necesidad de volver a scrollear hasta arriba.
+  const [composerCollapsed, setComposerCollapsed] = useState(false)
+  const feedScrollRef = useRef<HTMLDivElement>(null)
+  const handleFeedScroll = () => {
+    const el = feedScrollRef.current
+    if (!el) return
+    setComposerCollapsed(el.scrollTop > 30)
+  }
+  const expandComposer = () => {
+    setComposerCollapsed(false)
+    setTimeout(() => textareaRef.current?.focus(), 60)
+  }
 
   // Buscar ciudad del artista logueado si no viene en el prop
   useEffect(() => {
@@ -404,7 +418,12 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
 
   const sortByProximity = useCallback((raw: CommunityPost[]) => {
-    const sameCountry = (p: CommunityPost) => !!(viewerCountry && p.country?.toLowerCase() === viewerCountry)
+    // Los avisos globales de Flashttoo (admin/news sin país cargado) cuentan como
+    // "cercanos" para cualquiera, igual que ya se decide en el servidor — así no
+    // se rearman por delante ni por detrás de su fecha real, solo se agrupan con
+    // las coincidencias de país en vez de perderse entre el resto.
+    const isGlobalBroadcast = (p: CommunityPost) => !!viewerCountry && !p.country && (p.type === 'admin' || p.type === 'news')
+    const sameCountry = (p: CommunityPost) => !!(viewerCountry && p.country?.toLowerCase() === viewerCountry) || isGlobalBroadcast(p)
     const sameCity    = (p: CommunityPost) => !!(viewerCity && p.city?.toLowerCase() === viewerCity)
     return [...raw].sort((a, b) => {
       const nearbyA = sameCountry(a)
@@ -417,10 +436,6 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
         if (fullA && !fullB) return -1
         if (fullB && !fullA) return 1
       }
-      if (!nearbyA && !nearbyB) {
-        if (a.type === 'admin' && b.type !== 'admin') return -1
-        if (b.type === 'admin' && a.type !== 'admin') return 1
-      }
       return 0
     })
   }, [viewerCity, viewerCountry])
@@ -432,7 +447,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const r = await fetch(`/api/community?lang=${encodeURIComponent(lang)}&offset=0`)
+      const r = await fetch(`/api/community?lang=${encodeURIComponent(lang)}&offset=0&country=${encodeURIComponent(viewerCountry)}`)
       const d = await r.json()
       if (Array.isArray(d.posts)) {
         setPosts(sortByProximity(d.posts))
@@ -440,13 +455,13 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
         setHasMore(d.hasMore ?? false)
       }
     } finally { setLoading(false) }
-  }, [sortByProximity, lang])
+  }, [sortByProximity, lang, viewerCountry])
 
   const loadMore = useCallback(async () => {
     if (loadingMore) return
     setLoadingMore(true)
     try {
-      const r = await fetch(`/api/community?lang=${encodeURIComponent(lang)}&offset=${offsetRef.current}`)
+      const r = await fetch(`/api/community?lang=${encodeURIComponent(lang)}&offset=${offsetRef.current}&country=${encodeURIComponent(viewerCountry)}`)
       const d = await r.json()
       if (Array.isArray(d.posts) && d.posts.length > 0) {
         setPosts(prev => [...prev, ...d.posts])
@@ -456,7 +471,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
         setHasMore(false)
       }
     } finally { setLoadingMore(false) }
-  }, [lang, loadingMore])
+  }, [lang, loadingMore, viewerCountry])
 
   useEffect(() => { load() }, [load])
 
@@ -564,9 +579,24 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
 
   const nowLabel = t('comunidad', 'time_now', 'ahora')
 
+  const avatarInner = loggedArtist?.photo_url
+    /* eslint-disable-next-line @next/next/no-img-element */
+    ? <img src={loggedArtist.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    : loggedStudio?.logo_url
+    /* eslint-disable-next-line @next/next/no-img-element */
+    ? <img src={loggedStudio.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    : loggedSponsor?.logo_url
+    /* eslint-disable-next-line @next/next/no-img-element */
+    ? <img src={loggedSponsor.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} />
+    : <span>{clientEmoji}</span>
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0a0a0a', overflow: 'hidden', minWidth: 0 }}>
-      <style>{`.community-textarea::placeholder { color: rgba(255,255,255,0.18); }`}</style>
+      <style>{`
+        .community-textarea::placeholder { color: rgba(255,255,255,0.18); }
+        @keyframes composerSwapIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+        .community-composer-swap { animation: composerSwapIn 0.28s cubic-bezier(0.22,0.61,0.36,1); }
+      `}</style>
 
       {/* Header */}
       <div style={{ padding: '18px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
@@ -586,25 +616,27 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
       </div>
 
       {/* Composer */}
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-
+      <div style={{ padding: composerCollapsed ? '10px 16px' : '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, transition: 'padding 0.35s cubic-bezier(0.22,0.61,0.36,1)' }}>
+        {composerCollapsed ? (
+          <button key="compact" onClick={expandComposer} className="community-composer-swap"
+            style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '6px 12px', cursor: 'pointer', textAlign: 'left' }}>
+            <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: isLoggedIn ? 'rgba(255,255,255,0.08)' : 'rgba(56,189,248,0.12)', border: isLoggedIn ? 'none' : '2px solid #38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
+              {avatarInner}
+            </div>
+            <span style={{ fontSize: 13, color: text.trim() ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {text.trim() || (!isLoggedIn ? t('comunidad', 'req_preview_empty', 'Busco tattoo artist para...') : placeholder)}
+            </span>
+          </button>
+        ) : (
+        <div key="full" className="community-composer-swap">
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: isLoggedIn ? 'default' : 'pointer' }}
+          <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: isLoggedIn ? 'rgba(255,255,255,0.08)' : 'rgba(56,189,248,0.12)', border: isLoggedIn ? 'none' : '2px solid #38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: isLoggedIn ? 'default' : 'pointer' }}
             onClick={() => !isLoggedIn && setShowEmojiPicker(v => !v)}>
-            {loggedArtist?.photo_url
-              /* eslint-disable-next-line @next/next/no-img-element */
-              ? <img src={loggedArtist.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : loggedStudio?.logo_url
-              /* eslint-disable-next-line @next/next/no-img-element */
-              ? <img src={loggedStudio.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : loggedSponsor?.logo_url
-              /* eslint-disable-next-line @next/next/no-img-element */
-              ? <img src={loggedSponsor.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} />
-              : <span>{clientEmoji}</span>}
+            {avatarInner}
           </div>
 
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: loggedArtist || loggedStudio || loggedSponsor ? '#efff42' : 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: loggedArtist || loggedStudio || loggedSponsor ? '#efff42' : '#38bdf8', marginBottom: 4 }}>
               {loggedArtist ? loggedArtist.name : loggedStudio ? loggedStudio.name : loggedSponsor ? loggedSponsor.name : clientName || t('comunidad', 'you', 'Vos')}
             </p>
             {sponsorBlocked || studioBlocked ? (
@@ -746,6 +778,8 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
             </div>
           </div>
         )}
+        </div>
+        )}
       </div>
 
       {/* Filtro por zona — solo clientes */}
@@ -776,7 +810,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
       {tickerMode && <SearchTicker lang={lang} />}
 
       {/* Feed */}
-      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <div ref={feedScrollRef} onScroll={handleFeedScroll} style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {loading && (
           <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>
             {t('comunidad', 'loading', 'Cargando...')}
@@ -810,9 +844,13 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
           return filtered.map((post: CommunityPost) => {
             const viewerCity = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
             const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
-            const sameCountry = !!(viewerCountry && matchesAnyCountry(post.country, viewerCountry))
+            // Los avisos globales de Flashttoo (admin/news sin país) también se
+            // destacan con el borde de "esto es para vos", igual que una
+            // coincidencia real de país — son de alcance para cualquiera.
+            const isGlobalBroadcast = !!viewerCountry && !post.country && (post.type === 'admin' || post.type === 'news')
+            const sameCountry = !!(viewerCountry && matchesAnyCountry(post.country, viewerCountry)) || isGlobalBroadcast
             const nearby: 'full' | 'country' | false = sameCountry
-              ? (viewerCity && post.city?.toLowerCase() === viewerCity ? 'full' : 'country')
+              ? (!isGlobalBroadcast && viewerCity && post.city?.toLowerCase() === viewerCity ? 'full' : 'country')
               : false
             const ownerId = loggedArtist?.id ?? loggedStudio?.slug ?? loggedSponsor?.slug ?? null
             const isOwn = !!(ownerId && (
@@ -1303,6 +1341,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
         padding: '7px 16px',
         borderBottom: '1px solid rgba(255,255,255,0.04)',
         background: highlighted ? 'rgba(56,189,248,0.06)' : 'transparent',
+        borderLeft: nearby === 'full' || nearby === 'country' || highlighted ? '3px solid #efff42' : '3px solid transparent',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, display: 'flex', alignItems: 'center', gap: 6, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
@@ -1330,7 +1369,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
 
         <div
           onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug); else if (isSponsor && post.sponsor_id) onOpenSponsor?.(post.sponsor_id) }}
-          style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: isAdmin || isSponsor ? '#000' : isNews ? 'rgba(244,114,182,0.12)' : isSearch ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: isArtist ? '2px solid #efff42' : isStudio ? '2px solid #4dcfff' : isSponsor ? '2px solid #c084fc' : isAdmin ? '2px solid #efff42' : isNews ? '2px solid #f472b6' : isSearch ? '2px solid #38bdf8' : 'none', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default' }}>
+          style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: isAdmin || isSponsor ? '#000' : isNews ? 'rgba(244,114,182,0.12)' : isSearch || isClient ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: isArtist ? '2px solid #efff42' : isStudio ? '2px solid #fb923c' : isSponsor ? '2px solid #c084fc' : isAdmin ? '2px solid #efff42' : isNews ? '2px solid #f472b6' : isSearch || isClient ? '2px solid #38bdf8' : 'none', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default' }}>
           {isAdmin
             /* eslint-disable-next-line @next/next/no-img-element */
             ? <img src="/icon-desktop-512.png" alt="Flashttoo" style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
@@ -1354,12 +1393,12 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
               <span
-                style={{ fontSize: 13, fontWeight: 700, color: isSearch ? '#38bdf8' : isNews ? '#f472b6' : '#fff', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                style={{ fontSize: 13, fontWeight: 700, color: isSearch || isClient ? '#38bdf8' : isNews ? '#f472b6' : isStudio ? '#fb923c' : '#fff', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug); else if (isSponsor && post.sponsor_id) onOpenSponsor?.(post.sponsor_id) }}>
                 {isAdmin || isNews ? 'Flashttoo' : isArtist ? post.artist_name : isStudio ? post.studio_name : isSponsor ? post.sponsor_name : isSearch ? t('comunidad', 'badge_search', 'Búsqueda') : post.client_name}
               </span>
               {(isArtist || isStudio || isAdmin || isNews) && (
-                <span style={{ fontSize: 9, fontWeight: 700, color: isAdmin ? '#efff42' : isNews ? '#f472b6' : isArtist ? 'rgba(239,255,66,0.55)' : 'rgba(100,200,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: isAdmin ? '#efff42' : isNews ? '#f472b6' : isArtist ? 'rgba(239,255,66,0.55)' : 'rgba(251,146,60,0.65)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
                   {isAdmin ? t('comunidad', 'badge_official', 'Oficial') : isNews ? t('comunidad', 'badge_news_tag', 'Info') : isArtist ? t('comunidad', 'badge_artist', 'Tattoo Artist') : t('comunidad', 'badge_studio', 'Estudio')}
                 </span>
               )}

@@ -3852,7 +3852,7 @@ export default function Home() {
 
 
       {communityOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex' }}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 96, display: 'flex' }}
           onTouchStart={e => { communitySwipeRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY } }}
           onTouchEnd={e => {
             if (!communitySwipeRef.current) return

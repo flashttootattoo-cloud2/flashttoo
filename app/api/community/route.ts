@@ -12,29 +12,71 @@ const PAGE = 30
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const lang   = searchParams.get('lang') || 'es'
-  const offset = parseInt(searchParams.get('offset') || '0', 10)
+  const lang    = searchParams.get('lang') || 'es'
+  const offset  = parseInt(searchParams.get('offset') || '0', 10)
+  // Sin comas/paréntesis/comodines: va directo a un ILIKE, no puede traer sintaxis rara
+  const country = (searchParams.get('country') || '').trim().replace(/[,()%_]/g, '')
   const now = new Date().toISOString()
 
   const { data: tickerSetting } = await sb().from('settings').select('value').eq('key', 'search_ticker_mode').single()
   const tickerMode = tickerSetting?.value === true
 
-  let query = sb()
-    .from('community_posts')
-    .select('*')
-    .gt('expires_at', now)
-    .lt('report_count', 3)
-    .eq('lang', lang)
-
-  // Con el ticker activo, las búsquedas sin texto (search_description null) se
-  // muestran arriba del todo en vivo en vez de ocupar lugar en el feed normal
-  if (tickerMode) {
-    query = query.or('type.neq.search,search_description.not.is.null')
+  const baseRows = () => {
+    let q = sb().from('community_posts').select('*').gt('expires_at', now).lt('report_count', 3).eq('lang', lang)
+    // Con el ticker activo, las búsquedas sin texto (search_description null) se
+    // muestran arriba del todo en vivo en vez de ocupar lugar en el feed normal
+    if (tickerMode) q = q.or('type.neq.search,search_description.not.is.null')
+    return q
+  }
+  const baseCount = () => {
+    let q = sb().from('community_posts').select('id', { count: 'exact', head: true }).gt('expires_at', now).lt('report_count', 3).eq('lang', lang)
+    if (tickerMode) q = q.or('type.neq.search,search_description.not.is.null')
+    return q
   }
 
-  const { data, error } = await query
-    .order('created_at', { ascending: false })
-    .range(offset, offset + PAGE - 1)
+  let posts: Record<string, unknown>[] = []
+
+  if (country) {
+    // Los posts cuyo país coincide con el del que está mirando van primero
+    // (aunque sean más viejos que otros), así no quedan enterrados en la
+    // segunda página cuando hay mucho volumen de otros países. Los avisos de
+    // Flashttoo (admin/news) sin país cargado son de alcance global — cuentan
+    // como "coincidencia" para cualquiera y se ubican por fecha junto al resto,
+    // en vez de quedar relegados detrás de todas las coincidencias de país.
+    const pattern = `%${country}%`
+    const matchFilter = `country.ilike.${pattern},and(country.is.null,type.in.(admin,news))`
+    const restFilter = `and(country.not.is.null,country.not.ilike.${pattern}),and(country.is.null,type.not.in.(admin,news))`
+
+    const { count: matchTotal } = await baseCount().or(matchFilter)
+    const total = matchTotal ?? 0
+
+    if (offset < total) {
+      const { data: matchData } = await baseRows()
+        .or(matchFilter)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + PAGE - 1)
+      posts = matchData ?? []
+      if (posts.length < PAGE) {
+        const { data: restData } = await baseRows()
+          .or(restFilter)
+          .order('created_at', { ascending: false })
+          .range(0, PAGE - posts.length - 1)
+        posts = posts.concat(restData ?? [])
+      }
+    } else {
+      const restOffset = offset - total
+      const { data: restData } = await baseRows()
+        .or(restFilter)
+        .order('created_at', { ascending: false })
+        .range(restOffset, restOffset + PAGE - 1)
+      posts = restData ?? []
+    }
+  } else {
+    const { data } = await baseRows()
+      .order('created_at', { ascending: false })
+      .range(offset, offset + PAGE - 1)
+    posts = data ?? []
+  }
 
   // Limpieza de vencidos sin depender de un cron externo: expires_at solo se
   // usaba como filtro de qué se muestra, nunca borraba nada de verdad y las
@@ -46,8 +88,7 @@ export async function GET(req: NextRequest) {
     await sb().from('community_posts').delete().lt('expires_at', now)
   }
 
-  if (error) return NextResponse.json({ posts: [], hasMore: false })
-  return NextResponse.json({ posts: data ?? [], hasMore: (data?.length ?? 0) === PAGE })
+  return NextResponse.json({ posts, hasMore: posts.length === PAGE })
 }
 
 export async function POST(req: NextRequest) {
