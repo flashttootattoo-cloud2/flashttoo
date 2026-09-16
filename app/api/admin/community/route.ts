@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   const link = typeof body.link === 'string' && body.link.trim() ? body.link.trim().slice(0, 500) : null
+  const country = typeof body.country === 'string' && body.country.trim() ? body.country.trim().slice(0, 200) : null
   const type = body.kind === 'news' ? 'news' : 'admin'
 
   const { data, error } = await sb()
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
       content: String(body.content).trim().slice(0, 300),
       lang,
       link,
+      country,
       expires_at: expires,
       report_count: 0,
     })

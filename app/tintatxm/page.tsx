@@ -5663,6 +5663,7 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [lang, setLang] = useState('es')
   const [kind, setKind] = useState<'admin' | 'news'>('admin')
   const [link, setLink] = useState('')
+  const [country, setCountry] = useState('')
   const [customExpiry, setCustomExpiry] = useState('')
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<'ok' | 'error' | null>(null)
@@ -5799,11 +5800,12 @@ function AdminCommunity({ pass }: { pass: string }) {
       body: JSON.stringify({
         content: text, lang, kind,
         link: link.trim() || undefined,
+        country: country.trim() || undefined,
         expires_at: customExpiry ? new Date(customExpiry).toISOString() : undefined,
       }),
     }).catch(() => null)
     setSending(false)
-    if (r?.ok) { setText(''); setLink(''); setCustomExpiry(''); setResult('ok'); loadPosts() }
+    if (r?.ok) { setText(''); setLink(''); setCountry(''); setCustomExpiry(''); setResult('ok'); loadPosts() }
     else setResult('error')
   }
 
@@ -5859,6 +5861,9 @@ function AdminCommunity({ pass }: { pass: string }) {
           <input type="url" value={link} onChange={e => setLink(e.target.value)}
             placeholder="Link opcional (ej. a la publicación de Instagram)"
             style={{ flex: '1 1 260px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
+          <input value={country} onChange={e => setCountry(e.target.value)}
+            placeholder="País opcional (ej: Argentina, Chile) — vacío = todos"
+            style={{ flex: '1 1 220px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
           <div className="flex items-center gap-2">
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Vence el</span>
             <input type="datetime-local" value={customExpiry} onChange={e => setCustomExpiry(e.target.value)}
@@ -5908,6 +5913,9 @@ function AdminCommunity({ pass }: { pass: string }) {
                     style={{ fontSize: 11, color: '#38bdf8', textDecoration: 'none' }}>
                     🔗 {p.link}
                   </a>
+                )}
+                {p.country && (
+                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>🌍 {p.country}</p>
                 )}
                 {p.expires_at && (
                   <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>

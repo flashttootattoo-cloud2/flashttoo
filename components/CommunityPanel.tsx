@@ -1371,9 +1371,9 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
               {post.sponsor_description}
             </p>
           )}
-          {!isAdmin && !isNews && !isSponsor && (!isSearch || post.search_description) && (post.city || post.country) && (
+          {!isSponsor && (!isSearch || post.search_description) && (post.city || post.country) && (
             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>
-              {[post.city, post.country].filter(Boolean).join(', ')}
+              {(isAdmin || isNews) ? '🌍 ' : ''}{[post.city, post.country].filter(Boolean).join(', ')}
             </p>
           )}
 
