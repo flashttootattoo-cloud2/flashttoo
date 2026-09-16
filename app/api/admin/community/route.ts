@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deleteFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -31,8 +32,11 @@ export async function DELETE(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const { id } = await req.json().catch(() => ({}))
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
+  const { data: post } = await sb().from('community_posts').select('photo_url').eq('id', id).single()
   const { error } = await sb().from('community_posts').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // No dejar la foto huérfana en R2 cuando se borra el post que la usaba
+  if (post?.photo_url) deleteFile(post.photo_url).catch(() => {})
   return NextResponse.json({ ok: true })
 }
 

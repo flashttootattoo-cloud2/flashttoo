@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deleteFile } from '@/lib/storage'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -85,7 +86,9 @@ export async function GET(req: NextRequest) {
   // llama todo el tiempo — se espera (await) porque en serverless el código
   // después de responder no tiene garantía de terminar de ejecutarse.
   if (Math.random() < 0.02) {
-    await sb().from('community_posts').delete().lt('expires_at', now)
+    const { data: expired } = await sb().from('community_posts').delete().lt('expires_at', now).select('photo_url')
+    const photoUrls = (expired ?? []).map(p => p.photo_url).filter((u): u is string => !!u)
+    await Promise.all(photoUrls.map(url => deleteFile(url).catch(() => {})))
   }
 
   return NextResponse.json({ posts, hasMore: posts.length === PAGE })
@@ -121,6 +124,7 @@ export async function POST(req: NextRequest) {
     insert.show_flashbook  = body.show_flashbook === true ? true : null
     insert.flashbook_alias = body.show_flashbook === true ? (body.flashbook_alias || null) : null
     insert.show_availability = body.show_availability === true ? true : null
+    insert.photo_url = typeof body.photo_url === 'string' && body.photo_url.trim() ? body.photo_url.trim() : null
   } else if (type === 'studio') {
     if (!body.studio_slug || !body.access_token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     const { data: studio } = await sb().from('studios').select('id, user_id, name, logo_url, slug, visible, expires_at').eq('slug', body.studio_slug).single()

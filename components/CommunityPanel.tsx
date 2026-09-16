@@ -9,6 +9,7 @@ type CommunityPost = {
   content: string
   city: string | null
   country: string | null
+  photo_url: string | null
   contact_type: 'ig' | 'whatsapp' | 'email' | null
   contact: string | null
   client_name: string | null
@@ -133,8 +134,6 @@ function SearchTicker({ lang }: { lang: string }) {
 const REQUEST_PURPOSES = [
   { key: 'next',    phraseKey: 'req_purpose_next',    fallback: 'Mi próximo tattoo',            phrase: 'para mi próximo tattoo' },
   { key: 'coverup', phraseKey: 'req_purpose_coverup', fallback: 'Cover up',                      phrase: 'para un cover up' },
-  { key: 'full',    phraseKey: 'req_purpose_full',    fallback: 'Pieza completa',                phrase: 'para tatuarme una pieza completa' },
-  { key: 'patch',   phraseKey: 'req_purpose_patch',   fallback: 'Parche',                        phrase: 'para tatuarme un parche' },
 ] as const
 
 const REQUEST_TIMINGS = [
@@ -233,11 +232,13 @@ function ClientRequestChips({ value, onChange, lang }: { value: string; onChange
 
   return (
     <div>
-      <p style={{ fontSize: 14, color: value ? '#efff42' : 'rgba(255,255,255,0.25)', lineHeight: 1.5, minHeight: 21, marginBottom: 10, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-        {value || t('comunidad', 'req_preview_empty', 'Busco tattoo artist para...')}
-      </p>
+      <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 12px', marginBottom: 14 }}>
+        <p style={{ fontSize: 14, color: value ? '#efff42' : 'rgba(255,255,255,0.25)', lineHeight: 1.5, minHeight: 21, margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+          {value || t('comunidad', 'req_preview_empty', 'Busco tattoo artist para...')}
+        </p>
+      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
         <button ref={purposeBtnRef} style={chipStyle(!!purpose)} onClick={() => openDropdown('purpose', purposeBtnRef.current, 220)}>
           {purpose ? t('comunidad', REQUEST_PURPOSES.find(p => p.key === purpose)!.phraseKey + '_label', REQUEST_PURPOSES.find(p => p.key === purpose)!.fallback) : t('comunidad', 'req_purpose_label', '¿Para qué?')} {openWhich === 'purpose' ? '▲' : '▼'}
         </button>
@@ -313,6 +314,313 @@ function ClientRequestChips({ value, onChange, lang }: { value: string; onChange
   )
 }
 
+// Compresión client-side antes de subir — mismo criterio que se usa en el
+// resto de la app (canvas a webp, calidad ~0.82) para no mandar fotos
+// pesadas a R2.
+function compressToWebp(file: File, maxDim = 1000, quality = 0.82): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image()
+    img.onload = () => {
+      let { width, height } = img
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round(height * maxDim / width); width = maxDim }
+        else { width = Math.round(width * maxDim / height); height = maxDim }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => {
+        if (blob) resolve(new File([blob], 'photo.webp', { type: 'image/webp' }))
+        else reject(new Error('No se pudo procesar la imagen'))
+      }, 'image/webp', quality)
+    }
+    img.onerror = () => reject(new Error('No se pudo leer la imagen'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+type ArtistSubcatDef = {
+  key: string
+  labelKey: string
+  fallback: string
+  phraseKey: string
+  phrase: string
+  hasStyle?: boolean
+  hasPhoto?: boolean
+  hasLocation?: boolean
+  locationKey?: string
+  locationFallback?: string
+  hasDate?: boolean
+  dateKey?: string
+  dateFallback?: string
+}
+
+type ArtistCategoryDef = {
+  key: string
+  labelKey: string
+  fallback: string
+  subcats: ArtistSubcatDef[]
+}
+
+// Categorías de mensaje rápido para tatuadores — a diferencia del pedido de
+// cliente (siempre los mismos 4 chips), acá se elige directo el mensaje ya
+// armado (agrupados por categoría solo como referencia visual), y solo si
+// corresponde a ESE mensaje puntual aparecen campos extra (lugar, fecha con
+// calendario, estilo, o foto) — no todos los mensajes de una misma categoría
+// necesitan lo mismo (ej. "Flash day" pide fecha, "Diseño disponible" no).
+const ARTIST_CATEGORIES: ArtistCategoryDef[] = [
+  { key: 'availability', labelKey: 'tpl_cat_availability', fallback: 'Disponibilidad', subcats: [
+      { key: 'week',  labelKey: 'tpl_avail_week',  fallback: 'Turnos libres esta semana', phraseKey: 'tpl_avail_week_phrase',  phrase: 'Tengo turnos libres esta semana' },
+      { key: 'month', labelKey: 'tpl_avail_month', fallback: 'Turnos libres este mes',    phraseKey: 'tpl_avail_month_phrase', phrase: 'Tengo turnos libres este mes' },
+    ] },
+  { key: 'flash', labelKey: 'tpl_cat_flash', fallback: 'Flash', subcats: [
+      { key: 'day',    labelKey: 'tpl_flash_day',    fallback: 'Flash day',         phraseKey: 'tpl_flash_day_phrase',    phrase: 'Flash day disponible',
+        hasPhoto: true, hasDate: true, dateKey: 'tpl_flash_extra', dateFallback: 'Fecha (opcional)' },
+      { key: 'design', labelKey: 'tpl_flash_design', fallback: 'Diseño disponible', phraseKey: 'tpl_flash_design_phrase', phrase: 'Tengo un diseño disponible para tatuar',
+        hasPhoto: true },
+    ] },
+  { key: 'looking', labelKey: 'tpl_cat_looking', fallback: 'Busco', subcats: [
+      { key: 'canvas', labelKey: 'tpl_looking_canvas', fallback: 'Busco lienzo para probar diseño', phraseKey: 'tpl_looking_canvas_phrase', phrase: 'Busco lienzo para probar diseño',
+        hasPhoto: true },
+      { key: 'convention_canvas', labelKey: 'tpl_looking_convention', fallback: 'Busco lienzo para realizar tatuaje en convención', phraseKey: 'tpl_looking_convention_phrase', phrase: 'Busco lienzo para realizar tatuaje en convención' },
+    ] },
+  { key: 'travel', labelKey: 'tpl_cat_travel', fallback: 'Viaje', subcats: [
+      { key: 'guest', labelKey: 'tpl_travel_guest', fallback: 'Voy a tu ciudad', phraseKey: 'tpl_travel_guest_phrase', phrase: 'Voy a estar tatuando en',
+        hasLocation: true, locationKey: 'tpl_travel_extra', locationFallback: 'Ciudad y país',
+        hasDate: true, dateKey: 'tpl_travel_date', dateFallback: 'Fecha (opcional)' },
+    ] },
+  { key: 'studio', labelKey: 'tpl_cat_studio', fallback: 'Estudio', subcats: [
+      { key: 'change',  labelKey: 'tpl_studio_change',  fallback: 'Cambio de estudio', phraseKey: 'tpl_studio_change_phrase',  phrase: 'Cambié de estudio',
+        hasLocation: true, locationKey: 'tpl_studio_extra', locationFallback: 'Dirección o ciudad (opcional)' },
+      { key: 'address', labelKey: 'tpl_studio_address', fallback: 'Nueva dirección',   phraseKey: 'tpl_studio_address_phrase', phrase: 'Nueva dirección de trabajo',
+        hasLocation: true, locationKey: 'tpl_studio_extra', locationFallback: 'Dirección o ciudad (opcional)' },
+    ] },
+  { key: 'event', labelKey: 'tpl_cat_event', fallback: 'Evento', subcats: [
+      { key: 'convention', labelKey: 'tpl_event_convention', fallback: 'Convención', phraseKey: 'tpl_event_convention_phrase', phrase: 'Voy a estar en una convención',
+        hasLocation: true, locationKey: 'tpl_event_extra', locationFallback: 'Lugar (opcional)',
+        hasDate: true, dateKey: 'tpl_event_date', dateFallback: 'Fecha (opcional)' },
+    ] },
+  { key: 'portfolio', labelKey: 'tpl_cat_portfolio', fallback: 'Portfolio', subcats: [
+      { key: 'new', labelKey: 'tpl_portfolio_new', fallback: 'Trabajo nuevo', phraseKey: 'tpl_portfolio_new_phrase', phrase: 'Subí un trabajo nuevo',
+        hasPhoto: true },
+    ] },
+  { key: 'pause', labelKey: 'tpl_cat_pause', fallback: 'Pausa', subcats: [
+      { key: 'vacation', labelKey: 'tpl_pause_vacation', fallback: 'Vacaciones',      phraseKey: 'tpl_pause_vacation_phrase', phrase: 'Estoy de vacaciones',
+        hasDate: true, dateKey: 'tpl_pause_extra', dateFallback: 'Vuelvo el (opcional)' },
+      { key: 'closed',   labelKey: 'tpl_pause_closed',   fallback: 'Cierre temporal', phraseKey: 'tpl_pause_closed_phrase',   phrase: 'Cierre temporal del estudio',
+        hasDate: true, dateKey: 'tpl_pause_extra', dateFallback: 'Vuelvo el (opcional)' },
+    ] },
+]
+
+// Formatea la fecha del <input type="date"> (YYYY-MM-DD) a texto legible en
+// el idioma del que está escribiendo, en vez de mandar la fecha en crudo.
+function formatDatePretty(iso: string, lang: string): string {
+  if (!iso) return ''
+  const d = new Date(iso + 'T00:00:00')
+  if (isNaN(d.getTime())) return iso
+  const locale = lang === 'en' ? 'en-US' : lang === 'pt' ? 'pt-BR' : 'es-AR'
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long' })
+}
+
+function ArtistTemplateChips({ value, onChange, lang, photo, onPhotoChange, onCategoryChange }: {
+  value: string
+  onChange: (content: string) => void
+  lang: string
+  photo: File | null
+  onPhotoChange: (file: File | null) => void
+  onCategoryChange?: (category: string | null) => void
+}) {
+  const { t } = useTranslation()
+  const [category, setCategory] = useState<string | null>(null)
+  const [subcat, setSubcat] = useState<string | null>(null)
+  const [style, setStyle] = useState<string | null>(null)
+  const [location, setLocation] = useState('')
+  const [date, setDate] = useState('')
+  const [allStyles, setAllStyles] = useState<string[]>([])
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [compressing, setCompressing] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [openWhich, setOpenWhich] = useState<'message' | 'style' | null>(null)
+  const [dropPos, setDropPos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
+  const messageBtnRef = useRef<HTMLButtonElement>(null)
+  const styleBtnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    fetch('/api/styles').then(r => r.json()).then(d => { if (Array.isArray(d.styles)) setAllStyles(d.styles) }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    onCategoryChange?.(category)
+    return () => onCategoryChange?.(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category])
+
+  useEffect(() => {
+    if (!photo) { setPhotoPreview(null); return }
+    const url = URL.createObjectURL(photo)
+    setPhotoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photo])
+
+  const categoryDef = ARTIST_CATEGORIES.find(c => c.key === category) || null
+  const subcatDef = categoryDef?.subcats.find(s => s.key === subcat) || null
+
+  const openDropdown = (which: 'message' | 'style', btn: HTMLButtonElement | null, width: number) => {
+    if (openWhich === which) { setOpenWhich(null); return }
+    setDropPos(requestDropdownPos(btn, width))
+    setOpenWhich(which)
+  }
+
+  useEffect(() => {
+    if (!subcatDef) { onChange(''); return }
+    let sentence = t('comunidad', subcatDef.phraseKey, subcatDef.phrase)
+    if (subcatDef.hasStyle && style) sentence += `, ${t('comunidad', 'req_style_prefix', 'estilo')} ${style}`
+    const prettyDate = date ? formatDatePretty(date, lang) : ''
+    const loc = location.trim()
+    if (category === 'flash') {
+      if (prettyDate) sentence += `, ${prettyDate}`
+    } else if (category === 'travel') {
+      if (loc) sentence += ` ${loc}`
+      if (prettyDate) sentence += `, ${prettyDate}`
+    } else if (category === 'studio') {
+      if (loc) sentence += `: ${loc}`
+    } else if (category === 'event') {
+      const parts = [loc, prettyDate].filter(Boolean)
+      if (parts.length) sentence += `, ${parts.join(', ')}`
+    } else if (category === 'pause') {
+      if (prettyDate) sentence += `. ${t('comunidad', 'tpl_pause_return_prefix', 'Vuelvo el')} ${prettyDate}`
+    }
+    onChange(sentence)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, subcat, style, location, date, lang])
+
+  const handlePhotoPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setPhotoError('')
+    setCompressing(true)
+    try {
+      const compressed = await compressToWebp(file)
+      onPhotoChange(compressed)
+    } catch {
+      setPhotoError(t('comunidad', 'tpl_photo_error', 'No se pudo procesar la foto, probá con otra'))
+    } finally { setCompressing(false) }
+  }
+
+  const chipStyle = (on: boolean): React.CSSProperties => ({
+    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
+    border: `1px solid ${on ? 'rgba(239,255,66,0.5)' : 'rgba(239,255,66,0.3)'}`,
+    background: on ? 'rgba(239,255,66,0.12)' : 'transparent', color: '#efff42',
+  })
+  const dropdownWrapStyle: React.CSSProperties = { position: 'fixed', zIndex: 230, background: 'rgba(14,14,14,0.94)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, boxShadow: '0 20px 50px rgba(0,0,0,0.8)', maxHeight: 250, overflowY: 'auto' }
+  const optionRow = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 13px', fontSize: 12.5, textAlign: 'left', background: on ? 'rgba(239,255,66,0.1)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)', color: on ? '#efff42' : 'rgba(255,255,255,0.6)', fontWeight: on ? 700 : 400, cursor: 'pointer' })
+
+  return (
+    <div>
+      <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 12px', marginBottom: 14 }}>
+        <p style={{ fontSize: 14, color: value ? '#efff42' : 'rgba(255,255,255,0.25)', lineHeight: 1.5, minHeight: 21, margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+          {value || t('comunidad', 'tpl_preview_empty', 'Elegí un mensaje para empezar...')}
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
+        <button ref={messageBtnRef} style={chipStyle(!!subcat)} onClick={() => openDropdown('message', messageBtnRef.current, 260)}>
+          {subcatDef ? t('comunidad', subcatDef.labelKey, subcatDef.fallback) : t('comunidad', 'tpl_subcat_label', 'Elegí un mensaje')} {openWhich === 'message' ? '▲' : '▼'}
+        </button>
+
+        {subcatDef?.hasStyle && (
+          <button ref={styleBtnRef} style={chipStyle(!!style)} onClick={() => openDropdown('style', styleBtnRef.current, 250)}>
+            {style || t('comunidad', 'req_style_label', 'Estilo (opcional)')} {openWhich === 'style' ? '▲' : '▼'}
+          </button>
+        )}
+
+        {subcatDef?.hasLocation && (
+          <input value={location} onChange={e => setLocation(e.target.value)}
+            placeholder={t('comunidad', subcatDef.locationKey!, subcatDef.locationFallback!)}
+            style={{ fontSize: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 10px', color: '#fff', outline: 'none', width: '100%', maxWidth: 260 }} />
+        )}
+
+        {subcatDef?.hasDate && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {t('comunidad', subcatDef.dateKey!, subcatDef.dateFallback!)}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                style={{ fontSize: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 10px', color: '#fff', outline: 'none', colorScheme: 'dark' }} />
+              {date && (
+                <button onClick={() => setDate('')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {subcatDef?.hasPhoto && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoPick} style={{ display: 'none' }} />
+              {photoPreview ? (
+                <div style={{ position: 'relative' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photoPreview} alt="" style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'cover', display: 'block' }} />
+                  <button onClick={() => onPhotoChange(null)}
+                    style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: '#000', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✕</button>
+                </div>
+              ) : (
+                <button onClick={() => fileInputRef.current?.click()} disabled={compressing} style={chipStyle(false)}>
+                  {compressing ? t('comunidad', 'tpl_photo_loading', 'Procesando...') : t('comunidad', 'tpl_photo_add', '+ Agregar foto')}
+                </button>
+              )}
+            </div>
+            {photoError && <span style={{ fontSize: 10, color: 'rgba(255,100,100,0.7)' }}>{photoError}</span>}
+          </div>
+        )}
+      </div>
+
+      {openWhich && dropPos && createPortal(
+        <>
+          <div onClick={e => { e.stopPropagation(); setOpenWhich(null) }} style={{ position: 'fixed', inset: 0, zIndex: 229 }} />
+          {openWhich === 'message' && (
+            <div style={{ ...dropdownWrapStyle, ...dropPos, width: 260 }}>
+              {ARTIST_CATEGORIES.map(c => (
+                <div key={c.key}>
+                  <div style={{ padding: '7px 13px 4px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
+                    {t('comunidad', c.labelKey, c.fallback)}
+                  </div>
+                  {c.subcats.map(s => (
+                    <button key={s.key} onClick={() => {
+                      setCategory(c.key); setSubcat(prev => prev === s.key ? null : s.key)
+                      setStyle(null); setLocation(''); setDate(''); onPhotoChange(null); setOpenWhich(null)
+                    }} style={optionRow(subcat === s.key)}>
+                      <span>{t('comunidad', s.labelKey, s.fallback)}</span>
+                      {subcat === s.key && <span style={{ color: '#efff42', fontSize: 11 }}>✓</span>}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+          {openWhich === 'style' && (
+            <div className="grid grid-cols-2" style={{ ...dropdownWrapStyle, ...dropPos, width: 250 }}>
+              {allStyles.map(s => (
+                <button key={s} onClick={() => { setStyle(prev => prev === s ? null : s); setOpenWhich(null) }}
+                  className="flex items-center justify-between px-3 py-2 transition-all text-left"
+                  style={{ fontSize: 12.5, background: style === s ? 'rgba(239,255,66,0.1)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)', borderRight: '1px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ color: style === s ? '#efff42' : 'rgba(255,255,255,0.55)', fontWeight: style === s ? 700 : 400 }}>{s}</span>
+                  {style === s && <span style={{ color: '#efff42', fontSize: 11 }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </>, document.body
+      )}
+    </div>
+  )
+}
+
 type Props = {
   loggedArtist: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string; refresh_token?: string; status?: string } | null
   loggedStudio: { slug: string; name: string; logo_url: string | null; visible?: boolean; expires_at?: string | null; access_token?: string; refresh_token?: string; city?: string; country?: string } | null
@@ -343,6 +651,9 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   const [clientCity, setClientCity] = useState('')
   const [clientCountry, setClientCountry] = useState('')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [artistTemplateMode, setArtistTemplateMode] = useState(true)
+  const [templatePhoto, setTemplatePhoto] = useState<File | null>(null)
+  const [templateCategory, setTemplateCategory] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   // El textarea del composer era de altura fija (2 filas) sin crecer — con texto
   // largo el final quedaba oculto/scrolleable sin que se notara. Se expande solo
@@ -376,7 +687,19 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   const handleFeedScroll = () => {
     const el = feedScrollRef.current
     if (!el) return
-    setComposerCollapsed(el.scrollTop > 30)
+    // Con pocos posts el feed casi no tiene de dónde scrollear: al contraerse
+    // el composer, el feed deja de necesitar scroll, se resetea a 0, eso lo
+    // vuelve a expandir, y rebota sin parar. Si hay poco margen de scroll no
+    // vale la pena contraer, y entre contraer/expandir dejamos un margen
+    // (histéresis) para que el rebote natural del scroll en el celular no
+    // lo abra y cierre de golpe.
+    const maxScroll = el.scrollHeight - el.clientHeight
+    if (maxScroll < 80) { setComposerCollapsed(false); return }
+    setComposerCollapsed(prev => {
+      if (!prev && el.scrollTop > 60) return true
+      if (prev && el.scrollTop < 20) return false
+      return prev
+    })
   }
   const expandComposer = () => {
     setComposerCollapsed(false)
@@ -528,9 +851,17 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
     setSending(true)
     setPostError('')
     try {
+      let photoUrl: string | null = null
+      if (loggedArtist && templatePhoto) {
+        const fd = new FormData()
+        fd.append('file', templatePhoto)
+        fd.append('path', `community/${loggedArtist.id}-${Date.now()}.webp`)
+        const up = await fetch('/api/upload', { method: 'POST', body: fd }).catch(() => null)
+        if (up?.ok) { const ud = await up.json(); photoUrl = ud.url ?? null }
+      }
       let body: Record<string, unknown> = { content: text, lang }
       if (loggedArtist) {
-        body = { ...body, type: 'artist', artist_id: loggedArtist.id, artist_name: loggedArtist.name, artist_photo: loggedArtist.photo_url, artist_slug: loggedArtist.slug || loggedArtist.id, city: loggedArtist.city || artistLocation?.city || null, country: loggedArtist.country || artistLocation?.country || null, show_flashbook: withFlashbook || null, flashbook_alias: withFlashbook ? (loggedArtist.flashbook_alias || null) : null, show_availability: withAvailability || null }
+        body = { ...body, type: 'artist', artist_id: loggedArtist.id, artist_name: loggedArtist.name, artist_photo: loggedArtist.photo_url, artist_slug: loggedArtist.slug || loggedArtist.id, city: loggedArtist.city || artistLocation?.city || null, country: loggedArtist.country || artistLocation?.country || null, show_flashbook: withFlashbook || null, flashbook_alias: withFlashbook ? (loggedArtist.flashbook_alias || null) : null, show_availability: withAvailability || null, photo_url: photoUrl }
       } else if (loggedStudio) {
         body = { ...body, type: 'studio', studio_slug: loggedStudio.slug, access_token: loggedStudio.access_token, city: loggedStudio.city || studioLocation?.city || null, country: loggedStudio.country || studioLocation?.country || null }
       } else if (loggedSponsor) {
@@ -559,6 +890,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
         if (!isLoggedIn) { try { localStorage.setItem(CLIENT_KEY, String(Date.now())) } catch {} }
         setPosts(prev => [d.post, ...prev])
         setText('')
+        setTemplatePhoto(null)
         setWithFlashbook(false)
         setWithAvailability(false)
         setShowOfferPicker(false)
@@ -567,6 +899,9 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
         setShowClientForm(false)
       } else if (!r.ok) {
         setPostError(d.error || t('comunidad', 'post_error', 'No se pudo publicar, probá de nuevo'))
+        // La foto ya se había subido para tener la URL lista antes de crear el
+        // post — si el post no se llegó a crear, no dejamos el archivo huérfano
+        if (photoUrl) fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: photoUrl }) }).catch(() => {})
       }
     } finally { setSending(false) }
   }
@@ -649,6 +984,33 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
               </p>
             ) : !isLoggedIn ? (
               <ClientRequestChips value={text} onChange={setText} lang={lang} />
+            ) : loggedArtist ? (
+              <>
+                <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 12 }}>
+                  <button type="button" onClick={() => setArtistTemplateMode(true)}
+                    style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20, border: `1px solid ${artistTemplateMode ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: artistTemplateMode ? 'rgba(239,255,66,0.1)' : 'transparent', color: artistTemplateMode ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
+                    {t('comunidad', 'mode_template', 'Plantilla rápida')}
+                  </button>
+                  <button type="button" onClick={() => { setArtistTemplateMode(false); setTemplatePhoto(null) }}
+                    style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20, border: `1px solid ${!artistTemplateMode ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: !artistTemplateMode ? 'rgba(239,255,66,0.1)' : 'transparent', color: !artistTemplateMode ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
+                    {t('comunidad', 'mode_free', 'Texto libre')}
+                  </button>
+                </div>
+                {artistTemplateMode ? (
+                  <ArtistTemplateChips value={text} onChange={setText} lang={lang} photo={templatePhoto} onPhotoChange={setTemplatePhoto} onCategoryChange={setTemplateCategory} />
+                ) : (
+                  <textarea
+                    ref={textareaRef}
+                    value={text}
+                    onChange={e => setText(e.target.value)}
+                    placeholder={placeholder}
+                    maxLength={300}
+                    rows={2}
+                    style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, resize: 'none', lineHeight: 1.5, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', caretColor: '#efff42', maxHeight: 160, overflowY: 'auto' }}
+                    className="community-textarea"
+                  />
+                )}
+              </>
             ) : (
               <textarea
                 ref={textareaRef}
@@ -663,13 +1025,13 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
             )}
             {loggedArtist && (
               <div style={{ marginTop: 8, marginBottom: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {loggedArtist.flashbook_alias && (
+                {loggedArtist.flashbook_alias && !artistTemplateMode && (
                   <button type="button" onClick={() => setWithFlashbook(v => !v)}
                     style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, border: `1px solid ${withFlashbook ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: withFlashbook ? 'rgba(239,255,66,0.1)' : 'transparent', color: withFlashbook ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
                     {withFlashbook ? t('comunidad', 'flashbook_attached', 'Flashbook adjunto') : t('comunidad', 'attach_flashbook', '+ Adjuntar tu flashbook')}
                   </button>
                 )}
-                {loggedHasFutureSlots && (
+                {loggedHasFutureSlots && (!artistTemplateMode || templateCategory === 'availability') && (
                   <button type="button" onClick={() => setWithAvailability(v => !v)}
                     style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, border: `1px solid ${withAvailability ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: withAvailability ? 'rgba(239,255,66,0.1)' : 'transparent', color: withAvailability ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
                     {withAvailability ? t('comunidad','turnos_adjuntos','Turnos adjuntos') : t('comunidad','adjuntar_turnos','+ Adjuntar turnos libres')}
@@ -1329,6 +1691,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
   const [showOffer, setShowOffer] = useState(false)
   const [offerPos, setOfferPos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
   const offerBtnRef = useRef<HTMLButtonElement>(null)
+  const [photoOpen, setPhotoOpen] = useState(false)
 
   // Sin texto propio no hay nada concreto para que un tatuador se interese —
   // se muestra como notificación genérica, sin el sistema de "me interesa",
@@ -1419,6 +1782,29 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             {post.content}
           </p>
+
+          {post.photo_url && (
+            <div onClick={e => { e.stopPropagation(); setPhotoOpen(true) }}
+              style={{ marginTop: 8, display: 'inline-block', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', cursor: 'pointer' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={post.photo_url} alt="" style={{ maxWidth: 140, maxHeight: 140, objectFit: 'contain', display: 'block' }} />
+            </div>
+          )}
+
+          {photoOpen && post.photo_url && createPortal(
+            <div onClick={() => setPhotoOpen(false)}
+              style={{ position: 'fixed', inset: 0, zIndex: 240, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 16px' }}>
+              <style>{`@keyframes slideUpModalPost{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+              <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 420, borderRadius: 24, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.08)', background: '#0a0a0a', animation: 'slideUpModalPost 0.4s cubic-bezier(0.16,1,0.3,1)' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={post.photo_url} alt="" style={{ width: '100%', maxHeight: '72vh', display: 'block', objectFit: 'contain', background: '#0a0a0a' }} />
+                <button onClick={() => setPhotoOpen(false)}
+                  style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  ×
+                </button>
+              </div>
+            </div>, document.body
+          )}
 
           {(isAdmin || isNews) && post.link && (
             <a href={post.link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}

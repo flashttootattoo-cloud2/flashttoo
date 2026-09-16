@@ -7,6 +7,32 @@ type Label  = { id: string; letter: string; x: number; y: number; tattooed: bool
 type Design = { id: string; photo_url: string; medidas: string; position: number; labels: Label[] }
 type Session = { id: string; name: string; photo_url: string | null; slug: string; access_token: string; refresh_token?: string; flashbook_alias: string | null }
 
+// Las fotos de flashbook se subían tal cual salían de la cámara del celular
+// (varios MB cada una), sin el mismo achique a webp que ya usa el resto de la
+// app — con hasta 10 diseños por tatuador y sin vencimiento, eso pesaba mucho
+// más de lo necesario en el storage.
+function compressToWebp(file: File, maxDim = 1200, quality = 0.85): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image()
+    img.onload = () => {
+      let { width, height } = img
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round(height * maxDim / width); width = maxDim }
+        else { width = Math.round(width * maxDim / height); height = maxDim }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => {
+        if (blob) resolve(new File([blob], 'design.webp', { type: 'image/webp' }))
+        else reject(new Error('No se pudo procesar la imagen'))
+      }, 'image/webp', quality)
+    }
+    img.onerror = () => reject(new Error('No se pudo leer la imagen'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 async function tryRefreshSession(s: Session): Promise<Session | null> {
   if (!s.refresh_token) return null
   try {
@@ -201,8 +227,10 @@ export default function FlashbookEditPage() {
     if (!session || session === 'loading') return
     if (designs.length >= flashLimit) { showToast(`Límite de ${flashLimit} diseños alcanzado`); return }
     setUploading(true)
+    let toUpload = file
+    try { toUpload = await compressToWebp(file) } catch { /* si falla, se sube el original */ }
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', toUpload)
     fd.append('artist_id', session.id)
     fd.append('access_token', session.access_token)
     const r = await fetch('/api/flash/designs', { method: 'POST', body: fd })
