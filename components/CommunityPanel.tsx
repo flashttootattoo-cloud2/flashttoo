@@ -1322,7 +1322,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
       padding: '14px 16px',
       borderBottom: '1px solid rgba(255,255,255,0.05)',
       background: highlighted ? 'rgba(239,255,66,0.10)' : isAdmin ? 'rgba(239,255,66,0.04)' : 'transparent',
-      borderLeft: isAdmin || nearby === 'full' || highlighted ? '3px solid #efff42' : nearby === 'country' ? '1px solid rgba(239,255,66,0.4)' : '3px solid transparent',
+      borderLeft: isAdmin || nearby === 'full' || nearby === 'country' || highlighted ? '3px solid #efff42' : '3px solid transparent',
       transition: 'background 1.5s ease, border-left-color 1.5s ease',
     }}>
 
@@ -1373,7 +1373,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
           )}
           {!isSponsor && (!isSearch || post.search_description) && (post.city || post.country) && (
             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>
-              {(isAdmin || isNews) ? '🌍 ' : ''}{[post.city, post.country].filter(Boolean).join(', ')}
+              {isAdmin ? '🌍 ' : ''}{[post.city, post.country].filter(Boolean).join(', ')}
             </p>
           )}
 
