@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from '@/contexts/TranslationContext'
 
 type CommunityPost = {
@@ -129,8 +130,191 @@ function SearchTicker({ lang }: { lang: string }) {
   )
 }
 
+const REQUEST_PURPOSES = [
+  { key: 'next',    phraseKey: 'req_purpose_next',    fallback: 'Mi próximo tattoo',            phrase: 'para mi próximo tattoo' },
+  { key: 'coverup', phraseKey: 'req_purpose_coverup', fallback: 'Cover up',                      phrase: 'para un cover up' },
+  { key: 'full',    phraseKey: 'req_purpose_full',    fallback: 'Pieza completa',                phrase: 'para tatuarme una pieza completa' },
+  { key: 'patch',   phraseKey: 'req_purpose_patch',   fallback: 'Parche',                        phrase: 'para tatuarme un parche' },
+] as const
+
+const REQUEST_TIMINGS = [
+  { key: 'week',    phraseKey: 'req_timing_week',    fallback: 'Esta semana', phrase: 'para esta semana' },
+  { key: 'month',   phraseKey: 'req_timing_month',   fallback: 'Este mes',    phrase: 'para este mes' },
+  { key: 'nohurry', phraseKey: 'req_timing_nohurry', fallback: 'Sin apuro',   phrase: 'sin apuro' },
+] as const
+
+// Cierre del mensaje — le da personalidad distinta a cada publicación y de
+// paso invita al tatuador a responder (mismo lugar donde ya puede tocar
+// "me interesa esta pieza")
+const REQUEST_CLOSINGS = [
+  { key: 'contact', phraseKey: 'req_closing_contact', fallback: 'Directo',  phrase: 'Dejame tu perfil acá abajo que te contacto' },
+  { key: 'hype',     phraseKey: 'req_closing_hype',    fallback: 'Con onda', phrase: 'Que le metemos tinta' },
+  { key: 'open',     phraseKey: 'req_closing_open',    fallback: 'Abierto',  phrase: 'El que se anime, que avise' },
+  { key: 'simple',   phraseKey: 'req_closing_simple',  fallback: 'Simple',   phrase: 'Cualquier tatuador interesado, gracias' },
+] as const
+
+function requestDropdownPos(btn: HTMLButtonElement | null, width: number): { top?: number; bottom?: number; left: number } | null {
+  if (!btn) return null
+  const rect = btn.getBoundingClientRect()
+  const left = Math.min(rect.left, window.innerWidth - width - 12)
+  const spaceBelow = window.innerHeight - rect.bottom
+  return spaceBelow > 220 ? { top: rect.bottom + 4, left } : { bottom: window.innerHeight - rect.top + 4, left }
+}
+
+// Pedido de cliente armado a toques (sin texto libre) — "buscar" es pasivo
+// (filtra el buscador), esto es "pedir" (se dirige a la comunidad esperando
+// respuesta), por eso es un flujo aparte del asistente de búsqueda. Cada chip
+// abre su propio dropdown chico (como contacto / tamaño-estilo del buscador),
+// nada de un modal grande — se arma la frase ahí mismo, en el composer.
+function ClientRequestChips({ value, onChange, lang }: { value: string; onChange: (content: string) => void; lang: string }) {
+  const { t } = useTranslation()
+  const [purpose, setPurpose] = useState<typeof REQUEST_PURPOSES[number]['key'] | null>(null)
+  const [style, setStyle] = useState<string | null>(null)
+  const [timing, setTiming] = useState<typeof REQUEST_TIMINGS[number]['key'] | null>(null)
+  const [closing, setClosing] = useState<string | null>(null)
+  const [allStyles, setAllStyles] = useState<string[]>([])
+  const [customClosings, setCustomClosings] = useState<{ id: string; label_es: string; label_en: string; label_pt: string; phrase_es: string; phrase_en: string; phrase_pt: string }[]>([])
+
+  const [openWhich, setOpenWhich] = useState<'purpose' | 'style' | 'timing' | 'closing' | null>(null)
+  const [dropPos, setDropPos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
+  const purposeBtnRef = useRef<HTMLButtonElement>(null)
+  const styleBtnRef = useRef<HTMLButtonElement>(null)
+  const timingBtnRef = useRef<HTMLButtonElement>(null)
+  const closingBtnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    fetch('/api/styles').then(r => r.json()).then(d => { if (Array.isArray(d.styles)) setAllStyles(d.styles) }).catch(() => {})
+    fetch('/api/client-closings').then(r => r.json()).then(d => { if (Array.isArray(d.closings)) setCustomClosings(d.closings) }).catch(() => {})
+  }, [])
+
+  const openDropdown = (which: 'purpose' | 'style' | 'timing' | 'closing', btn: HTMLButtonElement | null, width: number) => {
+    if (openWhich === which) { setOpenWhich(null); return }
+    setDropPos(requestDropdownPos(btn, width))
+    setOpenWhich(which)
+  }
+
+  // Cierres fijos (con traducción ES/EN/PT) + los que el admin va agregando
+  // desde tintatxm (también con los 3 idiomas) — se combinan en un mismo dropdown
+  const resolveClosing = (key: string | null): { label: string; phrase: string } | null => {
+    if (!key) return null
+    const builtin = REQUEST_CLOSINGS.find(c => c.key === key)
+    if (builtin) return { label: t('comunidad', builtin.phraseKey + '_label', builtin.fallback), phrase: t('comunidad', builtin.phraseKey, builtin.phrase) }
+    const custom = customClosings.find(c => `custom-${c.id}` === key)
+    if (custom) {
+      const label = lang === 'en' ? custom.label_en : lang === 'pt' ? custom.label_pt : custom.label_es
+      const phrase = lang === 'en' ? custom.phrase_en : lang === 'pt' ? custom.phrase_pt : custom.phrase_es
+      return { label: label || custom.label_es, phrase: phrase || custom.phrase_es }
+    }
+    return null
+  }
+
+  useEffect(() => {
+    const purposeInfo = REQUEST_PURPOSES.find(p => p.key === purpose)
+    const timingInfo = REQUEST_TIMINGS.find(tm => tm.key === timing)
+    const closingInfo = resolveClosing(closing)
+    if (!purposeInfo) { onChange(''); return }
+    const parts = [t('comunidad', 'req_base', 'Busco tattoo artist'), t('comunidad', purposeInfo.phraseKey, purposeInfo.phrase)]
+    const extra: string[] = []
+    if (style) extra.push(`${t('comunidad', 'req_style_prefix', 'estilo')} ${style}`)
+    if (timingInfo) extra.push(t('comunidad', timingInfo.phraseKey, timingInfo.phrase))
+    let sentence = extra.length ? `${parts.join(' ')}, ${extra.join(', ')}` : parts.join(' ')
+    if (closingInfo) sentence += `. ${closingInfo.phrase}`
+    onChange(sentence)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purpose, style, timing, closing, customClosings, lang])
+
+  const chipStyle = (on: boolean): React.CSSProperties => ({
+    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
+    border: `1px solid ${on ? 'rgba(239,255,66,0.5)' : 'rgba(239,255,66,0.3)'}`,
+    background: on ? 'rgba(239,255,66,0.12)' : 'transparent', color: '#efff42',
+  })
+  const dropdownWrapStyle: React.CSSProperties = { position: 'fixed', zIndex: 230, background: 'rgba(14,14,14,0.94)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, boxShadow: '0 20px 50px rgba(0,0,0,0.8)', maxHeight: 250, overflowY: 'auto' }
+  const optionRow = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 13px', fontSize: 12.5, textAlign: 'left', background: on ? 'rgba(239,255,66,0.1)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)', color: on ? '#efff42' : 'rgba(255,255,255,0.6)', fontWeight: on ? 700 : 400, cursor: 'pointer' })
+
+  return (
+    <div>
+      <p style={{ fontSize: 14, color: value ? '#efff42' : 'rgba(255,255,255,0.25)', lineHeight: 1.5, minHeight: 21, marginBottom: 10, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+        {value || t('comunidad', 'req_preview_empty', 'Busco tattoo artist para...')}
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+        <button ref={purposeBtnRef} style={chipStyle(!!purpose)} onClick={() => openDropdown('purpose', purposeBtnRef.current, 220)}>
+          {purpose ? t('comunidad', REQUEST_PURPOSES.find(p => p.key === purpose)!.phraseKey + '_label', REQUEST_PURPOSES.find(p => p.key === purpose)!.fallback) : t('comunidad', 'req_purpose_label', '¿Para qué?')} {openWhich === 'purpose' ? '▲' : '▼'}
+        </button>
+        <button ref={styleBtnRef} style={chipStyle(!!style)} onClick={() => openDropdown('style', styleBtnRef.current, 250)}>
+          {style || t('comunidad', 'req_style_label', 'Estilo (opcional)')} {openWhich === 'style' ? '▲' : '▼'}
+        </button>
+        <button ref={timingBtnRef} style={chipStyle(!!timing)} onClick={() => openDropdown('timing', timingBtnRef.current, 180)}>
+          {timing ? t('comunidad', REQUEST_TIMINGS.find(tm => tm.key === timing)!.phraseKey + '_label', REQUEST_TIMINGS.find(tm => tm.key === timing)!.fallback) : t('comunidad', 'req_timing_label', '¿Cuándo? (opcional)')} {openWhich === 'timing' ? '▲' : '▼'}
+        </button>
+        <button ref={closingBtnRef} style={chipStyle(!!closing)} onClick={() => openDropdown('closing', closingBtnRef.current, 220)}>
+          {closing ? resolveClosing(closing)?.label : t('comunidad', 'req_closing_label', 'Cierre (opcional)')} {openWhich === 'closing' ? '▲' : '▼'}
+        </button>
+      </div>
+
+      {openWhich && dropPos && createPortal(
+        <>
+          <div onClick={e => { e.stopPropagation(); setOpenWhich(null) }} style={{ position: 'fixed', inset: 0, zIndex: 229 }} />
+          {openWhich === 'purpose' && (
+            <div style={{ ...dropdownWrapStyle, ...dropPos, width: 220 }}>
+              {REQUEST_PURPOSES.map(p => (
+                <button key={p.key} onClick={() => { setPurpose(prev => prev === p.key ? null : p.key); setOpenWhich(null) }} style={optionRow(purpose === p.key)}>
+                  <span>{t('comunidad', p.phraseKey + '_label', p.fallback)}</span>
+                  {purpose === p.key && <span style={{ color: '#efff42', fontSize: 11 }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+          {openWhich === 'style' && (
+            <div className="grid grid-cols-2" style={{ ...dropdownWrapStyle, ...dropPos, width: 250 }}>
+              {allStyles.map(s => (
+                <button key={s} onClick={() => { setStyle(prev => prev === s ? null : s); setOpenWhich(null) }}
+                  className="flex items-center justify-between px-3 py-2 transition-all text-left"
+                  style={{ fontSize: 12.5, background: style === s ? 'rgba(239,255,66,0.1)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)', borderRight: '1px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ color: style === s ? '#efff42' : 'rgba(255,255,255,0.55)', fontWeight: style === s ? 700 : 400 }}>{s}</span>
+                  {style === s && <span style={{ color: '#efff42', fontSize: 11 }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+          {openWhich === 'timing' && (
+            <div style={{ ...dropdownWrapStyle, ...dropPos, width: 180 }}>
+              {REQUEST_TIMINGS.map(tm => (
+                <button key={tm.key} onClick={() => { setTiming(prev => prev === tm.key ? null : tm.key); setOpenWhich(null) }} style={optionRow(timing === tm.key)}>
+                  <span>{t('comunidad', tm.phraseKey + '_label', tm.fallback)}</span>
+                  {timing === tm.key && <span style={{ color: '#efff42', fontSize: 11 }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+          {openWhich === 'closing' && (
+            <div style={{ ...dropdownWrapStyle, ...dropPos, width: 220 }}>
+              {REQUEST_CLOSINGS.map(c => (
+                <button key={c.key} onClick={() => { setClosing(prev => prev === c.key ? null : c.key); setOpenWhich(null) }} style={optionRow(closing === c.key)}>
+                  <span>{t('comunidad', c.phraseKey + '_label', c.fallback)}</span>
+                  {closing === c.key && <span style={{ color: '#efff42', fontSize: 11 }}>✓</span>}
+                </button>
+              ))}
+              {customClosings.map(c => {
+                const key = `custom-${c.id}`
+                const label = (lang === 'en' ? c.label_en : lang === 'pt' ? c.label_pt : c.label_es) || c.label_es
+                return (
+                  <button key={key} onClick={() => { setClosing(prev => prev === key ? null : key); setOpenWhich(null) }} style={optionRow(closing === key)}>
+                    <span>{label}</span>
+                    {closing === key && <span style={{ color: '#efff42', fontSize: 11 }}>✓</span>}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </>, document.body
+      )}
+    </div>
+  )
+}
+
 type Props = {
-  loggedArtist: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string; refresh_token?: string } | null
+  loggedArtist: { id: string; name: string; photo_url: string | null; slug: string; city?: string; country?: string; flashbook_alias?: string | null; access_token?: string; refresh_token?: string; status?: string } | null
   loggedStudio: { slug: string; name: string; logo_url: string | null; visible?: boolean; expires_at?: string | null; access_token?: string; refresh_token?: string; city?: string; country?: string } | null
   loggedSponsor?: { slug: string; name: string; logo_url: string | null; active: boolean; expires_at?: string | null; access_token: string; refresh_token?: string } | null
   onOpenArtist: (id: string) => void
@@ -292,6 +476,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   const isLoggedIn = !!(loggedArtist || loggedStudio || loggedSponsor)
   const sponsorBlocked = !!loggedSponsor && (!loggedSponsor.active || (!!loggedSponsor.expires_at && new Date(loggedSponsor.expires_at) < new Date()))
   const studioBlocked = !!loggedStudio && (loggedStudio.visible === false || (!!loggedStudio.expires_at && new Date(loggedStudio.expires_at) < new Date()))
+  const artistPending = !!loggedArtist && loggedArtist.status === 'pending'
 
   const CLIENT_KEY = 'community_last_post'
   const clientCanPost = () => {
@@ -324,7 +509,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
 
   const submit = async () => {
     if (!text.trim()) return
-    if (sponsorBlocked || studioBlocked) return
+    if (sponsorBlocked || studioBlocked || artistPending) return
     setSending(true)
     setPostError('')
     try {
@@ -426,6 +611,12 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
               <p style={{ fontSize: 13, color: 'rgba(255,100,100,0.7)', lineHeight: 1.5, margin: 0 }}>
                 {t('comunidad', 'sponsor_blocked', 'Tu perfil está bloqueado — no podés publicar hasta que se reactive la suscripción.')}
               </p>
+            ) : artistPending ? (
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5, margin: 0 }}>
+                {t('comunidad', 'artist_pending', 'Tu perfil todavía está en revisión — vas a poder publicar en comunidad cuando se apruebe.')}
+              </p>
+            ) : !isLoggedIn ? (
+              <ClientRequestChips value={text} onChange={setText} lang={lang} />
             ) : (
               <textarea
                 ref={textareaRef}
@@ -502,8 +693,8 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
               </span>
               <button
                 onClick={() => isLoggedIn ? submit() : (text.trim() ? setShowClientForm(true) : null)}
-                disabled={sending || !text.trim() || sponsorBlocked || studioBlocked}
-                style={{ fontSize: 12, fontWeight: 700, padding: '5px 14px', background: text.trim() && !sponsorBlocked && !studioBlocked ? '#efff42' : 'rgba(255,255,255,0.08)', color: text.trim() && !sponsorBlocked && !studioBlocked ? '#000' : 'rgba(255,255,255,0.3)', border: 'none', borderRadius: 20, cursor: text.trim() && !sponsorBlocked && !studioBlocked ? 'pointer' : 'default', transition: 'all 0.15s' }}>
+                disabled={sending || !text.trim() || sponsorBlocked || studioBlocked || artistPending}
+                style={{ fontSize: 12, fontWeight: 700, padding: '5px 14px', background: text.trim() && !sponsorBlocked && !studioBlocked && !artistPending ? '#efff42' : 'rgba(255,255,255,0.08)', color: text.trim() && !sponsorBlocked && !studioBlocked && !artistPending ? '#000' : 'rgba(255,255,255,0.3)', border: 'none', borderRadius: 20, cursor: text.trim() && !sponsorBlocked && !studioBlocked && !artistPending ? 'pointer' : 'default', transition: 'all 0.15s' }}>
                 {sending ? '...' : t('comunidad', 'publish', 'Publicar')}
               </button>
             </div>

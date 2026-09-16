@@ -272,6 +272,38 @@ export default function AgregarPage() {
             body: JSON.stringify({ token: inviteToken, artist_id: inserted.id }),
           }).catch(() => {})
         }
+
+        // Autologin: en vez de dejarlo como visitante anónimo en la home después
+        // de todo el registro, queda con sesión abierta (perfil en revisión) —
+        // ya llegó autenticado desde el link del mail, no hace falta pedirle
+        // contraseña de nuevo.
+        try {
+          const linkRes = await fetch('/api/artists/auto-login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: submitAuthEmail }),
+          })
+          if (linkRes.ok) {
+            const { hashed_token } = await linkRes.json()
+            const { data: verifyData } = await supabase.auth.verifyOtp({ token_hash: hashed_token, type: 'magiclink' })
+            if (verifyData?.session && inserted?.id) {
+              const session = {
+                id: inserted.id,
+                name: form.name.trim(),
+                photo_url: photoPublicUrl,
+                slug: inserted.id,
+                city: form.city.trim() || null,
+                country: form.country.trim() || null,
+                access_token: verifyData.session.access_token,
+                refresh_token: verifyData.session.refresh_token,
+                flashbook_alias: null,
+                status: 'pending',
+              }
+              try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(session)) } catch {}
+              window.location.href = '/'
+              return
+            }
+          }
+        } catch { /* si falla el autologin, sigue con la pantalla estática de siempre */ }
       }
 
       setDone((moderation || !!submitUserId) ? 'pending' : 'active')

@@ -36,6 +36,16 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .range(offset, offset + PAGE - 1)
 
+  // Limpieza de vencidos sin depender de un cron externo: expires_at solo se
+  // usaba como filtro de qué se muestra, nunca borraba nada de verdad y las
+  // filas se acumulaban en la base para siempre. Se dispara con poca
+  // probabilidad (no en cada request) aprovechando que este endpoint ya se
+  // llama todo el tiempo — se espera (await) porque en serverless el código
+  // después de responder no tiene garantía de terminar de ejecutarse.
+  if (Math.random() < 0.02) {
+    await sb().from('community_posts').delete().lt('expires_at', now)
+  }
+
   if (error) return NextResponse.json({ posts: [], hasMore: false })
   return NextResponse.json({ posts: data ?? [], hasMore: (data?.length ?? 0) === PAGE })
 }

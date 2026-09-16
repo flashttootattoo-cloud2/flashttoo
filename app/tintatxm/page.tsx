@@ -5669,6 +5669,7 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [adminPosts, setAdminPosts] = useState<AdminPost[]>([])
   const [reportedPosts, setReportedPosts] = useState<AdminPost[]>([])
   const [searchPosts, setSearchPosts] = useState<AdminPost[]>([])
+  const [clientPosts, setClientPosts] = useState<AdminPost[]>([])
   const [loadingPosts, setLoadingPosts] = useState(true)
   const [searchLimitDraft, setSearchLimitDraft] = useState('')
   const [savingSearchLimit, setSavingSearchLimit] = useState(false)
@@ -5676,6 +5677,14 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [savingSearchExpiry, setSavingSearchExpiry] = useState(false)
   const [tickerMode, setTickerMode] = useState(false)
   const [savingTickerMode, setSavingTickerMode] = useState(false)
+  const [closings, setClosings] = useState<{ id: string; label_es: string; label_en: string; label_pt: string; phrase_es: string; phrase_en: string; phrase_pt: string }[]>([])
+  const [newClosingLabelEs, setNewClosingLabelEs] = useState('')
+  const [newClosingLabelEn, setNewClosingLabelEn] = useState('')
+  const [newClosingLabelPt, setNewClosingLabelPt] = useState('')
+  const [newClosingEs, setNewClosingEs] = useState('')
+  const [newClosingEn, setNewClosingEn] = useState('')
+  const [newClosingPt, setNewClosingPt] = useState('')
+  const [savingClosings, setSavingClosings] = useState(false)
 
   const loadPosts = async () => {
     setLoadingPosts(true)
@@ -5685,6 +5694,7 @@ function AdminCommunity({ pass }: { pass: string }) {
       setAdminPosts(d.adminPosts ?? [])
       setReportedPosts(d.reportedPosts ?? [])
       setSearchPosts(d.searchPosts ?? [])
+      setClientPosts(d.clientPosts ?? [])
     }
     setLoadingPosts(false)
   }
@@ -5697,9 +5707,44 @@ function AdminCommunity({ pass }: { pass: string }) {
         setSearchLimitDraft(String(d?.settings?.search_wizard_daily_limit ?? '15'))
         setSearchExpiryDraft(String(d?.settings?.search_wizard_expiry_days ?? '7'))
         setTickerMode(d?.settings?.search_ticker_mode === true)
+        setClosings(Array.isArray(d?.settings?.client_request_closings) ? d.settings.client_request_closings : [])
       })
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveClosings = async (next: { id: string; label_es: string; label_en: string; label_pt: string; phrase_es: string; phrase_en: string; phrase_pt: string }[]) => {
+    setSavingClosings(true)
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
+        body: JSON.stringify({ key: 'client_request_closings', value: next }),
+      })
+      setClosings(next)
+    } finally { setSavingClosings(false) }
+  }
+
+  const addClosing = () => {
+    if (!newClosingLabelEs.trim() || !newClosingEs.trim()) return
+    // En/pt quedan vacíos de verdad si no se completan — el fallback a español
+    // se resuelve al mostrarlo (según el idioma del que está escribiendo), no
+    // se copia acá, así "opcional" es opcional también en lo que queda guardado.
+    const next = [...closings, {
+      id: crypto.randomUUID(),
+      label_es: newClosingLabelEs.trim(),
+      label_en: newClosingLabelEn.trim(),
+      label_pt: newClosingLabelPt.trim(),
+      phrase_es: newClosingEs.trim(),
+      phrase_en: newClosingEn.trim(),
+      phrase_pt: newClosingPt.trim(),
+    }]
+    saveClosings(next)
+    setNewClosingLabelEs(''); setNewClosingLabelEn(''); setNewClosingLabelPt('')
+    setNewClosingEs(''); setNewClosingEn(''); setNewClosingPt('')
+  }
+
+  const deleteClosing = (id: string) => {
+    saveClosings(closings.filter(c => c.id !== id))
+  }
 
   const toggleTickerMode = async () => {
     const next = !tickerMode
@@ -5742,6 +5787,7 @@ function AdminCommunity({ pass }: { pass: string }) {
     setAdminPosts(prev => prev.filter(p => p.id !== id))
     setReportedPosts(prev => prev.filter(p => p.id !== id))
     setSearchPosts(prev => prev.filter(p => p.id !== id))
+    setClientPosts(prev => prev.filter(p => p.id !== id))
   }
 
   const send = async () => {
@@ -5928,6 +5974,85 @@ function AdminCommunity({ pass }: { pass: string }) {
                       {p.contact && (
                         <span style={{ fontSize: 10, color: '#38bdf8' }}>· {p.contact_type}: {p.contact}</span>
                       )}
+                    </div>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
+                  </div>
+                  <button onClick={() => deletePost(p.id)}
+                    style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
+                    Borrar
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+      </div>
+
+      {/* Cierres del pedido de cliente ("Busco tattoo artist...") — se suman a los 4 fijos del código */}
+      <div className="flex flex-col gap-3">
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(96,165,250,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Cierres del pedido de cliente</p>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, margin: 0 }}>
+          Opciones extra para el chip "Cierre" del pedido de cliente en comunidad (además de las 4 fijas). Español es obligatorio; si inglés o portugués quedan vacíos, se muestra el texto en español en su lugar (no se copia, queda vacío de verdad).
+        </p>
+        <div className="flex flex-col gap-2">
+          {closings.map(c => (
+            <div key={c.id} className="rounded-xl p-3 flex items-start gap-3"
+              style={{ background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.15)' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#60a5fa' }}>{c.label_es}{(c.label_en || c.label_pt) && <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}> ({[c.label_en, c.label_pt].filter(Boolean).join(' / ')})</span>}</p>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}><span style={{ color: 'rgba(255,255,255,0.3)' }}>es · </span>{c.phrase_es}</p>
+                <p style={{ fontSize: 12, color: c.phrase_en ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)' }}><span style={{ color: 'rgba(255,255,255,0.3)' }}>en · </span>{c.phrase_en || '(usa español)'}</p>
+                <p style={{ fontSize: 12, color: c.phrase_pt ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)' }}><span style={{ color: 'rgba(255,255,255,0.3)' }}>pt · </span>{c.phrase_pt || '(usa español)'}</p>
+              </div>
+              <button onClick={() => deleteClosing(c.id)} disabled={savingClosings}
+                style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', flexShrink: 0 }}>
+                Borrar
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col gap-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: 10 }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input value={newClosingLabelEs} onChange={e => setNewClosingLabelEs(e.target.value)} placeholder="Nombre del chip - ES (ej: Con humor)"
+              style={{ flex: '1 1 160px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
+            <input value={newClosingLabelEn} onChange={e => setNewClosingLabelEn(e.target.value)} placeholder="Nombre - EN (opcional)"
+              style={{ flex: '1 1 140px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
+            <input value={newClosingLabelPt} onChange={e => setNewClosingLabelPt(e.target.value)} placeholder="Nombre - PT (opcional)"
+              style={{ flex: '1 1 140px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
+          </div>
+          <input value={newClosingEs} onChange={e => setNewClosingEs(e.target.value)} placeholder="Frase en español"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
+          <input value={newClosingEn} onChange={e => setNewClosingEn(e.target.value)} placeholder="Frase en inglés (opcional)"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
+          <input value={newClosingPt} onChange={e => setNewClosingPt(e.target.value)} placeholder="Frase en portugués (opcional)"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
+          <button onClick={addClosing} disabled={savingClosings || !newClosingLabelEs.trim() || !newClosingEs.trim()}
+            className="text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
+            style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }}>
+            {savingClosings ? '...' : '+ Agregar'}
+          </button>
+        </div>
+      </div>
+
+      {/* Clientes (no logueados) — para poder borrar pruebas sin tener que reportarlas primero */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(96,165,250,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Clientes ({clientPosts.length})</p>
+          <button onClick={loadPosts} style={{ fontSize: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0 }}>↻ actualizar</button>
+        </div>
+        {loadingPosts ? null : clientPosts.length === 0
+          ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin mensajes todavía.</p>
+          : (
+            <div className="flex flex-col gap-3" style={{ maxHeight: 480, overflowY: 'auto', paddingRight: 4 }}>
+              {clientPosts.map(p => (
+                <div key={p.id} className="rounded-xl p-4 flex gap-3"
+                  style={{ background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.15)' }}>
+                  <div style={{ flex: 1 }}>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{p.client_name ?? '—'}</span>
+                      {(p.city || p.country) && (
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{[p.city, p.country].filter(Boolean).join(', ')}</span>
+                      )}
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
                     </div>
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
                   </div>

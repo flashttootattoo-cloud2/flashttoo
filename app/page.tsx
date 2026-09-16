@@ -245,7 +245,7 @@ export default function Home() {
   const [studioAuth, setStudioAuth] = useState<{ slug: string; auth_email: string | null; access_token: string } | null>(null)
   const [showContactInfo, setShowContactInfo] = useState(true)
   const [showClickCounters, setShowClickCounters] = useState(false)
-  const [loggedArtist, setLoggedArtist] = useState<{ id: string; name: string; photo_url: string | null; slug: string; city: string | null; country: string | null; access_token: string; refresh_token?: string; flashbook_alias: string | null } | null>(null)
+  const [loggedArtist, setLoggedArtist] = useState<{ id: string; name: string; photo_url: string | null; slug: string; city: string | null; country: string | null; access_token: string; refresh_token?: string; flashbook_alias: string | null; status?: string } | null>(null)
   const [artistMenuOpen, setArtistMenuOpen] = useState(false)
   const [showSearchWizard, setShowSearchWizard] = useState(false)
   const [searchWizardSeen, setSearchWizardSeen] = useState(() => {
@@ -390,12 +390,13 @@ export default function Home() {
       if (saved) {
         const session = JSON.parse(saved)
         setLoggedArtist(session)
-        // Refresh fields from DB
-        void supabase.from('artists').select('flashbook_alias, city, country').eq('id', session.id).single()
+        // Refresh fields from DB (incluye status — así si el admin ya lo aprobó,
+        // se destraba la sesión abierta sin que tenga que volver a loguearse)
+        void supabase.from('artists').select('flashbook_alias, city, country, status').eq('id', session.id).single()
           .then(({ data }) => {
             if (!data) return
-            if (data.flashbook_alias !== session.flashbook_alias || data.city !== session.city || data.country !== session.country) {
-              const updated = { ...session, flashbook_alias: data.flashbook_alias ?? null, city: data.city ?? null, country: data.country ?? null }
+            if (data.flashbook_alias !== session.flashbook_alias || data.city !== session.city || data.country !== session.country || data.status !== session.status) {
+              const updated = { ...session, flashbook_alias: data.flashbook_alias ?? null, city: data.city ?? null, country: data.country ?? null, status: data.status ?? undefined }
               setLoggedArtist(updated)
               try { localStorage.setItem('flashttoo_artist_session', JSON.stringify(updated)) } catch {}
             }
@@ -1427,7 +1428,26 @@ export default function Home() {
                   )}
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loggedArtist.name.split(' ')[0]}</span>
                 </button>
-                {artistMenuOpen && (
+                {artistMenuOpen && loggedArtist.status === 'pending' ? (
+                  <div className="absolute right-0 mt-2 rounded-xl z-50"
+                    style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.9)', minWidth: 200, overflow: 'hidden' }}>
+                    <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#efff42' }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>{loggedArtist.name}</p>
+                    </div>
+                    <div style={{ padding: '12px 16px', color: 'rgba(255,255,255,0.5)', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      {t('artist_menu', 'profile_pending', 'Perfil en revisión')}
+                    </div>
+                    <button
+                      onClick={() => {
+                        try { localStorage.removeItem('flashttoo_artist_session') } catch {}
+                        setLoggedArtist(null)
+                        setArtistMenuOpen(false)
+                      }}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', background: 'transparent', border: 'none', color: 'rgba(255,100,100,0.7)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                      {t('artist_menu', 'logout', 'Cerrar sesión')}
+                    </button>
+                  </div>
+                ) : artistMenuOpen && (
                   <div className="absolute right-0 mt-2 rounded-xl z-50"
                     style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.9)', minWidth: 200, overflow: 'hidden' }}>
                     {/* Name header */}
@@ -3848,7 +3868,7 @@ export default function Home() {
                 onClose={() => setCommunityOpen(false)}
                 lang={language}
                 highlightPostId={highlightPostId}
-                loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: loggedArtist.city ?? undefined, country: loggedArtist.country ?? undefined, flashbook_alias: loggedArtist.flashbook_alias, access_token: loggedArtist.access_token, refresh_token: loggedArtist.refresh_token } : null}
+                loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: loggedArtist.city ?? undefined, country: loggedArtist.country ?? undefined, flashbook_alias: loggedArtist.flashbook_alias, access_token: loggedArtist.access_token, refresh_token: loggedArtist.refresh_token, status: loggedArtist.status } : null}
                 loggedStudio={loggedStudio ? { slug: loggedStudio.slug, name: loggedStudio.name, logo_url: loggedStudio.logo_url, visible: loggedStudio.visible, expires_at: loggedStudio.expires_at ?? null, access_token: loggedStudio.access_token, refresh_token: loggedStudio.refresh_token, city: loggedStudio.city ?? undefined, country: loggedStudio.country ?? undefined } : null}
                 loggedSponsor={loggedSponsor}
                 onArtistTokenRefreshed={tokens => {
