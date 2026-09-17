@@ -137,6 +137,11 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
   fetch(`/api/track/click/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) }).catch(() => {})
 }
 
+// Apagado momentáneamente mientras se resuelve por qué algunos Android no
+// terminan de recibir la notificación aunque el envío del servidor sea
+// exitoso — poner en true de nuevo cuando esté solucionado.
+const PUSH_NOTIFICATIONS_VISIBLE = false
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
@@ -1619,8 +1624,10 @@ export default function Home() {
                       <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
                     </>
                   )}
-                  {/* Notificaciones */}
-                  {typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && (
+                  {/* Notificaciones — oculto momentáneamente en producción mientras
+                      se termina de resolver por qué no le llega a algunos Android
+                      (cambiar PUSH_NOTIFICATIONS_VISIBLE a true para reactivarlo) */}
+                  {PUSH_NOTIFICATIONS_VISIBLE && typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && (
                     <button
                       onClick={togglePush}
                       disabled={pushLoading}
