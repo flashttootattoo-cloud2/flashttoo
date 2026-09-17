@@ -3,42 +3,51 @@ self.addEventListener('install', () => { self.skipWaiting() })
 self.addEventListener('activate', event => { event.waitUntil(self.clients.claim()) })
 
 function debugLog(info) {
-  try {
-    fetch('/api/push/debug', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(info),
-    }).catch(() => {})
-  } catch {}
+  return fetch('/api/push/debug', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(info),
+  }).catch(() => {})
 }
 
+// Todo el trabajo (logs incluidos) tiene que quedar dentro de un solo
+// waitUntil — si el log queda afuera, el navegador puede matar el service
+// worker antes de que el fetch del log llegue a salir (pasa mucho más
+// seguido en celular, que corta procesos en segundo plano más agresivo
+// que una PC para ahorrar batería).
 self.addEventListener('push', event => {
-  debugLog({ step: 'push-received', hasData: !!event.data })
+  event.waitUntil((async () => {
+    await debugLog({ step: 'push-received', hasData: !!event.data })
 
-  if (!event.data) { debugLog({ step: 'no-data-bail' }); return }
+    if (!event.data) { await debugLog({ step: 'no-data-bail' }); return }
 
-  let payload
-  try {
-    payload = event.data.json()
-    debugLog({ step: 'parsed-json', payload })
-  } catch (e) {
-    debugLog({ step: 'json-parse-failed', error: String(e), text: (() => { try { return event.data.text() } catch { return null } })() })
-    payload = { title: 'Flashttoo', body: 'Novedades' }
-  }
+    let payload
+    try {
+      payload = event.data.json()
+      await debugLog({ step: 'parsed-json', payload })
+    } catch (e) {
+      let text = null
+      try { text = event.data.text() } catch {}
+      await debugLog({ step: 'json-parse-failed', error: String(e), text })
+      payload = { title: 'Flashttoo', body: 'Novedades' }
+    }
 
-  const title = payload.title || 'Flashttoo'
-  const options = {
-    body: payload.body || '',
-    icon: payload.icon || '/icon-desktop-512.png',
-    badge: '/icon-desktop-512.png',
-    data: { url: payload.url || '/' },
-  }
+    const title = payload.title || 'Flashttoo'
+    const options = {
+      body: payload.body || '',
+      icon: payload.icon || '/icon-desktop-512.png',
+      badge: '/icon-desktop-512.png',
+      vibrate: [200, 100, 200],
+      data: { url: payload.url || '/' },
+    }
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-      .then(() => debugLog({ step: 'shown-ok' }))
-      .catch(err => debugLog({ step: 'shownotification-failed', error: String(err) }))
-  )
+    try {
+      await self.registration.showNotification(title, options)
+      await debugLog({ step: 'shown-ok' })
+    } catch (err) {
+      await debugLog({ step: 'shownotification-failed', error: String(err) })
+    }
+  })())
 })
 
 self.addEventListener('notificationclick', event => {
