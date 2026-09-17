@@ -123,9 +123,14 @@ export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn,
         {/* MENU */}
         {view === 'menu' && (
           <div className="flex flex-col gap-3">
-            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6, marginBottom: 4 }}>
-              {t('ingresar', 'invite_only_note', 'El registro es solo por invitación de otro tatuador o de Flashttoo.')}
+            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginBottom: 4 }}>
+              {t('ingresar', 'menu_note', 'Armá tu perfil de búsqueda acá')}
             </p>
+            <button onClick={() => { reset(); setView('register') }}
+              className="w-full py-3 rounded-xl text-sm font-bold"
+              style={{ background: '#efff42', color: '#000' }}>
+              {t('ingresar', 'register_btn', 'Registro de tatuadores')}
+            </button>
             <button onClick={() => { reset(); setView('login') }}
               className="w-full py-3 rounded-xl text-sm font-bold"
               style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
