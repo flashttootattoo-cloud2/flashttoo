@@ -181,18 +181,23 @@ export default function Home() {
         const permission = await Notification.requestPermission()
         if (permission !== 'granted') return
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-        if (!vapidKey) return
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
-        })
-        let storedCountry = ''
-        try { storedCountry = sessionStorage.getItem('s_country') || '' } catch {}
-        await fetch('/api/push/subscribe', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subscription: sub, country: storedCountry, lang: language }),
-        }).catch(() => {})
-        setPushEnabled(true)
+        if (!vapidKey) { alert('Falta la clave VAPID pública (NEXT_PUBLIC_VAPID_PUBLIC_KEY)'); return }
+        try {
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
+          })
+          let storedCountry = ''
+          try { storedCountry = sessionStorage.getItem('s_country') || '' } catch {}
+          const r = await fetch('/api/push/subscribe', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription: sub, country: storedCountry, lang: language }),
+          })
+          if (!r.ok) { alert('Se pudo suscribir el navegador pero falló al guardar en el servidor (status ' + r.status + ')'); return }
+          setPushEnabled(true)
+        } catch (err) {
+          alert('No se pudo activar: ' + (err instanceof Error ? err.message : String(err)))
+        }
       }
     } finally { setPushLoading(false) }
   }
