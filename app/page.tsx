@@ -137,12 +137,65 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
   fetch(`/api/track/click/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) }).catch(() => {})
 }
 
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i)
+  return outputArray
+}
+
 export default function Home() {
   const { t, language, setLanguage, languages } = useTranslation()
   const [langOpen, setLangOpen] = useState(false)
   const langRef = useRef<HTMLDivElement>(null)
   const [menuLangOpen, setMenuLangOpen] = useState(false)
   const [showReport, setShowReport] = useState(false)
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [pushLoading, setPushLoading] = useState(false)
+
+  // Registra el service worker apenas carga (hace falta antes de poder
+  // suscribirse a push) y revisa si ya había una suscripción activa
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => reg.pushManager.getSubscription())
+      .then(sub => setPushEnabled(!!sub))
+      .catch(() => {})
+  }, [])
+
+  const togglePush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    setPushLoading(true)
+    try {
+      const reg = await navigator.serviceWorker.ready
+      if (pushEnabled) {
+        const sub = await reg.pushManager.getSubscription()
+        if (sub) {
+          await fetch('/api/push/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) }).catch(() => {})
+          await sub.unsubscribe()
+        }
+        setPushEnabled(false)
+      } else {
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') return
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+        if (!vapidKey) return
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
+        })
+        let storedCountry = ''
+        try { storedCountry = sessionStorage.getItem('s_country') || '' } catch {}
+        await fetch('/api/push/subscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: sub, country: storedCountry, lang: language }),
+        }).catch(() => {})
+        setPushEnabled(true)
+      }
+    } finally { setPushLoading(false) }
+  }
   const [artists, setArtists]     = useState<Artist[]>([])
   const [ads, setAds]             = useState<Ad[]>([])
   const [allStyles, setAllStyles] = useState<string[]>(DEFAULT_STYLES)
@@ -1560,6 +1613,21 @@ export default function Home() {
                       )}
                       <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
                     </>
+                  )}
+                  {/* Notificaciones */}
+                  {typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && (
+                    <button
+                      onClick={togglePush}
+                      disabled={pushLoading}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm text-left hover:opacity-80 disabled:opacity-50"
+                      style={{ color: 'rgba(255,255,255,0.8)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <span>{t('inicio', 'menu_notifications', 'Notificaciones')}</span>
+                      <span className="relative rounded-full transition-colors"
+                        style={{ width: 32, height: 18, background: pushEnabled ? '#efff42' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
+                        <span className="absolute rounded-full bg-white transition-transform"
+                          style={{ width: 14, height: 14, top: 2, left: pushEnabled ? 16 : 2 }} />
+                      </span>
+                    </button>
                   )}
                   {/* Reportar */}
                   <button

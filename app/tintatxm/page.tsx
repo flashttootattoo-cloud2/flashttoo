@@ -5665,6 +5665,7 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [link, setLink] = useState('')
   const [country, setCountry] = useState('')
   const [customExpiry, setCustomExpiry] = useState('')
+  const [notify, setNotify] = useState(false)
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<'ok' | 'error' | null>(null)
   const [adminPosts, setAdminPosts] = useState<AdminPost[]>([])
@@ -5832,10 +5833,11 @@ function AdminCommunity({ pass }: { pass: string }) {
         link: link.trim() || undefined,
         country: country.trim() || undefined,
         expires_at: customExpiry ? new Date(customExpiry).toISOString() : undefined,
+        notify,
       }),
     }).catch(() => null)
     setSending(false)
-    if (r?.ok) { setText(''); setLink(''); setCountry(''); setCustomExpiry(''); setResult('ok'); loadPosts() }
+    if (r?.ok) { setText(''); setLink(''); setCountry(''); setCustomExpiry(''); setNotify(false); setResult('ok'); loadPosts() }
     else setResult('error')
   }
 
@@ -5904,6 +5906,12 @@ function AdminCommunity({ pass }: { pass: string }) {
           </div>
           {!customExpiry && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>(default: 7 días)</span>}
         </div>
+        <label className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
+          <input type="checkbox" checked={notify} onChange={e => setNotify(e.target.checked)} />
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+            Enviar también como notificación push {country.trim() ? `(solo ${country.trim()})` : '(a todos)'}
+          </span>
+        </label>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex gap-2 flex-wrap">
             {LANGS.map(l => (

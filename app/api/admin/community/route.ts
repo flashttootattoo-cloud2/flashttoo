@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { deleteFile } from '@/lib/storage'
+import { sendToSegment } from '@/lib/push'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -75,5 +76,15 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Notificación inmediata (opcional) — no espera al resumen diario, se manda
+  // al toque como parte de esta misma publicación
+  if (body.notify === true) {
+    sendToSegment(
+      { country, lang },
+      { title: 'Flashttoo', body: String(body.content).trim().slice(0, 140), url: '/?comunidad=1' },
+    ).catch(err => console.error('[push] fallo sendToSegment desde admin', err))
+  }
+
   return NextResponse.json({ post: data })
 }
