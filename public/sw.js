@@ -2,10 +2,29 @@
 self.addEventListener('install', () => { self.skipWaiting() })
 self.addEventListener('activate', event => { event.waitUntil(self.clients.claim()) })
 
+function debugLog(info) {
+  try {
+    fetch('/api/push/debug', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(info),
+    }).catch(() => {})
+  } catch {}
+}
+
 self.addEventListener('push', event => {
-  if (!event.data) return
+  debugLog({ step: 'push-received', hasData: !!event.data })
+
+  if (!event.data) { debugLog({ step: 'no-data-bail' }); return }
+
   let payload
-  try { payload = event.data.json() } catch { payload = { title: 'Flashttoo', body: event.data.text() } }
+  try {
+    payload = event.data.json()
+    debugLog({ step: 'parsed-json', payload })
+  } catch (e) {
+    debugLog({ step: 'json-parse-failed', error: String(e), text: (() => { try { return event.data.text() } catch { return null } })() })
+    payload = { title: 'Flashttoo', body: 'Novedades' }
+  }
 
   const title = payload.title || 'Flashttoo'
   const options = {
@@ -14,7 +33,12 @@ self.addEventListener('push', event => {
     badge: '/icon-desktop-512.png',
     data: { url: payload.url || '/' },
   }
-  event.waitUntil(self.registration.showNotification(title, options))
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+      .then(() => debugLog({ step: 'shown-ok' }))
+      .catch(err => debugLog({ step: 'shownotification-failed', error: String(err) }))
+  )
 })
 
 self.addEventListener('notificationclick', event => {
