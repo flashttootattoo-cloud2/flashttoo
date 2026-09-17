@@ -1214,7 +1214,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                     const active = activeStyleFilter === s
                     return (
                       <button key={i} onClick={() => setActiveStyleFilter(active ? null : s)}
-                        style={{ background: active ? '#efff42' : 'rgba(30,30,30,0.95)', border: `1px solid ${active ? '#efff42' : 'rgba(239,255,66,0.5)'}`, borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: active ? '#000' : '#efff42', letterSpacing: '0.04em', cursor: 'pointer' }}>
+                        style={{ background: active ? '#efff42' : 'rgba(0,0,0,0.6)', border: `1px solid ${active ? '#efff42' : 'rgba(239,255,66,0.3)'}`, borderRadius: 5, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: active ? '#000' : '#efff42', letterSpacing: '0.04em', cursor: 'pointer' }}>
                         {s}
                       </button>
                     )

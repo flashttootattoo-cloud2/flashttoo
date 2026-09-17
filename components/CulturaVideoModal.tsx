@@ -125,12 +125,12 @@ export default function CulturaVideoModal() {
         @keyframes cvHintIn { from { opacity:0; transform:translateX(-50%) translateY(6px) } to { opacity:1; transform:translateX(-50%) translateY(0) } }
       `}</style>
 
+      <div style={{ position: 'relative', width: '100%', maxWidth: 340 }}>
       <div
         onClick={e => e.stopPropagation()}
         style={{
           position: 'relative',
           width: '100%',
-          maxWidth: 340,
           borderRadius: 20,
           overflow: 'hidden',
           background: '#0a0a0a',
@@ -205,6 +205,15 @@ export default function CulturaVideoModal() {
             cursor: 'pointer',
           }}
         >✕</button>
+      </div>
+
+      {/* Entrar — afuera de la tarjeta pero alineada a su borde derecho,
+          mismo estilo de chip que las tags pero en verde (color de clicks
+          de WhatsApp) */}
+      <button onClick={e => { e.stopPropagation(); dismiss() }}
+        style={{ position: 'absolute', top: '100%', right: 10, marginTop: 10, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 5, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(74,222,128,0.4)', color: '#4ade80', cursor: 'pointer' }}>
+        {t('cultura', 'video_enter_btn', 'Entrar')}
+      </button>
       </div>
 
       {showExitHint && (

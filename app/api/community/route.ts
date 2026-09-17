@@ -117,6 +117,18 @@ export async function POST(req: NextRequest) {
 
   if (type === 'artist') {
     if (!body.artist_id) return NextResponse.json({ error: 'artist_id requerido' }, { status: 400 })
+
+    const { data: limitSetting } = await sb().from('settings').select('value').eq('key', 'artist_daily_post_limit').single()
+    const dailyLimit = parseInt(String(limitSetting?.value ?? '0'), 10)
+    if (Number.isFinite(dailyLimit) && dailyLimit > 0) {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { count } = await sb().from('community_posts').select('id', { count: 'exact', head: true })
+        .eq('type', 'artist').eq('artist_id', body.artist_id).gte('created_at', since)
+      if ((count ?? 0) >= dailyLimit) {
+        return NextResponse.json({ error: `Alcanzaste el límite de ${dailyLimit} mensajes por día` }, { status: 429 })
+      }
+    }
+
     insert.artist_id      = body.artist_id
     insert.artist_name    = body.artist_name || null
     insert.artist_photo   = body.artist_photo || null
@@ -133,6 +145,18 @@ export async function POST(req: NextRequest) {
     if (!user || user.id !== studio.user_id) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     const blocked = studio.visible === false || (studio.expires_at && new Date(studio.expires_at) < new Date())
     if (blocked) return NextResponse.json({ error: 'Tu perfil está bloqueado, no podés publicar' }, { status: 403 })
+
+    const { data: studioLimitSetting } = await sb().from('settings').select('value').eq('key', 'studio_daily_post_limit').single()
+    const studioDailyLimit = parseInt(String(studioLimitSetting?.value ?? '0'), 10)
+    if (Number.isFinite(studioDailyLimit) && studioDailyLimit > 0) {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { count } = await sb().from('community_posts').select('id', { count: 'exact', head: true })
+        .eq('type', 'studio').eq('studio_slug', studio.slug).gte('created_at', since)
+      if ((count ?? 0) >= studioDailyLimit) {
+        return NextResponse.json({ error: `Alcanzaste el límite de ${studioDailyLimit} mensajes por día` }, { status: 429 })
+      }
+    }
+
     insert.studio_id   = studio.slug
     insert.studio_name = studio.name
     insert.studio_logo = studio.logo_url

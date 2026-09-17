@@ -5674,6 +5674,10 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [loadingPosts, setLoadingPosts] = useState(true)
   const [searchLimitDraft, setSearchLimitDraft] = useState('')
   const [savingSearchLimit, setSavingSearchLimit] = useState(false)
+  const [artistLimitDraft, setArtistLimitDraft] = useState('')
+  const [savingArtistLimit, setSavingArtistLimit] = useState(false)
+  const [studioLimitDraft, setStudioLimitDraft] = useState('')
+  const [savingStudioLimit, setSavingStudioLimit] = useState(false)
   const [searchExpiryDraft, setSearchExpiryDraft] = useState('')
   const [savingSearchExpiry, setSavingSearchExpiry] = useState(false)
   const [tickerMode, setTickerMode] = useState(false)
@@ -5706,6 +5710,8 @@ function AdminCommunity({ pass }: { pass: string }) {
       .then(r => r.json())
       .then(d => {
         setSearchLimitDraft(String(d?.settings?.search_wizard_daily_limit ?? '15'))
+        setArtistLimitDraft(String(d?.settings?.artist_daily_post_limit ?? '0'))
+        setStudioLimitDraft(String(d?.settings?.studio_daily_post_limit ?? '0'))
         setSearchExpiryDraft(String(d?.settings?.search_wizard_expiry_days ?? '7'))
         setTickerMode(d?.settings?.search_ticker_mode === true)
         setClosings(Array.isArray(d?.settings?.client_request_closings) ? d.settings.client_request_closings : [])
@@ -5769,6 +5775,30 @@ function AdminCommunity({ pass }: { pass: string }) {
         body: JSON.stringify({ key: 'search_wizard_daily_limit', value: String(n) }),
       })
     } finally { setSavingSearchLimit(false) }
+  }
+
+  const saveArtistLimit = async () => {
+    const n = parseInt(artistLimitDraft, 10)
+    if (!Number.isFinite(n) || n < 0) return
+    setSavingArtistLimit(true)
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
+        body: JSON.stringify({ key: 'artist_daily_post_limit', value: String(n) }),
+      })
+    } finally { setSavingArtistLimit(false) }
+  }
+
+  const saveStudioLimit = async () => {
+    const n = parseInt(studioLimitDraft, 10)
+    if (!Number.isFinite(n) || n < 0) return
+    setSavingStudioLimit(true)
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
+        body: JSON.stringify({ key: 'studio_daily_post_limit', value: String(n) }),
+      })
+    } finally { setSavingStudioLimit(false) }
   }
 
   const saveSearchExpiry = async () => {
@@ -6039,6 +6069,34 @@ function AdminCommunity({ pass }: { pass: string }) {
             {savingClosings ? '...' : '+ Agregar'}
           </button>
         </div>
+      </div>
+
+      {/* Límite de mensajes de tatuadores por día — por si empiezan a subir muchas fotos */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Máx. mensajes de tatuadores por día</span>
+        <input type="number" min={0} value={artistLimitDraft} onChange={e => setArtistLimitDraft(e.target.value)}
+          className="w-16 px-2 py-1 rounded-lg text-xs"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+        <button onClick={saveArtistLimit} disabled={savingArtistLimit}
+          className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+          style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
+          {savingArtistLimit ? '...' : 'Guardar'}
+        </button>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0 = sin límite</span>
+      </div>
+
+      {/* Límite de mensajes de estudios por día */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Máx. mensajes de estudios por día</span>
+        <input type="number" min={0} value={studioLimitDraft} onChange={e => setStudioLimitDraft(e.target.value)}
+          className="w-16 px-2 py-1 rounded-lg text-xs"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+        <button onClick={saveStudioLimit} disabled={savingStudioLimit}
+          className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+          style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
+          {savingStudioLimit ? '...' : 'Guardar'}
+        </button>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0 = sin límite</span>
       </div>
 
       {/* Clientes (no logueados) — para poder borrar pruebas sin tener que reportarlas primero */}
