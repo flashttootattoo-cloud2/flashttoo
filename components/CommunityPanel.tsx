@@ -439,7 +439,6 @@ function ArtistTemplateChips({ value, onChange, lang, photo, onPhotoChange, onCa
   const [allStyles, setAllStyles] = useState<string[]>([])
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [compressing, setCompressing] = useState(false)
-  const [photoError, setPhotoError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [openWhich, setOpenWhich] = useState<'message' | 'style' | null>(null)
@@ -500,13 +499,15 @@ function ArtistTemplateChips({ value, onChange, lang, photo, onPhotoChange, onCa
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    setPhotoError('')
     setCompressing(true)
     try {
       const compressed = await compressToWebp(file)
       onPhotoChange(compressed)
     } catch {
-      setPhotoError(t('comunidad', 'tpl_photo_error', 'No se pudo procesar la foto, probá con otra'))
+      // Algunos formatos de celular (ej. HEIC) no se pueden decodificar en
+      // canvas para comprimir — mejor subir la foto tal cual vino que
+      // bloquear la publicación por completo.
+      onPhotoChange(file)
     } finally { setCompressing(false) }
   }
 
@@ -575,7 +576,6 @@ function ArtistTemplateChips({ value, onChange, lang, photo, onPhotoChange, onCa
                 </button>
               )}
             </div>
-            {photoError && <span style={{ fontSize: 10, color: 'rgba(255,100,100,0.7)' }}>{photoError}</span>}
           </div>
         )}
       </div>
@@ -858,6 +858,12 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
         fd.append('path', `community/${loggedArtist.id}-${Date.now()}.webp`)
         const up = await fetch('/api/upload', { method: 'POST', body: fd }).catch(() => null)
         if (up?.ok) { const ud = await up.json(); photoUrl = ud.url ?? null }
+        // Si había una foto para adjuntar y la subida falló (red inestable, etc.),
+        // no publicamos el mensaje a medias sin avisar — mejor que reintente.
+        if (!photoUrl) {
+          setPostError(t('comunidad', 'photo_upload_error', 'No se pudo subir la foto, probá de nuevo'))
+          return
+        }
       }
       let body: Record<string, unknown> = { content: text, lang }
       if (loggedArtist) {
@@ -1706,11 +1712,13 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
         background: highlighted ? 'rgba(56,189,248,0.06)' : 'transparent',
         borderLeft: nearby === 'full' || nearby === 'country' || highlighted ? '3px solid #efff42' : '3px solid transparent',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, display: 'flex', alignItems: 'center', gap: 6, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
+          </div>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0, flex: 1, minWidth: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             {post.content}
           </p>
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>{timeAgo(post.created_at, nowLabel)}</span>
@@ -1756,7 +1764,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
               <span
-                style={{ fontSize: 13, fontWeight: 700, color: isSearch || isClient ? '#38bdf8' : isNews ? '#f472b6' : isStudio ? '#fb923c' : '#fff', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                style={{ fontSize: 13, fontWeight: 700, color: '#fff', cursor: (isArtist || isStudio || isSponsor) ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 onClick={() => { if (isArtist && post.artist_id) onOpenArtist(post.artist_id); else if (isStudio && post.studio_slug) onOpenStudio(post.studio_slug); else if (isSponsor && post.sponsor_id) onOpenSponsor?.(post.sponsor_id) }}>
                 {isAdmin || isNews ? 'Flashttoo' : isArtist ? post.artist_name : isStudio ? post.studio_name : isSponsor ? post.sponsor_name : isSearch ? t('comunidad', 'badge_search', 'Búsqueda') : post.client_name}
               </span>
