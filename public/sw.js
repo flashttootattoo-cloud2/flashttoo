@@ -36,7 +36,11 @@ self.addEventListener('push', event => {
     const options = {
       body: payload.body || '',
       icon: payload.icon || '/icon-desktop-512.png',
-      badge: '/icon-desktop-512.png',
+      // El badge (ícono chico de la barra de notificaciones) se ve mejor con
+      // un fondo propio (como hace Instagram con su degradado) en vez de uno
+      // transparente — Android le pone un círculo blanco atrás si no tiene
+      // color de fondo, y con los 7 puntos separados quedaba como una mancha
+      badge: '/favicon-32.png',
       vibrate: [200, 100, 200],
       data: { url: payload.url || '/' },
     }
