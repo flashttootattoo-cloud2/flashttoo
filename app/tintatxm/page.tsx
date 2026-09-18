@@ -5684,6 +5684,8 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [savingSearchExpiry, setSavingSearchExpiry] = useState(false)
   const [tickerMode, setTickerMode] = useState(false)
   const [savingTickerMode, setSavingTickerMode] = useState(false)
+  const [pushVisible, setPushVisible] = useState(false)
+  const [savingPushVisible, setSavingPushVisible] = useState(false)
   const [closings, setClosings] = useState<{ id: string; label_es: string; label_en: string; label_pt: string; phrase_es: string; phrase_en: string; phrase_pt: string }[]>([])
   const [newClosingLabelEs, setNewClosingLabelEs] = useState('')
   const [newClosingLabelEn, setNewClosingLabelEn] = useState('')
@@ -5716,6 +5718,7 @@ function AdminCommunity({ pass }: { pass: string }) {
         setStudioLimitDraft(String(d?.settings?.studio_daily_post_limit ?? '0'))
         setSearchExpiryDraft(String(d?.settings?.search_wizard_expiry_days ?? '7'))
         setTickerMode(d?.settings?.search_ticker_mode === true)
+        setPushVisible(d?.settings?.push_notifications_visible === true)
         setClosings(Array.isArray(d?.settings?.client_request_closings) ? d.settings.client_request_closings : [])
       })
       .catch(() => {})
@@ -5769,6 +5772,18 @@ function AdminCommunity({ pass }: { pass: string }) {
       })
       setTickerMode(next)
     } finally { setSavingTickerMode(false) }
+  }
+
+  const togglePushVisible = async () => {
+    const next = !pushVisible
+    setSavingPushVisible(true)
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
+        body: JSON.stringify({ key: 'push_notifications_visible', value: next }),
+      })
+      setPushVisible(next)
+    } finally { setSavingPushVisible(false) }
   }
 
   const saveSearchLimit = async () => {
@@ -6115,9 +6130,20 @@ function AdminCommunity({ pass }: { pass: string }) {
       {/* Notificaciones push — estadística rápida */}
       {pushStats && (
         <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-            Notificaciones push
-          </p>
+          <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: 8 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              Notificaciones push
+            </p>
+            <button onClick={togglePushVisible} disabled={savingPushVisible}
+              className="relative rounded-full transition-colors disabled:opacity-50"
+              style={{ width: 32, height: 18, background: pushVisible ? '#efff42' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
+              <span className="absolute rounded-full bg-white transition-transform"
+                style={{ width: 14, height: 14, top: 2, left: pushVisible ? 16 : 2 }} />
+            </button>
+            <span style={{ fontSize: 11, color: pushVisible ? '#efff42' : 'rgba(255,255,255,0.35)' }}>
+              {pushVisible ? 'Visible para todos' : 'Oculto (solo pruebas)'}
+            </span>
+          </div>
           <div className="flex items-center gap-4 flex-wrap" style={{ marginBottom: pushStats.byCountry.length ? 10 : 0 }}>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Total: <b style={{ color: '#fff' }}>{pushStats.total}</b></span>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Sin país: <b style={{ color: '#fff' }}>{pushStats.withoutCountry}</b></span>

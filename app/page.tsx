@@ -137,13 +137,6 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
   fetch(`/api/track/click/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) }).catch(() => {})
 }
 
-// Apagado momentáneamente en producción mientras se resuelve por qué algunos
-// Android no terminan de recibir la notificación aunque el envío del
-// servidor sea exitoso. Queda como variable de entorno para poder seguir
-// probándolo en local sin exponerlo a usuarios reales todavía — cuando esté
-// resuelto, se activa poniendo NEXT_PUBLIC_PUSH_NOTIFICATIONS_VISIBLE=true
-// también en Vercel.
-const PUSH_NOTIFICATIONS_VISIBLE = process.env.NEXT_PUBLIC_PUSH_NOTIFICATIONS_VISIBLE === 'true'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -165,6 +158,14 @@ export default function Home() {
   const [pushCountry, setPushCountry] = useState(() => { try { return sessionStorage.getItem('s_country') || '' } catch { return '' } })
   const [savingPushCountry, setSavingPushCountry] = useState(false)
   const [pushCountryMissing, setPushCountryMissing] = useState(false)
+  const [pushNotificationsVisible, setPushNotificationsVisible] = useState(false)
+
+  // Se puede prender/apagar la visibilidad del toggle de notificaciones desde
+  // el admin (tintatxm), sin necesitar redeploy — mientras se termina de
+  // resolver por qué algunos Android no reciben la notificación
+  useEffect(() => {
+    fetch('/api/config').then(r => r.json()).then(d => setPushNotificationsVisible(d?.push_notifications_visible === true)).catch(() => {})
+  }, [])
 
   // Registra el service worker apenas carga (hace falta antes de poder
   // suscribirse a push) y revisa si ya había una suscripción activa — si la
@@ -1679,10 +1680,9 @@ export default function Home() {
                       <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
                     </>
                   )}
-                  {/* Notificaciones — oculto momentáneamente en producción mientras
-                      se termina de resolver por qué no le llega a algunos Android
-                      (cambiar PUSH_NOTIFICATIONS_VISIBLE a true para reactivarlo) */}
-                  {PUSH_NOTIFICATIONS_VISIBLE && typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && (
+                  {/* Notificaciones — visibilidad controlada desde tintatxm (settings
+                      push_notifications_visible), sin necesitar redeploy */}
+                  {pushNotificationsVisible && typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && (
                     <>
                       <button
                         onClick={togglePush}
