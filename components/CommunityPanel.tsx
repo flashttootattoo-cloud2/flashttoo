@@ -635,9 +635,10 @@ type Props = {
   onClose?: () => void
   lang?: string
   highlightPostId?: string
+  anonCountry?: string
 }
 
-export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onStudioTokenRefreshed, onArtistTokenRefreshed, onClose, lang = 'es', highlightPostId }: Props) {
+export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onStudioTokenRefreshed, onArtistTokenRefreshed, onClose, lang = 'es', highlightPostId, anonCountry }: Props) {
   const { t } = useTranslation()
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [loading, setLoading] = useState(true)
@@ -738,7 +739,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   }, [loggedStudio])
 
   const viewerCity    = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
-  const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
+  const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? anonCountry ?? '').toLowerCase()
 
   const sortByProximity = useCallback((raw: CommunityPost[]) => {
     // Los avisos globales de Flashttoo (admin/news sin país cargado) cuentan como
@@ -1211,7 +1212,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
           }
           return filtered.map((post: CommunityPost) => {
             const viewerCity = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
-            const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? '').toLowerCase()
+            const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? anonCountry ?? '').toLowerCase()
             // Los avisos globales de Flashttoo (admin/news sin país) también se
             // destacan con el borde de "esto es para vos", igual que una
             // coincidencia real de país — son de alcance para cualquiera.
