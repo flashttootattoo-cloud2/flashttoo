@@ -124,7 +124,7 @@ export default function ArtistAuthModal({ onClose, onLoggedIn, onStudioLoggedIn,
         {view === 'menu' && (
           <div className="flex flex-col gap-3">
             <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginBottom: 4 }}>
-              {t('ingresar', 'menu_note', 'Armá tu perfil de búsqueda acá')}
+              {t('ingresar', 'menu_note', 'Armá tu perfil de búsqueda')}
             </p>
             <button onClick={() => { reset(); setView('register') }}
               className="w-full py-3 rounded-xl text-sm font-bold"

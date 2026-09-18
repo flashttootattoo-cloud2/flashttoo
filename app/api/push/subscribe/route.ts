@@ -5,6 +5,15 @@ function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
+// Para poder mostrar el país/idioma real guardado cuando se recarga la
+// página (en vez de adivinar a partir de lo que haya quedado en el buscador)
+export async function GET(req: NextRequest) {
+  const endpoint = req.nextUrl.searchParams.get('endpoint')
+  if (!endpoint) return NextResponse.json({ error: 'endpoint requerido' }, { status: 400 })
+  const { data } = await sb().from('push_subscriptions').select('country, lang').eq('endpoint', endpoint).single()
+  return NextResponse.json({ country: data?.country ?? null, lang: data?.lang ?? null })
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   const sub = body?.subscription

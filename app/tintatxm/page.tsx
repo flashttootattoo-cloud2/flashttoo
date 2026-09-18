@@ -5679,6 +5679,7 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [savingArtistLimit, setSavingArtistLimit] = useState(false)
   const [studioLimitDraft, setStudioLimitDraft] = useState('')
   const [savingStudioLimit, setSavingStudioLimit] = useState(false)
+  const [pushStats, setPushStats] = useState<{ total: number; withoutCountry: number; neverConfirmed: number; byCountry: [string, number][] } | null>(null)
   const [searchExpiryDraft, setSearchExpiryDraft] = useState('')
   const [savingSearchExpiry, setSavingSearchExpiry] = useState(false)
   const [tickerMode, setTickerMode] = useState(false)
@@ -5717,6 +5718,10 @@ function AdminCommunity({ pass }: { pass: string }) {
         setTickerMode(d?.settings?.search_ticker_mode === true)
         setClosings(Array.isArray(d?.settings?.client_request_closings) ? d.settings.client_request_closings : [])
       })
+      .catch(() => {})
+    fetch('/api/admin/push-stats', { headers: { 'x-admin-pass': pass } })
+      .then(r => r.json())
+      .then(d => { if (!d?.error) setPushStats(d) })
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -6106,6 +6111,29 @@ function AdminCommunity({ pass }: { pass: string }) {
         </button>
         <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0 = sin límite</span>
       </div>
+
+      {/* Notificaciones push — estadística rápida */}
+      {pushStats && (
+        <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+            Notificaciones push
+          </p>
+          <div className="flex items-center gap-4 flex-wrap" style={{ marginBottom: pushStats.byCountry.length ? 10 : 0 }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Total: <b style={{ color: '#fff' }}>{pushStats.total}</b></span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Sin país: <b style={{ color: '#fff' }}>{pushStats.withoutCountry}</b></span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Nunca confirmadas: <b style={{ color: '#fff' }}>{pushStats.neverConfirmed}</b></span>
+          </div>
+          {pushStats.byCountry.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {pushStats.byCountry.map(([c, n]) => (
+                <span key={c} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
+                  {c}: <b style={{ color: '#fff' }}>{n}</b>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Clientes (no logueados) — para poder borrar pruebas sin tener que reportarlas primero */}
       <div className="flex flex-col gap-3">

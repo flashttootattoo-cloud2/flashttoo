@@ -24,6 +24,7 @@ type PushSub = { id: string; endpoint: string; p256dh: string; auth: string }
 export async function sendToSubscriptions(subs: PushSub[], payload: { title: string; body: string; url?: string }) {
   ensureConfigured()
   const expiredIds: string[] = []
+  const successIds: string[] = []
 
   await Promise.all(subs.map(async sub => {
     try {
@@ -31,6 +32,7 @@ export async function sendToSubscriptions(subs: PushSub[], payload: { title: str
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         JSON.stringify(payload),
       )
+      successIds.push(sub.id)
     } catch (err: unknown) {
       const statusCode = (err as { statusCode?: number })?.statusCode
       console.error('[push] error enviando a', sub.endpoint.slice(0, 60), 'status:', statusCode, err)
@@ -40,6 +42,12 @@ export async function sendToSubscriptions(subs: PushSub[], payload: { title: str
 
   if (expiredIds.length) {
     await sb().from('push_subscriptions').delete().in('id', expiredIds)
+  }
+  // Se guarda cuándo fue la última vez que le llegó algo bien — sirve para
+  // distinguir en las estadísticas una suscripción vieja pero sana de una
+  // que quedó huérfana sin que nadie la haya intentado limpiar todavía.
+  if (successIds.length) {
+    await sb().from('push_subscriptions').update({ last_success_at: new Date().toISOString() }).in('id', successIds)
   }
 }
 

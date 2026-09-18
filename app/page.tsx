@@ -137,10 +137,13 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
   fetch(`/api/track/click/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) }).catch(() => {})
 }
 
-// Apagado momentáneamente mientras se resuelve por qué algunos Android no
-// terminan de recibir la notificación aunque el envío del servidor sea
-// exitoso — poner en true de nuevo cuando esté solucionado.
-const PUSH_NOTIFICATIONS_VISIBLE = false
+// Apagado momentáneamente en producción mientras se resuelve por qué algunos
+// Android no terminan de recibir la notificación aunque el envío del
+// servidor sea exitoso. Queda como variable de entorno para poder seguir
+// probándolo en local sin exponerlo a usuarios reales todavía — cuando esté
+// resuelto, se activa poniendo NEXT_PUBLIC_PUSH_NOTIFICATIONS_VISIBLE=true
+// también en Vercel.
+const PUSH_NOTIFICATIONS_VISIBLE = process.env.NEXT_PUBLIC_PUSH_NOTIFICATIONS_VISIBLE === 'true'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -159,14 +162,26 @@ export default function Home() {
   const [showReport, setShowReport] = useState(false)
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
+  const [pushCountry, setPushCountry] = useState(() => { try { return sessionStorage.getItem('s_country') || '' } catch { return '' } })
+  const [savingPushCountry, setSavingPushCountry] = useState(false)
+  const [pushCountryMissing, setPushCountryMissing] = useState(false)
 
   // Registra el service worker apenas carga (hace falta antes de poder
-  // suscribirse a push) y revisa si ya había una suscripción activa
+  // suscribirse a push) y revisa si ya había una suscripción activa — si la
+  // hay, trae el país real guardado (no lo que haya quedado en el buscador)
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
     navigator.serviceWorker.register('/sw.js')
       .then(reg => reg.pushManager.getSubscription())
-      .then(sub => setPushEnabled(!!sub))
+      .then(sub => {
+        setPushEnabled(!!sub)
+        if (sub) {
+          fetch('/api/push/subscribe?endpoint=' + encodeURIComponent(sub.endpoint))
+            .then(r => r.json())
+            .then(d => { if (d?.country) setPushCountry(d.country) })
+            .catch(() => {})
+        }
+      })
       .catch(() => {})
   }, [])
 
@@ -183,6 +198,11 @@ export default function Home() {
         }
         setPushEnabled(false)
       } else {
+        if (!pushCountry.trim()) {
+          setPushCountryMissing(true)
+          return
+        }
+        setPushCountryMissing(false)
         const permission = await Notification.requestPermission()
         if (permission !== 'granted') return
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
@@ -192,11 +212,9 @@ export default function Home() {
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
           })
-          let storedCountry = ''
-          try { storedCountry = sessionStorage.getItem('s_country') || '' } catch {}
           const r = await fetch('/api/push/subscribe', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription: sub, country: storedCountry, lang: language }),
+            body: JSON.stringify({ subscription: sub, country: pushCountry, lang: language }),
           })
           if (!r.ok) { alert('Se pudo suscribir el navegador pero falló al guardar en el servidor (status ' + r.status + ')'); return }
           setPushEnabled(true)
@@ -206,6 +224,43 @@ export default function Home() {
       }
     } finally { setPushLoading(false) }
   }
+
+  // Actualiza el país guardado sin tener que apagar/prender el toggle —
+  // reusa la misma suscripción ya activa, el endpoint hace upsert por endpoint
+  const savePushCountry = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    setSavingPushCountry(true)
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      if (!sub) return
+      await fetch('/api/push/subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub, country: pushCountry, lang: language }),
+      }).catch(() => {})
+    } finally { setSavingPushCountry(false) }
+  }
+
+  // Si cambia el idioma de la página con las notificaciones ya activadas,
+  // re-guarda la suscripción con el idioma nuevo — si no, quedaría pegada
+  // para siempre al idioma que tenía en el momento de activarlas
+  useEffect(() => {
+    if (!pushEnabled) return
+    savePushCountry()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language])
+
+  // Guarda el país apenas se cierra el menú de tres puntos (tocando afuera,
+  // volviendo a tocar el botón, etc.) — no conviene depender solo del blur
+  // del input, porque al cerrarse el menú el campo desaparece del DOM y ese
+  // evento no siempre llega a tiempo de disparar el guardado.
+  const wasLangOpenRef = useRef(false)
+  useEffect(() => {
+    if (wasLangOpenRef.current && !langOpen && pushEnabled) savePushCountry()
+    wasLangOpenRef.current = langOpen
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [langOpen])
+
   const [artists, setArtists]     = useState<Artist[]>([])
   const [ads, setAds]             = useState<Ad[]>([])
   const [allStyles, setAllStyles] = useState<string[]>(DEFAULT_STYLES)
@@ -1628,18 +1683,44 @@ export default function Home() {
                       se termina de resolver por qué no le llega a algunos Android
                       (cambiar PUSH_NOTIFICATIONS_VISIBLE a true para reactivarlo) */}
                   {PUSH_NOTIFICATIONS_VISIBLE && typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && (
-                    <button
-                      onClick={togglePush}
-                      disabled={pushLoading}
-                      className="w-full flex items-center justify-between px-4 py-3 text-sm text-left hover:opacity-80 disabled:opacity-50"
-                      style={{ color: 'rgba(255,255,255,0.8)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <span>{t('inicio', 'menu_notifications', 'Notificaciones')}</span>
-                      <span className="relative rounded-full transition-colors"
-                        style={{ width: 32, height: 18, background: pushEnabled ? '#efff42' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
-                        <span className="absolute rounded-full bg-white transition-transform"
-                          style={{ width: 14, height: 14, top: 2, left: pushEnabled ? 16 : 2 }} />
-                      </span>
-                    </button>
+                    <>
+                      <button
+                        onClick={togglePush}
+                        disabled={pushLoading}
+                        className="w-full flex items-center justify-between px-4 py-3 text-sm text-left hover:opacity-80 disabled:opacity-50"
+                        style={{ color: 'rgba(255,255,255,0.8)' }}>
+                        <span>{t('inicio', 'menu_notifications', 'Notificaciones')}</span>
+                        <span className="relative rounded-full transition-colors"
+                          style={{ width: 32, height: 18, background: pushEnabled ? '#efff42' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
+                          <span className="absolute rounded-full bg-white transition-transform"
+                            style={{ width: 14, height: 14, top: 2, left: pushEnabled ? 16 : 2 }} />
+                        </span>
+                      </button>
+                      <div className="px-4 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={pushCountry}
+                            onChange={e => { setPushCountry(e.target.value); if (e.target.value.trim()) setPushCountryMissing(false) }}
+                            onBlur={() => { if (pushEnabled) savePushCountry() }}
+                            placeholder={t('inicio', 'push_country_placeholder', 'Tu país')}
+                            className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${pushCountryMissing ? 'rgba(255,100,100,0.5)' : 'rgba(255,255,255,0.12)'}`, color: '#fff', outline: 'none' }} />
+                          {savingPushCountry && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>...</span>}
+                        </div>
+                        {pushCountryMissing ? (
+                          <p style={{ fontSize: 10, color: 'rgba(255,120,120,0.75)', lineHeight: 1.5, marginTop: 6 }}>
+                            {t('inicio', 'push_country_required', 'Escribí tu país antes de activar las notificaciones')}
+                          </p>
+                        ) : (
+                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 6 }}>
+                            {t('inicio', 'push_country_note', 'Con ese país te avisamos cuando tatuadores de ahí publiquen algo nuevo en comunidad.')}
+                          </p>
+                        )}
+                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 4 }}>
+                          {t('inicio', 'push_install_note', 'En el celular, instalá la app a tu pantalla de inicio para no perderte ninguna novedad.')}
+                        </p>
+                      </div>
+                    </>
                   )}
                   {/* Reportar */}
                   <button
