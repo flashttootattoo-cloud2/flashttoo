@@ -31,6 +31,9 @@ export async function sendToSubscriptions(subs: PushSub[], payload: { title: str
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         JSON.stringify(payload),
+        // urgency 'high' le pide al sistema operativo que no la posponga por
+        // ahorro de batería (Doze en Android) — sin esto puede tardar en llegar
+        { urgency: 'high' },
       )
       successIds.push(sub.id)
     } catch (err: unknown) {
