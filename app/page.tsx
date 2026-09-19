@@ -192,6 +192,10 @@ export default function Home() {
     setInstallPrompt(null)
   }
 
+  // iOS (cualquier navegador, todos corren sobre WebKit) no tiene la API de
+  // instalación automática — ahí la única forma es manual, desde Compartir
+  const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
+
   const togglePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
     setPushLoading(true)
@@ -1765,7 +1769,9 @@ export default function Home() {
                           </p>
                         )}
                         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 4 }}>
-                          {t('inicio', 'push_install_note', 'En el celular, instalá la app para recibirlas.')}
+                          {isIOS
+                            ? t('inicio', 'push_install_note_ios', 'En iPhone: tocá el ícono de Compartir (⬆️) y elegí "Agregar a pantalla de inicio".')
+                            : t('inicio', 'push_install_note', 'En el celular, instalá la app para recibirlas.')}
                         </p>
                         {installPrompt && (
                           <button onClick={installApp}
