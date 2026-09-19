@@ -753,7 +753,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.6)' }}>{g.label}</span>
                         <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
                       </div>
-                      <div className="sv2-hide-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, WebkitOverflowScrolling: 'touch', touchAction: 'pan-x', scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
+                      <div className="sv2-hide-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
                         onTouchStart={e => e.stopPropagation()}
                         onTouchMove={e => e.stopPropagation()}
                         onTouchEnd={e => e.stopPropagation()}>
