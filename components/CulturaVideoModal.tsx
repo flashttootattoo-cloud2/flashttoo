@@ -29,6 +29,9 @@ export default function CulturaVideoModal() {
   const historyPushedRef        = useRef(false)
   const extraPushesRef          = useRef(0)
   const hintTimerRef            = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const infoRef                 = useRef<HTMLDivElement>(null)
+  const enterBtnRef             = useRef<HTMLButtonElement>(null)
+  const [cardWidth, setCardWidth] = useState(340)
 
   useEffect(() => {
     const notShowing = () => window.dispatchEvent(new CustomEvent('portada-resuelta'))
@@ -75,6 +78,26 @@ export default function CulturaVideoModal() {
     window.addEventListener('popstate', onPop)
     return () => { window.removeEventListener('popstate', onPop); if (hintTimerRef.current) clearTimeout(hintTimerRef.current) }
   }, [])
+
+  // En celulares con poco alto relativo, la tarjeta (video 9:16 + info) mas
+  // el botón "Entrar" de abajo pueden no entrar en la pantalla — acá se
+  // achica el ancho de la tarjeta (y con eso el alto del video, que sigue
+  // esa proporción) para que todo entre sin scroll
+  useEffect(() => {
+    if (!visible || !video) return
+    const recompute = () => {
+      const infoH = infoRef.current?.offsetHeight ?? 90
+      const btnH = enterBtnRef.current ? enterBtnRef.current.offsetHeight + 10 : 30
+      const safetyBuffer = 20
+      const available = window.innerHeight - 40 - infoH - btnH - safetyBuffer
+      const widthFromHeight = available > 0 ? (available * 9) / 16 : 340
+      const widthFromViewport = window.innerWidth - 40
+      setCardWidth(Math.max(220, Math.min(340, widthFromHeight, widthFromViewport)))
+    }
+    recompute()
+    window.addEventListener('resize', recompute)
+    return () => window.removeEventListener('resize', recompute)
+  }, [visible, video])
 
   function dismiss() {
     setVisible(false)
@@ -126,7 +149,7 @@ export default function CulturaVideoModal() {
         @keyframes cvHintIn { from { opacity:0; transform:translateX(-50%) translateY(6px) } to { opacity:1; transform:translateX(-50%) translateY(0) } }
       `}</style>
 
-      <div style={{ position: 'relative', width: '100%', maxWidth: 340 }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: cardWidth }}>
       <div
         onClick={e => e.stopPropagation()}
         style={{
@@ -178,7 +201,7 @@ export default function CulturaVideoModal() {
         </div>
 
         {/* Info */}
-        <div style={{ padding: '14px 16px 18px' }}>
+        <div ref={infoRef} style={{ padding: '14px 16px 18px' }}>
           {video.author_flashttoo_slug
             ? <button onClick={e => { e.stopPropagation(); dismiss(); window.dispatchEvent(new CustomEvent('open-artist', { detail: video.author_flashttoo_slug })) }} style={{ fontSize: 13, fontWeight: 700, color: '#efff42', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>{ig}</button>
             : <a href={`https://instagram.com/${ig.slice(1)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 13, fontWeight: 700, color: '#efff42', textDecoration: 'none' }}>{ig}</a>
@@ -211,7 +234,7 @@ export default function CulturaVideoModal() {
       {/* Entrar — afuera de la tarjeta pero alineada a su borde derecho,
           mismo estilo de chip que las tags pero en verde (color de clicks
           de WhatsApp) */}
-      <button onClick={e => { e.stopPropagation(); dismiss() }}
+      <button ref={enterBtnRef} onClick={e => { e.stopPropagation(); dismiss() }}
         style={{ position: 'absolute', top: '100%', right: 10, marginTop: 10, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 5, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(74,222,128,0.4)', color: '#4ade80', cursor: 'pointer' }}>
         {t('cultura', 'video_enter_btn', 'Entrar')}
       </button>
