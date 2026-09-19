@@ -116,8 +116,9 @@ export default function CulturaVideoModal() {
       style={{
         position: 'fixed', inset: 0, zIndex: 70,
         background: 'rgba(0,0,0,0.85)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', alignItems: 'safe center', justifyContent: 'safe center',
         padding: '20px',
+        overflowY: 'auto',
       }}
     >
       <style>{`
