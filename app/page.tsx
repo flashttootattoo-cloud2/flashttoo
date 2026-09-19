@@ -138,6 +138,11 @@ function trackClick(id: string, type: 'instagram' | 'whatsapp' | 'ad' | 'like' |
 }
 
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
@@ -166,6 +171,26 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/config').then(r => r.json()).then(d => setPushNotificationsVisible(d?.push_notifications_visible === true)).catch(() => {})
   }, [])
+
+  // Captura el evento de instalación de la PWA (solo Android/Chrome — iOS no
+  // tiene esta API, ahí sigue valiendo la instrucción manual de "compartir
+  // → agregar a inicio") para poder ofrecer un botón directo de "Instalar app"
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault()
+      setInstallPrompt(e as BeforeInstallPromptEvent)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const installApp = async () => {
+    if (!installPrompt) return
+    await installPrompt.prompt()
+    await installPrompt.userChoice.catch(() => {})
+    setInstallPrompt(null)
+  }
 
   const togglePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
@@ -1742,6 +1767,12 @@ export default function Home() {
                         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 4 }}>
                           {t('inicio', 'push_install_note', 'En el celular, instalá la app para recibirlas.')}
                         </p>
+                        {installPrompt && (
+                          <button onClick={installApp}
+                            style={{ marginTop: 6, fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(239,255,66,0.35)', background: 'rgba(239,255,66,0.1)', color: '#efff42', cursor: 'pointer' }}>
+                            {t('inicio', 'install_app_btn', 'Instalar app')}
+                          </button>
+                        )}
                       </div>
                     </>
                   )}
