@@ -90,7 +90,7 @@ export default function ConventionModal({ conventions, flashDays = [], onOpenStu
             {it.kind === 'conv' && it.data.link && (
               <a href={it.data.link} target="_blank" rel="noopener noreferrer"
                 onClick={() => { dismiss(); fetch(`/api/conventions/${it.data.id}/click`, { method: 'POST' }).catch(() => {}) }}
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 18px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 18px', background: '#efff42', color: '#000', borderRadius: 20, fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
                 {t('eventos', 'see_more', 'Ver más →')}
               </a>
             )}
