@@ -196,6 +196,13 @@ export default function Home() {
   // instalación automática — ahí la única forma es manual, desde Compartir
   const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
 
+  // Si ya está instalada (se abrió como app, no como pestaña del navegador),
+  // no tiene sentido seguir mostrando la instrucción para instalarla
+  const isStandalone = typeof window !== 'undefined' && (
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  )
+
   const togglePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
     setPushLoading(true)
@@ -1768,16 +1775,20 @@ export default function Home() {
                             {t('inicio', 'push_country_note', 'Te avisamos cuando tatuadores de tu país publiquen algo nuevo.')}
                           </p>
                         )}
-                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 4 }}>
-                          {isIOS
-                            ? t('inicio', 'push_install_note_ios', 'En iPhone: tocá el ícono de Compartir (⬆️) y elegí "Agregar a pantalla de inicio".')
-                            : t('inicio', 'push_install_note', 'En el celular, instalá la app para recibirlas.')}
-                        </p>
-                        {installPrompt && (
-                          <button onClick={installApp}
-                            style={{ marginTop: 6, fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(239,255,66,0.35)', background: 'rgba(239,255,66,0.1)', color: '#efff42', cursor: 'pointer' }}>
-                            {t('inicio', 'install_app_btn', 'Instalar app')}
-                          </button>
+                        {!isStandalone && (
+                          <>
+                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 14 }}>
+                              {isIOS
+                                ? t('inicio', 'push_install_note_ios', 'En iPhone: tocá el ícono de Compartir (⬆️) y elegí "Agregar a pantalla de inicio".')
+                                : t('inicio', 'push_install_note', 'En el celular, instalá la app para recibirlas.')}
+                            </p>
+                            {installPrompt && (
+                              <button onClick={installApp}
+                                style={{ marginTop: 6, fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(239,255,66,0.35)', background: 'rgba(239,255,66,0.1)', color: '#efff42', cursor: 'pointer' }}>
+                                {t('inicio', 'install_app_btn', 'Instalar app')}
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </>
