@@ -16,6 +16,9 @@ type Sponsor = {
 type Convention = { id: string; name: string | null; image_url: string; link: string | null; expires_at: string | null; country: string | null }
 type FlashDay = { id: string; studio_slug: string; studio_name: string; flyer_url: string; date: string }
 type GalleryPhoto = { artist_id: string; artist_name: string; artist_photo: string; photo_url: string; artist_instagram: string | null; artist_city: string | null; artist_country: string | null; artist_styles: string[] | null; photo_styles: string[] | null }
+type EventItem =
+  | { kind: 'conv'; date: Date | null; data: Convention }
+  | { kind: 'flash'; date: Date; data: FlashDay }
 
 function norm(s: string) {
   return s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -182,6 +185,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const detailContainerRef = useRef<HTMLDivElement>(null)
   const detailSentinelRef = useRef<HTMLDivElement>(null)
   const [convCountrySearch, setConvCountrySearch] = useState('')
+  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null)
   const [gridBgImage, setGridBgImage] = useState<string | null>(null)
   const [bioExpanded, setBioExpanded] = useState(false)
   const [sponsorContactOpen, setSponsorContactOpen] = useState(false)
@@ -208,6 +212,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const expandedRef             = useRef(false)
   const showCulturaRef          = useRef(false)
   const selectedCulturaVideoRef = useRef<CulturaVid | null>(null)
+  const selectedEventRef        = useRef<EventItem | null>(null)
 
   // Sincronizar refs espejo con estado actual en cada render
   selectedPhotoRef.current        = selectedPhoto
@@ -217,6 +222,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   expandedRef.current             = expanded
   showCulturaRef.current          = showCultura
   selectedCulturaVideoRef.current = selectedCulturaVideo
+  selectedEventRef.current        = selectedEvent
 
   // Fetch una sola vez — mezcla aleatoria fija en este montaje
   useEffect(() => {
@@ -337,6 +343,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
     }
     if (!expanded) {
       setSelectedId(null)
+      setSelectedEvent(null)
       histDepthRef.current = 0
       setConvView(!showInsumos)
     }
@@ -353,6 +360,15 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showInfo])
 
+  // Push history cuando se abre el detalle de un evento (tocando una miniatura)
+  useEffect(() => {
+    if (selectedEvent) {
+      history.pushState({ sv2: 'event' }, '')
+      histDepthRef.current++
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEvent])
+
   // Botón físico atrás del celular — deps vacíos, usa refs para evitar closure obsoleto
   useEffect(() => {
     const onPop = () => {
@@ -362,6 +378,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
         return
       }
       histDepthRef.current = Math.max(0, histDepthRef.current - 1)
+      if (selectedEventRef.current) { setSelectedEvent(null); return }
       if (selectedPhotoRef.current) {
         const prev = photoStackRef.current.pop()
         if (prev) navigatingBackRef.current = true  // volver atrás no debe pushear nuevo estado
@@ -658,10 +675,6 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
 
             {/* Vista Eventos */}
             {convView && (() => {
-              type EventItem =
-                | { kind: 'conv'; date: Date | null; data: Convention }
-                | { kind: 'flash'; date: Date; data: FlashDay }
-
               const allItems: EventItem[] = [
                 ...conventions.map(c => ({ kind: 'conv' as const, date: c.expires_at ? new Date(c.expires_at) : null, data: c })),
                 ...flashDays.map(f => ({ kind: 'flash' as const, date: new Date(f.date + 'T12:00:00'), data: f })),
@@ -687,49 +700,30 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               }
               if (noDate.length > 0) groups.push({ label: t('eventos', 'no_date', 'Sin fecha'), items: noDate })
 
-              const ConvCard = ({ c }: { c: Convention }) => (
-                <div style={{ borderRadius: 16, overflow: 'hidden', background: '#111', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={c.image_url} alt={c.name || ''} style={{ display: 'block', width: '100%', objectFit: 'contain' }} />
-                  {(c.name || c.link) && (
-                    <div style={{ padding: '16px 20px 20px' }}>
-                      {c.name && <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 12px', lineHeight: 1.2 }}>{c.name}</p>}
-                      {c.link && (
-                        <a href={/^https?:\/\//i.test(c.link) ? c.link : `https://${c.link}`} target="_blank" rel="noopener noreferrer"
-                          onClick={() => fetch(`/api/conventions/${c.id}/click`, { method: 'POST' }).catch(() => {})}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>
-                          {t('eventos', 'see_more', 'Ver más →')}
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-
-              const FlashCard = ({ f }: { f: FlashDay }) => (
-                <div style={{ borderRadius: 16, overflow: 'hidden', background: '#111', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={f.flyer_url} alt={`Flash Day ${f.studio_name}`} style={{ display: 'block', width: '100%', objectFit: 'contain' }} />
-                  <div style={{ padding: '16px 20px 20px' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, marginBottom: 10 }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#efff42' }}>Flash Day</span>
-                    </div>
-                    <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 4px', lineHeight: 1.2 }}>{f.studio_name}</p>
-                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, margin: '0 0 14px' }}>
-                      {new Date(f.date + 'T12:00:00').toLocaleDateString(language, { weekday: 'long', day: 'numeric', month: 'long' })}
-                    </p>
-                    <button
-                      onClick={() => {
-                        histDepthRef.current = 0
-                        setExpanded(false)
-                        onOpenStudio?.(f.studio_slug)
-                      }}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 13, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                      {t('eventos', 'see_studio', 'Ver estudio →')}
-                    </button>
-                  </div>
-                </div>
-              )
+              const EventThumb = ({ item }: { item: EventItem }) => {
+                const img   = item.kind === 'conv' ? item.data.image_url : item.data.flyer_url
+                const label = item.kind === 'conv' ? item.data.name : item.data.studio_name
+                return (
+                  <button onClick={() => setSelectedEvent(item)} style={{
+                    position: 'relative', width: 150, aspectRatio: '3/4', borderRadius: 12, overflow: 'hidden',
+                    border: '1px solid rgba(255,255,255,0.08)', background: '#111', padding: 0, cursor: 'pointer',
+                    flexShrink: 0,
+                  }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img} alt={label || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    {item.kind === 'flash' && (
+                      <span style={{ position: 'absolute', top: 6, left: 6, fontSize: 8, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 6px', borderRadius: 4, background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(239,255,66,0.35)', color: '#efff42' }}>
+                        Flash Day
+                      </span>
+                    )}
+                    {label && (
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '18px 8px 6px', background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                      </div>
+                    )}
+                  </button>
+                )
+              }
 
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -759,11 +753,10 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
                         <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(239,255,66,0.6)' }}>{g.label}</span>
                         <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        {g.items.map(item => item.kind === 'conv'
-                          ? <ConvCard key={item.data.id} c={item.data} />
-                          : <FlashCard key={item.data.id} f={item.data} />
-                        )}
+                      <div className="sv2-hide-scrollbar" style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
+                        {g.items.map(item => (
+                          <EventThumb key={item.data.id} item={item} />
+                        ))}
                       </div>
                     </div>
                   ))}
@@ -773,6 +766,72 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
           </div>
         </div>
       </div>
+
+      {/* Detalle de evento — se abre al tocar una miniatura en la grilla de Eventos */}
+      {selectedEvent && (
+        <div onClick={() => setSelectedEvent(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 75,
+          background: 'rgba(0,0,0,0.85)',
+          display: 'flex', alignItems: 'safe center', justifyContent: 'safe center',
+          padding: 20, overflowY: 'auto',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            position: 'relative', width: '100%', maxWidth: 400, borderRadius: 20, overflow: 'hidden',
+            background: '#111', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
+          }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={selectedEvent.kind === 'conv' ? selectedEvent.data.image_url : selectedEvent.data.flyer_url}
+              alt={selectedEvent.kind === 'conv' ? (selectedEvent.data.name || '') : `Flash Day ${selectedEvent.data.studio_name}`}
+              style={{ display: 'block', width: '100%', maxHeight: '55vh', objectFit: 'contain', background: '#000' }}
+            />
+            <div style={{ padding: '16px 20px 20px' }}>
+              {selectedEvent.kind === 'flash' && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', background: 'rgba(239,255,66,0.1)', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 20, marginBottom: 10 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#efff42' }}>Flash Day</span>
+                </div>
+              )}
+              {selectedEvent.kind === 'conv' && selectedEvent.data.name && (
+                <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 12px', lineHeight: 1.2 }}>{selectedEvent.data.name}</p>
+              )}
+              {selectedEvent.kind === 'flash' && (
+                <>
+                  <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 4px', lineHeight: 1.2 }}>{selectedEvent.data.studio_name}</p>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, margin: '0 0 14px' }}>
+                    {new Date(selectedEvent.data.date + 'T12:00:00').toLocaleDateString(language, { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </p>
+                </>
+              )}
+              {selectedEvent.kind === 'conv' && selectedEvent.data.link && (
+                <a href={/^https?:\/\//i.test(selectedEvent.data.link) ? selectedEvent.data.link : `https://${selectedEvent.data.link}`} target="_blank" rel="noopener noreferrer"
+                  onClick={() => fetch(`/api/conventions/${selectedEvent.data.id}/click`, { method: 'POST' }).catch(() => {})}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>
+                  {t('eventos', 'see_more', 'Ver más →')}
+                </a>
+              )}
+              {selectedEvent.kind === 'flash' && (
+                <button
+                  onClick={() => {
+                    setSelectedEvent(null)
+                    histDepthRef.current = 0
+                    setExpanded(false)
+                    onOpenStudio?.(selectedEvent.data.studio_slug)
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: '#efff42', color: '#000', borderRadius: 12, fontSize: 13, fontWeight: 800, border: 'none', cursor: 'pointer' }}>
+                  {t('eventos', 'see_studio', 'Ver estudio →')}
+                </button>
+              )}
+            </div>
+            <button onClick={() => setSelectedEvent(null)} style={{
+              position: 'absolute', top: 10, right: 10,
+              width: 30, height: 30, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(255,255,255,0.15)',
+              color: 'rgba(255,255,255,0.8)', fontSize: 13,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}>✕</button>
+          </div>
+        </div>
+      )}
 
       {/* Modal full-screen de detalle */}
       {(() => {
@@ -1046,14 +1105,14 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
       )}
 
       {/* Botones flotantes — Glass Pill */}
-      <style>{`.ftpill{display:flex;align-items:center;justify-content:center;gap:0;height:44px;min-width:44px;padding:0 12px;border-radius:999px;border:none;cursor:pointer;font-size:10.5px;font-weight:700;letter-spacing:0.06em;white-space:nowrap;overflow:hidden;transition:background .22s,color .22s,gap .26s,padding .26s;-webkit-tap-highlight-color:transparent}.ftpill svg{flex-shrink:0;transition:transform .22s}.ftpill.fton svg{transform:scale(1.15)}.ftpill-lbl{max-width:0;overflow:hidden;opacity:0;transition:max-width .28s ease,opacity .2s}.ftpill.fton .ftpill-lbl{max-width:76px;opacity:1}.ftpill.fton{gap:7px;padding:0 16px 0 12px}@keyframes ftpillPulse{0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,0.55)}50%{box-shadow:0 0 0 7px rgba(56,189,248,0)}}.ftpill-pulse{animation:ftpillPulse 1.8s ease-in-out infinite}`}</style>
+      <style>{`.ftpill{display:flex;align-items:center;justify-content:center;gap:0;height:44px;min-width:44px;padding:0 12px;border-radius:999px;border:none;cursor:pointer;font-size:10.5px;font-weight:700;letter-spacing:0.06em;white-space:nowrap;overflow:hidden;transition:background .22s,color .22s,gap .26s,padding .26s;-webkit-tap-highlight-color:transparent}.ftpill svg{flex-shrink:0;transition:transform .22s}.ftpill.fton svg{transform:scale(1.15)}.ftpill-lbl{max-width:0;overflow:hidden;opacity:0;transition:max-width .28s ease,opacity .2s}.ftpill.fton .ftpill-lbl{max-width:76px;opacity:1}.ftpill.fton{gap:7px;padding:0 16px 0 12px}@keyframes ftpillPulse{0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,0.55)}50%{box-shadow:0 0 0 7px rgba(56,189,248,0)}}.ftpill-pulse{animation:ftpillPulse 1.8s ease-in-out infinite}.sv2-hide-scrollbar::-webkit-scrollbar{display:none}`}</style>
       <div style={{ position: 'fixed', bottom: 76, left: 0, right: 0, zIndex: selectedPhoto ? 75 : (showGallery || expanded) ? 65 : showCultura ? 41 : 41, pointerEvents: 'none', display: selectedId ? 'none' : 'flex', justifyContent: 'center', padding: '0 20px' }}>
         <div style={{ maxWidth: '80rem', width: '100%', display: 'flex', justifyContent: 'center', pointerEvents: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(12,12,12,0.62)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 999, padding: 5, boxShadow: '0 4px 28px rgba(0,0,0,0.5)' }}>
             {/* Home */}
             <button className={`ftpill${!expanded && !showGallery && !showCultura ? ' fton' : ''}`}
               style={{ background: !expanded && !showGallery && !showCultura ? 'rgba(239,255,66,0.13)' : 'transparent', color: !expanded && !showGallery && !showCultura ? '#efff42' : 'rgba(255,255,255,0.35)' }}
-              onClick={() => { setExpanded(false); setShowGallery(false); setShowCultura(false); setSelectedPhoto(null); photoStackRef.current = []; histDepthRef.current = 0 }}>
+              onClick={() => { setExpanded(false); setShowGallery(false); setShowCultura(false); setSelectedPhoto(null); setSelectedEvent(null); photoStackRef.current = []; histDepthRef.current = 0 }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg>
               <span className="ftpill-lbl">Home</span>
             </button>
@@ -1069,7 +1128,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
               style={{ background: showCultura ? 'rgba(239,255,66,0.13)' : 'transparent', color: showCultura ? '#efff42' : 'rgba(255,255,255,0.35)' }}
               onClick={() => {
                 if (showCultura) { setShowCultura(false); return }
-                setSelectedPhoto(null); setShowGallery(false); setExpanded(false); photoStackRef.current = []; histDepthRef.current = 0
+                setSelectedPhoto(null); setShowGallery(false); setExpanded(false); setSelectedEvent(null); photoStackRef.current = []; histDepthRef.current = 0
                 setShowCultura(true)
                 if (!culturaVideosLoaded) {
                   setCulturaVideosLoaded(true)
@@ -1098,7 +1157,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             {showInsumos && (
               <button className={`ftpill${expanded && !convView && !showGallery && !showCultura ? ' fton' : ''}`}
                 style={{ background: expanded && !convView && !showGallery && !showCultura ? 'rgba(239,255,66,0.13)' : 'transparent', color: expanded && !convView && !showGallery && !showCultura ? '#efff42' : 'rgba(255,255,255,0.35)' }}
-                onClick={() => { setSelectedPhoto(null); setShowGallery(false); setShowCultura(false); photoStackRef.current = []; histDepthRef.current = 0; setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}>
+                onClick={() => { setSelectedPhoto(null); setShowGallery(false); setShowCultura(false); setSelectedEvent(null); photoStackRef.current = []; histDepthRef.current = 0; setConvView(false); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_open' }) }).catch(() => {}) }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="8" y="2" width="8" height="4" rx="1"/>
                   <path d="M6 6h12v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6z"/>
@@ -1110,7 +1169,7 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             {/* Eventos */}
             <button className={`ftpill${expanded && convView && !showGallery && !showCultura ? ' fton' : ''}`}
               style={{ background: expanded && convView && !showGallery && !showCultura ? 'rgba(239,255,66,0.13)' : 'transparent', color: expanded && convView && !showGallery && !showCultura ? '#efff42' : 'rgba(255,255,255,0.35)' }}
-              onClick={() => { setSelectedPhoto(null); setShowGallery(false); setShowCultura(false); photoStackRef.current = []; histDepthRef.current = 0; setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}>
+              onClick={() => { setSelectedPhoto(null); setShowGallery(false); setShowCultura(false); setSelectedEvent(null); photoStackRef.current = []; histDepthRef.current = 0; setConvView(true); setExpanded(true); fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'eventos_open' }) }).catch(() => {}) }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               <span className="ftpill-lbl">{t('inicio', 'events_btn', 'Eventos')}</span>
             </button>
