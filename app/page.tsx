@@ -203,6 +203,11 @@ export default function Home() {
     (navigator as Navigator & { standalone?: boolean }).standalone === true
   )
 
+  // Punto rojo para quien todavía no activó las notificaciones — se mantiene
+  // mientras escriben el país (no se apaga solo por tipear), y desaparece
+  // recién cuando el toggle queda realmente activado
+  const pushSetupIncomplete = pushNotificationsVisible && typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && !pushEnabled
+
   const togglePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
     setPushLoading(true)
@@ -1703,8 +1708,14 @@ export default function Home() {
               <button
                 onClick={() => { setLangOpen(v => !v); setMenuLangOpen(false) }}
                 className="flex items-center justify-center rounded-lg transition-opacity hover:opacity-80"
-                style={{ width: 28, height: 36, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 1 }}>
+                style={{ position: 'relative', width: 28, height: 36, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 1 }}>
                 ⋮
+                {pushSetupIncomplete && (
+                  <>
+                    <span style={{ position: 'absolute', top: -3, right: -3, width: 8, height: 8, borderRadius: '50%', background: '#ff4d4d', animation: 'notifDotPulse 1.6s ease-in-out 3 forwards' }} />
+                    <style>{`@keyframes notifDotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.55;transform:scale(0.8)}}`}</style>
+                  </>
+                )}
               </button>
               {langOpen && (
                 <div className="absolute right-0 mt-1 rounded-xl z-50"
@@ -1750,7 +1761,7 @@ export default function Home() {
                         style={{ color: 'rgba(255,255,255,0.8)' }}>
                         <span>{t('inicio', 'menu_notifications', 'Notificaciones')}</span>
                         <span className="relative rounded-full transition-colors"
-                          style={{ width: 32, height: 18, background: pushEnabled ? '#efff42' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
+                          style={{ width: 32, height: 18, background: pushEnabled ? '#efff42' : 'rgba(255,100,100,0.5)', flexShrink: 0 }}>
                           <span className="absolute rounded-full bg-white transition-transform"
                             style={{ width: 14, height: 14, top: 2, left: pushEnabled ? 16 : 2 }} />
                         </span>
