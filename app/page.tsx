@@ -167,25 +167,6 @@ export default function Home() {
     fetch('/api/config').then(r => r.json()).then(d => setPushNotificationsVisible(d?.push_notifications_visible === true)).catch(() => {})
   }, [])
 
-  // Registra el service worker apenas carga (hace falta antes de poder
-  // suscribirse a push) y revisa si ya había una suscripción activa — si la
-  // hay, trae el país real guardado (no lo que haya quedado en el buscador)
-  useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => reg.pushManager.getSubscription())
-      .then(sub => {
-        setPushEnabled(!!sub)
-        if (sub) {
-          fetch('/api/push/subscribe?endpoint=' + encodeURIComponent(sub.endpoint))
-            .then(r => r.json())
-            .then(d => { if (d?.country) setPushCountry(d.country) })
-            .catch(() => {})
-        }
-      })
-      .catch(() => {})
-  }, [])
-
   const togglePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
     setPushLoading(true)
@@ -374,6 +355,29 @@ export default function Home() {
   const highlightPostId = typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('post') ?? undefined
     : undefined
+
+  // Registra el service worker apenas carga (hace falta antes de poder
+  // suscribirse a push) y revisa si ya había una suscripción activa — si la
+  // hay, trae el país real guardado (no lo que haya quedado en el buscador).
+  // También se vuelve a chequear cada vez que se abre comunidad (puede
+  // abrirse de entrada con ?comunidad=1) — si el chat se abre muy rápido,
+  // antes de que esto termine la primera vez, el país quedaba pegado al
+  // valor viejo hasta recargar la página entera.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => reg.pushManager.getSubscription())
+      .then(sub => {
+        setPushEnabled(!!sub)
+        if (sub) {
+          fetch('/api/push/subscribe?endpoint=' + encodeURIComponent(sub.endpoint))
+            .then(r => r.json())
+            .then(d => { if (d?.country) setPushCountry(d.country) })
+            .catch(() => {})
+        }
+      })
+      .catch(() => {})
+  }, [communityOpen])
   const communitySwipeRef = useRef<{ startX: number; startY: number } | null>(null)
   const [loggedStudio, setLoggedStudio] = useState<{ slug: string; name: string; logo_url: string | null; visible: boolean; expires_at?: string | null; access_token: string; refresh_token?: string; city?: string | null; country?: string | null } | null>(null)
   const [studioMenuOpen, setStudioMenuOpen] = useState(false)
@@ -551,17 +555,36 @@ export default function Home() {
     } catch {}
   }, [])
 
+  // El toque de afuera que cierra el menú de los tres puntos (notificaciones,
+  // idioma, etc.) no debería "atravesar" y disparar también lo que esté
+  // debajo (ej. abrir el perfil de un tatuador) — ese primer toque solo
+  // cierra el menú, hace falta un segundo toque para lo de abajo.
+  const suppressNextClickRef = useRef(false)
   useEffect(() => {
-    const h = (e: MouseEvent) => {
+    const onMouseDown = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        if (langOpen) suppressNextClickRef.current = true
+        setLangOpen(false); setMenuLangOpen(false)
+      }
       if (stylesRef.current && !stylesRef.current.contains(e.target as Node)) setStylesOpen(false)
-      if (langRef.current && !langRef.current.contains(e.target as Node)) { setLangOpen(false); setMenuLangOpen(false) }
       if (artistMenuRef.current && !artistMenuRef.current.contains(e.target as Node)) setArtistMenuOpen(false)
       if (studioMenuRef.current && !studioMenuRef.current.contains(e.target as Node)) setStudioMenuOpen(false)
       if (sponsorMenuRef.current && !sponsorMenuRef.current.contains(e.target as Node)) setSponsorMenuOpen(false)
     }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [])
+    const onClickCapture = (e: MouseEvent) => {
+      if (suppressNextClickRef.current) {
+        suppressNextClickRef.current = false
+        e.stopPropagation()
+        e.preventDefault()
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('click', onClickCapture, true)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('click', onClickCapture, true)
+    }
+  }, [langOpen])
 
   // Disponibilidad del artista seleccionado (solo cuando hay perfil abierto)
   useEffect(() => {
@@ -1713,11 +1736,11 @@ export default function Home() {
                           </p>
                         ) : (
                           <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 6 }}>
-                            {t('inicio', 'push_country_note', 'Con ese país te avisamos cuando tatuadores de ahí publiquen algo nuevo en comunidad.')}
+                            {t('inicio', 'push_country_note', 'Te avisamos cuando tatuadores de tu país publiquen algo nuevo.')}
                           </p>
                         )}
                         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 4 }}>
-                          {t('inicio', 'push_install_note', 'En el celular, instalá la app a tu pantalla de inicio para no perderte ninguna novedad.')}
+                          {t('inicio', 'push_install_note', 'En el celular, instalá la app para recibirlas.')}
                         </p>
                       </div>
                     </>
