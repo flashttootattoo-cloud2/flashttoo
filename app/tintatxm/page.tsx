@@ -8,6 +8,7 @@ import StudioPanel from '@/components/StudioPanel'
 import { renderPhraseContent } from '@/components/PhraseContent'
 import { useTranslation } from '@/contexts/TranslationContext'
 import CulturaVideosAdmin from '@/components/CulturaVideosAdmin'
+import InsumosVideoAdmin from '@/components/InsumosVideoAdmin'
 
 type DayVisit = { date: string; count: number }
 type Visit = { from: string; to: string; city: string; country: string }
@@ -1151,7 +1152,7 @@ export default function AdminPage() {
   const [pass, setPass]       = useState('')
   const [pin, setPin]         = useState('')
   const [auth, setAuth]       = useState(false)
-  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios' | 'idiomas' | 'frases' | 'comunidad' | 'culturavideos'>('artistas')
+  const [tab, setTab]         = useState<'artistas' | 'ads' | 'stats' | 'pendientes' | 'config' | 'contenido' | 'agregar' | 'sponsors2' | 'convenciones' | 'estudios' | 'idiomas' | 'frases' | 'comunidad' | 'culturavideos' | 'insumosvideo'>('artistas')
   const [artists, setArtists]       = useState<Artist[]>([])
   const [artistsTotal, setArtistsTotal] = useState(0)
   const [artistsOffset, setArtistsOffset] = useState(0)
@@ -2036,6 +2037,7 @@ export default function AdminPage() {
               { key: 'artistas',     label: `Tatuadores (${artists.filter(a => a.status !== 'pending').length})` },
               { key: 'pendientes',   label: pendingCount > 0 ? `Pendientes (${pendingCount})` : 'Pendientes', alert: pendingCount > 0 },
               { key: 'sponsors2',    label: `Sponsors (${sponsorsV2.length})` },
+              { key: 'insumosvideo', label: 'Video Insumos' },
               { key: 'convenciones', label: `Convenciones (${conventions.length})` },
               { key: 'estudios',     label: `Estudios (${adminStudios.length})` },
               { key: 'frases',        label: 'Cultura' },
@@ -5149,6 +5151,11 @@ export default function AdminPage() {
 
           // ── CULTURA VIDEOS ────────────────────────────────────────────────────
           <CulturaVideosAdmin pass={pass} />
+
+        ) : tab === 'insumosvideo' ? (
+
+          // ── VIDEO INSUMOS ─────────────────────────────────────────────────────
+          <InsumosVideoAdmin pass={pass} />
 
         ) : tab === 'comunidad' ? (
 

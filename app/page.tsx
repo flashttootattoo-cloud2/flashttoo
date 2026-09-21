@@ -3638,7 +3638,7 @@ export default function Home() {
       )}
 
       {/* ConventionModal desactivado temporalmente */}
-      <SponsorsBannerV2 city={city} country={country} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} onOverlayChange={setInsumoOpen} onOpenSearchWizard={() => setShowSearchWizard(true)} pulseSearchWizard={!searchWizardSeen} />
+      <SponsorsBannerV2 city={city} country={country} notifCountry={pushCountry} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} onOverlayChange={setInsumoOpen} onOpenSearchWizard={() => setShowSearchWizard(true)} pulseSearchWizard={!searchWizardSeen} />
 
       {/* ── MODAL FRASE ─────────────────────────────────────────── */}
       {phraseOpen && phrase && !!phrase.tags?.length && (

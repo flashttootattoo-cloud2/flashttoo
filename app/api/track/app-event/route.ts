@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const ALLOWED = ['insumos_open', 'eventos_open'] as const
+const ALLOWED = ['insumos_open', 'eventos_open', 'insumos_video_click'] as const
 
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown> = {}

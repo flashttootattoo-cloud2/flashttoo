@@ -135,7 +135,7 @@ function CulturaVideoPlayer({ src, poster, forceMuted }: { src: string; poster: 
   )
 }
 
-export default function SponsorsBannerV2({ city, country, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false, showInsumos = true, onOverlayChange, onOpenSearchWizard, pulseSearchWizard = false }: { city?: string; country?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean; showInsumos?: boolean; onOverlayChange?: (open: boolean) => void; onOpenSearchWizard?: () => void; pulseSearchWizard?: boolean }) {
+export default function SponsorsBannerV2({ city, country, notifCountry, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false, showInsumos = true, onOverlayChange, onOpenSearchWizard, pulseSearchWizard = false }: { city?: string; country?: string; notifCountry?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean; showInsumos?: boolean; onOverlayChange?: (open: boolean) => void; onOpenSearchWizard?: () => void; pulseSearchWizard?: boolean }) {
   const { t, language } = useTranslation()
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [bannerGap, setBannerGap] = useState(8)
@@ -186,6 +186,48 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
   const detailSentinelRef = useRef<HTMLDivElement>(null)
   const [convCountrySearch, setConvCountrySearch] = useState('')
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null)
+  type InsumosVideoRow = { id: string; video_url: string; link: string | null; sponsor_name: string | null; country: string | null }
+  const [insumosVideos, setInsumosVideos] = useState<InsumosVideoRow[]>([])
+  const [insumosVideoMuted, setInsumosVideoMuted] = useState(true)
+  const insumosVideoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    fetch('/api/insumos-videos').then(r => r.json()).then(d => setInsumosVideos(d?.videos ?? [])).catch(() => {})
+  }, [])
+
+  // Prioriza un video para el país de notificaciones del visitante; si no hay, cae al global (sin país)
+  const insumosVideo = insumosVideos.find(v => v.country && countryMatchesSearch(v.country, notifCountry || ''))
+    ?? insumosVideos.find(v => !v.country)
+    ?? null
+
+  function toggleInsumosSound(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setInsumosVideoMuted(v => !v)
+    if (insumosVideoRef.current) insumosVideoRef.current.muted = !insumosVideoRef.current.muted
+  }
+
+  // Pausa el video de Insumos cuando se scrollea fuera de vista (ahorra datos/batería
+  // en vez de seguir reproduciendo algo que no se ve) y lo retoma al volver a verse.
+  // Al salir de pantalla también se vuelve a mutear — si no, al volver a entrar el
+  // navegador puede bloquear el play() por ser un video con sonido sin gesto del
+  // usuario, y queda pausado para siempre en vez de retomar.
+  useEffect(() => {
+    if (!insumosVideo || !insumosVideoRef.current) return
+    const el = insumosVideoRef.current
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        el.play().catch(() => {})
+      } else {
+        el.pause()
+        el.muted = true
+        setInsumosVideoMuted(true)
+      }
+    }, { threshold: 0.25 })
+    observer.observe(el)
+    return () => observer.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insumosVideo?.id])
   const [gridBgImage, setGridBgImage] = useState<string | null>(null)
   const [bioExpanded, setBioExpanded] = useState(false)
   const [sponsorContactOpen, setSponsorContactOpen] = useState(false)
@@ -608,6 +650,33 @@ export default function SponsorsBannerV2({ city, country, conventions = [], flas
             {/* Vista Insumos */}
             {!convView && (
               <div>
+                {insumosVideo && (() => {
+                  const videoEl = (
+                    // eslint-disable-next-line jsx-a11y/media-has-caption
+                    <video ref={insumosVideoRef} src={insumosVideo.video_url} autoPlay loop muted playsInline style={{ width: '100%', display: 'block', background: '#000' }} />
+                  )
+                  const soundBtn = (
+                    <button onClick={toggleInsumosSound} style={{ position: 'absolute', bottom: 12, right: 12, width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title={insumosVideoMuted ? 'Activar sonido' : 'Silenciar'}>
+                      {insumosVideoMuted
+                        ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                        : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                      }
+                    </button>
+                  )
+                  return insumosVideo.link ? (
+                    <a href={/^https?:\/\//i.test(insumosVideo.link) ? insumosVideo.link : `https://${insumosVideo.link}`} target="_blank" rel="noopener noreferrer"
+                      onClick={() => fetch('/api/track/app-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_name: 'insumos_video_click' }) }).catch(() => {})}
+                      style={{ position: 'relative', display: 'block', width: '100%', borderRadius: 14, overflow: 'hidden', marginBottom: 14, border: '1px solid rgba(255,255,255,0.1)' }}>
+                      {videoEl}
+                      {soundBtn}
+                    </a>
+                  ) : (
+                    <div style={{ position: 'relative', width: '100%', borderRadius: 14, overflow: 'hidden', marginBottom: 14, border: '1px solid rgba(255,255,255,0.1)' }}>
+                      {videoEl}
+                      {soundBtn}
+                    </div>
+                  )
+                })()}
                 <input
                   type="text"
                   placeholder={t('insumos', 'search_placeholder', 'Buscar proveedor por país...')}
