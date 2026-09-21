@@ -7,7 +7,10 @@ function sb() {
 }
 
 export async function POST(req: NextRequest) {
-  const { email, password, invite_token } = await req.json()
+  const body = await req.json()
+  const password = body.password
+  const invite_token = body.invite_token
+  const email = typeof body.email === 'string' ? body.email.trim() : ''
   if (!email || !password) return NextResponse.json({ error: 'Email y contraseña requeridos' }, { status: 400 })
   if (password.length < 8) return NextResponse.json({ error: 'La contraseña debe tener al menos 8 caracteres' }, { status: 400 })
 

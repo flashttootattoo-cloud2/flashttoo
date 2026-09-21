@@ -51,7 +51,7 @@ export default function RegistrarMarca() {
     const r = await fetch('/api/auth/register-sponsor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, invite_token: inviteToken }),
+      body: JSON.stringify({ email: email.trim(), password, invite_token: inviteToken }),
     })
     const d = await r.json()
     setLoading(false)
