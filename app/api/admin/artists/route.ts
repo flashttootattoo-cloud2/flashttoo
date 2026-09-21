@@ -13,11 +13,6 @@ function checkAuth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
-function genKey() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-}
-
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const url    = new URL(req.url)
@@ -60,7 +55,9 @@ export async function POST(req: NextRequest) {
     if (a?.length || s?.length) return NextResponse.json({ error: 'Este Instagram ya está en uso' }, { status: 400 })
   }
 
-  const edit_key = genKey()
+  // Se crea como borrador sin publicar — no se usa mas la clave de edicion
+  // para este flujo, el admin comparte el link de /reclamar/[id] en su lugar
+  // y el propio tatuador activa el perfil con mail y contraseña
   const { data, error } = await sb.from('artists').insert({
     name:      (fd.get('name') as string).trim(),
     city:      (fd.get('city') as string).trim(),
@@ -72,9 +69,10 @@ export async function POST(req: NextRequest) {
     email:     (fd.get('email') as string)?.trim()    || null,
     bio:       (fd.get('bio') as string)?.trim()      || null,
     visits:    JSON.parse((fd.get('visits') as string) || '[]'),
-    edit_key,
+    status:    'draft',
+    visible:   false,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ artist: data, edit_key })
+  return NextResponse.json({ artist: data })
 }

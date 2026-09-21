@@ -32,6 +32,33 @@ export async function sendActivationEmail({ to, name, activationUrl }: {
   })
 }
 
+export async function sendArtistClaimedEmail({ to, name }: {
+  to: string
+  name: string
+}) {
+  return resend.emails.send({
+    from: `Flashttoo <${FROM}>`,
+    to,
+    subject: 'Tu perfil de Flashttoo ya está activo',
+    html: `
+      <div style="background:#000;padding:40px 24px;font-family:sans-serif;max-width:480px;margin:0 auto">
+        <img src="https://flashttoo.com/Logoprincipal.svg" alt="Flashttoo" style="height:28px;margin-bottom:32px" />
+        <p style="color:rgba(255,255,255,0.7);font-size:15px;line-height:1.7;margin:0 0 8px">Hola ${name},</p>
+        <p style="color:rgba(255,255,255,0.7);font-size:15px;line-height:1.7;margin:0 0 32px">
+          Tu perfil en Flashttoo ya está activo y visible en el buscador. Este mail (${to}) es el que vas a usar para ingresar desde el botón "Ingresar" de la app.
+        </p>
+        <a href="https://flashttoo.com"
+          style="display:inline-block;background:#efff42;color:#000;font-weight:700;font-size:14px;padding:14px 28px;border-radius:10px;text-decoration:none;letter-spacing:0.02em">
+          Ver mi perfil
+        </a>
+        <p style="color:rgba(255,255,255,0.25);font-size:12px;margin-top:32px;line-height:1.6">
+          Si no activaste este perfil, escribinos a info@flashttoo.com.
+        </p>
+      </div>
+    `,
+  })
+}
+
 export async function sendMigrateEmail({ to, activateUrl }: {
   to: string
   activateUrl: string

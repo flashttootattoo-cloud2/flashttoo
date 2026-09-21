@@ -187,8 +187,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
   const [preview, setPreview]   = useState<string | null>(null)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
-  const [done, setDone]         = useState<{ name: string; editKey: string; id: string; instagram?: string } | null>(null)
-  const [keyCopied, setKeyCopied]   = useState(false)
+  const [done, setDone]         = useState<{ name: string; id: string; instagram?: string } | null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
   const [igStatus, setIgStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [visits, setVisits] = useState<Visit[]>([])
@@ -257,7 +256,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Error')
       onAdded(d.artist)
-      setDone({ name: form.name.trim(), editKey: d.edit_key, id: d.artist.id, instagram: d.artist.instagram })
+      setDone({ name: form.name.trim(), id: d.artist.id, instagram: d.artist.instagram })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error')
     } finally { setSaving(false) }
@@ -271,36 +270,26 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
 
   const iCls = 'w-full py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20'
 
-  if (done) return (
+  if (done) {
+    const claimUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar/${done.id}`
+    return (
     <div className="max-w-sm flex flex-col gap-4">
       <div className="rounded-xl p-5" style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)' }}>
-        <p className="text-sm font-bold mb-1" style={{ color: '#4ade80' }}>Tatuador agregado</p>
-        <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>{done.name} ya está visible en el buscador.</p>
-        <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Clave de edición</p>
+        <p className="text-sm font-bold mb-1" style={{ color: '#4ade80' }}>Tatuador agregado (borrador)</p>
+        <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          {done.name} está guardado pero todavía no es visible en el buscador. Mandale este link — ahí ve su perfil como vista previa y lo activa poniendo mail y contraseña.
+        </p>
+        <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Link para activar el perfil</p>
         <div className="flex gap-2">
-          <span className="flex-1 py-2 px-3 rounded-lg text-center font-bold font-mono tracking-widest"
-            style={{ background: 'rgba(239,255,66,0.06)', border: '1px solid rgba(239,255,66,0.2)', color: '#efff42', fontSize: 16 }}>
-            {done.editKey}
+          <span className="flex-1 py-2 px-3 rounded-lg text-xs truncate"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
+            {claimUrl}
           </span>
-          <button onClick={() => { navigator.clipboard.writeText(done.editKey); setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000) }}
-            className="px-4 rounded-lg text-xs font-bold"
-            style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${keyCopied ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: keyCopied ? '#4ade80' : '#efff42' }}>
-            {keyCopied ? '✓' : 'copiar'}
+          <button onClick={() => { navigator.clipboard.writeText(claimUrl); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) }}
+            className="px-4 rounded-lg text-xs font-bold shrink-0"
+            style={{ background: linkCopied ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${linkCopied ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: linkCopied ? '#4ade80' : '#efff42' }}>
+            {linkCopied ? '✓' : 'copiar'}
           </button>
-        </div>
-        <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Link del perfil</p>
-          <div className="flex gap-2">
-            <span className="flex-1 py-2 px-3 rounded-lg text-xs truncate"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
-              {`flashttoo.com/?artista=${done.instagram ? done.instagram.replace('@', '') : done.id}`}
-            </span>
-            <button onClick={() => { navigator.clipboard.writeText(`https://flashttoo.com/?artista=${done.instagram ? done.instagram.replace('@', '') : done.id}`); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) }}
-              className="px-4 rounded-lg text-xs font-bold shrink-0"
-              style={{ background: linkCopied ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${linkCopied ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.12)'}`, color: linkCopied ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>
-              {linkCopied ? '✓' : 'copiar'}
-            </button>
-          </div>
         </div>
       </div>
       <button onClick={reset} className="w-full py-2.5 rounded-xl text-sm font-bold"
@@ -308,7 +297,8 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
         Agregar otro
       </button>
     </div>
-  )
+    )
+  }
 
   return (
     <form onSubmit={save} className="max-w-sm flex flex-col gap-4">
@@ -518,6 +508,59 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
         {saving ? 'Guardando...' : 'Agregar tatuador'}
       </button>
     </form>
+  )
+}
+
+// Perfiles creados como borrador (todavía sin reclamar) — para volver a
+// encontrar el link de activación de alguien que ya se agregó antes
+function DraftArtistsList({ pass }: { pass: string }) {
+  const [drafts, setDrafts] = useState<{ id: string; name: string; city: string | null; country: string | null; created_at: string }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/admin/artists?status=draft&limit=200&offset=0', { headers: H(pass) })
+      .then(r => r.json())
+      .then(d => setDrafts(d.artists ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [pass])
+
+  if (loading) return null
+  if (drafts.length === 0) return null
+
+  return (
+    <div className="max-w-sm flex flex-col gap-3">
+      <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        Borradores sin reclamar ({drafts.length})
+      </p>
+      <div className="flex flex-col gap-2">
+        {drafts.map(d => {
+          const claimUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar/${d.id}`
+          return (
+            <div key={d.id} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-sm font-bold truncate" style={{ color: '#fff' }}>{d.name}</p>
+                {(d.city || d.country) && (
+                  <span className="text-xs shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }}>{[d.city, d.country].filter(Boolean).join(', ')}</span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <span className="flex-1 py-1.5 px-2.5 rounded-lg text-xs truncate"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
+                  {claimUrl}
+                </span>
+                <button onClick={() => { navigator.clipboard.writeText(claimUrl); setCopiedId(d.id); setTimeout(() => setCopiedId(null), 2000) }}
+                  className="px-3 rounded-lg text-xs font-bold shrink-0"
+                  style={{ background: copiedId === d.id ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${copiedId === d.id ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: copiedId === d.id ? '#4ade80' : '#efff42' }}>
+                  {copiedId === d.id ? '✓' : 'copiar'}
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -3969,7 +4012,10 @@ export default function AdminPage() {
         ) : tab === 'agregar' ? (
 
           // ── AGREGAR ──────────────────────────────────────────────────────────
-          <AddArtistForm pass={pass} onAdded={a => { setArtists(prev => [a, ...prev]); setArtistsTotal(prev => prev + 1) }} availableStyles={adminStyles} existingArtists={artists} />
+          <div className="flex flex-col gap-10">
+            <AddArtistForm pass={pass} onAdded={a => { setArtists(prev => [a, ...prev]); setArtistsTotal(prev => prev + 1) }} availableStyles={adminStyles} existingArtists={artists} />
+            <DraftArtistsList pass={pass} />
+          </div>
 
         ) : tab === 'convenciones' ? (
 
