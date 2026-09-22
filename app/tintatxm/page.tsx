@@ -1246,6 +1246,9 @@ export default function AdminPage() {
   const [showMigrated, setShowMigrated] = useState(false)
   const [migratedArtists, setMigratedArtists] = useState<Artist[]>([])
   const [loadingMigrated, setLoadingMigrated] = useState(false)
+  const [showHidden, setShowHidden] = useState(false)
+  const [hiddenArtists, setHiddenArtists] = useState<Artist[]>([])
+  const [loadingHidden, setLoadingHidden] = useState(false)
   const [searchStats, setSearchStats] = useState<{ countries: SearchStat[]; cities: SearchStat[]; styles: SearchStat[] }>({ countries: [], cities: [], styles: [] })
   const [appEventCounts, setAppEventCounts] = useState<Record<string, number>>({})
   const [artistSearch, setArtistSearch] = useState('')
@@ -2258,6 +2261,7 @@ export default function AdminPage() {
                   onClick={async () => {
                     const next = !showMigrated
                     setShowMigrated(next)
+                    if (next) setShowHidden(false)
                     if (next && migratedArtists.length === 0) {
                       setLoadingMigrated(true)
                       const r = await fetch(`/api/admin/artists?migrated=true&limit=1000&offset=0`, { headers: H(pass) }).then(res => res.json()).catch(() => null)
@@ -2268,6 +2272,22 @@ export default function AdminPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
                   style={{ background: showMigrated ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.05)', color: showMigrated ? '#efff42' : 'rgba(255,255,255,0.5)', border: `1px solid ${showMigrated ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
                   {loadingMigrated ? '...' : `Migrados${showMigrated && migratedArtists.length ? ` (${migratedArtists.length})` : ''}`}
+                </button>
+                <button
+                  onClick={async () => {
+                    const next = !showHidden
+                    setShowHidden(next)
+                    if (next) setShowMigrated(false)
+                    if (next) {
+                      setLoadingHidden(true)
+                      const r = await fetch(`/api/admin/artists?hidden=true&limit=1000&offset=0`, { headers: H(pass) }).then(res => res.json()).catch(() => null)
+                      if (r?.artists) setHiddenArtists(r.artists)
+                      setLoadingHidden(false)
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                  style={{ background: showHidden ? 'rgba(255,200,0,0.12)' : 'rgba(255,255,255,0.05)', color: showHidden ? 'rgba(255,200,0,0.85)' : 'rgba(255,255,255,0.5)', border: `1px solid ${showHidden ? 'rgba(255,200,0,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
+                  {loadingHidden ? '...' : `Ocultos${showHidden && hiddenArtists.length ? ` (${hiddenArtists.length})` : ''}`}
                 </button>
                 <button
                   onClick={refreshArtists}
@@ -2308,6 +2328,15 @@ export default function AdminPage() {
                 {loadingMigrated
                   ? <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando migrados...</p>
                   : <ArtistGrid artists={[...migratedArtists].sort((a, b) => new Date(b.migrated_at!).getTime() - new Date(a.migrated_at!).getTime())} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onUpdateEmail={updateArtistEmail} onToggleInvites={toggleInvites} />
+                }
+              </>
+            ) : showHidden ? (
+              <>
+                {loadingHidden
+                  ? <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando ocultos...</p>
+                  : hiddenArtists.length === 0
+                    ? <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>Sin tatuadores ocultos.</p>
+                    : <ArtistGrid artists={[...hiddenArtists].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onUpdateEmail={updateArtistEmail} onToggleInvites={toggleInvites} />
                 }
               </>
             ) : (
