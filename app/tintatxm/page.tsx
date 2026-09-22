@@ -1431,7 +1431,7 @@ export default function AdminPage() {
 
   // Estudios
   type AdminStudioArtist = { artist_id: string; artists: { id: string; name: string; instagram: string | null } | null }
-  type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number; auth_email?: string | null; studio_artists?: AdminStudioArtist[] }
+  type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number; auth_email?: string | null; user_id?: string | null; studio_artists?: AdminStudioArtist[] }
   const [adminStudios, setAdminStudios]       = useState<AdminStudio[]>([])
   const [loadingStudios, setLoadingStudios]   = useState(false)
 
@@ -1565,7 +1565,8 @@ export default function AdminPage() {
   const [studioLogoPreview, setStudioLogoPreview] = useState<string | null>(null)
   const [savingStudio, setSavingStudio]       = useState(false)
   const [studioError, setStudioError]         = useState('')
-  const [studioCreated, setStudioCreated]     = useState<{ name: string; slug: string; edit_key: string } | null>(null)
+  const [studioCreated, setStudioCreated]     = useState<{ name: string; id: string } | null>(null)
+  const [studioFormOpen, setStudioFormOpen]   = useState(false)
   const [keyCopied, setKeyCopied]             = useState(false)
   const [copiedLinkLang, setCopiedLinkLang]   = useState<string | null>(null)
   const [copiedStudioLink, setCopiedStudioLink] = useState<string | null>(null)
@@ -1775,6 +1776,74 @@ export default function AdminPage() {
     const d = await fetch('/api/admin/studios', { headers: H(p) }).then(r => r.json()).catch(() => ({}))
     if (d.studios) setAdminStudios(d.studios)
     setLoadingStudios(false)
+  }
+
+  const handleStudioLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return
+    setStudioLogoPreview(URL.createObjectURL(file))
+    const img = new window.Image()
+    img.onload = () => {
+      const MAX = 900; let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => { if (blob) setStudioLogo(new File([blob], 'logo.webp', { type: 'image/webp' })) }, 'image/webp', 0.82)
+    }
+    img.src = URL.createObjectURL(file)
+  }
+
+  const saveStudio = async (e: { preventDefault: () => void }) => {
+    e.preventDefault(); setStudioError('')
+    if (!studioLogo) { setStudioError('Agregá un logo'); return }
+    if (!studioForm.name.trim() || !studioForm.city.trim() || !studioForm.country.trim()) { setStudioError('Nombre, ciudad y país son obligatorios'); return }
+    setSavingStudio(true)
+    try {
+      const fd = new FormData()
+      fd.append('logo', studioLogo)
+      fd.append('name', studioForm.name.trim())
+      fd.append('city', studioForm.city.trim())
+      fd.append('country', studioForm.country.trim())
+      fd.append('description', studioForm.description.trim())
+      fd.append('instagram', studioForm.instagram.trim())
+      fd.append('whatsapp', studioForm.whatsapp.trim())
+      fd.append('website', studioForm.website.trim())
+      const r = await fetch('/api/admin/studios', { method: 'POST', headers: H(pass), body: fd })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Error')
+      setAdminStudios(prev => [d.studio, ...prev])
+      setStudioCreated({ name: studioForm.name.trim(), id: d.studio.id })
+    } catch (err: unknown) {
+      setStudioError(err instanceof Error ? err.message : 'Error')
+    } finally { setSavingStudio(false) }
+  }
+
+  const resetStudioForm = () => {
+    setStudioForm({ name: '', slug: '', city: '', country: '', description: '', instagram: '', whatsapp: '', website: '', expires_at: '' })
+    setStudioLogo(null); setStudioLogoPreview(null); setStudioCreated(null); setStudioError(''); setStudioFormOpen(false)
+  }
+
+  const [editingStudioEmail, setEditingStudioEmail] = useState<{ id: string; value: string } | null>(null)
+  const [savingStudioEmail, setSavingStudioEmail] = useState(false)
+  const updateStudioEmail = async (id: string, email: string) => {
+    const trimmed = email.trim().toLowerCase()
+    if (!trimmed) return
+    setSavingStudioEmail(true)
+    try {
+      const r = await fetch(`/api/admin/studios/${id}/fix-email`, {
+        method: 'POST', headers: { ...H(pass), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmed }),
+      })
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}))
+        alert(`Error al corregir mail: ${d.error || r.status}`)
+        return
+      }
+      setAdminStudios(prev => prev.map(s => s.id === id ? { ...s, auth_email: trimmed } : s))
+    } finally { setSavingStudioEmail(false) }
   }
 
   const loadStatsArtists = async (p: string, force = false) => {
@@ -3359,6 +3428,15 @@ export default function AdminPage() {
                                 if (!source) return
                                 setLinkingPending(true)
                                 try {
+                                  // Primero se borra el registro nuevo (sin contenido propio) — si no,
+                                  // el mismo user_id/auth_email quedaría un instante en dos filas y la
+                                  // restricción de unicidad rechaza el PATCH siguiente sin avisar nada.
+                                  const delRes = await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'DELETE', headers: H(pass) })
+                                  if (!delRes.ok) {
+                                    const dd = await delRes.json().catch(() => ({}))
+                                    alert(`Error al borrar el registro: ${dd.error || delRes.status}`)
+                                    return
+                                  }
                                   // La marca original sigue siendo la que editás siempre — solo le
                                   // pasamos el login (user_id/auth_email) del registro nuevo.
                                   const r = await fetch(`/api/admin/sponsors-v2/${source.id}`, {
@@ -3367,13 +3445,13 @@ export default function AdminPage() {
                                     body: JSON.stringify({ user_id: sp.user_id, auth_email: sp.auth_email, active: true }),
                                   })
                                   const d = await r.json()
-                                  if (r.ok) {
-                                    // El registro self-registrado no tiene contenido propio (sin logo ni
-                                    // imágenes) — se borra una vez que su login ya quedó en la original.
-                                    await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'DELETE', headers: H(pass) })
-                                    setSponsorsV2(prev => prev.filter(x => x.id !== sp.id).map(x => x.id === source.id ? d.sponsor : x))
-                                    setEditingPendingId(null); setLinkTargetId('')
+                                  if (!r.ok) {
+                                    alert(`Error al vincular: ${d.error || r.status}`)
+                                    setSponsorsV2(prev => prev.filter(x => x.id !== sp.id))
+                                    return
                                   }
+                                  setSponsorsV2(prev => prev.filter(x => x.id !== sp.id).map(x => x.id === source.id ? d.sponsor : x))
+                                  setEditingPendingId(null); setLinkTargetId('')
                                 } finally { setLinkingPending(false) }
                               }}
                               className="shrink-0 text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
@@ -4297,6 +4375,102 @@ export default function AdminPage() {
               </button>
             </div>
 
+            {/* Agregar estudio como borrador — genera un link de /reclamar-estudio/[id] */}
+            <div className="rounded-xl p-5 flex flex-col gap-3"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>AGREGAR ESTUDIO</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    Se crea como borrador (no publicado) — le mandás el link y lo activa poniendo mail y contraseña.
+                  </p>
+                </div>
+                <button
+                  onClick={() => { if (studioFormOpen) resetStudioForm(); else setStudioFormOpen(true) }}
+                  className="shrink-0 font-bold text-xs py-2 px-4 rounded-full"
+                  style={{ background: studioFormOpen ? 'rgba(239,255,66,0.1)' : '#efff42', border: studioFormOpen ? '1px solid rgba(239,255,66,0.3)' : 'none', color: studioFormOpen ? '#efff42' : '#000' }}>
+                  {studioFormOpen ? 'Cancelar' : '+ Agregar estudio'}
+                </button>
+              </div>
+
+              {studioFormOpen && (studioCreated ? (
+                <div className="rounded-xl p-4" style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)' }}>
+                  <p className="text-sm font-bold mb-1" style={{ color: '#4ade80' }}>Estudio agregado (borrador)</p>
+                  <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {studioCreated.name} está guardado pero todavía no es visible. Mandale este link — ahí ve su perfil como vista previa y lo activa poniendo mail y contraseña.
+                  </p>
+                  <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Link para activar el perfil</p>
+                  <div className="flex gap-2">
+                    <span className="flex-1 py-2 px-3 rounded-lg text-xs truncate"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
+                      {`${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar-estudio/${studioCreated.id}`}
+                    </span>
+                    <button onClick={() => {
+                      navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar-estudio/${studioCreated.id}`)
+                      setCopiedStudioLink(studioCreated.id); setTimeout(() => setCopiedStudioLink(null), 2000)
+                    }}
+                      className="px-4 rounded-lg text-xs font-bold shrink-0"
+                      style={{ background: copiedStudioLink === studioCreated.id ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${copiedStudioLink === studioCreated.id ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.3)'}`, color: copiedStudioLink === studioCreated.id ? '#4ade80' : '#efff42' }}>
+                      {copiedStudioLink === studioCreated.id ? '✓' : 'copiar'}
+                    </button>
+                  </div>
+                  <button onClick={resetStudioForm} className="w-full mt-4 py-2.5 rounded-xl text-sm font-bold"
+                    style={{ background: '#efff42', color: '#000' }}>
+                    Agregar otro
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={saveStudio} className="flex flex-col gap-3">
+                  <label className="cursor-pointer block">
+                    <p className="text-xs mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Logo *</p>
+                    {studioLogoPreview ? (
+                      <div className="relative rounded-xl overflow-hidden" style={{ width: 100, aspectRatio: '1' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={studioLogoPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
+                          <span className="text-xs text-white/60 bg-black/50 px-2 py-1 rounded-full">cambiar</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl flex items-center justify-center" style={{ width: 100, aspectRatio: '1', border: '2px dashed rgba(255,255,255,0.08)' }}>
+                        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>subir logo</span>
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleStudioLogo} />
+                  </label>
+                  <input value={studioForm.name} onChange={e => setStudioForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Nombre del estudio *" className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20" />
+                  <div className="flex gap-2">
+                    <input value={studioForm.city} onChange={e => setStudioForm(f => ({ ...f, city: e.target.value }))}
+                      placeholder="Ciudad *" className="flex-1 py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20" />
+                    <input value={studioForm.country} onChange={e => setStudioForm(f => ({ ...f, country: e.target.value }))}
+                      placeholder="País *" className="flex-1 py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20" />
+                  </div>
+                  <textarea value={studioForm.description} onChange={e => setStudioForm(f => ({ ...f, description: e.target.value }))}
+                    rows={3} placeholder="Descripción"
+                    className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20 resize-none" />
+                  <div className="relative">
+                    <input value={studioForm.instagram} onChange={e => setStudioForm(f => ({ ...f, instagram: e.target.value }))}
+                      placeholder="Instagram" className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20" />
+                    {studioForm.instagram.trim() && (
+                      <span className="absolute right-3 top-2.5 text-xs" style={{ color: studioIgStatus === 'taken' ? '#f87171' : studioIgStatus === 'ok' ? '#4ade80' : 'rgba(255,255,255,0.2)' }}>
+                        {studioIgStatus === 'checking' ? '...' : studioIgStatus === 'taken' ? 'en uso' : studioIgStatus === 'ok' ? 'libre' : ''}
+                      </span>
+                    )}
+                  </div>
+                  <input value={studioForm.whatsapp} onChange={e => setStudioForm(f => ({ ...f, whatsapp: e.target.value }))}
+                    placeholder="WhatsApp" className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20" />
+                  <input value={studioForm.website} onChange={e => setStudioForm(f => ({ ...f, website: e.target.value }))}
+                    placeholder="Sitio web" className="w-full py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20" />
+                  {studioError && <p className="text-xs" style={{ color: '#f87171' }}>{studioError}</p>}
+                  <button type="submit" disabled={savingStudio || studioIgStatus === 'taken'} className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40"
+                    style={{ background: '#efff42', color: '#000' }}>
+                    {savingStudio ? 'Guardando...' : 'Agregar estudio'}
+                  </button>
+                </form>
+              ))}
+            </div>
+
             {/* Lista de estudios */}
             <div className="flex items-center justify-between">
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>
@@ -4349,7 +4523,40 @@ export default function AdminPage() {
                         </div>
                         <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>/estudio/{studio.slug}{studio.city ? ` · ${studio.city}` : ''}</p>
                         {studio.auth_email && (
-                          <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(239,255,66,0.4)' }}>✉ {studio.auth_email}</p>
+                          editingStudioEmail?.id === studio.id ? (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <input
+                                value={editingStudioEmail.value}
+                                onChange={e => setEditingStudioEmail({ id: studio.id, value: e.target.value })}
+                                onKeyDown={async e => {
+                                  if (e.key === 'Enter') {
+                                    await updateStudioEmail(studio.id, editingStudioEmail.value)
+                                    setEditingStudioEmail(null)
+                                  }
+                                  if (e.key === 'Escape') setEditingStudioEmail(null)
+                                }}
+                                autoFocus
+                                className="py-0.5 px-2 rounded text-xs font-bold outline-none"
+                                style={{ background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.35)', color: '#efff42', minWidth: 160 }}
+                              />
+                              <button onClick={async () => { await updateStudioEmail(studio.id, editingStudioEmail.value); setEditingStudioEmail(null) }}
+                                disabled={savingStudioEmail}
+                                className="text-xs px-2 py-0.5 rounded font-bold shrink-0 disabled:opacity-40"
+                                style={{ background: 'rgba(239,255,66,0.12)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>
+                                {savingStudioEmail ? '...' : 'ok'}
+                              </button>
+                              <button onClick={() => setEditingStudioEmail(null)}
+                                className="text-xs px-1.5 py-0.5 rounded shrink-0"
+                                style={{ color: 'rgba(255,255,255,0.25)' }}>✕</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setEditingStudioEmail({ id: studio.id, value: studio.auth_email! })}
+                              className="text-xs truncate mt-0.5 transition-opacity hover:opacity-70"
+                              style={{ color: 'rgba(239,255,66,0.4)', background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
+                              title="Corregir mail (typo)">
+                              ✉ {studio.auth_email}
+                            </button>
+                          )
                         )}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           {!studio.auth_email && <p className="text-xs shrink-0" style={{ color: 'rgba(255,255,255,0.15)', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.1em' }}>clave: {studio.edit_key}</p>}
