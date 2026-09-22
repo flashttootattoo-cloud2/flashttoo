@@ -3795,12 +3795,13 @@ export default function AdminPage() {
               </button>
             </form>
 
-            {/* Lista sponsors v2 */}
+            {/* Lista sponsors v2 — incluye a las que ya tienen login (vinculadas
+                o self-registradas), no solo las cargadas por admin sin cuenta */}
             <div className="flex flex-col gap-3">
-              {sponsorsV2.filter(sp => !sp.auth_email).length === 0 && (
+              {sponsorsV2.length === 0 && (
                 <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.1)' }}>Sin marcas</p>
               )}
-              {sponsorsV2.filter(sp => !sp.auth_email).map(sp => {
+              {sponsorsV2.map(sp => {
                 const now = new Date()
                 const exp = sp.expires_at ? new Date(sp.expires_at) : null
                 const expired = exp && exp < now

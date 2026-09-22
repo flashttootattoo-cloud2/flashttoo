@@ -39,20 +39,19 @@ export async function sendAccountActivatedEmail({ to, name }: {
   return resend.emails.send({
     from: `Flashttoo <${FROM}>`,
     to,
-    subject: 'Tu cuenta de Flashttoo ya está activa',
+    subject: 'Ya quedaste registrado en Flashttoo',
     html: `
       <div style="background:#000;padding:40px 24px;font-family:sans-serif;max-width:480px;margin:0 auto">
         <img src="https://flashttoo.com/Logoprincipal.svg" alt="Flashttoo" style="height:28px;margin-bottom:32px" />
         <p style="color:rgba(255,255,255,0.7);font-size:15px;line-height:1.7;margin:0 0 8px">Hola ${name},</p>
-        <p style="color:rgba(255,255,255,0.7);font-size:15px;line-height:1.7;margin:0 0 32px">
-          Tu cuenta en Flashttoo ya está activa. Este mail (${to}) es el que vas a usar para ingresar desde el botón "Ingresar" de la app.
+        <p style="color:rgba(255,255,255,0.7);font-size:15px;line-height:1.7;margin:0 0 16px">
+          Ya quedaste registrado en Flashttoo y no necesitás hacer nada más — ya podés usar la app con normalidad.
         </p>
-        <a href="https://flashttoo.com"
-          style="display:inline-block;background:#efff42;color:#000;font-weight:700;font-size:14px;padding:14px 28px;border-radius:10px;text-decoration:none;letter-spacing:0.02em">
-          Ir a Flashttoo
-        </a>
-        <p style="color:rgba(255,255,255,0.25);font-size:12px;margin-top:32px;line-height:1.6">
-          Si no activaste esta cuenta, escribinos a info@flashttoo.com.
+        <p style="color:rgba(255,255,255,0.7);font-size:15px;line-height:1.7;margin:0 0 32px">
+          Este mail (${to}) es tu mail de acceso: guardalo, lo vas a necesitar si en algún momento cerrás sesión y querés volver a entrar desde el botón "Ingresar" de la app.
+        </p>
+        <p style="color:rgba(255,255,255,0.25);font-size:12px;margin:0;line-height:1.6">
+          Si no fuiste vos, escribinos a soporte.flashttoo@gmail.com.
         </p>
       </div>
     `,
