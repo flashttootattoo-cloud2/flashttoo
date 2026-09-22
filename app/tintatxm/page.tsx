@@ -1321,8 +1321,7 @@ export default function AdminPage() {
   const [savingBannerGap, setSavingBannerGap] = useState(false)
   const [sponsorV2Form, setSponsorV2Form]     = useState({ name: '', category: '', bio: '', instagram: '', whatsapp: '', link: '', level: 'global', city: '', country: '', expires_at: '', notes: '', logo_scale: 100, grid_logo_scale: 100 })
   const [editingPendingId, setEditingPendingId] = useState<string | null>(null)
-  const [pendingNameDraft, setPendingNameDraft] = useState('')
-  const [savingPendingName, setSavingPendingName] = useState(false)
+  const [expandedPendingId, setExpandedPendingId] = useState<string | null>(null)
   const [linkTargetId, setLinkTargetId] = useState('')
   const [linkingPending, setLinkingPending] = useState(false)
   const [sponsorV2Logo, setSponsorV2Logo]     = useState<File | null>(null)
@@ -1692,16 +1691,6 @@ export default function AdminPage() {
     } finally { setRefreshingSponsorsV2(false) }
   }
 
-  const [deletingSponsorId, setDeletingSponsorId] = useState<string | null>(null)
-  const deleteSponsorV2 = async (id: string) => {
-    if (!confirm('¿Borrar esta marca? Se pierde el registro y sus imágenes.')) return
-    setDeletingSponsorId(id)
-    try {
-      const r = await fetch(`/api/admin/sponsors-v2/${id}`, { method: 'DELETE', headers: H(pass) })
-      if (r.ok) setSponsorsV2(prev => prev.filter(x => x.id !== id))
-    } finally { setDeletingSponsorId(null) }
-  }
-
   const [revokingAccessId, setRevokingAccessId] = useState<string | null>(null)
   const revokeSponsorAccess = async (id: string) => {
     if (!confirm('¿Borrar el acceso de esta marca? El mail y contraseña dejan de funcionar (ese mail queda libre), pero el perfil (logo, bio, fotos) se mantiene intacto en el listado.')) return
@@ -1712,6 +1701,411 @@ export default function AdminPage() {
       if (r.ok) setSponsorsV2(prev => prev.map(x => x.id === id ? d.sponsor : x))
     } finally { setRevokingAccessId(null) }
   }
+  const renderSponsorV2Row = (sp: SponsorV2Admin) => {
+                const now = new Date()
+                const exp = sp.expires_at ? new Date(sp.expires_at) : null
+                const expired = exp && exp < now
+                const days = exp ? Math.ceil((exp.getTime() - now.getTime()) / 86400000) : null
+                const levelColor = sp.level === 'global' ? '#efff42' : sp.level === 'country' ? '#60a5fa' : '#c084fc'
+                const levelLabel = sp.level === 'global' ? 'Global' : sp.level === 'country' ? `País · ${sp.country}` : `Ciudad · ${sp.city}`
+                return (
+                  <div key={sp.id} className="flex flex-col gap-0">
+                  <div className="rounded-xl p-4 flex flex-col gap-3"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${sp.active && !expired ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.06)'}`, opacity: expired ? 0.5 : 1 }}>
+                    {/* Fila superior: logo + info */}
+                    <div className="flex items-start gap-4">
+                      <div className="shrink-0 flex flex-col gap-1">
+                        <div className="rounded-lg flex items-center justify-center overflow-hidden"
+                          style={{ width: 80, height: 32, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          {sp.logo_url ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={sp.logo_url} alt={sp.name} style={{ maxHeight: 26, maxWidth: 72, objectFit: 'contain', filter: sp.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sp.keep_color ? 1 : 0.6 }} />
+                          ) : (
+                            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>Sin logo</span>
+                          )}
+                        </div>
+                        {sp.detail_logo_url && (
+                          <div className="rounded-lg flex items-center justify-center overflow-hidden"
+                            style={{ width: 80, height: 24, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(239,255,66,0.15)' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={sp.detail_logo_url} alt="" style={{ maxHeight: 18, maxWidth: 72, objectFit: 'contain' }} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <p className="text-sm font-bold text-white">{sp.name}</p>
+                          <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                            style={{ background: `${levelColor}18`, color: levelColor, fontSize: 10 }}>
+                            {levelLabel}
+                          </span>
+                        </div>
+                        {sp.auth_email && (
+                          <p className="text-xs" style={{ color: 'rgba(239,255,66,0.6)' }}>
+                            {sp.auth_email}
+                          </p>
+                        )}
+                        {sp.description && (
+                          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
+                            {sp.description}
+                          </p>
+                        )}
+                        {sp.notes && (
+                          <p className="text-xs mt-1 px-2 py-0.5 rounded" style={{ color: 'rgba(239,255,66,0.6)', background: 'rgba(239,255,66,0.05)', lineHeight: 1.5 }}>
+                            {sp.notes}
+                          </p>
+                        )}
+                        {exp && (
+                          <p className="text-xs mt-1" style={{ color: expired ? '#f87171' : (days ?? 0) <= 7 ? '#fb923c' : 'rgba(255,255,255,0.25)' }}>
+                            {expired ? `venció hace ${-days!}d` : `vence en ${days}d`}
+                          </p>
+                        )}
+                        <p className="text-xs mt-1" style={{ color: sp.clicks > 0 ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.15)' }}>
+                          {sp.clicks > 0 ? `${sp.clicks} clic${sp.clicks !== 1 ? 's' : ''}` : 'sin clics'}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Fila inferior: botones */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
+                            method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ keep_color: !sp.keep_color }),
+                          })
+                          setSponsorsV2(prev => prev.map(s => s.id === sp.id ? { ...s, keep_color: !s.keep_color } : s))
+                        }}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{
+                          border: `1px solid ${sp.keep_color ? 'rgba(147,197,253,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                          color: sp.keep_color ? '#93c5fd' : 'rgba(255,255,255,0.3)',
+                          background: sp.keep_color ? 'rgba(147,197,253,0.07)' : 'transparent',
+                        }}>
+                        {sp.keep_color ? 'color' : 'negro'}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
+                            method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ active: !sp.active }),
+                          })
+                          setSponsorsV2(prev => prev.map(s => s.id === sp.id ? { ...s, active: !s.active } : s))
+                        }}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{
+                          border: `1px solid ${sp.active ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                          color: sp.active ? '#efff42' : 'rgba(255,255,255,0.3)',
+                          background: sp.active ? 'rgba(239,255,66,0.07)' : 'transparent',
+                        }}>
+                        {sp.active ? 'activo' : 'inactivo'}
+                      </button>
+                      <button
+                        onClick={() => loadStatsV2(sp)}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{ border: '1px solid rgba(167,243,208,0.25)', color: '#6ee7b7' }}>
+                        estadísticas
+                      </button>
+                      <button
+                        onClick={() => {
+                          const url = `${window.location.origin}/insumos/${sp.id}`
+                          navigator.clipboard.writeText(url).catch(() => {})
+                        }}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{ border: '1px solid rgba(192,132,252,0.25)', color: '#c084fc' }}>
+                        copiar link
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingV2(sp.id)
+                          setEditV2BgFile(null); setEditV2BgPreview(null); setEditV2BgClear(false)
+                          setEditV2ProfileLogoFile(null); setEditV2ProfileLogoPreview(null); setEditV2ProfileLogoClear(false)
+                          setEditV2Form({
+                            name: sp.name,
+                            category: sp.description || '',
+                            bio: sp.bio || '',
+                            instagram: sp.instagram || '',
+                            whatsapp: sp.whatsapp || '',
+                            link: sp.link || '',
+                            level: sp.level,
+                            city: sp.city || '',
+                            country: sp.country || '',
+                            expires_at: sp.expires_at ? sp.expires_at.slice(0, 10) : '',
+                            notes: sp.notes || '',
+                            logo_scale: sp.logo_scale || 100,
+                            grid_logo_scale: sp.grid_logo_scale || 100,
+                            bg_image_dark: sp.bg_image_dark ?? 0,
+                            logo_bg_color: sp.logo_bg_color || '',
+                          })
+                        }}
+                        className="text-xs px-3 py-1 rounded-full transition-all"
+                        style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)' }}>
+                        editar
+                      </button>
+                      <a href={`/proveedor/${sp.id}`} target="_blank" rel="noopener noreferrer"
+                        className="text-xs px-3 py-1 rounded-full"
+                        style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>
+                        preview ↗
+                      </a>
+                      <button
+                        onClick={async () => {
+                          if (!confirm('¿Borrar esta marca?')) return
+                          await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'DELETE', headers: H(pass) })
+                          setSponsorsV2(prev => prev.filter(s => s.id !== sp.id))
+                        }}
+                        className="text-xs px-3 py-1 rounded-full"
+                        style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.5)' }}>
+                        borrar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Edición inline */}
+                  {editingV2 === sp.id && (
+                    <div className="mt-3 pt-4 flex flex-col gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+
+                      {/* Imagen de fondo */}
+                      <div>
+                        <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Imagen de fondo del perfil</p>
+                        <div className="flex items-center gap-3">
+                          <label className="cursor-pointer">
+                            {(editV2BgPreview || (sp.bg_image_url && !editV2BgClear)) ? (
+                              <div className="rounded-lg overflow-hidden" style={{ width: 80, height: 50, border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={editV2BgPreview || sp.bg_image_url!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                {editV2BgPreview && <span className="absolute inset-0 flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(239,255,66,0.15)', color: '#efff42' }}>nueva</span>}
+                              </div>
+                            ) : (
+                              <div className="rounded-lg flex items-center justify-center text-xs" style={{ width: 80, height: 50, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
+                                sin foto
+                              </div>
+                            )}
+                            <input type="file" accept="image/*" className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0]; if (!file) return
+                                setEditV2BgFile(file)
+                                setEditV2BgPreview(URL.createObjectURL(file))
+                                setEditV2BgClear(false)
+                              }} />
+                          </label>
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                              {editV2BgPreview ? 'Foto nueva seleccionada' : editV2BgClear ? 'Se borrará al guardar' : 'Tocar para cambiar'}
+                            </span>
+                            {(editV2BgPreview || (sp.bg_image_url && !editV2BgClear)) && (
+                              <button type="button"
+                                onClick={() => { setEditV2BgFile(null); setEditV2BgPreview(null); setEditV2BgClear(true) }}
+                                className="text-xs text-left"
+                                style={{ color: 'rgba(255,80,80,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                Borrar imagen
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Logo de perfil (grilla) */}
+                      <div>
+                        <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo de perfil <span style={{ color: 'rgba(255,255,255,0.2)', textTransform: 'none' }}>(reemplaza al logo en la grilla)</span></p>
+                        <div className="flex items-center gap-3">
+                          <label className="cursor-pointer">
+                            {(editV2ProfileLogoPreview || (sp.detail_logo_url && !editV2ProfileLogoClear)) ? (
+                              <div className="rounded-lg overflow-hidden flex items-center justify-center" style={{ width: 100, height: 40, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={editV2ProfileLogoPreview || sp.detail_logo_url!} alt="" style={{ maxHeight: 32, maxWidth: 90, objectFit: 'contain' }} />
+                                {editV2ProfileLogoPreview && <span className="absolute inset-0 flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(239,255,66,0.15)', color: '#efff42' }}>nueva</span>}
+                              </div>
+                            ) : (
+                              <div className="rounded-lg flex items-center justify-center text-xs" style={{ width: 100, height: 40, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
+                                sin logo
+                              </div>
+                            )}
+                            <input type="file" accept="image/*" className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0]; if (!file) return
+                                setEditV2ProfileLogoFile(file)
+                                setEditV2ProfileLogoPreview(URL.createObjectURL(file))
+                                setEditV2ProfileLogoClear(false)
+                              }} />
+                          </label>
+                          {(editV2ProfileLogoPreview || (sp.detail_logo_url && !editV2ProfileLogoClear)) && (
+                            <button type="button"
+                              onClick={() => { setEditV2ProfileLogoFile(null); setEditV2ProfileLogoPreview(null); setEditV2ProfileLogoClear(true) }}
+                              className="text-xs" style={{ color: 'rgba(255,80,80,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                              Borrar logo
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Oscurecimiento imagen de fondo */}
+                      {(editV2BgPreview || (sp.bg_image_url && !editV2BgClear)) && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Oscurecer imagen de fondo</p>
+                            <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.bg_image_dark}%</span>
+                          </div>
+                          <input type="range" min={0} max={80} step={5} value={editV2Form.bg_image_dark}
+                            onChange={e => setEditV2Form(f => ({ ...f, bg_image_dark: parseInt(e.target.value, 10) }))}
+                            className="w-full" />
+                        </div>
+                      )}
+
+                      <div>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Países (separar con coma, vacío = todos)</p>
+                        <input value={editV2Form.country} onChange={e => setEditV2Form(f => ({ ...f, country: e.target.value }))}
+                          placeholder="Argentina, Chile, Uruguay..." className={iCls} />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Nombre</p>
+                          <input value={editV2Form.name} onChange={e => setEditV2Form(f => ({ ...f, name: e.target.value }))} className={iCls} />
+                        </div>
+                        <div>
+                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Categoría</p>
+                          <input value={editV2Form.category} onChange={e => setEditV2Form(f => ({ ...f, category: e.target.value }))} placeholder="tinta, cremas, agujas..." className={iCls} />
+                        </div>
+                        <div>
+                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Link</p>
+                          <input value={editV2Form.link} onChange={e => setEditV2Form(f => ({ ...f, link: e.target.value }))} placeholder="https://..." className={iCls} />
+                        </div>
+                        <div>
+                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Vencimiento</p>
+                          <input type="date" value={editV2Form.expires_at} onChange={e => setEditV2Form(f => ({ ...f, expires_at: e.target.value }))} className={iCls} style={{ colorScheme: 'dark' }} />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Notas internas</p>
+                        <textarea value={editV2Form.notes} rows={2}
+                          onChange={e => setEditV2Form(f => ({ ...f, notes: e.target.value }))}
+                          placeholder="Precio acordado, contacto, condiciones..."
+                          className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
+                      </div>
+                      <div>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Bio / Historia</p>
+                        <textarea value={editV2Form.bio} rows={3}
+                          onChange={e => setEditV2Form(f => ({ ...f, bio: e.target.value }))}
+                          placeholder="Historia de la marca..."
+                          className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
+                      </div>
+                      <div>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Instagram (sin @)</p>
+                        <input value={editV2Form.instagram} onChange={e => setEditV2Form(f => ({ ...f, instagram: e.target.value }))}
+                          placeholder="nombredemarca" className={iCls} />
+                      </div>
+                      <div>
+                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>WhatsApp</p>
+                        <input value={editV2Form.whatsapp} onChange={e => setEditV2Form(f => ({ ...f, whatsapp: e.target.value }))}
+                          placeholder="+54 9 11 1234 5678" className={iCls} />
+                      </div>
+                      {/* Tamaño del logo */}
+                      <div className="flex flex-col gap-3">
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Tamaño en banner</p>
+                            <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.logo_scale}%</span>
+                          </div>
+                          <input type="range" min={50} max={150} step={5} value={editV2Form.logo_scale}
+                            onChange={e => setEditV2Form(f => ({ ...f, logo_scale: parseInt(e.target.value, 10) }))}
+                            className="w-full" />
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Tamaño en grilla</p>
+                            <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.grid_logo_scale}px</span>
+                          </div>
+                          <input type="range" min={30} max={150} step={5} value={editV2Form.grid_logo_scale}
+                            onChange={e => setEditV2Form(f => ({ ...f, grid_logo_scale: parseInt(e.target.value, 10) }))}
+                            className="w-full" />
+                        </div>
+                      </div>
+
+                      {/* Color del círculo del logo */}
+                      <div>
+                        <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Círculo de fondo del logo</p>
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-full flex items-center justify-center" style={{
+                            width: 44, height: 44,
+                            background: editV2Form.logo_bg_color || 'rgba(255,255,255,0.04)',
+                            border: editV2Form.logo_bg_color ? 'none' : '2px dashed rgba(255,255,255,0.1)',
+                          }} />
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="color" value={editV2Form.logo_bg_color || '#ffffff'}
+                              onChange={e => setEditV2Form(f => ({ ...f, logo_bg_color: e.target.value }))}
+                              style={{ width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'none', padding: 0 }} />
+                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                              {editV2Form.logo_bg_color || 'Sin círculo'}
+                            </span>
+                          </label>
+                          {editV2Form.logo_bg_color && (
+                            <button type="button" onClick={() => setEditV2Form(f => ({ ...f, logo_bg_color: '' }))}
+                              className="text-xs" style={{ color: 'rgba(255,80,80,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                              Quitar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 justify-end">
+                        <button type="button" onClick={() => setEditingV2(null)}
+                          className="px-4 py-2 rounded-lg text-xs"
+                          style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
+                          Cancelar
+                        </button>
+                        <button type="button" disabled={savingEditV2}
+                          onClick={async () => {
+                            setSavingEditV2(true)
+                            const jsonBase = {
+                              name: editV2Form.name.trim(),
+                              description: editV2Form.category.trim() || null,
+                              bio: editV2Form.bio.trim() || null,
+                              instagram: editV2Form.instagram.trim() || null,
+                              whatsapp: editV2Form.whatsapp.trim() || null,
+                              link: editV2Form.link.trim() || null,
+                              level: editV2Form.country.trim() ? 'country' : 'global',
+                              city: null as null,
+                              country: editV2Form.country.trim() || null,
+                              keep_color: true,
+                              detail_logo_mode: 'color',
+                              expires_at: editV2Form.expires_at ? new Date(editV2Form.expires_at).toISOString() : null,
+                              notes: editV2Form.notes.trim() || null,
+                              logo_scale: editV2Form.logo_scale,
+                              grid_logo_scale: editV2Form.grid_logo_scale,
+                              bg_image_dark: editV2Form.bg_image_dark,
+                              logo_bg_color: editV2Form.logo_bg_color || null,
+                            }
+                            let r: Response
+                            if (editV2BgFile || editV2ProfileLogoFile) {
+                              const fd = new FormData()
+                              if (editV2BgFile) fd.append('bg_image', editV2BgFile)
+                              if (editV2ProfileLogoFile) fd.append('detail_logo', editV2ProfileLogoFile)
+                              for (const [k, v] of Object.entries(jsonBase)) fd.append(k, v === null ? '' : String(v))
+                              r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'PATCH', headers: H(pass), body: fd })
+                            } else {
+                              const jsonFull = editV2BgClear ? { ...jsonBase, bg_image_url: null } : jsonBase
+                              r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
+                                method: 'PATCH',
+                                headers: { ...H(pass), 'Content-Type': 'application/json' },
+                                body: JSON.stringify(editV2ProfileLogoClear ? { ...jsonFull, detail_logo_url: null } : jsonFull),
+                              })
+                            }
+                            const d = await r.json()
+                            if (d.sponsor) setSponsorsV2(prev => prev.map(s => s.id === sp.id ? d.sponsor : s))
+                            setEditingV2(null)
+                            setEditV2BgFile(null); setEditV2BgPreview(null); setEditV2BgClear(false)
+                            setEditV2ProfileLogoFile(null); setEditV2ProfileLogoPreview(null); setEditV2ProfileLogoClear(false)
+                            setSavingEditV2(false)
+                          }}
+                          className="px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
+                          style={{ background: '#efff42', color: '#000' }}>
+                          {savingEditV2 ? 'Guardando...' : 'Guardar'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  </div>
+                )
+  }
+
 
   useEffect(() => {
     if ((!['idiomas', 'estudios'].includes(tab)) || !auth) return
@@ -3311,7 +3705,9 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {/* Registros pendientes — marcas que se registraron solas por el link */}
+            {/* Registros pendientes — marcas que se registraron solas por el link.
+                Edición completa igual que la lista general (mismo renderSponsorV2Row),
+                más las acciones propias de tener login: vincular y revocar acceso. */}
             <div className="rounded-xl p-5 flex flex-col gap-2"
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <div className="flex items-center justify-between">
@@ -3325,75 +3721,39 @@ export default function AdminPage() {
               {!sponsorsV2.some(sp => sp.auth_email) ? (
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Sin registros nuevos por ahora.</p>
               ) : (
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-2">
                   {sponsorsV2.filter(sp => sp.auth_email).map(sp => (
-                    <div key={sp.id} className="flex flex-col gap-2 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="shrink-0 rounded-lg flex items-center justify-center overflow-hidden"
-                            style={{ width: 44, height: 32, background: '#000', border: '1px solid rgba(255,255,255,0.07)' }}>
-                            {sp.logo_url ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img src={sp.logo_url} alt="" style={{ maxHeight: 24, maxWidth: 40, objectFit: 'contain' }} />
-                            ) : (
-                              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>Sin logo</span>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>{sp.auth_email}</p>
-                            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>{sp.name}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            if (editingPendingId === sp.id) { setEditingPendingId(null); return }
-                            setEditingPendingId(sp.id); setPendingNameDraft(sp.name); setLinkTargetId(sp.linked_from || '')
-                          }}
-                          className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg"
-                          style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
-                          {editingPendingId === sp.id ? 'Cancelar' : 'Editar'}
-                        </button>
-                      </div>
+                    <div key={sp.id} className="flex flex-col gap-2 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <button
+                        onClick={() => setExpandedPendingId(prev => prev === sp.id ? null : sp.id)}
+                        className="flex items-center justify-between gap-3 w-full text-left"
+                        style={{ background: 'none', border: 'none', padding: '6px 0', cursor: 'pointer' }}>
+                        <span className="text-sm font-bold text-white truncate">{sp.name}</span>
+                        <span className="text-xs shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                          {expandedPendingId === sp.id ? '▲ cerrar' : '▼ expandir'}
+                        </span>
+                      </button>
+                      {expandedPendingId === sp.id && (
+                      <>
+                      {renderSponsorV2Row(sp)}
                       <SponsorDailyLimitEditor
                         sponsorId={sp.id}
                         value={sp.daily_post_limit}
                         pass={pass}
                         onSaved={v => setSponsorsV2(prev => prev.map(x => x.id === sp.id ? { ...x, daily_post_limit: v } : x))} />
-                      {editingPendingId === sp.id && (
-                        <div className="flex items-center gap-2">
-                          <input
-                            value={pendingNameDraft}
-                            onChange={e => setPendingNameDraft(e.target.value)}
-                            placeholder="Nombre del perfil"
-                            className="flex-1 px-3 py-2 rounded-lg text-sm"
-                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
-                          <button
-                            disabled={savingPendingName || !pendingNameDraft.trim()}
-                            onClick={async () => {
-                              setSavingPendingName(true)
-                              try {
-                                const r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
-                                  method: 'PATCH',
-                                  headers: { ...H(pass), 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ name: pendingNameDraft.trim() }),
-                                })
-                                const d = await r.json()
-                                if (r.ok) {
-                                  setSponsorsV2(prev => prev.map(x => x.id === sp.id ? d.sponsor : x))
-                                  setEditingPendingId(null)
-                                }
-                              } finally { setSavingPendingName(false) }
-                            }}
-                            className="shrink-0 text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
-                            style={{ background: '#efff42', color: '#000' }}>
-                            {savingPendingName ? 'Guardando...' : 'Guardar'}
-                          </button>
-                        </div>
-                      )}
+                      <button
+                        onClick={() => {
+                          if (editingPendingId === sp.id) { setEditingPendingId(null); return }
+                          setEditingPendingId(sp.id); setLinkTargetId(sp.linked_from || '')
+                        }}
+                        className="self-start text-xs font-bold px-3 py-1.5 rounded-lg"
+                        style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
+                        {editingPendingId === sp.id ? 'Cancelar vínculo' : 'Vincular con otra marca'}
+                      </button>
                       {editingPendingId === sp.id && (
                         <div className="flex flex-col gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                            O vincular con una marca ya cargada — le pasa el login a esa marca, vos seguís editándola como siempre.
+                            Vincular con una marca ya cargada — le pasa el login a esa marca, vos seguís editándola como siempre.
                           </p>
                           <div className="flex items-center gap-2">
                             <select
@@ -3459,24 +3819,17 @@ export default function AdminPage() {
                               {linkingPending ? 'Vinculando...' : 'Vincular'}
                             </button>
                           </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => revokeSponsorAccess(sp.id)}
-                              disabled={revokingAccessId === sp.id}
-                              className="self-start text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50"
-                              style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' }}
-                              title="Borra solo el mail/contraseña — el perfil de la marca queda intacto">
-                              {revokingAccessId === sp.id ? 'Borrando acceso...' : 'Revocar acceso'}
-                            </button>
-                            <button
-                              onClick={() => deleteSponsorV2(sp.id)}
-                              disabled={deletingSponsorId === sp.id}
-                              className="self-start text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50"
-                              style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
-                              {deletingSponsorId === sp.id ? 'Borrando...' : 'Borrar registro'}
-                            </button>
-                          </div>
                         </div>
+                      )}
+                      <button
+                        onClick={() => revokeSponsorAccess(sp.id)}
+                        disabled={revokingAccessId === sp.id}
+                        className="self-start text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                        style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' }}
+                        title="Borra solo el mail/contraseña — el perfil de la marca queda intacto">
+                        {revokingAccessId === sp.id ? 'Borrando acceso...' : 'Revocar acceso'}
+                      </button>
+                      </>
                       )}
                     </div>
                   ))}
@@ -3795,416 +4148,13 @@ export default function AdminPage() {
               </button>
             </form>
 
-            {/* Lista sponsors v2 — incluye a las que ya tienen login (vinculadas
-                o self-registradas), no solo las cargadas por admin sin cuenta */}
+            {/* Lista sponsors v2 — las que ya tienen login se editan desde
+                "Registros pendientes" más arriba, no acá, para no duplicarlas */}
             <div className="flex flex-col gap-3">
-              {sponsorsV2.length === 0 && (
+              {sponsorsV2.filter(sp => !sp.auth_email).length === 0 && (
                 <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.1)' }}>Sin marcas</p>
               )}
-              {sponsorsV2.map(sp => {
-                const now = new Date()
-                const exp = sp.expires_at ? new Date(sp.expires_at) : null
-                const expired = exp && exp < now
-                const days = exp ? Math.ceil((exp.getTime() - now.getTime()) / 86400000) : null
-                const levelColor = sp.level === 'global' ? '#efff42' : sp.level === 'country' ? '#60a5fa' : '#c084fc'
-                const levelLabel = sp.level === 'global' ? 'Global' : sp.level === 'country' ? `País · ${sp.country}` : `Ciudad · ${sp.city}`
-                return (
-                  <div key={sp.id} className="flex flex-col gap-0">
-                  <div className="rounded-xl p-4 flex flex-col gap-3"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${sp.active && !expired ? 'rgba(239,255,66,0.12)' : 'rgba(255,255,255,0.06)'}`, opacity: expired ? 0.5 : 1 }}>
-                    {/* Fila superior: logo + info */}
-                    <div className="flex items-start gap-4">
-                      <div className="shrink-0 flex flex-col gap-1">
-                        <div className="rounded-lg flex items-center justify-center overflow-hidden"
-                          style={{ width: 80, height: 32, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                          {sp.logo_url ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img src={sp.logo_url} alt={sp.name} style={{ maxHeight: 26, maxWidth: 72, objectFit: 'contain', filter: sp.keep_color ? 'none' : 'brightness(0) invert(1)', opacity: sp.keep_color ? 1 : 0.6 }} />
-                          ) : (
-                            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>Sin logo</span>
-                          )}
-                        </div>
-                        {sp.detail_logo_url && (
-                          <div className="rounded-lg flex items-center justify-center overflow-hidden"
-                            style={{ width: 80, height: 24, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(239,255,66,0.15)' }}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={sp.detail_logo_url} alt="" style={{ maxHeight: 18, maxWidth: 72, objectFit: 'contain' }} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                          <p className="text-sm font-bold text-white">{sp.name}</p>
-                          <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                            style={{ background: `${levelColor}18`, color: levelColor, fontSize: 10 }}>
-                            {levelLabel}
-                          </span>
-                        </div>
-                        {sp.auth_email && (
-                          <p className="text-xs" style={{ color: 'rgba(239,255,66,0.6)' }}>
-                            {sp.auth_email}
-                          </p>
-                        )}
-                        {sp.description && (
-                          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
-                            {sp.description}
-                          </p>
-                        )}
-                        {sp.notes && (
-                          <p className="text-xs mt-1 px-2 py-0.5 rounded" style={{ color: 'rgba(239,255,66,0.6)', background: 'rgba(239,255,66,0.05)', lineHeight: 1.5 }}>
-                            {sp.notes}
-                          </p>
-                        )}
-                        {exp && (
-                          <p className="text-xs mt-1" style={{ color: expired ? '#f87171' : (days ?? 0) <= 7 ? '#fb923c' : 'rgba(255,255,255,0.25)' }}>
-                            {expired ? `venció hace ${-days!}d` : `vence en ${days}d`}
-                          </p>
-                        )}
-                        <p className="text-xs mt-1" style={{ color: sp.clicks > 0 ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.15)' }}>
-                          {sp.clicks > 0 ? `${sp.clicks} clic${sp.clicks !== 1 ? 's' : ''}` : 'sin clics'}
-                        </p>
-                      </div>
-                    </div>
-                    {/* Fila inferior: botones */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        onClick={async () => {
-                          await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
-                            method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ keep_color: !sp.keep_color }),
-                          })
-                          setSponsorsV2(prev => prev.map(s => s.id === sp.id ? { ...s, keep_color: !s.keep_color } : s))
-                        }}
-                        className="text-xs px-3 py-1 rounded-full transition-all"
-                        style={{
-                          border: `1px solid ${sp.keep_color ? 'rgba(147,197,253,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                          color: sp.keep_color ? '#93c5fd' : 'rgba(255,255,255,0.3)',
-                          background: sp.keep_color ? 'rgba(147,197,253,0.07)' : 'transparent',
-                        }}>
-                        {sp.keep_color ? 'color' : 'negro'}
-                      </button>
-                      <button
-                        onClick={async () => {
-                          await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
-                            method: 'PATCH', headers: { ...H(pass), 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ active: !sp.active }),
-                          })
-                          setSponsorsV2(prev => prev.map(s => s.id === sp.id ? { ...s, active: !s.active } : s))
-                        }}
-                        className="text-xs px-3 py-1 rounded-full transition-all"
-                        style={{
-                          border: `1px solid ${sp.active ? 'rgba(239,255,66,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                          color: sp.active ? '#efff42' : 'rgba(255,255,255,0.3)',
-                          background: sp.active ? 'rgba(239,255,66,0.07)' : 'transparent',
-                        }}>
-                        {sp.active ? 'activo' : 'inactivo'}
-                      </button>
-                      <button
-                        onClick={() => loadStatsV2(sp)}
-                        className="text-xs px-3 py-1 rounded-full transition-all"
-                        style={{ border: '1px solid rgba(167,243,208,0.25)', color: '#6ee7b7' }}>
-                        estadísticas
-                      </button>
-                      <button
-                        onClick={() => {
-                          const url = `${window.location.origin}/insumos/${sp.id}`
-                          navigator.clipboard.writeText(url).catch(() => {})
-                        }}
-                        className="text-xs px-3 py-1 rounded-full transition-all"
-                        style={{ border: '1px solid rgba(192,132,252,0.25)', color: '#c084fc' }}>
-                        copiar link
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingV2(sp.id)
-                          setEditV2BgFile(null); setEditV2BgPreview(null); setEditV2BgClear(false)
-                          setEditV2ProfileLogoFile(null); setEditV2ProfileLogoPreview(null); setEditV2ProfileLogoClear(false)
-                          setEditV2Form({
-                            name: sp.name,
-                            category: sp.description || '',
-                            bio: sp.bio || '',
-                            instagram: sp.instagram || '',
-                            whatsapp: sp.whatsapp || '',
-                            link: sp.link || '',
-                            level: sp.level,
-                            city: sp.city || '',
-                            country: sp.country || '',
-                            expires_at: sp.expires_at ? sp.expires_at.slice(0, 10) : '',
-                            notes: sp.notes || '',
-                            logo_scale: sp.logo_scale || 100,
-                            grid_logo_scale: sp.grid_logo_scale || 100,
-                            bg_image_dark: sp.bg_image_dark ?? 0,
-                            logo_bg_color: sp.logo_bg_color || '',
-                          })
-                        }}
-                        className="text-xs px-3 py-1 rounded-full transition-all"
-                        style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)' }}>
-                        editar
-                      </button>
-                      <a href={`/proveedor/${sp.id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-xs px-3 py-1 rounded-full"
-                        style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>
-                        preview ↗
-                      </a>
-                      <button
-                        onClick={async () => {
-                          if (!confirm('¿Borrar esta marca?')) return
-                          await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'DELETE', headers: H(pass) })
-                          setSponsorsV2(prev => prev.filter(s => s.id !== sp.id))
-                        }}
-                        className="text-xs px-3 py-1 rounded-full"
-                        style={{ border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.5)' }}>
-                        borrar
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Edición inline */}
-                  {editingV2 === sp.id && (
-                    <div className="mt-3 pt-4 flex flex-col gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-
-                      {/* Imagen de fondo */}
-                      <div>
-                        <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Imagen de fondo del perfil</p>
-                        <div className="flex items-center gap-3">
-                          <label className="cursor-pointer">
-                            {(editV2BgPreview || (sp.bg_image_url && !editV2BgClear)) ? (
-                              <div className="rounded-lg overflow-hidden" style={{ width: 80, height: 50, border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={editV2BgPreview || sp.bg_image_url!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                {editV2BgPreview && <span className="absolute inset-0 flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(239,255,66,0.15)', color: '#efff42' }}>nueva</span>}
-                              </div>
-                            ) : (
-                              <div className="rounded-lg flex items-center justify-center text-xs" style={{ width: 80, height: 50, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
-                                sin foto
-                              </div>
-                            )}
-                            <input type="file" accept="image/*" className="hidden"
-                              onChange={e => {
-                                const file = e.target.files?.[0]; if (!file) return
-                                setEditV2BgFile(file)
-                                setEditV2BgPreview(URL.createObjectURL(file))
-                                setEditV2BgClear(false)
-                              }} />
-                          </label>
-                          <div className="flex flex-col gap-1.5">
-                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                              {editV2BgPreview ? 'Foto nueva seleccionada' : editV2BgClear ? 'Se borrará al guardar' : 'Tocar para cambiar'}
-                            </span>
-                            {(editV2BgPreview || (sp.bg_image_url && !editV2BgClear)) && (
-                              <button type="button"
-                                onClick={() => { setEditV2BgFile(null); setEditV2BgPreview(null); setEditV2BgClear(true) }}
-                                className="text-xs text-left"
-                                style={{ color: 'rgba(255,80,80,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                                Borrar imagen
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Logo de perfil (grilla) */}
-                      <div>
-                        <p className="text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Logo de perfil <span style={{ color: 'rgba(255,255,255,0.2)', textTransform: 'none' }}>(reemplaza al logo en la grilla)</span></p>
-                        <div className="flex items-center gap-3">
-                          <label className="cursor-pointer">
-                            {(editV2ProfileLogoPreview || (sp.detail_logo_url && !editV2ProfileLogoClear)) ? (
-                              <div className="rounded-lg overflow-hidden flex items-center justify-center" style={{ width: 100, height: 40, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={editV2ProfileLogoPreview || sp.detail_logo_url!} alt="" style={{ maxHeight: 32, maxWidth: 90, objectFit: 'contain' }} />
-                                {editV2ProfileLogoPreview && <span className="absolute inset-0 flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(239,255,66,0.15)', color: '#efff42' }}>nueva</span>}
-                              </div>
-                            ) : (
-                              <div className="rounded-lg flex items-center justify-center text-xs" style={{ width: 100, height: 40, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
-                                sin logo
-                              </div>
-                            )}
-                            <input type="file" accept="image/*" className="hidden"
-                              onChange={e => {
-                                const file = e.target.files?.[0]; if (!file) return
-                                setEditV2ProfileLogoFile(file)
-                                setEditV2ProfileLogoPreview(URL.createObjectURL(file))
-                                setEditV2ProfileLogoClear(false)
-                              }} />
-                          </label>
-                          {(editV2ProfileLogoPreview || (sp.detail_logo_url && !editV2ProfileLogoClear)) && (
-                            <button type="button"
-                              onClick={() => { setEditV2ProfileLogoFile(null); setEditV2ProfileLogoPreview(null); setEditV2ProfileLogoClear(true) }}
-                              className="text-xs" style={{ color: 'rgba(255,80,80,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                              Borrar logo
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Oscurecimiento imagen de fondo */}
-                      {(editV2BgPreview || (sp.bg_image_url && !editV2BgClear)) && (
-                        <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Oscurecer imagen de fondo</p>
-                            <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.bg_image_dark}%</span>
-                          </div>
-                          <input type="range" min={0} max={80} step={5} value={editV2Form.bg_image_dark}
-                            onChange={e => setEditV2Form(f => ({ ...f, bg_image_dark: parseInt(e.target.value, 10) }))}
-                            className="w-full" />
-                        </div>
-                      )}
-
-                      <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Países (separar con coma, vacío = todos)</p>
-                        <input value={editV2Form.country} onChange={e => setEditV2Form(f => ({ ...f, country: e.target.value }))}
-                          placeholder="Argentina, Chile, Uruguay..." className={iCls} />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
-                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Nombre</p>
-                          <input value={editV2Form.name} onChange={e => setEditV2Form(f => ({ ...f, name: e.target.value }))} className={iCls} />
-                        </div>
-                        <div>
-                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Categoría</p>
-                          <input value={editV2Form.category} onChange={e => setEditV2Form(f => ({ ...f, category: e.target.value }))} placeholder="tinta, cremas, agujas..." className={iCls} />
-                        </div>
-                        <div>
-                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Link</p>
-                          <input value={editV2Form.link} onChange={e => setEditV2Form(f => ({ ...f, link: e.target.value }))} placeholder="https://..." className={iCls} />
-                        </div>
-                        <div>
-                          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Vencimiento</p>
-                          <input type="date" value={editV2Form.expires_at} onChange={e => setEditV2Form(f => ({ ...f, expires_at: e.target.value }))} className={iCls} style={{ colorScheme: 'dark' }} />
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Notas internas</p>
-                        <textarea value={editV2Form.notes} rows={2}
-                          onChange={e => setEditV2Form(f => ({ ...f, notes: e.target.value }))}
-                          placeholder="Precio acordado, contacto, condiciones..."
-                          className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
-                      </div>
-                      <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Bio / Historia</p>
-                        <textarea value={editV2Form.bio} rows={3}
-                          onChange={e => setEditV2Form(f => ({ ...f, bio: e.target.value }))}
-                          placeholder="Historia de la marca..."
-                          className={iCls} style={{ resize: 'none', lineHeight: 1.6 }} />
-                      </div>
-                      <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Instagram (sin @)</p>
-                        <input value={editV2Form.instagram} onChange={e => setEditV2Form(f => ({ ...f, instagram: e.target.value }))}
-                          placeholder="nombredemarca" className={iCls} />
-                      </div>
-                      <div>
-                        <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>WhatsApp</p>
-                        <input value={editV2Form.whatsapp} onChange={e => setEditV2Form(f => ({ ...f, whatsapp: e.target.value }))}
-                          placeholder="+54 9 11 1234 5678" className={iCls} />
-                      </div>
-                      {/* Tamaño del logo */}
-                      <div className="flex flex-col gap-3">
-                        <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Tamaño en banner</p>
-                            <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.logo_scale}%</span>
-                          </div>
-                          <input type="range" min={50} max={150} step={5} value={editV2Form.logo_scale}
-                            onChange={e => setEditV2Form(f => ({ ...f, logo_scale: parseInt(e.target.value, 10) }))}
-                            className="w-full" />
-                        </div>
-                        <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Tamaño en grilla</p>
-                            <span className="text-xs font-bold" style={{ color: '#efff42' }}>{editV2Form.grid_logo_scale}px</span>
-                          </div>
-                          <input type="range" min={30} max={150} step={5} value={editV2Form.grid_logo_scale}
-                            onChange={e => setEditV2Form(f => ({ ...f, grid_logo_scale: parseInt(e.target.value, 10) }))}
-                            className="w-full" />
-                        </div>
-                      </div>
-
-                      {/* Color del círculo del logo */}
-                      <div>
-                        <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Círculo de fondo del logo</p>
-                        <div className="flex items-center gap-3">
-                          <div className="rounded-full flex items-center justify-center" style={{
-                            width: 44, height: 44,
-                            background: editV2Form.logo_bg_color || 'rgba(255,255,255,0.04)',
-                            border: editV2Form.logo_bg_color ? 'none' : '2px dashed rgba(255,255,255,0.1)',
-                          }} />
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="color" value={editV2Form.logo_bg_color || '#ffffff'}
-                              onChange={e => setEditV2Form(f => ({ ...f, logo_bg_color: e.target.value }))}
-                              style={{ width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'none', padding: 0 }} />
-                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                              {editV2Form.logo_bg_color || 'Sin círculo'}
-                            </span>
-                          </label>
-                          {editV2Form.logo_bg_color && (
-                            <button type="button" onClick={() => setEditV2Form(f => ({ ...f, logo_bg_color: '' }))}
-                              className="text-xs" style={{ color: 'rgba(255,80,80,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                              Quitar
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 justify-end">
-                        <button type="button" onClick={() => setEditingV2(null)}
-                          className="px-4 py-2 rounded-lg text-xs"
-                          style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' }}>
-                          Cancelar
-                        </button>
-                        <button type="button" disabled={savingEditV2}
-                          onClick={async () => {
-                            setSavingEditV2(true)
-                            const jsonBase = {
-                              name: editV2Form.name.trim(),
-                              description: editV2Form.category.trim() || null,
-                              bio: editV2Form.bio.trim() || null,
-                              instagram: editV2Form.instagram.trim() || null,
-                              whatsapp: editV2Form.whatsapp.trim() || null,
-                              link: editV2Form.link.trim() || null,
-                              level: editV2Form.country.trim() ? 'country' : 'global',
-                              city: null as null,
-                              country: editV2Form.country.trim() || null,
-                              keep_color: true,
-                              detail_logo_mode: 'color',
-                              expires_at: editV2Form.expires_at ? new Date(editV2Form.expires_at).toISOString() : null,
-                              notes: editV2Form.notes.trim() || null,
-                              logo_scale: editV2Form.logo_scale,
-                              grid_logo_scale: editV2Form.grid_logo_scale,
-                              bg_image_dark: editV2Form.bg_image_dark,
-                              logo_bg_color: editV2Form.logo_bg_color || null,
-                            }
-                            let r: Response
-                            if (editV2BgFile || editV2ProfileLogoFile) {
-                              const fd = new FormData()
-                              if (editV2BgFile) fd.append('bg_image', editV2BgFile)
-                              if (editV2ProfileLogoFile) fd.append('detail_logo', editV2ProfileLogoFile)
-                              for (const [k, v] of Object.entries(jsonBase)) fd.append(k, v === null ? '' : String(v))
-                              r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'PATCH', headers: H(pass), body: fd })
-                            } else {
-                              const jsonFull = editV2BgClear ? { ...jsonBase, bg_image_url: null } : jsonBase
-                              r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
-                                method: 'PATCH',
-                                headers: { ...H(pass), 'Content-Type': 'application/json' },
-                                body: JSON.stringify(editV2ProfileLogoClear ? { ...jsonFull, detail_logo_url: null } : jsonFull),
-                              })
-                            }
-                            const d = await r.json()
-                            if (d.sponsor) setSponsorsV2(prev => prev.map(s => s.id === sp.id ? d.sponsor : s))
-                            setEditingV2(null)
-                            setEditV2BgFile(null); setEditV2BgPreview(null); setEditV2BgClear(false)
-                            setEditV2ProfileLogoFile(null); setEditV2ProfileLogoPreview(null); setEditV2ProfileLogoClear(false)
-                            setSavingEditV2(false)
-                          }}
-                          className="px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
-                          style={{ background: '#efff42', color: '#000' }}>
-                          {savingEditV2 ? 'Guardando...' : 'Guardar'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  </div>
-                )
-              })}
+              {sponsorsV2.filter(sp => !sp.auth_email).map(renderSponsorV2Row)}
             </div>
 
           </div>
