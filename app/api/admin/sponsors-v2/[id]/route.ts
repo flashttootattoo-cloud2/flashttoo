@@ -9,7 +9,7 @@ function auth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
-const JSON_ALLOWED = ['active', 'name', 'description', 'bio', 'instagram', 'link', 'whatsapp', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'logo_url', 'bg_image_url', 'bg_image_dark', 'logo_bg_color', 'detail_logo_url', 'detail_logo_mode', 'notes', 'logo_scale', 'grid_logo_scale', 'linked_from', 'daily_post_limit']
+const JSON_ALLOWED = ['active', 'name', 'description', 'bio', 'instagram', 'link', 'whatsapp', 'level', 'city', 'country', 'keep_color', 'starts_at', 'expires_at', 'logo_url', 'bg_image_url', 'bg_image_dark', 'logo_bg_color', 'detail_logo_url', 'detail_logo_mode', 'notes', 'logo_scale', 'grid_logo_scale', 'linked_from', 'daily_post_limit', 'user_id', 'auth_email']
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -72,10 +72,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
+  // keepFiles=true: se usa cuando se borra la marca "fuente" después de vincular
+  // (sus URLs de imagen quedaron copiadas y en uso en la fila vinculada)
+  const keepFiles = req.nextUrl.searchParams.get('keepFiles') === 'true'
   const client = sb()
-  const { data: sp } = await client.from('sponsors_v2').select('logo_url,bg_image_url,detail_logo_url').eq('id', id).single()
-  for (const url of [sp?.logo_url, sp?.bg_image_url, sp?.detail_logo_url]) {
-    if (url) deleteFile(url).catch(() => {})
+  const { data: sp } = await client.from('sponsors_v2').select('logo_url,bg_image_url,detail_logo_url,linked_from').eq('id', id).single()
+  // Si esta fila fue vinculada a otra marca, las URLs son compartidas (copiadas
+  // de esa marca al vincular) — no son propias, borrarlas rompería la original.
+  if (!keepFiles && !sp?.linked_from) {
+    for (const url of [sp?.logo_url, sp?.bg_image_url, sp?.detail_logo_url]) {
+      if (url) deleteFile(url).catch(() => {})
+    }
   }
   await client.from('sponsors_v2').delete().eq('id', id)
   return NextResponse.json({ ok: true })

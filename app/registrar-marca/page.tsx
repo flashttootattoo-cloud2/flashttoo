@@ -1,9 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createClient } from '@supabase/supabase-js'
 import { useTranslation } from '@/contexts/TranslationContext'
 
-type View = 'register' | 'registered' | 'terms' | 'privacy'
+type View = 'register' | 'terms' | 'privacy'
+
+function nameFromEmail(email: string) {
+  return email.split('@')[0].replace(/[._\-+]/g, ' ').replace(/\s+/g, ' ').trim() || 'Mi Marca'
+}
 
 export default function RegistrarMarca() {
   const { t, language, setLanguage, languages } = useTranslation()
@@ -48,15 +53,39 @@ export default function RegistrarMarca() {
     if (!email || !password) { setError(t('ingresar', 'error_fields', 'Completá email y contraseña')); return }
     if (password.length < 8) { setError(t('ingresar', 'error_password_short', 'La contraseña debe tener al menos 8 caracteres')); return }
     setLoading(true); setError('')
+
+    const trimmedEmail = email.trim()
     const r = await fetch('/api/auth/register-sponsor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim(), password, invite_token: inviteToken }),
+      body: JSON.stringify({ email: trimmedEmail, password, invite_token: inviteToken, tyc }),
     })
     const d = await r.json()
-    setLoading(false)
-    if (!r.ok) { setError(d.error); return }
-    setView('registered')
+    if (!r.ok) { setError(d.error); setLoading(false); return }
+
+    const sp = await fetch('/api/sponsors-v2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: d.user_id, email: trimmedEmail, name: nameFromEmail(trimmedEmail), invite_token: inviteToken }),
+    })
+    const spData = await sp.json()
+    if (!sp.ok) { setError(spData.error); setLoading(false); return }
+
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const { data: auth, error: authError } = await sb.auth.signInWithPassword({ email: trimmedEmail, password })
+    if (authError || !auth.session) {
+      setLoading(false)
+      setError(t('ingresar', 'error_wrong_password', 'La cuenta se creó pero no se pudo iniciar sesión — entrá manualmente desde la app'))
+      return
+    }
+
+    sessionStorage.setItem('flashttoo_sponsor_auth', JSON.stringify({
+      slug: spData.sponsor.slug,
+      name: spData.sponsor.name,
+      access_token: auth.session.access_token,
+      refresh_token: auth.session.refresh_token,
+    }))
+    window.location.href = `/?marca=${spData.sponsor.slug}`
   }
 
   if (view === 'terms' || view === 'privacy') {
@@ -172,24 +201,6 @@ export default function RegistrarMarca() {
                 </button>
                 <a href="/" className="text-xs text-center block" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   {t('ingresar', 'back_btn', 'Volver')}
-                </a>
-              </div>
-            )}
-
-            {view === 'registered' && (
-              <div className="flex flex-col gap-4 text-center">
-                <p className="text-sm font-bold text-white">{t('ingresar', 'registered_title', '¡Cuenta creada!')}</p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.7 }}>
-                  {t('ingresar', 'registered_msg', 'Te enviamos un mail a')} <span style={{ color: 'rgba(255,255,255,0.7)' }}>{email}</span>.<br />
-                  {t('ingresar', 'registered_marca_msg', 'Hacé click en el link del mail para completar el perfil de tu marca.')}
-                </p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
-                  {t('ingresar', 'registered_spam', 'Revisá también la carpeta de spam.')}
-                </p>
-                <a href="/"
-                  className="w-full py-3 rounded-xl text-sm font-bold text-center block"
-                  style={{ background: '#efff42', color: '#000' }}>
-                  {t('ingresar', 'understood_btn', 'Entendido')}
                 </a>
               </div>
             )}

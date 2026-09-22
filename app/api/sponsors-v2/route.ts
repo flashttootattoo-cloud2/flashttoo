@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendAccountActivatedEmail } from '@/lib/email'
 
 function slugify(name: string) {
   return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -47,6 +48,8 @@ export async function POST(req: NextRequest) {
   if (invite_token) {
     await sb.from('sponsor_invites').update({ used_by_sponsor_id: sponsor.id, used_at: new Date().toISOString() }).eq('token', invite_token)
   }
+
+  sendAccountActivatedEmail({ to: email.toLowerCase(), name: baseName }).catch(() => {})
 
   return NextResponse.json({ sponsor })
 }

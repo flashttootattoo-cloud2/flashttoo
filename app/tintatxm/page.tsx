@@ -62,7 +62,7 @@ type SponsorV2Admin = {
   grid_logo_scale: number | null; whatsapp: string | null
   bio: string | null; instagram: string | null; bg_image_dark: number | null; logo_bg_color: string | null
   slug: string | null; auth_email: string | null; linked_from: string | null
-  daily_post_limit: number | null
+  daily_post_limit: number | null; user_id: string | null
 }
 
 type Convention = {
@@ -565,9 +565,11 @@ function DraftArtistsList({ pass }: { pass: string }) {
 }
 
 
-function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey, onToggleInvites }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void; onUpdateKey: (id: string, key: string) => void; onToggleInvites?: (id: string, invites_disabled: boolean) => void }) {
+function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey, onUpdateEmail, onToggleInvites }: { artists: Artist[]; deleting: string | null; onDelete: (id: string) => void; onToggleVisible: (id: string, visible: boolean) => void; onUpdateKey: (id: string, key: string) => void; onUpdateEmail?: (id: string, email: string) => void; onToggleInvites?: (id: string, invites_disabled: boolean) => void }) {
   const [editingKey, setEditingKey] = useState<{ id: string; value: string } | null>(null)
   const [savingKey, setSavingKey] = useState(false)
+  const [editingEmail, setEditingEmail] = useState<{ id: string; value: string } | null>(null)
+  const [savingEmail, setSavingEmail] = useState(false)
   const [marked, setMarked] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('admin_marked') || '[]')) } catch { return new Set() }
   })
@@ -614,9 +616,41 @@ function ArtistGrid({ artists, deleting, onDelete, onToggleVisible, onUpdateKey,
                   </a>
                 )}
                 {a.auth_email && (
-                  <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full mt-1" style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
-                    ✉ {a.auth_email}
-                  </span>
+                  editingEmail?.id === a.id ? (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <input
+                        value={editingEmail.value}
+                        onChange={e => setEditingEmail({ id: a.id, value: e.target.value })}
+                        onKeyDown={async e => {
+                          if (e.key === 'Enter') {
+                            setSavingEmail(true)
+                            await onUpdateEmail?.(a.id, editingEmail.value)
+                            setEditingEmail(null); setSavingEmail(false)
+                          }
+                          if (e.key === 'Escape') setEditingEmail(null)
+                        }}
+                        autoFocus
+                        className="py-0.5 px-2 rounded text-xs font-bold outline-none"
+                        style={{ background: 'rgba(239,255,66,0.08)', border: '1px solid rgba(239,255,66,0.35)', color: '#efff42', minWidth: 160 }}
+                      />
+                      <button onClick={async () => { setSavingEmail(true); await onUpdateEmail?.(a.id, editingEmail.value); setEditingEmail(null); setSavingEmail(false) }}
+                        disabled={savingEmail}
+                        className="text-xs px-2 py-0.5 rounded font-bold shrink-0 disabled:opacity-40"
+                        style={{ background: 'rgba(239,255,66,0.12)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42' }}>
+                        {savingEmail ? '...' : 'ok'}
+                      </button>
+                      <button onClick={() => setEditingEmail(null)}
+                        className="text-xs px-1.5 py-0.5 rounded shrink-0"
+                        style={{ color: 'rgba(255,255,255,0.25)' }}>✕</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => onUpdateEmail && setEditingEmail({ id: a.id, value: a.auth_email! })}
+                      className="inline-block text-xs font-bold px-2 py-0.5 rounded-full mt-1 transition-opacity hover:opacity-70"
+                      style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}
+                      title={onUpdateEmail ? 'Corregir mail (typo)' : undefined}>
+                      ✉ {a.auth_email}
+                    </button>
+                  )
                 )}
                 {a.migrated_at && (Date.now() - new Date(a.migrated_at).getTime() < 30 * 24 * 60 * 60 * 1000) && (
                   <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full mt-1 ml-1" style={{ background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}>
@@ -1645,6 +1679,36 @@ export default function AdminPage() {
     })
   }
 
+  const [refreshingSponsorsV2, setRefreshingSponsorsV2] = useState(false)
+  const refreshSponsorsV2 = async () => {
+    setRefreshingSponsorsV2(true)
+    try {
+      const r = await fetch('/api/admin/sponsors-v2', { headers: H(pass) }).then(res => res.json()).catch(() => null)
+      if (r?.sponsors) setSponsorsV2(r.sponsors)
+    } finally { setRefreshingSponsorsV2(false) }
+  }
+
+  const [deletingSponsorId, setDeletingSponsorId] = useState<string | null>(null)
+  const deleteSponsorV2 = async (id: string) => {
+    if (!confirm('¿Borrar esta marca? Se pierde el registro y sus imágenes.')) return
+    setDeletingSponsorId(id)
+    try {
+      const r = await fetch(`/api/admin/sponsors-v2/${id}`, { method: 'DELETE', headers: H(pass) })
+      if (r.ok) setSponsorsV2(prev => prev.filter(x => x.id !== id))
+    } finally { setDeletingSponsorId(null) }
+  }
+
+  const [revokingAccessId, setRevokingAccessId] = useState<string | null>(null)
+  const revokeSponsorAccess = async (id: string) => {
+    if (!confirm('¿Borrar el acceso de esta marca? El mail y contraseña dejan de funcionar (ese mail queda libre), pero el perfil (logo, bio, fotos) se mantiene intacto en el listado.')) return
+    setRevokingAccessId(id)
+    try {
+      const r = await fetch(`/api/admin/sponsors-v2/${id}/revoke-access`, { method: 'POST', headers: H(pass) })
+      const d = await r.json()
+      if (r.ok) setSponsorsV2(prev => prev.map(x => x.id === id ? d.sponsor : x))
+    } finally { setRevokingAccessId(null) }
+  }
+
   useEffect(() => {
     if ((!['idiomas', 'estudios'].includes(tab)) || !auth) return
     fetch('/api/admin/languages').then(r => r.json()).then(d => setLangs(d.languages ?? [])).catch(() => {})
@@ -1889,6 +1953,22 @@ export default function AdminPage() {
       return
     }
     patchArtistInLists(id, { edit_key: trimmed })
+  }
+
+  const updateArtistEmail = async (id: string, email: string) => {
+    const trimmed = email.trim().toLowerCase()
+    if (!trimmed) return
+    const r = await fetch(`/api/admin/artists/${id}/fix-email`, {
+      method: 'POST',
+      headers: { ...H(pass), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: trimmed }),
+    })
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}))
+      alert(`Error al corregir mail: ${d.error || r.status}`)
+      return
+    }
+    patchArtistInLists(id, { auth_email: trimmed })
   }
 
   const toggleVisible = async (id: string, visible: boolean) => {
@@ -2221,13 +2301,13 @@ export default function AdminPage() {
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
                   {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} para &quot;{artistSearch}&quot;
                 </p>
-                <ArtistGrid artists={searchResults} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onToggleInvites={toggleInvites} />
+                <ArtistGrid artists={searchResults} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onUpdateEmail={updateArtistEmail} onToggleInvites={toggleInvites} />
               </>
             ) : showMigrated ? (
               <>
                 {loadingMigrated
                   ? <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>Cargando migrados...</p>
-                  : <ArtistGrid artists={[...migratedArtists].sort((a, b) => new Date(b.migrated_at!).getTime() - new Date(a.migrated_at!).getTime())} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onToggleInvites={toggleInvites} />
+                  : <ArtistGrid artists={[...migratedArtists].sort((a, b) => new Date(b.migrated_at!).getTime() - new Date(a.migrated_at!).getTime())} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onUpdateEmail={updateArtistEmail} onToggleInvites={toggleInvites} />
                 }
               </>
             ) : (
@@ -2242,7 +2322,7 @@ export default function AdminPage() {
                   if (!aRecent && bRecent) return 1
                   if (aRecent && bRecent) return bM - aM
                   return 0
-                })} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onToggleInvites={toggleInvites} />
+                })} deleting={deleting} onDelete={deleteArtist} onToggleVisible={toggleVisible} onUpdateKey={updateArtistKey} onUpdateEmail={updateArtistEmail} onToggleInvites={toggleInvites} />
                 {artists.length < artistsTotal && (
                   <button
                     onClick={loadMoreArtists}
@@ -3134,10 +3214,19 @@ export default function AdminPage() {
             </div>
 
             {/* Registros pendientes — marcas que se registraron solas por el link */}
-            {sponsorsV2.some(sp => sp.auth_email) && (
-              <div className="rounded-xl p-5 flex flex-col gap-2"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="rounded-xl p-5 flex flex-col gap-2"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
                 <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>REGISTROS PENDIENTES</p>
+                <button onClick={refreshSponsorsV2} disabled={refreshingSponsorsV2}
+                  className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+                  style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' }}>
+                  {refreshingSponsorsV2 ? '...' : 'Actualizar'}
+                </button>
+              </div>
+              {!sponsorsV2.some(sp => sp.auth_email) ? (
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Sin registros nuevos por ahora.</p>
+              ) : (
                 <div className="flex flex-col">
                   {sponsorsV2.filter(sp => sp.auth_email).map(sp => (
                     <div key={sp.id} className="flex flex-col gap-2 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -3206,7 +3295,7 @@ export default function AdminPage() {
                       {editingPendingId === sp.id && (
                         <div className="flex flex-col gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                            O vincular con una marca ya cargada (copia su logo, bio, redes, etc.)
+                            O vincular con una marca ya cargada — le pasa el login a esa marca, vos seguís editándola como siempre.
                           </p>
                           <div className="flex items-center gap-2">
                             <select
@@ -3241,40 +3330,43 @@ export default function AdminPage() {
                                 if (!source) return
                                 setLinkingPending(true)
                                 try {
-                                  const r = await fetch(`/api/admin/sponsors-v2/${sp.id}`, {
+                                  // La marca original sigue siendo la que editás siempre — solo le
+                                  // pasamos el login (user_id/auth_email) del registro nuevo.
+                                  const r = await fetch(`/api/admin/sponsors-v2/${source.id}`, {
                                     method: 'PATCH',
                                     headers: { ...H(pass), 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      name: source.name, description: source.description, bio: source.bio,
-                                      instagram: source.instagram, link: source.link, whatsapp: source.whatsapp,
-                                      level: source.level, city: source.city, country: source.country,
-                                      keep_color: source.keep_color, logo_url: source.logo_url,
-                                      bg_image_url: source.bg_image_url, bg_image_dark: source.bg_image_dark,
-                                      logo_bg_color: source.logo_bg_color, detail_logo_url: source.detail_logo_url,
-                                      detail_logo_mode: source.detail_logo_mode, logo_scale: source.logo_scale,
-                                      grid_logo_scale: source.grid_logo_scale,
-                                      starts_at: source.starts_at, expires_at: source.expires_at,
-                                      active: true, linked_from: source.id,
-                                    }),
+                                    body: JSON.stringify({ user_id: sp.user_id, auth_email: sp.auth_email, active: true }),
                                   })
                                   const d = await r.json()
                                   if (r.ok) {
-                                    // Desactivar la marca original para que no quede duplicada en banner/grilla
-                                    await fetch(`/api/admin/sponsors-v2/${source.id}`, {
-                                      method: 'PATCH',
-                                      headers: { ...H(pass), 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ active: false }),
-                                    })
-                                    setSponsorsV2(prev => prev.map(x => x.id === sp.id ? d.sponsor : x.id === source.id ? { ...x, active: false } : x))
+                                    // El registro self-registrado no tiene contenido propio (sin logo ni
+                                    // imágenes) — se borra una vez que su login ya quedó en la original.
+                                    await fetch(`/api/admin/sponsors-v2/${sp.id}`, { method: 'DELETE', headers: H(pass) })
+                                    setSponsorsV2(prev => prev.filter(x => x.id !== sp.id).map(x => x.id === source.id ? d.sponsor : x))
                                     setEditingPendingId(null); setLinkTargetId('')
                                   }
                                 } finally { setLinkingPending(false) }
                               }}
                               className="shrink-0 text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
                               style={{ background: '#efff42', color: '#000' }}>
-                              {sp.linked_from
-                                ? (linkingPending ? 'Guardando...' : 'Guardar y vincular')
-                                : (linkingPending ? 'Vinculando...' : 'Vincular')}
+                              {linkingPending ? 'Vinculando...' : 'Vincular'}
+                            </button>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => revokeSponsorAccess(sp.id)}
+                              disabled={revokingAccessId === sp.id}
+                              className="self-start text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                              style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' }}
+                              title="Borra solo el mail/contraseña — el perfil de la marca queda intacto">
+                              {revokingAccessId === sp.id ? 'Borrando acceso...' : 'Revocar acceso'}
+                            </button>
+                            <button
+                              onClick={() => deleteSponsorV2(sp.id)}
+                              disabled={deletingSponsorId === sp.id}
+                              className="self-start text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                              style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
+                              {deletingSponsorId === sp.id ? 'Borrando...' : 'Borrar registro'}
                             </button>
                           </div>
                         </div>
@@ -3282,8 +3374,8 @@ export default function AdminPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Guía de proveedores */}
             <div className="rounded-xl p-4 flex items-center justify-between gap-4"

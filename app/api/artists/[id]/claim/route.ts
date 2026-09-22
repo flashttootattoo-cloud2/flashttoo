@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendArtistClaimedEmail } from '@/lib/email'
+import { sendAccountActivatedEmail } from '@/lib/email'
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: error?.message || 'No se pudo activar el perfil' }, { status: 500 })
   }
 
-  sendArtistClaimedEmail({ to: email, name: artist.name }).catch(() => {})
+  sendAccountActivatedEmail({ to: email, name: artist.name }).catch(() => {})
 
   return NextResponse.json({ ok: true })
 }
