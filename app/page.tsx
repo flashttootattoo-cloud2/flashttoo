@@ -320,15 +320,16 @@ export default function Home() {
   const [selected, setSelected]   = useState<Artist | null>(null)
 
   // Cartel de instalación — recién aparece cuando hay una señal real de
-  // interés (abrió un perfil), no apenas entra a la app. Se puede cerrar y
-  // no vuelve a insistir (queda guardado, no es por sesión).
+  // interés (abrió un perfil), no apenas entra a la app. Si lo cierran,
+  // vuelve a insistir recién a los 3 días (no es un "nunca más").
+  const INSTALL_HINT_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000
   const [showInstallHint, setShowInstallHint] = useState(false)
   const installHintShownRef = useRef(false)
   useEffect(() => {
     if (!selected || installHintShownRef.current || isStandalone || !(isIOS || isAndroid)) return
-    let dismissed = false
-    try { dismissed = localStorage.getItem('install_hint_dismissed') === '1' } catch {}
-    if (dismissed) return
+    let dismissedAt = 0
+    try { dismissedAt = Number(localStorage.getItem('install_hint_dismissed_at')) || 0 } catch {}
+    if (dismissedAt && Date.now() - dismissedAt < INSTALL_HINT_COOLDOWN_MS) return
     installHintShownRef.current = true
     const t = setTimeout(() => setShowInstallHint(true), 600)
     return () => clearTimeout(t)
@@ -337,7 +338,7 @@ export default function Home() {
 
   const dismissInstallHint = () => {
     setShowInstallHint(false)
-    try { localStorage.setItem('install_hint_dismissed', '1') } catch {}
+    try { localStorage.setItem('install_hint_dismissed_at', String(Date.now())) } catch {}
   }
 
   const [selectedHasAvail, setSelectedHasAvail] = useState(false)
