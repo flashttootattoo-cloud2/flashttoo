@@ -13,6 +13,12 @@ function checkAuth(req: NextRequest) {
   return req.headers.get('x-admin-pass') === process.env.ADMIN_PASSWORD
 }
 
+// Código corto para el link de /reclamar — más corto y prolijo que exponer el uuid
+function genClaimCode() {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789'
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const url    = new URL(req.url)
@@ -57,8 +63,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Se crea como borrador sin publicar — no se usa mas la clave de edicion
-  // para este flujo, el admin comparte el link de /reclamar/[id] en su lugar
-  // y el propio tatuador activa el perfil con mail y contraseña
+  // para este flujo, el admin comparte el link de /reclamar/[claim_code] en
+  // su lugar y el propio tatuador activa el perfil con mail y contraseña
   const { data, error } = await sb.from('artists').insert({
     name:      (fd.get('name') as string).trim(),
     city:      (fd.get('city') as string).trim(),
@@ -72,6 +78,7 @@ export async function POST(req: NextRequest) {
     visits:    JSON.parse((fd.get('visits') as string) || '[]'),
     status:    'draft',
     visible:   false,
+    claim_code: genClaimCode(),
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

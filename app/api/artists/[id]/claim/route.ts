@@ -9,10 +9,13 @@ function sb() {
 // Activa un perfil borrador (creado por el admin sin cuenta) — crea el
 // usuario de auth, lo linkea a la fila ya existente y lo publica.
 // A diferencia de la migración vieja (edit_key + doble mail), esto es un
-// solo paso: el link en sí (id del artista, no listado en ningún lado) es
-// la prueba de identidad, como ya se hace con las invitaciones de marcas.
+// solo paso: el link en sí (claim_code del artista, no listado en ningún
+// lado) es la prueba de identidad, como ya se hace con las invitaciones de
+// marcas. Pese al nombre de carpeta [id] (comparte carpeta con
+// /api/artists/[id] que sí usa el id real), acá el valor recibido es el
+// claim_code, no el uuid.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+  const { id: code } = await params
   const body = await req.json().catch(() => null)
   const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
   const password = typeof body?.password === 'string' ? body.password : ''
@@ -23,9 +26,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!tyc) return NextResponse.json({ error: 'Tenés que aceptar los términos para continuar' }, { status: 400 })
 
   const client = sb()
-  const { data: artist } = await client.from('artists').select('id, name, user_id').eq('id', id).single()
+  const { data: artist } = await client.from('artists').select('id, name, user_id').eq('claim_code', code).single()
   if (!artist) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
   if (artist.user_id) return NextResponse.json({ error: 'Este perfil ya fue activado' }, { status: 400 })
+  const id = artist.id
 
   const { data: existing } = await client.from('artists').select('id').eq('auth_email', email).limit(1)
   if (existing?.length) return NextResponse.json({ error: 'Ya existe una cuenta con ese mail' }, { status: 400 })

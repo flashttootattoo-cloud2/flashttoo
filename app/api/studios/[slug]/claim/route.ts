@@ -7,11 +7,11 @@ function sb() {
 }
 
 // Activa un perfil de estudio borrador (creado por el admin sin cuenta) — mismo
-// patrón que /api/artists/[id]/claim: un solo paso, el link (id, no listado)
-// es la prueba de identidad, sin mail intermedio. Vive bajo [slug] por una
-// restricción de Next.js, pero el valor sigue siendo el id (uuid) del estudio.
+// patrón que /api/artists/[id]/claim: un solo paso, el link (claim_code, no
+// listado) es la prueba de identidad, sin mail intermedio. Vive bajo [slug]
+// por una restricción de Next.js, pero el valor recibido es el claim_code.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  const { slug: id } = await params
+  const { slug: code } = await params
   const body = await req.json().catch(() => null)
   const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
   const password = typeof body?.password === 'string' ? body.password : ''
@@ -22,9 +22,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!tyc) return NextResponse.json({ error: 'Tenés que aceptar los términos para continuar' }, { status: 400 })
 
   const client = sb()
-  const { data: studio } = await client.from('studios').select('id, name, slug, logo_url, user_id').eq('id', id).single()
+  const { data: studio } = await client.from('studios').select('id, name, slug, logo_url, user_id').eq('claim_code', code).single()
   if (!studio) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
   if (studio.user_id) return NextResponse.json({ error: 'Este perfil ya fue activado' }, { status: 400 })
+  const id = studio.id
 
   const { data: existing } = await client.from('studios').select('id').eq('auth_email', email).limit(1)
   if (existing?.length) return NextResponse.json({ error: 'Ya existe una cuenta con ese mail' }, { status: 400 })

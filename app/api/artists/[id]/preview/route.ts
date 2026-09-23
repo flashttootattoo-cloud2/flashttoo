@@ -6,15 +6,16 @@ function sb() {
 }
 
 // Endpoint público pero no listado — solo accesible por quien tenga el link
-// con el id del artista (mismo criterio de "seguridad por oscuridad" que ya
-// se usa para /preview/cultura/[id]). Filtra server-side por id y no expone
-// campos internos (edit_key, email, etc.)
+// con el claim_code del artista (mismo criterio de "seguridad por oscuridad"
+// que ya se usa para /preview/cultura/[id]). Pese al nombre de carpeta [id]
+// (comparte carpeta con /api/artists/[id] que sí usa el id real), acá el
+// valor recibido es el claim_code — más corto que el uuid para el link.
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+  const { id: code } = await params
   const { data } = await sb()
     .from('artists')
     .select('id, name, city, country, styles, bio, photo_url, instagram, user_id')
-    .eq('id', id)
+    .eq('claim_code', code)
     .single()
 
   if (!data) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })

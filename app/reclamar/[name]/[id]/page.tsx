@@ -16,7 +16,9 @@ type ArtistPreview = {
 }
 
 export default function ReclamarPerfil() {
-  const { id } = useParams<{ id: string }>()
+  // El [name] en la URL es solo estético (para que el link se vea personalizado
+  // al compartirlo) — la identidad real y la prueba de acceso siguen siendo el id
+  const { id } = useParams<{ name: string; id: string }>()
   const [artist, setArtist] = useState<ArtistPreview | null>(null)
   const [claimed, setClaimed] = useState(false)
   const [loading, setLoading] = useState(true)

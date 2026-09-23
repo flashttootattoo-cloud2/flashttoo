@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
   if (existing && existing.length > 0) slug = `${rawSlug}-${Date.now()}`
 
   const edit_key = genKey()
+  const claim_code = genKey().slice(0, 8).toLowerCase()
   const { data, error } = await client.from('studios').insert({
     name,
     slug,
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
     website:     (fd.get('website') as string)?.trim() || null,
     logo_url,
     edit_key,
+    claim_code,
     visible: false,
     expires_at: (fd.get('expires_at') as string)?.trim() || null,
   }).select().single()

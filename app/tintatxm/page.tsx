@@ -34,6 +34,13 @@ function fmtN(n: number): string {
   return String(n)
 }
 
+// Solo para que el link de /reclamar se vea personalizado al compartirlo —
+// no es la identidad real, esa sigue siendo el id al final de la URL
+function slugifyName(name: string): string {
+  return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'tatuador'
+}
+
 type Ad = {
   id: string; title: string; image_url: string; link: string | null
   city: string | null; country: string | null
@@ -187,7 +194,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
   const [preview, setPreview]   = useState<string | null>(null)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
-  const [done, setDone]         = useState<{ name: string; id: string; instagram?: string } | null>(null)
+  const [done, setDone]         = useState<{ name: string; id: string; claim_code: string; instagram?: string } | null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
   const [igStatus, setIgStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [visits, setVisits] = useState<Visit[]>([])
@@ -256,7 +263,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Error')
       onAdded(d.artist)
-      setDone({ name: form.name.trim(), id: d.artist.id, instagram: d.artist.instagram })
+      setDone({ name: form.name.trim(), id: d.artist.id, claim_code: d.artist.claim_code, instagram: d.artist.instagram })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error')
     } finally { setSaving(false) }
@@ -271,7 +278,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
   const iCls = 'w-full py-2 px-3 text-sm text-white outline-none rounded-lg bg-white/5 border border-white/10 focus:border-white/30 transition-colors placeholder-white/20'
 
   if (done) {
-    const claimUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar/${done.id}`
+    const claimUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar/${slugifyName(done.name)}/${done.claim_code}`
     return (
     <div className="max-w-sm flex flex-col gap-4">
       <div className="rounded-xl p-5" style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)' }}>
@@ -514,7 +521,7 @@ function AddArtistForm({ pass, onAdded, availableStyles, existingArtists }: { pa
 // Perfiles creados como borrador (todavía sin reclamar) — para volver a
 // encontrar el link de activación de alguien que ya se agregó antes
 function DraftArtistsList({ pass }: { pass: string }) {
-  const [drafts, setDrafts] = useState<{ id: string; name: string; city: string | null; country: string | null; created_at: string }[]>([])
+  const [drafts, setDrafts] = useState<{ id: string; name: string; city: string | null; country: string | null; created_at: string; claim_code: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
@@ -536,7 +543,7 @@ function DraftArtistsList({ pass }: { pass: string }) {
       </p>
       <div className="flex flex-col gap-2">
         {drafts.map(d => {
-          const claimUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar/${d.id}`
+          const claimUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar/${slugifyName(d.name)}/${d.claim_code}`
           return (
             <div key={d.id} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="flex items-center justify-between gap-2 mb-2">
@@ -1430,7 +1437,7 @@ export default function AdminPage() {
 
   // Estudios
   type AdminStudioArtist = { artist_id: string; artists: { id: string; name: string; instagram: string | null } | null }
-  type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number; auth_email?: string | null; user_id?: string | null; studio_artists?: AdminStudioArtist[] }
+  type AdminStudio = { id: string; name: string; slug: string; city: string | null; country: string | null; visible: boolean; edit_key: string; claim_code?: string | null; created_at: string; expires_at: string | null; profile_views: number; instagram_clicks: number; whatsapp_clicks: number; website_clicks: number; auth_email?: string | null; user_id?: string | null; studio_artists?: AdminStudioArtist[] }
   const [adminStudios, setAdminStudios]       = useState<AdminStudio[]>([])
   const [loadingStudios, setLoadingStudios]   = useState(false)
 
@@ -1564,7 +1571,7 @@ export default function AdminPage() {
   const [studioLogoPreview, setStudioLogoPreview] = useState<string | null>(null)
   const [savingStudio, setSavingStudio]       = useState(false)
   const [studioError, setStudioError]         = useState('')
-  const [studioCreated, setStudioCreated]     = useState<{ name: string; id: string } | null>(null)
+  const [studioCreated, setStudioCreated]     = useState<{ name: string; id: string; claim_code: string } | null>(null)
   const [studioFormOpen, setStudioFormOpen]   = useState(false)
   const [keyCopied, setKeyCopied]             = useState(false)
   const [copiedLinkLang, setCopiedLinkLang]   = useState<string | null>(null)
@@ -2209,7 +2216,7 @@ export default function AdminPage() {
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Error')
       setAdminStudios(prev => [d.studio, ...prev])
-      setStudioCreated({ name: studioForm.name.trim(), id: d.studio.id })
+      setStudioCreated({ name: studioForm.name.trim(), id: d.studio.id, claim_code: d.studio.claim_code })
     } catch (err: unknown) {
       setStudioError(err instanceof Error ? err.message : 'Error')
     } finally { setSavingStudio(false) }
@@ -4354,10 +4361,10 @@ export default function AdminPage() {
                   <div className="flex gap-2">
                     <span className="flex-1 py-2 px-3 rounded-lg text-xs truncate"
                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}>
-                      {`${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar-estudio/${studioCreated.id}`}
+                      {`${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar-estudio/${studioCreated.claim_code}`}
                     </span>
                     <button onClick={() => {
-                      navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar-estudio/${studioCreated.id}`)
+                      navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar-estudio/${studioCreated.claim_code}`)
                       setCopiedStudioLink(studioCreated.id); setTimeout(() => setCopiedStudioLink(null), 2000)
                     }}
                       className="px-4 rounded-lg text-xs font-bold shrink-0"
@@ -4509,8 +4516,19 @@ export default function AdminPage() {
                             </button>
                           )
                         )}
+                        {!studio.user_id && studio.claim_code && (
+                          <button
+                            onClick={() => {
+                              const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://flashttoo.com'}/reclamar-estudio/${studio.claim_code}`
+                              navigator.clipboard.writeText(url).catch(() => {})
+                              setCopiedStudioLink(studio.id); setTimeout(() => setCopiedStudioLink(null), 2000)
+                            }}
+                            className="text-xs font-bold px-2.5 py-1 rounded-lg mt-1"
+                            style={{ background: copiedStudioLink === studio.id ? 'rgba(74,222,128,0.15)' : 'rgba(239,255,66,0.1)', border: `1px solid ${copiedStudioLink === studio.id ? 'rgba(74,222,128,0.4)' : 'rgba(239,255,66,0.25)'}`, color: copiedStudioLink === studio.id ? '#4ade80' : '#efff42' }}>
+                            {copiedStudioLink === studio.id ? '✓ Link copiado' : 'Copiar link para activar'}
+                          </button>
+                        )}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          {!studio.auth_email && <p className="text-xs shrink-0" style={{ color: 'rgba(255,255,255,0.15)', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.1em' }}>clave: {studio.edit_key}</p>}
                           <div className="flex items-center gap-1.5">
                             <input
                               type="date"
