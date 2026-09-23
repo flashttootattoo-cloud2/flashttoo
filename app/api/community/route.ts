@@ -20,18 +20,18 @@ export async function GET(req: NextRequest) {
   const now = new Date().toISOString()
 
   const { data: tickerSetting } = await sb().from('settings').select('value').eq('key', 'search_ticker_mode').single()
-  const tickerMode = tickerSetting?.value === true
+  const hideSearchPosts = tickerSetting?.value === true
 
   const baseRows = () => {
     let q = sb().from('community_posts').select('*').gt('expires_at', now).lt('report_count', 3).eq('lang', lang)
-    // Con el ticker activo, las búsquedas sin texto (search_description null) se
-    // muestran arriba del todo en vivo en vez de ocupar lugar en el feed normal
-    if (tickerMode) q = q.or('type.neq.search,search_description.not.is.null')
+    // Con esto activo, las búsquedas sin texto (search_description null) no
+    // aparecen en el feed público — siguen guardadas y visibles en el admin
+    if (hideSearchPosts) q = q.or('type.neq.search,search_description.not.is.null')
     return q
   }
   const baseCount = () => {
     let q = sb().from('community_posts').select('id', { count: 'exact', head: true }).gt('expires_at', now).lt('report_count', 3).eq('lang', lang)
-    if (tickerMode) q = q.or('type.neq.search,search_description.not.is.null')
+    if (hideSearchPosts) q = q.or('type.neq.search,search_description.not.is.null')
     return q
   }
 

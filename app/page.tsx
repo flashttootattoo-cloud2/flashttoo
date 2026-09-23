@@ -161,6 +161,7 @@ export default function Home() {
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
   const [pushCountry, setPushCountry] = useState(() => { try { return sessionStorage.getItem('s_country') || '' } catch { return '' } })
+  const [pushCity, setPushCity] = useState('')
   const [savingPushCountry, setSavingPushCountry] = useState(false)
   const [pushCountryMissing, setPushCountryMissing] = useState(false)
   const [pushNotificationsVisible, setPushNotificationsVisible] = useState(false)
@@ -237,7 +238,7 @@ export default function Home() {
           })
           const r = await fetch('/api/push/subscribe', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription: sub, country: pushCountry, lang: language }),
+            body: JSON.stringify({ subscription: sub, country: pushCountry, city: pushCity, lang: language }),
           })
           if (!r.ok) { alert('Se pudo suscribir el navegador pero falló al guardar en el servidor (status ' + r.status + ')'); return }
           setPushEnabled(true)
@@ -259,7 +260,7 @@ export default function Home() {
       if (!sub) return
       await fetch('/api/push/subscribe', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub, country: pushCountry, lang: language }),
+        body: JSON.stringify({ subscription: sub, country: pushCountry, city: pushCity, lang: language }),
       }).catch(() => {})
     } finally { setSavingPushCountry(false) }
   }
@@ -413,7 +414,7 @@ export default function Home() {
         if (sub) {
           fetch('/api/push/subscribe?endpoint=' + encodeURIComponent(sub.endpoint))
             .then(r => r.json())
-            .then(d => { if (d?.country) setPushCountry(d.country) })
+            .then(d => { if (d?.country) setPushCountry(d.country); if (d?.city) setPushCity(d.city) })
             .catch(() => {})
         }
       })
@@ -1776,6 +1777,15 @@ export default function Home() {
                             className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs"
                             style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${pushCountryMissing ? 'rgba(255,100,100,0.5)' : 'rgba(255,255,255,0.12)'}`, color: '#fff', outline: 'none' }} />
                           {savingPushCountry && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>...</span>}
+                        </div>
+                        <div className="flex items-center gap-2" style={{ marginTop: 6 }}>
+                          <input
+                            value={pushCity}
+                            onChange={e => setPushCity(e.target.value)}
+                            onBlur={() => { if (pushEnabled) savePushCountry() }}
+                            placeholder={t('inicio', 'push_city_placeholder', 'Tu ciudad (opcional)')}
+                            className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
                         </div>
                         {pushCountryMissing ? (
                           <p style={{ fontSize: 10, color: 'rgba(255,120,120,0.75)', lineHeight: 1.5, marginTop: 6 }}>

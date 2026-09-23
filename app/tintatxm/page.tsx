@@ -5992,8 +5992,11 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [kind, setKind] = useState<'admin' | 'news'>('admin')
   const [link, setLink] = useState('')
   const [country, setCountry] = useState('')
+  const [postCity, setPostCity] = useState('')
   const [customExpiry, setCustomExpiry] = useState('')
   const [notify, setNotify] = useState(false)
+  const [postPhoto, setPostPhoto] = useState<File | null>(null)
+  const [postPhotoPreview, setPostPhotoPreview] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<'ok' | 'error' | null>(null)
   const [adminPosts, setAdminPosts] = useState<AdminPost[]>([])
@@ -6173,19 +6176,27 @@ function AdminCommunity({ pass }: { pass: string }) {
   const send = async () => {
     if (!text.trim()) return
     setSending(true); setResult(null)
+    const fd = new FormData()
+    fd.append('content', text)
+    fd.append('lang', lang)
+    fd.append('kind', kind)
+    if (link.trim()) fd.append('link', link.trim())
+    if (country.trim()) fd.append('country', country.trim())
+    if (postCity.trim()) fd.append('city', postCity.trim())
+    if (customExpiry) fd.append('expires_at', new Date(customExpiry).toISOString())
+    fd.append('notify', String(notify))
+    if (postPhoto) fd.append('photo', postPhoto)
     const r = await fetch('/api/admin/community', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
-      body: JSON.stringify({
-        content: text, lang, kind,
-        link: link.trim() || undefined,
-        country: country.trim() || undefined,
-        expires_at: customExpiry ? new Date(customExpiry).toISOString() : undefined,
-        notify,
-      }),
+      headers: { 'x-admin-pass': pass },
+      body: fd,
     }).catch(() => null)
     setSending(false)
-    if (r?.ok) { setText(''); setLink(''); setCountry(''); setCustomExpiry(''); setNotify(false); setResult('ok'); loadPosts() }
+    if (r?.ok) {
+      setText(''); setLink(''); setCountry(''); setPostCity(''); setCustomExpiry(''); setNotify(false)
+      setPostPhoto(null); setPostPhotoPreview(null)
+      setResult('ok'); loadPosts()
+    }
     else setResult('error')
   }
 
@@ -6237,12 +6248,42 @@ function AdminCommunity({ pass }: { pass: string }) {
           rows={4}
           style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.55 }}
         />
+        <div>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Foto opcional (ej. flyer de convención)</p>
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer">
+              {postPhotoPreview ? (
+                <div className="rounded-lg overflow-hidden" style={{ width: 90, height: 60, border: '1px solid rgba(255,255,255,0.1)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={postPhotoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              ) : (
+                <div className="rounded-lg flex items-center justify-center text-xs" style={{ width: 90, height: 60, border: '2px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' }}>
+                  subir foto
+                </div>
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={e => {
+                const file = e.target.files?.[0]; if (!file) return
+                setPostPhoto(file); setPostPhotoPreview(URL.createObjectURL(file))
+              }} />
+            </label>
+            {postPhotoPreview && (
+              <button type="button" onClick={() => { setPostPhoto(null); setPostPhotoPreview(null) }}
+                className="text-xs" style={{ color: 'rgba(255,80,80,0.6)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                Quitar foto
+              </button>
+            )}
+          </div>
+        </div>
         <div className="flex items-center gap-3 flex-wrap">
           <input type="url" value={link} onChange={e => setLink(e.target.value)}
             placeholder="Link opcional (ej. a la publicación de Instagram)"
             style={{ flex: '1 1 260px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
           <input value={country} onChange={e => setCountry(e.target.value)}
             placeholder="País opcional (ej: Argentina, Chile) — vacío = todos"
+            style={{ flex: '1 1 220px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
+          <input value={postCity} onChange={e => setPostCity(e.target.value)}
+            placeholder="Ciudad opcional (ej: Rosario) — refina el país"
             style={{ flex: '1 1 220px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
           <div className="flex items-center gap-2">
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Vence el</span>
@@ -6257,7 +6298,7 @@ function AdminCommunity({ pass }: { pass: string }) {
         <label className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
           <input type="checkbox" checked={notify} onChange={e => setNotify(e.target.checked)} />
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
-            Enviar también como notificación push {country.trim() ? `(solo ${country.trim()})` : '(a todos)'}
+            Enviar también como notificación push {postCity.trim() ? `(solo ${postCity.trim()}${country.trim() ? `, ${country.trim()}` : ''})` : country.trim() ? `(solo ${country.trim()})` : '(a todos)'}
           </span>
         </label>
         <div className="flex items-center gap-3 flex-wrap">
@@ -6351,7 +6392,7 @@ function AdminCommunity({ pass }: { pass: string }) {
               style={{ width: 16, height: 16, top: 2, left: tickerMode ? 18 : 2 }} />
           </button>
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
-            Modo ticker — las búsquedas sin texto salen arriba del todo del chat, de a una, en vez de ocupar lugar en la lista
+            Ocultar de comunidad — las búsquedas sin texto no aparecen en el feed público (siguen acá, para vos)
           </span>
         </div>
         {loadingPosts ? null : searchPosts.length === 0

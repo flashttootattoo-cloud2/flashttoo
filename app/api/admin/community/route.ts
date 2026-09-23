@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { deleteFile } from '@/lib/storage'
+import { deleteFile, uploadFile } from '@/lib/storage'
 import { sendToSegment } from '@/lib/push'
 
 function sb() {
@@ -44,31 +44,65 @@ export async function DELETE(req: NextRequest) {
 export async function POST(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  const body = await req.json().catch(() => null)
-  if (!body?.content?.trim()) return NextResponse.json({ error: 'Contenido requerido' }, { status: 400 })
+  const contentType = req.headers.get('content-type') || ''
+  let content = '', lang = 'es', expiresRaw = '', link = '', country = '', city = '', kind = ''
+  let notify = false
+  let photo: File | null = null
 
-  const lang = typeof body.lang === 'string' && body.lang ? body.lang : 'es'
+  if (contentType.includes('multipart/form-data')) {
+    const fd = await req.formData()
+    content     = (fd.get('content') as string) || ''
+    lang        = (fd.get('lang') as string) || 'es'
+    expiresRaw  = (fd.get('expires_at') as string) || ''
+    link        = (fd.get('link') as string) || ''
+    country     = (fd.get('country') as string) || ''
+    city        = (fd.get('city') as string) || ''
+    kind        = (fd.get('kind') as string) || ''
+    notify      = fd.get('notify') === 'true'
+    photo       = fd.get('photo') as File | null
+  } else {
+    const body = await req.json().catch(() => null)
+    content     = body?.content || ''
+    lang        = body?.lang || 'es'
+    expiresRaw  = body?.expires_at || ''
+    link        = body?.link || ''
+    country     = body?.country || ''
+    city        = body?.city || ''
+    kind        = body?.kind || ''
+    notify      = body?.notify === true
+  }
+
+  if (!content.trim()) return NextResponse.json({ error: 'Contenido requerido' }, { status: 400 })
 
   // Vencimiento: por defecto 7 días como el resto, pero el admin puede fijar
   // una fecha propia (ej. algo puntual como un flash day de este sábado)
   let expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-  if (typeof body.expires_at === 'string' && body.expires_at.trim()) {
-    const custom = new Date(body.expires_at)
+  if (expiresRaw.trim()) {
+    const custom = new Date(expiresRaw)
     if (!isNaN(custom.getTime()) && custom.getTime() > Date.now()) expires = custom.toISOString()
   }
 
-  const link = typeof body.link === 'string' && body.link.trim() ? body.link.trim().slice(0, 500) : null
-  const country = typeof body.country === 'string' && body.country.trim() ? body.country.trim().slice(0, 200) : null
-  const type = body.kind === 'news' ? 'news' : 'admin'
+  let photo_url: string | null = null
+  if (photo && photo.size) {
+    try { photo_url = await uploadFile(photo, `community-admin/${Date.now()}.webp`) }
+    catch (e: unknown) { return NextResponse.json({ error: e instanceof Error ? e.message : 'Upload error' }, { status: 500 }) }
+  }
+
+  const linkTrim    = link.trim() ? link.trim().slice(0, 500) : null
+  const countryTrim = country.trim() ? country.trim().slice(0, 200) : null
+  const cityTrim    = city.trim() ? city.trim().slice(0, 200) : null
+  const type = kind === 'news' ? 'news' : 'admin'
 
   const { data, error } = await sb()
     .from('community_posts')
     .insert({
       type,
-      content: String(body.content).trim().slice(0, 300),
+      content: content.trim().slice(0, 300),
       lang,
-      link,
-      country,
+      link: linkTrim,
+      country: countryTrim,
+      city: cityTrim,
+      photo_url,
       expires_at: expires,
       report_count: 0,
     })
@@ -79,10 +113,10 @@ export async function POST(req: NextRequest) {
 
   // Notificación inmediata (opcional) — no espera al resumen diario, se manda
   // al toque como parte de esta misma publicación
-  if (body.notify === true) {
+  if (notify) {
     sendToSegment(
-      { country, lang },
-      { title: 'Flashttoo', body: String(body.content).trim().slice(0, 140), url: '/?comunidad=1' },
+      { country: countryTrim, city: cityTrim, lang },
+      { title: 'Flashttoo', body: content.trim().slice(0, 140), url: '/?comunidad=1' },
     ).catch(err => console.error('[push] fallo sendToSegment desde admin', err))
   }
 

@@ -10,8 +10,8 @@ function sb() {
 export async function GET(req: NextRequest) {
   const endpoint = req.nextUrl.searchParams.get('endpoint')
   if (!endpoint) return NextResponse.json({ error: 'endpoint requerido' }, { status: 400 })
-  const { data } = await sb().from('push_subscriptions').select('country, lang').eq('endpoint', endpoint).single()
-  return NextResponse.json({ country: data?.country ?? null, lang: data?.lang ?? null })
+  const { data } = await sb().from('push_subscriptions').select('country, city, lang').eq('endpoint', endpoint).single()
+  return NextResponse.json({ country: data?.country ?? null, city: data?.city ?? null, lang: data?.lang ?? null })
 }
 
 export async function POST(req: NextRequest) {
@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     p256dh: sub.keys.p256dh,
     auth: sub.keys.auth,
     country: typeof body.country === 'string' && body.country.trim() ? body.country.trim() : null,
+    city: typeof body.city === 'string' && body.city.trim() ? body.city.trim() : null,
     lang: typeof body.lang === 'string' && body.lang.trim() ? body.lang.trim() : null,
   }, { onConflict: 'endpoint' })
 

@@ -54,23 +54,31 @@ export async function sendToSubscriptions(subs: PushSub[], payload: { title: str
   }
 }
 
-// country puede venir vacío (sin país = para todos) o con varios separados
-// por coma (mismo formato que ya usan sponsors/admin en el resto de la app)
+// country/city pueden venir vacíos (sin filtro = para todos) o con varios
+// separados por coma (mismo formato que ya usan sponsors/admin en el resto
+// de la app). Si se pasa city, además de matchear la ciudad exige que el
+// país también coincida (evita que una "Rosario" de otro país reciba un
+// aviso pensado para Rosario, Argentina)
 export async function sendToSegment(
-  opts: { country?: string | null; lang: string },
+  opts: { country?: string | null; city?: string | null; lang: string },
   payload: { title: string; body: string; url?: string },
 ) {
-  const { data, error } = await sb().from('push_subscriptions').select('id, endpoint, p256dh, auth, country').eq('lang', opts.lang)
+  const { data, error } = await sb().from('push_subscriptions').select('id, endpoint, p256dh, auth, country, city').eq('lang', opts.lang)
   if (error) console.error('[push] error consultando suscripciones', error)
-  const targets = opts.country ? opts.country.split(',').map(c => c.trim().toLowerCase()).filter(Boolean) : []
+  const countryTargets = opts.country ? opts.country.split(',').map(c => c.trim().toLowerCase()).filter(Boolean) : []
+  const cityTargets = opts.city ? opts.city.split(',').map(c => c.trim().toLowerCase()).filter(Boolean) : []
 
   const matches = (data ?? []).filter(s => {
-    if (targets.length === 0) return true
-    if (!s.country) return false
-    return targets.includes((s.country as string).toLowerCase())
+    if (countryTargets.length > 0) {
+      if (!s.country || !countryTargets.includes((s.country as string).toLowerCase())) return false
+    }
+    if (cityTargets.length > 0) {
+      if (!s.city || !cityTargets.includes((s.city as string).toLowerCase())) return false
+    }
+    return true
   })
 
-  console.log('[push] sendToSegment', { lang: opts.lang, country: opts.country, totalConLangMatch: data?.length ?? 0, matches: matches.length })
+  console.log('[push] sendToSegment', { lang: opts.lang, country: opts.country, city: opts.city, totalConLangMatch: data?.length ?? 0, matches: matches.length })
 
   if (matches.length) await sendToSubscriptions(matches, payload)
   return matches.length
