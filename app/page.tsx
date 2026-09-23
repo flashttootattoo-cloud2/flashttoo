@@ -1783,7 +1783,7 @@ export default function Home() {
                             value={pushCity}
                             onChange={e => setPushCity(e.target.value)}
                             onBlur={() => { if (pushEnabled) savePushCountry() }}
-                            placeholder={t('inicio', 'push_city_placeholder', 'Tu ciudad (opcional)')}
+                            placeholder={t('inicio', 'push_city_placeholder', 'Tu ciudad')}
                             className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs"
                             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
                         </div>
