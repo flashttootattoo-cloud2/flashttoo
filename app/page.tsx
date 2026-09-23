@@ -196,6 +196,7 @@ export default function Home() {
   // iOS (cualquier navegador, todos corren sobre WebKit) no tiene la API de
   // instalación automática — ahí la única forma es manual, desde Compartir
   const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 
   // Si ya está instalada (se abrió como app, no como pestaña del navegador),
   // no tiene sentido seguir mostrando la instrucción para instalarla
@@ -203,6 +204,27 @@ export default function Home() {
     window.matchMedia?.('(display-mode: standalone)').matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
   )
+
+  // Trackea instalaciones reales — Android avisa con el evento appinstalled;
+  // iOS no tiene ese evento, así que se detecta cuando la app ya se abre en
+  // modo standalone (recién ahí sabemos que se instaló)
+  useEffect(() => {
+    let tracked = false
+    try { tracked = localStorage.getItem('install_tracked') === '1' } catch {}
+    if (tracked) return
+    if (isIOS && isStandalone) {
+      try { localStorage.setItem('install_tracked', '1') } catch {}
+      fetch('/api/track/install', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ platform: 'ios' }) }).catch(() => {})
+      return
+    }
+    const onInstalled = () => {
+      try { localStorage.setItem('install_tracked', '1') } catch {}
+      fetch('/api/track/install', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ platform: 'android' }) }).catch(() => {})
+    }
+    window.addEventListener('appinstalled', onInstalled)
+    return () => window.removeEventListener('appinstalled', onInstalled)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Punto rojo para quien todavía no activó las notificaciones — se mantiene
   // mientras escriben el país (no se apaga solo por tipear), y desaparece
@@ -296,6 +318,28 @@ export default function Home() {
   const stylesRef = useRef<HTMLDivElement>(null)
   const deepLinkHandled = useRef(false)
   const [selected, setSelected]   = useState<Artist | null>(null)
+
+  // Cartel de instalación — recién aparece cuando hay una señal real de
+  // interés (abrió un perfil), no apenas entra a la app. Se puede cerrar y
+  // no vuelve a insistir (queda guardado, no es por sesión).
+  const [showInstallHint, setShowInstallHint] = useState(false)
+  const installHintShownRef = useRef(false)
+  useEffect(() => {
+    if (!selected || installHintShownRef.current || isStandalone || !(isIOS || isAndroid)) return
+    let dismissed = false
+    try { dismissed = localStorage.getItem('install_hint_dismissed') === '1' } catch {}
+    if (dismissed) return
+    installHintShownRef.current = true
+    const t = setTimeout(() => setShowInstallHint(true), 600)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected])
+
+  const dismissInstallHint = () => {
+    setShowInstallHint(false)
+    try { localStorage.setItem('install_hint_dismissed', '1') } catch {}
+  }
+
   const [selectedHasAvail, setSelectedHasAvail] = useState(false)
   const [selectedAvailSlots, setSelectedAvailSlots] = useState<{date:string;times:string[]}[]>([])
   const [availPopOpen, setAvailPopOpen] = useState(false)
@@ -4134,6 +4178,32 @@ export default function Home() {
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {showInstallHint && (
+        <div style={{ position: 'fixed', left: 14, right: 14, bottom: 'calc(14px + env(safe-area-inset-bottom))', zIndex: 200, background: '#111', border: '1px solid rgba(239,255,66,0.25)', borderRadius: 16, padding: '14px 14px 14px 16px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.5)', animation: 'slideInRight 0.25s ease' }}>
+          <img src="/app.png" alt="" width={44} height={44} style={{ borderRadius: 12, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff' }}>
+              {t('inicio', 'install_hint_title', 'Instalá Flashttoo')}
+            </p>
+            <p style={{ margin: '3px 0 0', fontSize: 11.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
+              {isIOS
+                ? t('inicio', 'install_hint_body_ios', 'Tocá Compartir ⬆️ y elegí "Agregar a inicio" para tenerla como app.')
+                : t('inicio', 'install_hint_body_android', 'Tenela como app: acceso directo y notificaciones más rápidas.')}
+            </p>
+            {isAndroid && installPrompt && (
+              <button onClick={async () => { await installApp(); dismissInstallHint() }}
+                style={{ marginTop: 8, fontSize: 12, fontWeight: 700, padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(239,255,66,0.35)', background: 'rgba(239,255,66,0.12)', color: '#efff42', cursor: 'pointer' }}>
+                {t('inicio', 'install_app_btn', 'Instalar app')}
+              </button>
+            )}
+          </div>
+          <button onClick={dismissInstallHint} aria-label="Cerrar"
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 18, lineHeight: 1, cursor: 'pointer', padding: 4, flexShrink: 0, alignSelf: 'flex-start' }}>
+            ×
+          </button>
         </div>
       )}
 
