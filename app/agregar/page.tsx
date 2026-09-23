@@ -89,6 +89,7 @@ export default function AgregarPage() {
   const submittingRef = useRef(false)
   const [done, setDone]         = useState<false | 'active' | 'pending'>(false)
   const [error, setError]       = useState('')
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [galleryFiles, setGalleryFiles]     = useState<(File | null)[]>([null, null, null])
   const [galleryPreviews, setGalleryPreviews] = useState<(string | null)[]>([null, null, null])
@@ -247,9 +248,11 @@ export default function AgregarPage() {
       if (insErr) {
         // user_id duplicado (ej. la invitación se envió dos veces) — mensaje claro
         // en vez del error técnico de Postgres
-        setError(insErr.message.includes('artists_user_id')
+        const dup = insErr.message.includes('artists_user_id')
+        setError(dup
           ? t('agregar', 'error_already_registered', 'Ya completaste tu perfil con esta cuenta. Iniciá sesión en vez de volver a registrarte.')
           : `Error al guardar: ${insErr.message}`)
+        setAlreadyRegistered(dup)
         setLoading(false)
         return
       }
@@ -729,6 +732,11 @@ export default function AgregarPage() {
           </div>
 
           {error && <p className="text-xs text-red-400">{error}</p>}
+          {alreadyRegistered && (
+            <Link href="/" className="text-xs font-bold inline-block" style={{ color: '#efff42', textDecoration: 'underline' }}>
+              {t('agregar', 'go_login', 'Ir a Flashttoo para iniciar sesión →')}
+            </Link>
+          )}
 
           {/* Clave de edición — solo para flujo sin auth */}
           {!isAuthFlow && (

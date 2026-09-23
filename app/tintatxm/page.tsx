@@ -2702,28 +2702,6 @@ export default function AdminPage() {
           // ── ARTISTAS ──────────────────────────────────────────────────────
           <div className="flex flex-col gap-3">
 
-            {/* Invitación de admin — sin límite */}
-            <div className="rounded-xl p-4 flex items-center justify-between gap-3"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <div>
-                <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>INVITAR TATUADOR</p>
-                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>El registro es solo por invitación. Como admin, tenés invitaciones ilimitadas.</p>
-              </div>
-              <button
-                onClick={async () => {
-                  const r = await fetch('/api/admin/artist-invites', { method: 'POST', headers: H(pass) })
-                  const d = await r.json()
-                  if (d.url) {
-                    await navigator.clipboard.writeText(d.url).catch(() => {})
-                    setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000)
-                  }
-                }}
-                className="shrink-0 font-bold text-xs py-2 px-4 rounded-full"
-                style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : '#efff42', color: keyCopied ? '#4ade80' : '#000', border: keyCopied ? '1px solid rgba(74,222,128,0.4)' : 'none' }}>
-                {keyCopied ? 'Copiado ✓' : 'Generar link'}
-              </button>
-            </div>
-
             <div className="flex items-center justify-between gap-2">
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>Tatuadores ({artistsTotal})</p>
               <div className="flex items-center gap-2">
