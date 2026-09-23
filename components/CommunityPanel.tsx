@@ -1753,7 +1753,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
 
           {(isAdmin || isNews) && post.link && (
             <a href={post.link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-              style={{ marginTop: 8, fontSize: 12, fontWeight: 700, padding: '6px 14px', background: isNews ? 'rgba(244,114,182,0.1)' : 'rgba(56,189,248,0.1)', borderRadius: 20, color: isNews ? '#f472b6' : '#38bdf8', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
+              style={{ marginTop: 8, fontSize: 12, fontWeight: 700, padding: '6px 14px', background: isNews ? 'rgba(244,114,182,0.1)' : 'rgba(56,189,248,0.1)', borderRadius: 20, color: isNews ? '#f472b6' : '#38bdf8', cursor: 'pointer', display: 'flex', width: 'fit-content', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
               🔗 {t('comunidad', 'view_post', 'Ver publicación')}
             </a>
           )}
