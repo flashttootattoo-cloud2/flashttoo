@@ -6298,12 +6298,17 @@ function AdminCommunity({ pass }: { pass: string }) {
           )}
           {!customExpiry && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>(default: 7 días)</span>}
         </div>
-        <label className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
-          <input type="checkbox" checked={notify} onChange={e => setNotify(e.target.checked)} />
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => setNotify(v => !v)}
+            className="relative rounded-full transition-colors"
+            style={{ width: 36, height: 20, background: notify ? '#efff42' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
+            <span className="absolute rounded-full bg-white transition-transform"
+              style={{ width: 16, height: 16, top: 2, left: notify ? 18 : 2 }} />
+          </button>
+          <span style={{ fontSize: 12, color: notify ? '#efff42' : 'rgba(255,255,255,0.6)', cursor: 'pointer' }} onClick={() => setNotify(v => !v)}>
             Enviar también como notificación push {postCity.trim() ? `(solo ${postCity.trim()}${country.trim() ? `, ${country.trim()}` : ''})` : country.trim() ? `(solo ${country.trim()})` : '(a todos)'}
           </span>
-        </label>
+        </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex gap-2 flex-wrap">
             {LANGS.map(l => (
