@@ -4146,7 +4146,7 @@ export default function Home() {
           onClick={() => setCommunityOpen(true)}
           style={{ position: 'fixed', right: 0, top: '58%', transform: 'translateY(-50%)', zIndex: 65, background: 'rgba(239,255,66,0.22)', border: '1px solid rgba(239,255,66,0.35)', borderRight: 'none', borderRadius: '12px 0 0 12px', padding: '14px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            <path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 0 1-5.8-1.4"/>
           </svg>
         </button>
       )}

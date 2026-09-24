@@ -795,7 +795,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
     const location = [post.city, post.country].filter(Boolean).join(', ')
     const shareText = `${name ? `${name}${location ? ` · ${location}` : ''}\n` : ''}${post.content}\n\n${url}`
     if (navigator.share) {
-      await navigator.share({ title: 'Flashttoo · Comunidad', text: shareText }).catch(() => {})
+      await navigator.share({ title: 'Flashttoo · News', text: shareText }).catch(() => {})
     } else {
       await navigator.clipboard.writeText(shareText).catch(() => {})
     }
@@ -900,7 +900,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 800, color: '#efff42', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-              {t('comunidad', 'header', 'Comunidad')}
+              {t('comunidad', 'header', 'News')}
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
