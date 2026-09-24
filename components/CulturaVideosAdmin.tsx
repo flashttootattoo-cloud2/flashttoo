@@ -41,11 +41,14 @@ function statusLabel(v: CulturaVideo): { label: string; color: string } {
   if (v.archived_at) return { label: 'Archivado', color: '#6b7280' }
   if (!v.active && v.publish_at) return { label: 'Programado', color: '#f59e0b' }
   if (v.active) return { label: 'Activo', color: '#4ade80' }
-  return { label: 'Borrador', color: '#6b7280' }
+  return { label: 'Borrador', color: '#38bdf8' }
 }
+
+type Tab = 'draft' | 'scheduled' | 'active' | 'archived'
 
 export default function CulturaVideosAdmin({ pass }: { pass: string }) {
   const [videos, setVideos]           = useState<CulturaVideo[]>([])
+  const [tab, setTab]                 = useState<Tab>('active')
   const [loading, setLoading]         = useState(true)
   const [formOpen, setFormOpen]       = useState(false)
   const [uploading, setUploading]     = useState(false)
@@ -186,6 +189,7 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
 
       if (r.error) { setError(r.error); return }
 
+      setTab(publishAt ? 'scheduled' : saveAsDraft ? 'draft' : 'active')
       setVideoFile(null); setCoverFile(null); setVideoPreview(null); setCoverPreview(null)
       setInstagram(''); setHasFlashttoo(false); setIgVideoUrl('')
       setDescription(''); setTags(''); setDescEn(''); setTagsEn(''); setDescPt(''); setTagsPt('')
@@ -270,9 +274,17 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
     load()
   }
 
+  const drafts    = videos.filter(v => !v.active && !v.publish_at && !v.archived_at)
   const active    = videos.filter(v => v.active && !v.archived_at)
   const scheduled = videos.filter(v => !v.active && v.publish_at && !v.archived_at)
   const archived  = videos.filter(v => !!v.archived_at)
+  const tabs: { key: Tab; label: string; color: string; list: CulturaVideo[] }[] = [
+    { key: 'draft',     label: 'Borradores', color: '#38bdf8', list: drafts },
+    { key: 'scheduled', label: 'Programados', color: '#f59e0b', list: scheduled },
+    { key: 'active',    label: 'Activos',    color: '#4ade80', list: active },
+    { key: 'archived',  label: 'Archivados', color: '#6b7280', list: archived },
+  ]
+  const visibleVideos = tabs.find(t => t.key === tab)!.list
 
   function fmt(s: number) {
     const m = Math.floor(s / 60), sec = Math.floor(s % 60)
@@ -286,9 +298,6 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: '#efff42' }}>CULTURA VIDEOS</p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-            {active.length} activos · {scheduled.length} programados · {archived.length} archivados
-          </p>
         </div>
         <button
           onClick={() => { setFormOpen(v => !v); setError('') }}
@@ -517,14 +526,32 @@ export default function CulturaVideosAdmin({ pass }: { pass: string }) {
         </div>
       )}
 
+      {/* Pestañas por estado */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {tabs.map(tb => {
+          const on = tab === tb.key
+          return (
+            <button key={tb.key} onClick={() => { setTab(tb.key); cancelEdit() }}
+              style={{ fontSize: 12, fontWeight: 700, padding: '7px 12px', borderRadius: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                background: on ? `${tb.color}22` : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${on ? `${tb.color}77` : 'rgba(255,255,255,0.1)'}`,
+                color: on ? tb.color : 'rgba(255,255,255,0.45)' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: tb.color, flexShrink: 0 }} />
+              {tb.label}
+              <span style={{ fontSize: 11, opacity: 0.8 }}>{tb.list.length}</span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* Lista */}
       {loading ? (
         <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Cargando...</p>
-      ) : videos.length === 0 ? (
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin videos aún</p>
+      ) : visibleVideos.length === 0 ? (
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>No hay videos en esta sección</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {videos.map(v => {
+          {visibleVideos.map(v => {
             const st = statusLabel(v)
             const isEditing = editingId === v.id
             const previewUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/preview/cultura/${v.id}`
