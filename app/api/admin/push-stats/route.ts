@@ -21,7 +21,9 @@ export async function GET(req: NextRequest) {
   let neverConfirmed = 0
 
   for (const r of rows) {
-    if (r.country) byCountry[r.country] = (byCountry[r.country] ?? 0) + 1
+    // "Argentina" y "argentina" cuentan como el mismo país
+    const key = r.country?.trim().toLowerCase()
+    if (key) byCountry[key] = (byCountry[key] ?? 0) + 1
     else withoutCountry++
     if (!r.last_success_at) neverConfirmed++
   }
@@ -30,6 +32,8 @@ export async function GET(req: NextRequest) {
     total: rows.length,
     withoutCountry,
     neverConfirmed,
-    byCountry: Object.entries(byCountry).sort((a, b) => b[1] - a[1]),
+    byCountry: Object.entries(byCountry)
+      .map(([c, n]) => [c.charAt(0).toUpperCase() + c.slice(1), n] as [string, number])
+      .sort((a, b) => b[1] - a[1]),
   })
 }

@@ -5946,6 +5946,7 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [searchPosts, setSearchPosts] = useState<AdminPost[]>([])
   const [clientPosts, setClientPosts] = useState<AdminPost[]>([])
   const [loadingPosts, setLoadingPosts] = useState(true)
+  const [postsTab, setPostsTab] = useState<'mine' | 'search' | 'client' | 'reported'>('mine')
   const [searchLimitDraft, setSearchLimitDraft] = useState('')
   const [savingSearchLimit, setSavingSearchLimit] = useState(false)
   const [artistLimitDraft, setArtistLimitDraft] = useState('')
@@ -5959,14 +5960,6 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [savingTickerMode, setSavingTickerMode] = useState(false)
   const [pushVisible, setPushVisible] = useState(false)
   const [savingPushVisible, setSavingPushVisible] = useState(false)
-  const [closings, setClosings] = useState<{ id: string; label_es: string; label_en: string; label_pt: string; phrase_es: string; phrase_en: string; phrase_pt: string }[]>([])
-  const [newClosingLabelEs, setNewClosingLabelEs] = useState('')
-  const [newClosingLabelEn, setNewClosingLabelEn] = useState('')
-  const [newClosingLabelPt, setNewClosingLabelPt] = useState('')
-  const [newClosingEs, setNewClosingEs] = useState('')
-  const [newClosingEn, setNewClosingEn] = useState('')
-  const [newClosingPt, setNewClosingPt] = useState('')
-  const [savingClosings, setSavingClosings] = useState(false)
 
   const loadPosts = async () => {
     setLoadingPosts(true)
@@ -5992,7 +5985,6 @@ function AdminCommunity({ pass }: { pass: string }) {
         setSearchExpiryDraft(String(d?.settings?.search_wizard_expiry_days ?? '7'))
         setTickerMode(d?.settings?.search_ticker_mode === true)
         setPushVisible(d?.settings?.push_notifications_visible === true)
-        setClosings(Array.isArray(d?.settings?.client_request_closings) ? d.settings.client_request_closings : [])
       })
       .catch(() => {})
     fetch('/api/admin/push-stats', { headers: { 'x-admin-pass': pass } })
@@ -6000,40 +5992,6 @@ function AdminCommunity({ pass }: { pass: string }) {
       .then(d => { if (!d?.error) setPushStats(d) })
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const saveClosings = async (next: { id: string; label_es: string; label_en: string; label_pt: string; phrase_es: string; phrase_en: string; phrase_pt: string }[]) => {
-    setSavingClosings(true)
-    try {
-      await fetch('/api/admin/settings', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-pass': pass },
-        body: JSON.stringify({ key: 'client_request_closings', value: next }),
-      })
-      setClosings(next)
-    } finally { setSavingClosings(false) }
-  }
-
-  const addClosing = () => {
-    if (!newClosingLabelEs.trim() || !newClosingEs.trim()) return
-    // En/pt quedan vacíos de verdad si no se completan — el fallback a español
-    // se resuelve al mostrarlo (según el idioma del que está escribiendo), no
-    // se copia acá, así "opcional" es opcional también en lo que queda guardado.
-    const next = [...closings, {
-      id: crypto.randomUUID(),
-      label_es: newClosingLabelEs.trim(),
-      label_en: newClosingLabelEn.trim(),
-      label_pt: newClosingLabelPt.trim(),
-      phrase_es: newClosingEs.trim(),
-      phrase_en: newClosingEn.trim(),
-      phrase_pt: newClosingPt.trim(),
-    }]
-    saveClosings(next)
-    setNewClosingLabelEs(''); setNewClosingLabelEn(''); setNewClosingLabelPt('')
-    setNewClosingEs(''); setNewClosingEn(''); setNewClosingPt('')
-  }
-
-  const deleteClosing = (id: string) => {
-    saveClosings(closings.filter(c => c.id !== id))
-  }
 
   const toggleTickerMode = async () => {
     const next = !tickerMode
@@ -6153,6 +6111,68 @@ function AdminCommunity({ pass }: { pass: string }) {
   return (
     <div className="flex flex-col gap-6">
 
+      {/* Notificaciones push — estadística rápida */}
+      {pushStats && (
+        <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: 8 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              Notificaciones push
+            </p>
+            <button onClick={togglePushVisible} disabled={savingPushVisible}
+              className="relative rounded-full transition-colors disabled:opacity-50"
+              style={{ width: 32, height: 18, background: pushVisible ? '#efff42' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
+              <span className="absolute rounded-full bg-white transition-transform"
+                style={{ width: 14, height: 14, top: 2, left: pushVisible ? 16 : 2 }} />
+            </button>
+            <span style={{ fontSize: 11, color: pushVisible ? '#efff42' : 'rgba(255,255,255,0.35)' }}>
+              {pushVisible ? 'Visible para todos' : 'Oculto (solo pruebas)'}
+            </span>
+          </div>
+          <div className="flex items-center gap-4 flex-wrap" style={{ marginBottom: pushStats.byCountry.length ? 10 : 0 }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Total: <b style={{ color: '#fff' }}>{pushStats.total}</b></span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Sin país: <b style={{ color: '#fff' }}>{pushStats.withoutCountry}</b></span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Nunca confirmadas: <b style={{ color: '#fff' }}>{pushStats.neverConfirmed}</b></span>
+          </div>
+          {pushStats.byCountry.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {pushStats.byCountry.map(([c, n]) => (
+                <span key={c} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
+                  {c}: <b style={{ color: '#fff' }}>{n}</b>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Límite de mensajes de tatuadores por día — por si empiezan a subir muchas fotos */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Máx. mensajes de tatuadores por día</span>
+        <input type="number" min={0} value={artistLimitDraft} onChange={e => setArtistLimitDraft(e.target.value)}
+          className="w-16 px-2 py-1 rounded-lg text-xs"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+        <button onClick={saveArtistLimit} disabled={savingArtistLimit}
+          className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+          style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
+          {savingArtistLimit ? '...' : 'Guardar'}
+        </button>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0 = sin límite</span>
+      </div>
+
+      {/* Límite de mensajes de estudios por día */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Máx. mensajes de estudios por día</span>
+        <input type="number" min={0} value={studioLimitDraft} onChange={e => setStudioLimitDraft(e.target.value)}
+          className="w-16 px-2 py-1 rounded-lg text-xs"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+        <button onClick={saveStudioLimit} disabled={savingStudioLimit}
+          className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+          style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
+          {savingStudioLimit ? '...' : 'Guardar'}
+        </button>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0 = sin límite</span>
+      </div>
+
       {/* Composer */}
       <div className="rounded-xl p-5 flex flex-col gap-4"
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -6217,24 +6237,24 @@ function AdminCommunity({ pass }: { pass: string }) {
             )}
           </div>
         </div>
+        <input type="url" value={link} onChange={e => setLink(e.target.value)}
+          placeholder="Link opcional (ej. a la publicación de Instagram)"
+          style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
         <div className="flex items-center gap-3 flex-wrap">
-          <input type="url" value={link} onChange={e => setLink(e.target.value)}
-            placeholder="Link opcional (ej. a la publicación de Instagram)"
-            style={{ flex: '1 1 260px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
           <input value={country} onChange={e => setCountry(e.target.value)}
             placeholder="País opcional (ej: Argentina, Chile) — vacío = todos"
             style={{ flex: '1 1 220px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
           <input value={postCity} onChange={e => setPostCity(e.target.value)}
             placeholder="Ciudad opcional (ej: Rosario) — refina el país"
             style={{ flex: '1 1 220px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
-          <div className="flex items-center gap-2">
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Vence el</span>
-            <input type="datetime-local" value={customExpiry} onChange={e => setCustomExpiry(e.target.value)}
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 8px', color: '#fff', fontSize: 12, outline: 'none', colorScheme: 'dark' }} />
-            {customExpiry && (
-              <button onClick={() => setCustomExpiry('')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
-            )}
-          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Vence el</span>
+          <input type="datetime-local" value={customExpiry} onChange={e => setCustomExpiry(e.target.value)}
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 8px', color: '#fff', fontSize: 12, outline: 'none', colorScheme: 'dark' }} />
+          {customExpiry && (
+            <button onClick={() => setCustomExpiry('')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+          )}
           {!customExpiry && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>(default: 7 días)</span>}
         </div>
         <label className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
@@ -6262,276 +6282,199 @@ function AdminCommunity({ pass }: { pass: string }) {
         {result === 'error' && <p style={{ fontSize: 12, color: '#f87171' }}>Error al publicar</p>}
       </div>
 
-      {/* Mis posts */}
-      <div className="flex flex-col gap-3">
-        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Mis publicaciones ({adminPosts.length})</p>
-        {loadingPosts ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Cargando...</p> : adminPosts.length === 0
-          ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin publicaciones aún.</p>
-          : adminPosts.map(p => (
-            <div key={p.id} className="rounded-xl p-4 flex gap-3"
-              style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${p.type === 'news' ? 'rgba(244,114,182,0.15)' : 'rgba(239,255,66,0.1)'}` }}>
-              <div style={{ flex: 1 }}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span style={{ fontSize: 9, fontWeight: 700, color: p.type === 'news' ? '#f472b6' : '#efff42', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.type === 'news' ? 'Info' : 'Oficial'}</span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.lang}</span>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
-                </div>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
-                {p.link && (
-                  <a href={p.link} target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: 11, color: '#38bdf8', textDecoration: 'none' }}>
-                    🔗 {p.link}
-                  </a>
-                )}
-                {p.country && (
-                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>🌍 {p.country}</p>
-                )}
-                {p.expires_at && (
-                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>
-                    Vence: {new Date(p.expires_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                )}
-              </div>
-              <button onClick={() => deletePost(p.id)}
-                style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
-                Borrar
-              </button>
-            </div>
-          ))}
+      {/* Pestañas: separan mis publicaciones, búsquedas, clientes y reportados */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {([
+          { key: 'mine' as const,     label: 'Mis publicaciones', color: '#efff42', n: adminPosts.length },
+          { key: 'search' as const,   label: 'Búsquedas',         color: '#fb923c', n: searchPosts.length },
+          { key: 'client' as const,   label: 'Clientes',          color: '#60a5fa', n: clientPosts.length },
+          { key: 'reported' as const, label: 'Reportados',        color: '#f87171', n: reportedPosts.length },
+        ]).map(tb => {
+          const on = postsTab === tb.key
+          return (
+            <button key={tb.key} onClick={() => setPostsTab(tb.key)}
+              style={{ fontSize: 12, fontWeight: 700, padding: '7px 12px', borderRadius: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                background: on ? `${tb.color}22` : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${on ? `${tb.color}77` : 'rgba(255,255,255,0.1)'}`,
+                color: on ? tb.color : 'rgba(255,255,255,0.45)' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: tb.color, flexShrink: 0 }} />
+              {tb.label}
+              <span style={{ fontSize: 11, opacity: 0.8 }}>{tb.n}</span>
+            </button>
+          )
+        })}
       </div>
+
+      {/* Mis posts */}
+      {postsTab === 'mine' && (
+        <div className="flex flex-col gap-3">
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Mis publicaciones ({adminPosts.length})</p>
+          {loadingPosts ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Cargando...</p> : adminPosts.length === 0
+            ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin publicaciones aún.</p>
+            : adminPosts.map(p => (
+              <div key={p.id} className="rounded-xl p-4 flex gap-3"
+                style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${p.type === 'news' ? 'rgba(244,114,182,0.15)' : 'rgba(239,255,66,0.1)'}` }}>
+                <div style={{ flex: 1 }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span style={{ fontSize: 9, fontWeight: 700, color: p.type === 'news' ? '#f472b6' : '#efff42', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.type === 'news' ? 'Info' : 'Oficial'}</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.lang}</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
+                  {p.link && (
+                    <a href={p.link} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: 11, color: '#38bdf8', textDecoration: 'none' }}>
+                      🔗 {p.link}
+                    </a>
+                  )}
+                  {p.country && (
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>🌍 {p.country}</p>
+                  )}
+                  {p.expires_at && (
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>
+                      Vence: {new Date(p.expires_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => deletePost(p.id)}
+                  style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
+                  Borrar
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
 
       {/* Búsquedas del asistente */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(251,146,60,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>🔍 Búsquedas ({searchPosts.length})</p>
-          <button onClick={loadPosts} style={{ fontSize: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0 }}>↻ actualizar</button>
-          <div className="flex items-center gap-2" style={{ marginLeft: 'auto' }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Máx. por dispositivo/día</span>
-            <input type="number" min={0} value={searchLimitDraft} onChange={e => setSearchLimitDraft(e.target.value)}
-              className="w-16 px-2 py-1 rounded-lg text-xs"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
-            <button onClick={saveSearchLimit} disabled={savingSearchLimit}
-              className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
-              style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.25)' }}>
-              {savingSearchLimit ? '...' : 'Guardar'}
-            </button>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginLeft: 10 }}>Días que permanecen</span>
-            <input type="number" min={1} value={searchExpiryDraft} onChange={e => setSearchExpiryDraft(e.target.value)}
-              className="w-16 px-2 py-1 rounded-lg text-xs"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
-            <button onClick={saveSearchExpiry} disabled={savingSearchExpiry}
-              className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
-              style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.25)' }}>
-              {savingSearchExpiry ? '...' : 'Guardar'}
-            </button>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={toggleTickerMode} disabled={savingTickerMode}
-            className="relative rounded-full transition-colors disabled:opacity-50"
-            style={{ width: 36, height: 20, background: tickerMode ? '#fb923c' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
-            <span className="absolute rounded-full bg-white transition-transform"
-              style={{ width: 16, height: 16, top: 2, left: tickerMode ? 18 : 2 }} />
-          </button>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
-            Ocultar de comunidad — las búsquedas sin texto no aparecen en el feed público (siguen acá, para vos)
-          </span>
-        </div>
-        {loadingPosts ? null : searchPosts.length === 0
-          ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin búsquedas todavía.</p>
-          : (
-            <div className="flex flex-col gap-3" style={{ maxHeight: 480, overflowY: 'auto', paddingRight: 4 }}>
-              {searchPosts.map(p => (
-                <div key={p.id} className="rounded-xl p-4 flex gap-3"
-                  style={{ background: 'rgba(251,146,60,0.04)', border: '1px solid rgba(251,146,60,0.15)' }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.lang}</span>
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
-                      {p.contact && (
-                        <span style={{ fontSize: 10, color: '#38bdf8' }}>· {p.contact_type}: {p.contact}</span>
-                      )}
-                    </div>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
-                  </div>
-                  <button onClick={() => deletePost(p.id)}
-                    style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
-                    Borrar
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-      </div>
-
-      {/* Cierres del pedido de cliente ("Busco tattoo artist...") — se suman a los 4 fijos del código */}
-      <div className="flex flex-col gap-3">
-        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(96,165,250,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Cierres del pedido de cliente</p>
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, margin: 0 }}>
-          Opciones extra para el chip "Cierre" del pedido de cliente en comunidad (además de las 4 fijas). Español es obligatorio; si inglés o portugués quedan vacíos, se muestra el texto en español en su lugar (no se copia, queda vacío de verdad).
-        </p>
-        <div className="flex flex-col gap-2">
-          {closings.map(c => (
-            <div key={c.id} className="rounded-xl p-3 flex items-start gap-3"
-              style={{ background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.15)' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#60a5fa' }}>{c.label_es}{(c.label_en || c.label_pt) && <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}> ({[c.label_en, c.label_pt].filter(Boolean).join(' / ')})</span>}</p>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}><span style={{ color: 'rgba(255,255,255,0.3)' }}>es · </span>{c.phrase_es}</p>
-                <p style={{ fontSize: 12, color: c.phrase_en ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)' }}><span style={{ color: 'rgba(255,255,255,0.3)' }}>en · </span>{c.phrase_en || '(usa español)'}</p>
-                <p style={{ fontSize: 12, color: c.phrase_pt ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)' }}><span style={{ color: 'rgba(255,255,255,0.3)' }}>pt · </span>{c.phrase_pt || '(usa español)'}</p>
-              </div>
-              <button onClick={() => deleteClosing(c.id)} disabled={savingClosings}
-                style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', flexShrink: 0 }}>
-                Borrar
+      {postsTab === 'search' && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(251,146,60,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>🔍 Búsquedas ({searchPosts.length})</p>
+            <button onClick={loadPosts} style={{ fontSize: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0 }}>↻ actualizar</button>
+            <div className="flex items-center gap-2" style={{ marginLeft: 'auto' }}>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Máx. por dispositivo/día</span>
+              <input type="number" min={0} value={searchLimitDraft} onChange={e => setSearchLimitDraft(e.target.value)}
+                className="w-16 px-2 py-1 rounded-lg text-xs"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+              <button onClick={saveSearchLimit} disabled={savingSearchLimit}
+                className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+                style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.25)' }}>
+                {savingSearchLimit ? '...' : 'Guardar'}
+              </button>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginLeft: 10 }}>Días que permanecen</span>
+              <input type="number" min={1} value={searchExpiryDraft} onChange={e => setSearchExpiryDraft(e.target.value)}
+                className="w-16 px-2 py-1 rounded-lg text-xs"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+              <button onClick={saveSearchExpiry} disabled={savingSearchExpiry}
+                className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+                style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.25)' }}>
+                {savingSearchExpiry ? '...' : 'Guardar'}
               </button>
             </div>
-          ))}
-        </div>
-        <div className="flex flex-col gap-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: 10 }}>
-          <div className="flex items-center gap-2 flex-wrap">
-            <input value={newClosingLabelEs} onChange={e => setNewClosingLabelEs(e.target.value)} placeholder="Nombre del chip - ES (ej: Con humor)"
-              style={{ flex: '1 1 160px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
-            <input value={newClosingLabelEn} onChange={e => setNewClosingLabelEn(e.target.value)} placeholder="Nombre - EN (opcional)"
-              style={{ flex: '1 1 140px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
-            <input value={newClosingLabelPt} onChange={e => setNewClosingLabelPt(e.target.value)} placeholder="Nombre - PT (opcional)"
-              style={{ flex: '1 1 140px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
           </div>
-          <input value={newClosingEs} onChange={e => setNewClosingEs(e.target.value)} placeholder="Frase en español"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
-          <input value={newClosingEn} onChange={e => setNewClosingEn(e.target.value)} placeholder="Frase en inglés (opcional)"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
-          <input value={newClosingPt} onChange={e => setNewClosingPt(e.target.value)} placeholder="Frase en portugués (opcional)"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }} />
-          <button onClick={addClosing} disabled={savingClosings || !newClosingLabelEs.trim() || !newClosingEs.trim()}
-            className="text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
-            style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }}>
-            {savingClosings ? '...' : '+ Agregar'}
-          </button>
-        </div>
-      </div>
-
-      {/* Límite de mensajes de tatuadores por día — por si empiezan a subir muchas fotos */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Máx. mensajes de tatuadores por día</span>
-        <input type="number" min={0} value={artistLimitDraft} onChange={e => setArtistLimitDraft(e.target.value)}
-          className="w-16 px-2 py-1 rounded-lg text-xs"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
-        <button onClick={saveArtistLimit} disabled={savingArtistLimit}
-          className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
-          style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
-          {savingArtistLimit ? '...' : 'Guardar'}
-        </button>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0 = sin límite</span>
-      </div>
-
-      {/* Límite de mensajes de estudios por día */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Máx. mensajes de estudios por día</span>
-        <input type="number" min={0} value={studioLimitDraft} onChange={e => setStudioLimitDraft(e.target.value)}
-          className="w-16 px-2 py-1 rounded-lg text-xs"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
-        <button onClick={saveStudioLimit} disabled={savingStudioLimit}
-          className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
-          style={{ background: 'rgba(239,255,66,0.1)', color: '#efff42', border: '1px solid rgba(239,255,66,0.25)' }}>
-          {savingStudioLimit ? '...' : 'Guardar'}
-        </button>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0 = sin límite</span>
-      </div>
-
-      {/* Notificaciones push — estadística rápida */}
-      {pushStats && (
-        <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: 8 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              Notificaciones push
-            </p>
-            <button onClick={togglePushVisible} disabled={savingPushVisible}
+          <div className="flex items-center gap-2">
+            <button onClick={toggleTickerMode} disabled={savingTickerMode}
               className="relative rounded-full transition-colors disabled:opacity-50"
-              style={{ width: 32, height: 18, background: pushVisible ? '#efff42' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
+              style={{ width: 36, height: 20, background: tickerMode ? '#fb923c' : 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
               <span className="absolute rounded-full bg-white transition-transform"
-                style={{ width: 14, height: 14, top: 2, left: pushVisible ? 16 : 2 }} />
+                style={{ width: 16, height: 16, top: 2, left: tickerMode ? 18 : 2 }} />
             </button>
-            <span style={{ fontSize: 11, color: pushVisible ? '#efff42' : 'rgba(255,255,255,0.35)' }}>
-              {pushVisible ? 'Visible para todos' : 'Oculto (solo pruebas)'}
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+              Ocultar de comunidad — las búsquedas sin texto no aparecen en el feed público (siguen acá, para vos)
             </span>
           </div>
-          <div className="flex items-center gap-4 flex-wrap" style={{ marginBottom: pushStats.byCountry.length ? 10 : 0 }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Total: <b style={{ color: '#fff' }}>{pushStats.total}</b></span>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Sin país: <b style={{ color: '#fff' }}>{pushStats.withoutCountry}</b></span>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Nunca confirmadas: <b style={{ color: '#fff' }}>{pushStats.neverConfirmed}</b></span>
-          </div>
-          {pushStats.byCountry.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {pushStats.byCountry.map(([c, n]) => (
-                <span key={c} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
-                  {c}: <b style={{ color: '#fff' }}>{n}</b>
-                </span>
-              ))}
-            </div>
-          )}
+          {loadingPosts ? null : searchPosts.length === 0
+            ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin búsquedas todavía.</p>
+            : (
+              <div className="flex flex-col gap-3" style={{ maxHeight: 480, overflowY: 'auto', paddingRight: 4 }}>
+                {searchPosts.map(p => (
+                  <div key={p.id} className="rounded-xl p-4 flex gap-3"
+                    style={{ background: 'rgba(251,146,60,0.04)', border: '1px solid rgba(251,146,60,0.15)' }}>
+                    <div style={{ flex: 1 }}>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.lang}</span>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
+                        {p.contact && (
+                          <span style={{ fontSize: 10, color: '#38bdf8' }}>· {p.contact_type}: {p.contact}</span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
+                    </div>
+                    <button onClick={() => deletePost(p.id)}
+                      style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
+                      Borrar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
         </div>
       )}
 
       {/* Clientes (no logueados) — para poder borrar pruebas sin tener que reportarlas primero */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(96,165,250,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Clientes ({clientPosts.length})</p>
-          <button onClick={loadPosts} style={{ fontSize: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0 }}>↻ actualizar</button>
-        </div>
-        {loadingPosts ? null : clientPosts.length === 0
-          ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin mensajes todavía.</p>
-          : (
-            <div className="flex flex-col gap-3" style={{ maxHeight: 480, overflowY: 'auto', paddingRight: 4 }}>
-              {clientPosts.map(p => (
-                <div key={p.id} className="rounded-xl p-4 flex gap-3"
-                  style={{ background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.15)' }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{p.client_name ?? '—'}</span>
-                      {(p.city || p.country) && (
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{[p.city, p.country].filter(Boolean).join(', ')}</span>
-                      )}
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
+      {postsTab === 'client' && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(96,165,250,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Clientes ({clientPosts.length})</p>
+            <button onClick={loadPosts} style={{ fontSize: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0 }}>↻ actualizar</button>
+          </div>
+          {loadingPosts ? null : clientPosts.length === 0
+            ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin mensajes todavía.</p>
+            : (
+              <div className="flex flex-col gap-3" style={{ maxHeight: 480, overflowY: 'auto', paddingRight: 4 }}>
+                {clientPosts.map(p => (
+                  <div key={p.id} className="rounded-xl p-4 flex gap-3"
+                    style={{ background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.15)' }}>
+                    <div style={{ flex: 1 }}>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{p.client_name ?? '—'}</span>
+                        {(p.city || p.country) && (
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{[p.city, p.country].filter(Boolean).join(', ')}</span>
+                        )}
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{timeAgoAdmin(p.created_at)}</span>
+                      </div>
+                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
                     </div>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
+                    <button onClick={() => deletePost(p.id)}
+                      style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
+                      Borrar
+                    </button>
                   </div>
-                  <button onClick={() => deletePost(p.id)}
-                    style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
-                    Borrar
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-      </div>
+                ))}
+              </div>
+            )}
+        </div>
+      )}
 
       {/* Reportados */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,80,80,0.6)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Reportados ({reportedPosts.length})</p>
-          <button onClick={loadPosts} style={{ fontSize: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0 }}>↻ actualizar</button>
-        </div>
-        {loadingPosts ? null : reportedPosts.length === 0
-          ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin reportes.</p>
-          : reportedPosts.map(p => (
-            <div key={p.id} className="rounded-xl p-4 flex gap-3"
-              style={{ background: 'rgba(255,80,80,0.04)', border: '1px solid rgba(255,80,80,0.15)' }}>
-              <div style={{ flex: 1 }}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{postName(p)}</span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.type} · {p.lang}</span>
-                  {p.city && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{[p.city, p.country].filter(Boolean).join(', ')}</span>}
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#f87171', marginLeft: 'auto' }}>{p.report_count} reporte{(p.report_count ?? 0) > 1 ? 's' : ''}</span>
+      {postsTab === 'reported' && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,80,80,0.6)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Reportados ({reportedPosts.length})</p>
+            <button onClick={loadPosts} style={{ fontSize: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0 }}>↻ actualizar</button>
+          </div>
+          {loadingPosts ? null : reportedPosts.length === 0
+            ? <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin reportes.</p>
+            : reportedPosts.map(p => (
+              <div key={p.id} className="rounded-xl p-4 flex gap-3"
+                style={{ background: 'rgba(255,80,80,0.04)', border: '1px solid rgba(255,80,80,0.15)' }}>
+                <div style={{ flex: 1 }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{postName(p)}</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.type} · {p.lang}</span>
+                    {p.city && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{[p.city, p.country].filter(Boolean).join(', ')}</span>}
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#f87171', marginLeft: 'auto' }}>{p.report_count} reporte{(p.report_count ?? 0) > 1 ? 's' : ''}</span>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
                 </div>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{p.content}</p>
+                <button onClick={() => deletePost(p.id)}
+                  style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
+                  Borrar
+                </button>
               </div>
-              <button onClick={() => deletePost(p.id)}
-                style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, color: '#f87171', fontSize: 12, padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0 }}>
-                Borrar
-              </button>
-            </div>
-          ))}
-      </div>
+            ))}
+        </div>
+      )}
 
     </div>
   )

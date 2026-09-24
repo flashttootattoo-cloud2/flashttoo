@@ -85,6 +85,16 @@ const REQUEST_TIMINGS = [
   { key: 'nohurry', phraseKey: 'req_timing_nohurry', fallback: 'Sin apuro',   phrase: 'sin apuro' },
 ] as const
 
+// Un link a una página de Flashttoo (o relativo) se abre en la misma pestaña;
+// cualquier otro (ej. Instagram) sigue abriéndose en una pestaña nueva.
+function isFlashttooLink(url: string): boolean {
+  if (url.startsWith('/')) return true
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    return host === 'flashttoo.com' || host.endsWith('.flashttoo.com') || (typeof window !== 'undefined' && host === window.location.hostname)
+  } catch { return false }
+}
+
 // Cierre del mensaje — le da personalidad distinta a cada publicación y de
 // paso invita al tatuador a responder (mismo lugar donde ya puede tocar
 // "me interesa esta pieza")
@@ -1624,6 +1634,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
   const isClient = post.type === 'client'
   const isAdmin  = post.type === 'admin'
   const isNews   = post.type === 'news'
+  const hasViewLink = (isAdmin || isNews) && !!post.link
   const isSearch = post.type === 'search'
   const contact  = contactLabel(post.contact_type, post.contact)
   const [showOffer, setShowOffer] = useState(false)
@@ -1723,11 +1734,14 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
             {post.content}
           </p>
 
+          {/* Con botón "Ver publicación", la foto toma exactamente su ancho: el botón
+              define el ancho del grupo y la foto (width:0 + minWidth:100%) no lo agranda */}
+          <div style={{ display: 'flex', flexDirection: 'column', width: 'fit-content', maxWidth: '100%' }}>
           {post.photo_url && (
             <div onClick={e => { e.stopPropagation(); setPhotoOpen(true) }}
-              style={{ marginTop: 8, display: 'inline-block', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', cursor: 'pointer' }}>
+              style={{ marginTop: 8, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', cursor: 'pointer', ...(hasViewLink ? { display: 'block', width: 0, minWidth: '100%' } : { display: 'inline-block' }) }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={post.photo_url} alt="" style={{ maxWidth: 140, maxHeight: 140, objectFit: 'contain', display: 'block' }} />
+              <img src={post.photo_url} alt="" style={hasViewLink ? { width: '100%', maxHeight: 220, objectFit: 'contain', display: 'block' } : { maxWidth: 140, maxHeight: 140, objectFit: 'contain', display: 'block' }} />
             </div>
           )}
 
@@ -1735,9 +1749,9 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
             <div onClick={() => setPhotoOpen(false)}
               style={{ position: 'fixed', inset: 0, zIndex: 240, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 16px' }}>
               <style>{`@keyframes slideUpModalPost{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
-              <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 420, borderRadius: 24, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.08)', background: '#0a0a0a', animation: 'slideUpModalPost 0.4s cubic-bezier(0.16,1,0.3,1)' }}>
+              <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: 'fit-content', maxWidth: '100%', animation: 'slideUpModalPost 0.4s cubic-bezier(0.16,1,0.3,1)' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={post.photo_url} alt="" style={{ width: '100%', maxHeight: '72vh', display: 'block', objectFit: 'contain', background: '#0a0a0a' }} />
+                <img src={post.photo_url} alt="" style={{ display: 'block', maxWidth: '100%', maxHeight: '80vh', width: 'auto', height: 'auto', borderRadius: 12 }} />
                 <button onClick={() => setPhotoOpen(false)}
                   style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   ×
@@ -1746,12 +1760,13 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
             </div>, document.body
           )}
 
-          {(isAdmin || isNews) && post.link && (
-            <a href={post.link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+          {hasViewLink && (
+            <a href={post.link!} {...(isFlashttooLink(post.link!) ? {} : { target: '_blank', rel: 'noopener noreferrer' })} onClick={e => e.stopPropagation()}
               style={{ marginTop: 8, fontSize: 12, fontWeight: 700, padding: '6px 14px', background: isNews ? 'rgba(244,114,182,0.1)' : 'rgba(56,189,248,0.1)', borderRadius: 20, color: isNews ? '#f472b6' : '#38bdf8', cursor: 'pointer', display: 'flex', width: 'fit-content', alignItems: 'center', gap: 5, textDecoration: 'none' }}>
               🔗 {t('comunidad', 'view_post', 'Ver publicación')}
             </a>
           )}
+          </div>
 
           {isSponsor && post.offer_items && post.offer_items.length > 0 && (
             <div style={{ marginTop: 10 }}>
