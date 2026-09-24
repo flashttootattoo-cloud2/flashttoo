@@ -3822,24 +3822,6 @@ export default function AdminPage() {
               )}
             </div>
 
-            {/* Guía de proveedores */}
-            <div className="rounded-xl p-4 flex items-center justify-between gap-4"
-              style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.15)' }}>
-              <div>
-                <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 2 }}>Guía para Proveedores</p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>flashttoo.com/guia-proveedor</p>
-              </div>
-              <button
-                onClick={() => {
-                  const url = `${window.location.origin}/guia-proveedor`
-                  navigator.clipboard.writeText(url).catch(() => {})
-                }}
-                className="text-xs font-bold px-4 py-2 rounded-lg flex-shrink-0"
-                style={{ background: 'rgba(239,255,66,0.12)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', cursor: 'pointer' }}>
-                Copiar link
-              </button>
-            </div>
-
             {/* Banner toggle */}
             <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <div className="flex items-center justify-between">
@@ -4157,24 +4139,6 @@ export default function AdminPage() {
           // ── CONVENCIONES ─────────────────────────────────────────────────────
           <div className="flex flex-col gap-8">
 
-            {/* Guía de convenciones */}
-            <div className="rounded-xl p-4 flex items-center justify-between gap-4"
-              style={{ background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.15)' }}>
-              <div>
-                <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 2 }}>Guía para Convenciones</p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>flashttoo.com/guia-convencion</p>
-              </div>
-              <button
-                onClick={() => {
-                  const url = `${window.location.origin}/guia-convencion`
-                  navigator.clipboard.writeText(url).catch(() => {})
-                }}
-                className="text-xs font-bold px-4 py-2 rounded-lg flex-shrink-0"
-                style={{ background: 'rgba(239,255,66,0.12)', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', cursor: 'pointer' }}>
-                Copiar link
-              </button>
-            </div>
-
             {/* Formulario nueva convención */}
             <form onSubmit={saveConv} className="rounded-xl p-5 flex flex-col gap-4"
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -4288,28 +4252,6 @@ export default function AdminPage() {
 
           // ── ESTUDIOS ─────────────────────────────────────────────────────────
           <div className="flex flex-col gap-8">
-
-            {/* Link de registro para estudios */}
-            <div className="rounded-xl p-5 flex flex-col gap-3"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <p className="text-xs font-bold" style={{ color: '#efff42', letterSpacing: '0.08em' }}>REGISTRO DE ESTUDIOS</p>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
-                El registro es solo por invitación. Generá un link único de un solo uso para cada estudio que quieras invitar.
-              </p>
-              <button
-                onClick={async () => {
-                  const r = await fetch('/api/admin/studio-invites', { method: 'POST', headers: H(pass) })
-                  const d = await r.json()
-                  if (d.url) {
-                    await navigator.clipboard.writeText(d.url).catch(() => {})
-                    setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000)
-                  }
-                }}
-                className="self-start font-bold text-sm py-2 px-5 rounded-full"
-                style={{ background: keyCopied ? 'rgba(74,222,128,0.15)' : '#efff42', color: keyCopied ? '#4ade80' : '#000', border: keyCopied ? '1px solid rgba(74,222,128,0.4)' : 'none', transition: 'all 0.2s' }}>
-                {keyCopied ? 'Copiado ✓' : 'Generar link'}
-              </button>
-            </div>
 
             {/* Agregar estudio como borrador — genera un link de /reclamar-estudio/[id] */}
             <div className="rounded-xl p-5 flex flex-col gap-3"

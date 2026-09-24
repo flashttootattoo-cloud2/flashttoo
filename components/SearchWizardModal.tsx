@@ -3,13 +3,8 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from '@/contexts/TranslationContext'
 
-type Step = 'country' | 'describe'
-const STEP_ORDER: Step[] = ['country', 'describe']
-
 export const SEARCH_WIZARD_SEEN_KEY = 'flashttoo_search_wizard_seen'
 const DEVICE_ID_KEY = 'flashttoo_device_id'
-
-const IconPin = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-7.1-7-12a7 7 0 0 1 14 0c0 4.9-7 12-7 12z"/><circle cx="12" cy="9" r="2.3"/></svg>
 
 function getDeviceId(): string {
   try {
@@ -93,10 +88,8 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); clearTimeout(retry) }
   }, [])
 
-  const [step, setStep] = useState<Step>('country')
   const [country, setCountry] = useState('')
   const [city, setCity] = useState('')
-  const [describe, setDescribe] = useState('')
   const [style, setStyle] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
@@ -113,29 +106,22 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
       : { bottom: window.innerHeight - rect.top + 4, left }
   }
 
-  const effectiveSteps = STEP_ORDER
-  const stepIdx = effectiveSteps.indexOf(step)
-  const passed = (s: Step) => effectiveSteps.indexOf(s) < stepIdx
   const SEEN_KEY = SEARCH_WIZARD_SEEN_KEY
 
-  const finish = async (skipRest: boolean) => {
+  const finish = async () => {
     setSending(true)
     try {
       const loc = [city, country].filter(Boolean).join(', ')
-      const description = !skipRest ? describe.trim() : ''
-      const st = !skipRest ? style : null
+      const st = style
 
       const extra: string[] = []
       if (st) extra.push(st)
 
       // Sin texto propio no hay nada concreto para que un tatuador se interese en particular
       // (se muestra como notificación general, sin el sistema de "me interesa" — ver
-      // isMinimalSearch en CommunityPanel), pero tamaño/estilo igual valen como dato.
+      // isMinimalSearch en CommunityPanel), pero el estilo igual vale como dato.
       let content: string
-      if (description) {
-        // El textarea tiene margen (250) para que esto nunca se pase de 300 y se corte.
-        content = extra.length > 0 ? `${description} (${extra.join(', ')})` : description
-      } else if (extra.length > 0) {
+      if (extra.length > 0) {
         content = t('buscador', 'msg_detailed', 'Alguien busca {detail} — {loc}').replace('{detail}', extra.join(', ')).replace('{loc}', loc || country)
       } else {
         content = t('buscador', 'msg_basic', 'Alguien buscó tatuadores en {loc}').replace('{loc}', loc || country)
@@ -146,7 +132,7 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
         body: JSON.stringify({
           type: 'search', content, country, city: city || null, lang,
           device_id: getDeviceId(),
-          search_description: description || null,
+          search_description: null,
           search_style: st,
         }),
       }).catch(() => {})
@@ -163,26 +149,11 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
     onClose()
   }
 
-  const goNext = () => {
-    const i = STEP_ORDER.indexOf(step) + 1
-    if (i < STEP_ORDER.length) setStep(STEP_ORDER[i])
-    else finish(false)
-  }
-  const goBack = () => {
-    const i = STEP_ORDER.indexOf(step) - 1
-    if (i >= 0) setStep(STEP_ORDER[i])
-  }
-
   const ctaStyle = (enabled = true): React.CSSProperties => ({
     padding: '6px 14px', borderRadius: 20, border: 'none',
     background: enabled ? '#efff42' : 'rgba(255,255,255,0.08)', color: enabled ? '#000' : 'rgba(255,255,255,0.3)',
     fontSize: 11, fontWeight: 700, cursor: enabled ? 'pointer' : 'default', letterSpacing: '0.02em',
   })
-  const ctaSkipStyle: React.CSSProperties = {
-    padding: '6px 14px', borderRadius: 20, border: 'none',
-    background: 'rgba(56,189,248,0.15)', color: '#38bdf8',
-    fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.02em',
-  }
   const headlineStyle: React.CSSProperties = { fontSize: 17, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em', marginBottom: 12, lineHeight: 1.3 }
   const underlineInputStyle: React.CSSProperties = { background: 'transparent', border: 'none', borderBottom: '1.5px solid rgba(255,255,255,0.18)', borderRadius: 0, padding: '8px 2px', color: '#fff', fontSize: 15, outline: 'none', width: '100%' }
   const profileTagStyle: React.CSSProperties = {
@@ -190,38 +161,17 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
     padding: '3px 8px', borderRadius: 5, background: 'transparent', border: '1px solid rgba(239,255,66,0.3)', color: '#efff42', cursor: 'pointer',
   }
 
-  // ── Filas resumen de lo ya respondido ──
-  type SummaryRow = { key: string; text: string; icon: React.ReactNode; onClick: () => void }
-  const rows: SummaryRow[] = []
-  if (passed('country')) rows.push({ key: 'loc', text: [city, country].filter(Boolean).join(', ') || country, icon: IconPin, onClick: () => setStep('country') })
-
   return (
     <>
-      <style>{`@keyframes dropModalIn{from{opacity:0;transform:translateX(-50%) translateY(-14px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}.ftx-describe::placeholder{color:rgba(255,255,255,0.22)}`}</style>
+      <style>{`@keyframes dropModalIn{from{opacity:0;transform:translateX(-50%) translateY(-14px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`}</style>
       <div onClick={close} style={{ position: 'fixed', left: 0, width: '100%', top: viewport.top, height: viewport.height, zIndex: 209, background: 'transparent' }} />
       <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 1280, top: headerH, maxHeight: Math.max(160, viewport.height - headerH), zIndex: 210, display: 'flex', flexDirection: 'column', borderRadius: '0 0 24px 24px', boxShadow: '0 30px 80px rgba(0,0,0,0.9)', animation: 'dropModalIn 0.5s cubic-bezier(0.22,0.61,0.36,1)', overflow: 'hidden', background: 'rgba(14,14,14,0.85)', backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)', borderLeft: '1px solid rgba(255,255,255,0.12)', borderRight: '1px solid rgba(255,255,255,0.12)', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
         <div style={{ width: '100%', maxWidth: 420, margin: '0 auto', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
 
-        {stepIdx > 0 && (
-          <div style={{ padding: '18px 20px 0' }}>
-            <button onClick={goBack} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', padding: 0 }}>←</button>
-          </div>
-        )}
-
         <div style={{ padding: '14px 24px 28px', display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-          {/* Respuestas ya dadas, colapsadas */}
-          {rows.map(r => (
-            <button key={r.key} onClick={r.onClick}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 11px', borderRadius: 12, background: 'rgba(255,255,255,0.035)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
-              <div style={{ width: 23, height: 23, borderRadius: 7, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(255,255,255,0.4)' }}>{r.icon}</div>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'rgba(255,255,255,0.65)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.text}</span>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>✎</span>
-            </button>
-          ))}
-
-          {step === 'country' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: rows.length ? 6 : 0 }}>
+          {(
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <p style={headlineStyle}>{t('buscador', 'q_country', '¿En qué país estás?')}</p>
               <input autoFocus value={country} onChange={e => setCountry(e.target.value)} placeholder={t('inicio', 'country_placeholder', 'país')}
                 onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
@@ -270,32 +220,8 @@ export default function SearchWizardModal({ allStyles, lang = 'es', onClose, onS
                 {t('buscador', 'subheadline', 'Te mostramos tatuadores según lo que elijas.')}
               </p>
               <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 14, marginTop: 10 }}>
-                <button onClick={goNext} disabled={!country.trim()} style={ctaStyle(!!country.trim())}>
-                  {t('buscador', 'continue', 'Continuar')}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 'describe' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: rows.length ? 6 : 0 }}>
-              <p style={headlineStyle}>{t('buscador', 'q_describe', 'Contanos qué te querés tatuar')}</p>
-              <textarea autoFocus value={describe} onChange={e => setDescribe(e.target.value)} maxLength={250} rows={4}
-                className="ftx-describe"
-                placeholder={t('buscador', 'describe_placeholder', 'ej: quiero una rosa mediana en el antebrazo, a color')}
-                onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 14px', color: '#fff', fontSize: 15, lineHeight: 1.55, outline: 'none', width: '100%', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginTop: 10, marginBottom: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-                {t('buscador', 'describe_community_hint', 'Esto se publica en la comunidad — tatuadores de tu zona lo van a ver y pueden ayudarte.')}
-              </p>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-                <button onClick={() => finish(false)} disabled={sending}
-                  style={describe.trim() ? ctaStyle(!sending) : ctaSkipStyle}>
-                  {sending ? '...' : describe.trim()
-                    ? t('buscador', 'search_cta_send', 'Enviar mensaje y buscar tatuadores')
-                    : t('buscador', 'search_cta_skip', 'Saltear y buscar')}
+                <button onClick={finish} disabled={!country.trim() || sending} style={ctaStyle(!!country.trim() && !sending)}>
+                  {sending ? '...' : t('buscador', 'search_cta', 'Buscar tatuadores')}
                 </button>
               </div>
             </div>
