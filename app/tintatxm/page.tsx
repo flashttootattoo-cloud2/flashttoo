@@ -5939,7 +5939,7 @@ function AdminCommunity({ pass }: { pass: string }) {
   const LANGS = ['es', 'en', 'pt', 'fr', 'de', 'it']
   const [text, setText] = useState('')
   const [lang, setLang] = useState('es')
-  const [kind, setKind] = useState<'admin' | 'news'>('admin')
+  const [kind, setKind] = useState<'admin' | 'news'>('news')
   const [link, setLink] = useState('')
   const [country, setCountry] = useState('')
   const [postCity, setPostCity] = useState('')
