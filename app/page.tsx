@@ -8,6 +8,7 @@ import ArtistAuthModal from '@/components/ArtistAuthModal'
 import SponsorsBannerV2 from '@/components/SponsorsBannerV2'
 import ConventionModal from '@/components/ConventionModal'
 import CulturaVideoModal from '@/components/CulturaVideoModal'
+import { sectionBgStyle, type SectionBgs } from '@/lib/sectionBg'
 import StudioPanel from '@/components/StudioPanel'
 import { INTERVIEW_QUESTIONS } from '@/lib/interview'
 import { useTranslation } from '@/contexts/TranslationContext'
@@ -188,8 +189,12 @@ export default function Home() {
   // Se puede prender/apagar la visibilidad del toggle de notificaciones desde
   // el admin (tintatxm), sin necesitar redeploy — mientras se termina de
   // resolver por qué algunos Android no reciben la notificación
+  const [sectionBgs, setSectionBgs] = useState<SectionBgs>({})
   useEffect(() => {
-    fetch('/api/config').then(r => r.json()).then(d => setPushNotificationsVisible(d?.push_notifications_visible === true)).catch(() => {})
+    fetch('/api/config').then(r => r.json()).then(d => {
+      setPushNotificationsVisible(d?.push_notifications_visible === true)
+      if (d?.section_backgrounds && typeof d.section_backgrounds === 'object') setSectionBgs(d.section_backgrounds)
+    }).catch(() => {})
   }, [])
 
   // Captura el evento de instalación de la PWA (solo Android/Chrome — iOS no
@@ -1550,7 +1555,7 @@ export default function Home() {
 
   return (
     <main
-      style={{ background: '#000', minHeight: '100vh', paddingBottom: 40 }}
+      style={{ background: '#000', minHeight: '100vh', paddingBottom: 40, ...(sectionBgs.home ? { position: 'relative', isolation: 'isolate' } : {}) }}
       onTouchStart={e => {
         if (communityOpen || fullscreenImg) return
         const t = e.touches[0]
@@ -1565,6 +1570,10 @@ export default function Home() {
         if (dx > 60 && dy < 60) setCommunityOpen(true)
       }}
     >
+
+      {sectionBgs.home && (
+        <div aria-hidden style={{ position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none', ...sectionBgStyle(sectionBgs.home, '#000') }} />
+      )}
 
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <header className="ft-topbar sticky top-0 z-30"
@@ -3749,7 +3758,7 @@ export default function Home() {
       )}
 
       {/* ConventionModal desactivado temporalmente */}
-      <SponsorsBannerV2 city={city} country={country} notifCountry={pushCountry} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} onOverlayChange={setInsumoOpen} onOpenSearchWizard={() => setShowSearchWizard(true)} pulseSearchWizard={!searchWizardSeen} />
+      <SponsorsBannerV2 sectionBgs={sectionBgs} city={city} country={country} notifCountry={pushCountry} conventions={conventions} flashDays={flashDays} onOpenStudio={openStudio} showEventsCountryFilter={eventsCountryFilter} showInsumos={showInsumos} onOverlayChange={setInsumoOpen} onOpenSearchWizard={() => setShowSearchWizard(true)} pulseSearchWizard={!searchWizardSeen} />
 
       {/* ── MODAL FRASE ─────────────────────────────────────────── */}
       {phraseOpen && phrase && !!phrase.tags?.length && (

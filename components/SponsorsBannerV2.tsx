@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '@/contexts/TranslationContext'
+import { sectionBgStyle, type SectionBgs } from '@/lib/sectionBg'
 
 type Sponsor = {
   id: string; name: string; logo_url: string; bg_image_url: string | null
@@ -135,7 +136,7 @@ function CulturaVideoPlayer({ src, poster, forceMuted }: { src: string; poster: 
   )
 }
 
-export default function SponsorsBannerV2({ city, country, notifCountry, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false, showInsumos = true, onOverlayChange, onOpenSearchWizard, pulseSearchWizard = false }: { city?: string; country?: string; notifCountry?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean; showInsumos?: boolean; onOverlayChange?: (open: boolean) => void; onOpenSearchWizard?: () => void; pulseSearchWizard?: boolean }) {
+export default function SponsorsBannerV2({ sectionBgs, city, country, notifCountry, conventions = [], flashDays = [], onOpenStudio, showEventsCountryFilter = false, showInsumos = true, onOverlayChange, onOpenSearchWizard, pulseSearchWizard = false }: { sectionBgs?: SectionBgs; city?: string; country?: string; notifCountry?: string; conventions?: Convention[]; flashDays?: FlashDay[]; onOpenStudio?: (slug: string) => void; showEventsCountryFilter?: boolean; showInsumos?: boolean; onOverlayChange?: (open: boolean) => void; onOpenSearchWizard?: () => void; pulseSearchWizard?: boolean }) {
   const { t, language } = useTranslation()
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [bannerGap, setBannerGap] = useState(8)
@@ -608,6 +609,9 @@ export default function SponsorsBannerV2({ city, country, notifCountry, conventi
         transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         overflow: 'hidden',
       }}>
+        {convView && sectionBgs?.events && (
+          <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', ...sectionBgStyle(sectionBgs.events, '#0a0a0a') }} />
+        )}
         {/* Imagen de fondo fija — no se mueve con el scroll */}
         {gridBgImage && !convView && (
           <>
@@ -1259,7 +1263,7 @@ export default function SponsorsBannerV2({ city, country, notifCountry, conventi
       {/* Modal de soporte */}
       {/* Galería overlay */}
       {showGallery && (
-        <div ref={galleryContainerRef} style={{ position: 'fixed', top: 0, bottom: 0, left: 'max(0px, calc(50% - 40rem))', right: 'max(0px, calc(50% - 40rem))', zIndex: 60, background: '#000', overflowY: 'auto', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
+        <div ref={galleryContainerRef} style={{ position: 'fixed', top: 0, bottom: 0, left: 'max(0px, calc(50% - 40rem))', right: 'max(0px, calc(50% - 40rem))', zIndex: 60, ...sectionBgStyle(sectionBgs?.gallery, '#000'), overflowY: 'auto', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {/* Header */}
           <div className="ft-topbar" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(0,0,0,0.92)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1417,7 +1421,7 @@ export default function SponsorsBannerV2({ city, country, notifCountry, conventi
 
       {/* cultura. overlay */}
       {showCultura && (
-        <div style={{ position: 'fixed', top: 0, bottom: 0, left: 'max(0px, calc(50% - 40rem))', right: 'max(0px, calc(50% - 40rem))', zIndex: selectedCulturaVideo ? 95 : 39, background: '#0a0a0a', overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
+        <div style={{ position: 'fixed', top: 0, bottom: 0, left: 'max(0px, calc(50% - 40rem))', right: 'max(0px, calc(50% - 40rem))', zIndex: selectedCulturaVideo ? 95 : 39, ...sectionBgStyle(sectionBgs?.cultura, '#0a0a0a'), overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
           {/* Header */}
           <div className="ft-topbar" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
