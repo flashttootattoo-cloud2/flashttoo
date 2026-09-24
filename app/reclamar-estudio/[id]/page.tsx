@@ -93,7 +93,12 @@ export default function ReclamarEstudio() {
       {loading ? (
         <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.1)', borderTop: '2px solid #efff42', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       ) : notFound || !studio ? (
-        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>Perfil no encontrado</p>
+        <div style={{ width: '100%', maxWidth: 340, textAlign: 'center' }}>
+          <p style={{ color: '#fff', fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Este link ya no está disponible</p>
+          <a href="/" style={{ display: 'inline-block', marginTop: 12, padding: '12px 24px', borderRadius: 12, background: '#efff42', color: '#000', fontWeight: 800, fontSize: 13, textDecoration: 'none' }}>
+            Ir a Flashttoo
+          </a>
+        </div>
       ) : claimed ? (
         <div style={{ width: '100%', maxWidth: 340, textAlign: 'center' }}>
           <p style={{ color: '#fff', fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Este perfil ya fue activado</p>
