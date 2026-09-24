@@ -4144,10 +4144,10 @@ export default function Home() {
       {!communityOpen && !insumoOpen && !showReport && !selectedStudioSlug && (
         <button
           onClick={() => setCommunityOpen(true)}
-          style={{ position: 'fixed', right: 0, top: '58%', transform: 'translateY(-50%)', zIndex: 65, background: 'rgba(239,255,66,0.22)', border: '1px solid rgba(239,255,66,0.35)', borderRight: 'none', borderRadius: '12px 0 0 12px', padding: '14px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 0 1-5.8-1.4"/>
-          </svg>
+          style={{ position: 'fixed', right: 0, top: '58%', transform: 'translateY(-50%)', zIndex: 65, background: '#efff42', border: '1px solid #efff42', borderRight: 'none', borderRadius: '5px 0 0 5px', padding: '12px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+          <span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 12, fontWeight: 800, letterSpacing: '0.26em', textTransform: 'uppercase', color: '#000' }}>
+            {t('comunidad', 'header', 'News')}
+          </span>
         </button>
       )}
 
