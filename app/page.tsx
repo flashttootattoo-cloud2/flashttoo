@@ -1858,8 +1858,8 @@ export default function Home() {
             ) : !loggedStudio && !loggedSponsor ? (
               <button
                 onClick={() => { if (registrationOpen) { setShowAuthModal(true) } else { setShowRegistrationClosed(true) } }}
-                className="text-xs font-bold px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
-                style={{ background: '#efff42', color: '#000' }}>
+                className="transition-opacity hover:opacity-80"
+                style={{ background: '#000', border: '1px solid #efff42', color: '#efff42', borderRadius: 5, padding: '7px 11px', fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
                 {t('inicio', 'add_artist', 'Ingresar')}
               </button>
             ) : null}
