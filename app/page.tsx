@@ -143,6 +143,25 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+// Ícono de "Compartir" de iOS (cuadrado abierto con flecha hacia arriba) — se usa
+// en lugar del emoji ⬆️ dentro de los textos de instrucción para instalar
+function ShareIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ display: 'inline-block', verticalAlign: '-2px', margin: '0 2px' }} aria-hidden="true">
+      <path d="M12 15V3" /><path d="M8 7l4-4 4 4" /><path d="M7 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1" />
+    </svg>
+  )
+}
+
+// Las traducciones traen ⬆️ como marcador — se reemplaza por el ícono real
+function withShareIcon(text: string) {
+  const parts = text.split(/⬆️|⬆/)
+  return parts.map((part, i) => (
+    <React.Fragment key={i}>{part}{i < parts.length - 1 && <ShareIcon />}</React.Fragment>
+  ))
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
@@ -200,10 +219,17 @@ export default function Home() {
 
   // Si ya está instalada (se abrió como app, no como pestaña del navegador),
   // no tiene sentido seguir mostrando la instrucción para instalarla
-  const isStandalone = typeof window !== 'undefined' && (
+  const [justInstalled, setJustInstalled] = useState(false)
+  const isStandalone = justInstalled || (typeof window !== 'undefined' && (
     window.matchMedia?.('(display-mode: standalone)').matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
-  )
+  ))
+
+  // iPhone: Safari solo expone las notificaciones push si la web ya está
+  // instalada en la pantalla de inicio — antes de eso solo se puede explicar
+  // cómo instalarla
+  const pushSupported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
+  const iosNeedsInstall = typeof window !== 'undefined' && isIOS && !isStandalone && !pushSupported
 
   // Trackea instalaciones reales — Android avisa con el evento appinstalled;
   // iOS no tiene ese evento, así que se detecta cuando la app ya se abre en
@@ -307,6 +333,77 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [langOpen])
 
+  // Bloque de notificaciones (toggle + país + ciudad + instalar). Se usa en el
+  // menú de tres puntos y en el panel de comunidad para no registrados — es el
+  // mismo estado, así que cambiar uno cambia el otro.
+  const renderPushSettings = (inMenu: boolean) => iosNeedsInstall ? (
+    <div className="px-4 py-3" style={inMenu ? { borderBottom: '1px solid rgba(255,255,255,0.06)' } : undefined}>
+      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, margin: 0 }}>
+        {withShareIcon(t('inicio', 'push_ios_install_steps', 'Para recibir notificaciones en iPhone, primero instalá la app: tocá Compartir ⬆️ y elegí "Agregar a inicio". Después abrila desde tu pantalla de inicio y activalas acá.'))}
+      </p>
+    </div>
+  ) : (
+    <>
+    <button
+      onClick={togglePush}
+      disabled={pushLoading}
+      className="w-full flex items-center justify-between px-4 py-3 text-sm text-left hover:opacity-80 disabled:opacity-50"
+      style={{ color: 'rgba(255,255,255,0.8)' }}>
+      <span>{t('inicio', 'menu_notifications', 'Notificaciones')}</span>
+      <span className="relative rounded-full transition-colors"
+        style={{ width: 32, height: 18, background: pushEnabled ? '#efff42' : 'rgba(255,100,100,0.5)', flexShrink: 0 }}>
+        <span className="absolute rounded-full bg-white transition-transform"
+          style={{ width: 14, height: 14, top: 2, left: pushEnabled ? 16 : 2 }} />
+      </span>
+    </button>
+    <div className="px-4 pb-3" style={inMenu ? { borderBottom: '1px solid rgba(255,255,255,0.06)' } : undefined}>
+      <div className="flex items-center gap-2">
+        <input
+          value={pushCountry}
+          onChange={e => { setPushCountry(e.target.value); if (e.target.value.trim()) setPushCountryMissing(false) }}
+          onBlur={() => { if (pushEnabled) savePushCountry() }}
+          placeholder={t('inicio', 'push_country_placeholder', 'Tu país')}
+          className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs"
+          style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${pushCountryMissing ? 'rgba(255,100,100,0.5)' : 'rgba(255,255,255,0.12)'}`, color: '#fff', outline: 'none' }} />
+        {savingPushCountry && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>...</span>}
+      </div>
+      <div className="flex items-center gap-2" style={{ marginTop: 6 }}>
+        <input
+          value={pushCity}
+          onChange={e => setPushCity(e.target.value)}
+          onBlur={() => { if (pushEnabled) savePushCountry() }}
+          placeholder={t('inicio', 'push_city_placeholder', 'Tu ciudad')}
+          className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
+      </div>
+      {pushCountryMissing ? (
+        <p style={{ fontSize: 10, color: 'rgba(255,120,120,0.75)', lineHeight: 1.5, marginTop: 6 }}>
+          {t('inicio', 'push_country_required', 'Escribí tu país antes de activar las notificaciones')}
+        </p>
+      ) : (
+        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 6 }}>
+          {t('inicio', 'push_country_note', 'Te avisamos cuando tatuadores de tu país publiquen algo nuevo.')}
+        </p>
+      )}
+      {!isStandalone && (
+        <>
+          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 14 }}>
+            {isIOS
+              ? withShareIcon(t('inicio', 'push_install_note_ios', 'En iPhone: tocá el ícono de Compartir (⬆️) y elegí "Agregar a pantalla de inicio".'))
+              : t('inicio', 'push_install_note', 'En el celular, instalá la app para recibirlas.')}
+          </p>
+          {installPrompt && (
+            <button onClick={installApp}
+              style={{ marginTop: 6, fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(239,255,66,0.35)', background: 'rgba(239,255,66,0.1)', color: '#efff42', cursor: 'pointer' }}>
+              {t('inicio', 'install_app_btn', 'Instalar app')}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+    </>
+  )
+
   const [artists, setArtists]     = useState<Artist[]>([])
   const [ads, setAds]             = useState<Ad[]>([])
   const [allStyles, setAllStyles] = useState<string[]>(DEFAULT_STYLES)
@@ -318,6 +415,14 @@ export default function Home() {
   const stylesRef = useRef<HTMLDivElement>(null)
   const deepLinkHandled = useRef(false)
   const [selected, setSelected]   = useState<Artist | null>(null)
+
+  // Apenas se instala (por cualquier vía) se ocultan los carteles de instalar
+  // en esta misma pestaña, sin esperar a que se recargue
+  useEffect(() => {
+    const onInstalled = () => { setJustInstalled(true); setShowInstallHint(false) }
+    window.addEventListener('appinstalled', onInstalled)
+    return () => window.removeEventListener('appinstalled', onInstalled)
+  }, [])
 
   // Cartel de instalación — recién aparece cuando hay una señal real de
   // interés (abrió un perfil), no apenas entra a la app. Si lo cierran,
@@ -442,6 +547,15 @@ export default function Home() {
   const highlightPostId = typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('post') ?? undefined
     : undefined
+
+  // Igual que con el menú de tres puntos: guarda país/ciudad al cerrar comunidad
+  // (el input desaparece del DOM y el blur no siempre llega a tiempo)
+  const wasCommunityOpenRef = useRef(false)
+  useEffect(() => {
+    if (wasCommunityOpenRef.current && !communityOpen && pushEnabled) savePushCountry()
+    wasCommunityOpenRef.current = communityOpen
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [communityOpen])
 
   // Registra el service worker apenas carga (hace falta antes de poder
   // suscribirse a push) y revisa si ya había una suscripción activa — si la
@@ -1798,66 +1912,8 @@ export default function Home() {
                   )}
                   {/* Notificaciones — visibilidad controlada desde tintatxm (settings
                       push_notifications_visible), sin necesitar redeploy */}
-                  {pushNotificationsVisible && typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && (
-                    <>
-                      <button
-                        onClick={togglePush}
-                        disabled={pushLoading}
-                        className="w-full flex items-center justify-between px-4 py-3 text-sm text-left hover:opacity-80 disabled:opacity-50"
-                        style={{ color: 'rgba(255,255,255,0.8)' }}>
-                        <span>{t('inicio', 'menu_notifications', 'Notificaciones')}</span>
-                        <span className="relative rounded-full transition-colors"
-                          style={{ width: 32, height: 18, background: pushEnabled ? '#efff42' : 'rgba(255,100,100,0.5)', flexShrink: 0 }}>
-                          <span className="absolute rounded-full bg-white transition-transform"
-                            style={{ width: 14, height: 14, top: 2, left: pushEnabled ? 16 : 2 }} />
-                        </span>
-                      </button>
-                      <div className="px-4 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                        <div className="flex items-center gap-2">
-                          <input
-                            value={pushCountry}
-                            onChange={e => { setPushCountry(e.target.value); if (e.target.value.trim()) setPushCountryMissing(false) }}
-                            onBlur={() => { if (pushEnabled) savePushCountry() }}
-                            placeholder={t('inicio', 'push_country_placeholder', 'Tu país')}
-                            className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs"
-                            style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${pushCountryMissing ? 'rgba(255,100,100,0.5)' : 'rgba(255,255,255,0.12)'}`, color: '#fff', outline: 'none' }} />
-                          {savingPushCountry && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>...</span>}
-                        </div>
-                        <div className="flex items-center gap-2" style={{ marginTop: 6 }}>
-                          <input
-                            value={pushCity}
-                            onChange={e => setPushCity(e.target.value)}
-                            onBlur={() => { if (pushEnabled) savePushCountry() }}
-                            placeholder={t('inicio', 'push_city_placeholder', 'Tu ciudad')}
-                            className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs"
-                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', outline: 'none' }} />
-                        </div>
-                        {pushCountryMissing ? (
-                          <p style={{ fontSize: 10, color: 'rgba(255,120,120,0.75)', lineHeight: 1.5, marginTop: 6 }}>
-                            {t('inicio', 'push_country_required', 'Escribí tu país antes de activar las notificaciones')}
-                          </p>
-                        ) : (
-                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 6 }}>
-                            {t('inicio', 'push_country_note', 'Te avisamos cuando tatuadores de tu país publiquen algo nuevo.')}
-                          </p>
-                        )}
-                        {!isStandalone && (
-                          <>
-                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, marginTop: 14 }}>
-                              {isIOS
-                                ? t('inicio', 'push_install_note_ios', 'En iPhone: tocá el ícono de Compartir (⬆️) y elegí "Agregar a pantalla de inicio".')
-                                : t('inicio', 'push_install_note', 'En el celular, instalá la app para recibirlas.')}
-                            </p>
-                            {installPrompt && (
-                              <button onClick={installApp}
-                                style={{ marginTop: 6, fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(239,255,66,0.35)', background: 'rgba(239,255,66,0.1)', color: '#efff42', cursor: 'pointer' }}>
-                                {t('inicio', 'install_app_btn', 'Instalar app')}
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </>
+                  {pushNotificationsVisible && (pushSupported || iosNeedsInstall) && (
+                    renderPushSettings(true)
                   )}
                   {/* Reportar */}
                   <button
@@ -4114,6 +4170,24 @@ export default function Home() {
                 lang={language}
                 highlightPostId={highlightPostId}
                 anonCountry={pushEnabled ? pushCountry : undefined}
+                anonPushBlock={pushNotificationsVisible && (pushSupported || iosNeedsInstall) ? (
+                  <div style={{ borderRadius: 14, border: '1px solid rgba(239,255,66,0.18)', background: 'rgba(239,255,66,0.04)', overflow: 'hidden' }}>
+                    <div style={{ padding: '14px 16px 6px' }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#efff42' }}>
+                        {t('comunidad', 'anon_push_title', 'Novedades de Flashttoo')}
+                      </p>
+                      <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
+                        {t('comunidad', 'anon_push_body', 'Activá las notificaciones y enterate de lo que pasa en tu ciudad: convenciones, novedades y avisos de Flashttoo.')}
+                      </p>
+                      {pushEnabled && pushCountry.trim() && (
+                        <p style={{ margin: '8px 0 0', fontSize: 11, color: '#efff42' }}>
+                          {t('comunidad', 'anon_push_viewing', 'Estás viendo las novedades de {country}').replace('{country}', pushCountry.trim())}
+                        </p>
+                      )}
+                    </div>
+                    {renderPushSettings(false)}
+                  </div>
+                ) : undefined}
                 loggedArtist={loggedArtist ? { id: loggedArtist.id, name: loggedArtist.name, photo_url: loggedArtist.photo_url, slug: loggedArtist.slug, city: loggedArtist.city ?? undefined, country: loggedArtist.country ?? undefined, flashbook_alias: loggedArtist.flashbook_alias, access_token: loggedArtist.access_token, refresh_token: loggedArtist.refresh_token, status: loggedArtist.status } : null}
                 loggedStudio={loggedStudio ? { slug: loggedStudio.slug, name: loggedStudio.name, logo_url: loggedStudio.logo_url, visible: loggedStudio.visible, expires_at: loggedStudio.expires_at ?? null, access_token: loggedStudio.access_token, refresh_token: loggedStudio.refresh_token, city: loggedStudio.city ?? undefined, country: loggedStudio.country ?? undefined } : null}
                 loggedSponsor={loggedSponsor}
@@ -4191,7 +4265,7 @@ export default function Home() {
             </p>
             <p style={{ margin: '3px 0 0', fontSize: 11.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
               {isIOS
-                ? t('inicio', 'install_hint_body_ios', 'Tocá Compartir ⬆️ y elegí "Agregar a inicio" para tenerla como app.')
+                ? withShareIcon(t('inicio', 'install_hint_body_ios', 'Tocá Compartir ⬆️ y elegí "Agregar a inicio" para tenerla como app.'))
                 : t('inicio', 'install_hint_body_android', 'Tenela como app: acceso directo y notificaciones más rápidas.')}
             </p>
             {isAndroid && installPrompt && (

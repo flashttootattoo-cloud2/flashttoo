@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from '@/contexts/TranslationContext'
 
@@ -579,9 +579,10 @@ type Props = {
   lang?: string
   highlightPostId?: string
   anonCountry?: string
+  anonPushBlock?: React.ReactNode
 }
 
-export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onStudioTokenRefreshed, onArtistTokenRefreshed, onClose, lang = 'es', highlightPostId, anonCountry }: Props) {
+export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onStudioTokenRefreshed, onArtistTokenRefreshed, onClose, lang = 'es', highlightPostId, anonCountry, anonPushBlock }: Props) {
   const { t } = useTranslation()
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [loading, setLoading] = useState(true)
@@ -895,7 +896,12 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
         </div>
       </div>
 
-      {/* Composer */}
+      {/* Composer — para no registrados, en su lugar va el bloque de notificaciones/instalación */}
+      {!isLoggedIn && anonPushBlock ? (
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+          {anonPushBlock}
+        </div>
+      ) : (
       <div style={{ padding: composerCollapsed ? '10px 16px' : '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, transition: 'padding 0.35s cubic-bezier(0.22,0.61,0.36,1)' }}>
         {composerCollapsed ? (
           <button key="compact" onClick={expandComposer} className="community-composer-swap"
@@ -1088,6 +1094,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
         </div>
         )}
       </div>
+      )}
 
       {/* Filtro por zona — solo clientes */}
       {!isLoggedIn && (
