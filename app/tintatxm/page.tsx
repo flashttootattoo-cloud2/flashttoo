@@ -5925,6 +5925,14 @@ function AdField({ label, children }: { label: string; children: React.ReactNode
   )
 }
 
+const ADMIN_EMOJIS = [
+  '🔥','✨','⚡','🎉','🎊','📣','📢','🚨','❗','‼️','⭐','🌟','💥','🆕','✅','☑️',
+  '🖤','❤️','💛','💚','💙','💜','🤍','💯','👏','🙌','🙏','💪','👉','👇','👆','👀',
+  '🎨','🖌️','✒️','🖋️','💉','🩸','💀','☠️','🗡️','🐍','🦂','🌹','🌸','🦋','🐉','⚓',
+  '📅','🗓️','⏰','⏳','📍','🌎','🌍','🏠','🏢','🎟️','🎫','🎪','🏆','🥇','🎁','💰',
+  '🇦🇷','🇨🇱','🇺🇾','🇧🇷','🇲🇽','🇨🇴','🇵🇪','🇪🇸','🇺🇸','😀','😄','😎','🤩','😍','🥳','😉',
+]
+
 type AdminPost = { id: string; content: string; lang: string; created_at: string; expires_at?: string; type: string; client_name?: string; artist_name?: string; studio_name?: string; report_count?: number; city?: string; country?: string; search_category?: string | null; search_size?: string | null; search_zones?: string[] | null; search_style?: string | null; contact_type?: string | null; contact?: string | null; link?: string | null }
 
 function AdminCommunity({ pass }: { pass: string }) {
@@ -5946,6 +5954,20 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [searchPosts, setSearchPosts] = useState<AdminPost[]>([])
   const [clientPosts, setClientPosts] = useState<AdminPost[]>([])
   const [loadingPosts, setLoadingPosts] = useState(true)
+  const textRef = useRef<HTMLTextAreaElement>(null)
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const insertEmoji = (emoji: string) => {
+    const el = textRef.current
+    const start = el?.selectionStart ?? text.length
+    const end = el?.selectionEnd ?? text.length
+    const next = text.slice(0, start) + emoji + text.slice(end)
+    if (next.length > 300) return
+    setText(next)
+    setTimeout(() => {
+      el?.focus()
+      el?.setSelectionRange(start + emoji.length, start + emoji.length)
+    }, 0)
+  }
   const [postsTab, setPostsTab] = useState<'mine' | 'search' | 'client' | 'reported'>('mine')
   const [searchLimitDraft, setSearchLimitDraft] = useState('')
   const [savingSearchLimit, setSavingSearchLimit] = useState(false)
@@ -6203,6 +6225,7 @@ function AdminCommunity({ pass }: { pass: string }) {
           </div>
         </div>
         <textarea
+          ref={textRef}
           value={text}
           onChange={e => setText(e.target.value)}
           placeholder="Escribí el mensaje para la comunidad..."
@@ -6210,6 +6233,24 @@ function AdminCommunity({ pass }: { pass: string }) {
           rows={4}
           style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.55 }}
         />
+        <div>
+          <button type="button" onClick={() => setEmojiOpen(v => !v)}
+            style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${emojiOpen ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.12)'}`, background: emojiOpen ? 'rgba(239,255,66,0.1)' : 'transparent', color: emojiOpen ? '#efff42' : 'rgba(255,255,255,0.5)' }}>
+            😊 Emojis {emojiOpen ? '▲' : '▼'}
+          </button>
+          {emojiOpen && (
+            <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 2, padding: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, maxHeight: 180, overflowY: 'auto' }}>
+              {ADMIN_EMOJIS.map(em => (
+                <button key={em} type="button" onMouseDown={e => e.preventDefault()} onClick={() => insertEmoji(em)}
+                  style={{ fontSize: 22, lineHeight: 1, padding: 5, background: 'none', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                  {em}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div>
           <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Foto opcional (ej. flyer de convención)</p>
           <div className="flex items-center gap-3">
