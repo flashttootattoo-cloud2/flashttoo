@@ -611,8 +611,6 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
   const [studioLocation, setStudioLocation] = useState<{ city?: string; country?: string } | null>(null)
   const [artistLocation, setArtistLocation] = useState<{ city?: string; country?: string } | null>(null)
   const [highlightedId, setHighlightedId] = useState<string | undefined>(highlightPostId)
-  const [filterCity, setFilterCity] = useState('')
-  const [filterCountry, setFilterCountry] = useState('')
   const [withFlashbook, setWithFlashbook] = useState(false)
   const [withAvailability, setWithAvailability] = useState(false)
   const [showOfferPicker, setShowOfferPicker] = useState(false)
@@ -639,6 +637,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
     // lo abra y cierre de golpe.
     const maxScroll = el.scrollHeight - el.clientHeight
     if (maxScroll < 80) { setComposerCollapsed(false); return }
+    if (el.scrollTop > 60) setAnonPushOpen(false)
     setComposerCollapsed(prev => {
       if (!prev && el.scrollTop > 60) return true
       if (prev && el.scrollTop < 20) return false
@@ -649,6 +648,13 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
     setComposerCollapsed(false)
     setTimeout(() => textareaRef.current?.focus(), 60)
   }
+
+  // Bloque de notificaciones para no registrados: con país ya cargado y las
+  // notificaciones activas queda en una sola línea (se abre a mano); sin
+  // configurar se muestra completo y se contrae al scrollear, como el composer.
+  const [anonPushOpen, setAnonPushOpen] = useState(false)
+  const anonPushConfigured = !!anonCountry?.trim()
+  const anonPushCollapsed = anonPushConfigured ? !anonPushOpen : composerCollapsed
 
   // Buscar ciudad del artista logueado si no viene en el prop
   useEffect(() => {
@@ -898,8 +904,32 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
 
       {/* Composer — para no registrados, en su lugar va el bloque de notificaciones/instalación */}
       {!isLoggedIn && anonPushBlock ? (
-        <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-          {anonPushBlock}
+        <div style={{ padding: anonPushCollapsed ? '10px 16px' : '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, transition: 'padding 0.35s cubic-bezier(0.22,0.61,0.36,1)' }}>
+          {anonPushCollapsed ? (
+            <button key="anon-compact" className="community-composer-swap"
+              onClick={() => anonPushConfigured ? setAnonPushOpen(true) : setComposerCollapsed(false)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: 'rgba(239,255,66,0.05)', border: '1px solid rgba(239,255,66,0.18)', borderRadius: 20, padding: '6px 12px', cursor: 'pointer', textAlign: 'left' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#efff42" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" />
+              </svg>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {anonPushConfigured
+                  ? t('comunidad', 'anon_push_viewing', 'Estás viendo las novedades de {country}').replace('{country}', anonCountry!.trim())
+                  : t('comunidad', 'anon_push_title', 'Novedades de Flashttoo')}
+              </span>
+              <span style={{ fontSize: 11, color: '#efff42', flexShrink: 0 }}>▼</span>
+            </button>
+          ) : (
+            <div key="anon-full" className="community-composer-swap">
+              {anonPushBlock}
+              {anonPushConfigured && (
+                <button onClick={() => setAnonPushOpen(false)}
+                  style={{ display: 'block', margin: '8px auto 0', background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer' }}>
+                  ▲ {t('comunidad', 'anon_push_collapse', 'Cerrar')}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ) : (
       <div style={{ padding: composerCollapsed ? '10px 16px' : '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, transition: 'padding 0.35s cubic-bezier(0.22,0.61,0.36,1)' }}>
@@ -1096,31 +1126,6 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
       </div>
       )}
 
-      {/* Filtro por zona — solo clientes */}
-      {!isLoggedIn && (
-        <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', gap: 8 }}>
-          <input
-            value={filterCity}
-            onChange={e => setFilterCity(e.target.value)}
-            placeholder={t('comunidad', 'filter_city', 'Filtrar por ciudad...')}
-            style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }}
-          />
-          <input
-            value={filterCountry}
-            onChange={e => setFilterCountry(e.target.value)}
-            placeholder={t('comunidad', 'filter_country', 'País...')}
-            style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '7px 11px', color: '#fff', fontSize: 12, outline: 'none' }}
-          />
-          {(filterCity || filterCountry) && (
-            <button
-              onClick={() => { setFilterCity(''); setFilterCountry('') }}
-              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 16, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>
-              ×
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Feed */}
       <div ref={feedScrollRef} onScroll={handleFeedScroll} style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {loading && (
@@ -1136,24 +1141,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
           </div>
         )}
         {(() => {
-          const fc = filterCity.trim().toLowerCase()
-          const fco = filterCountry.trim().toLowerCase()
-          const filtered = (fc || fco)
-            ? posts.filter(p =>
-                (!fc  || p.city?.toLowerCase().includes(fc)) &&
-                (!fco || p.country?.toLowerCase().includes(fco))
-              )
-            : posts
-          if (!loading && filtered.length === 0 && (fc || fco)) {
-            return (
-              <div style={{ padding: 40, textAlign: 'center' }}>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
-                  {t('comunidad', 'no_posts_zone', 'No hay publicaciones en esa zona aún.')}
-                </p>
-              </div>
-            )
-          }
-          return filtered.map((post: CommunityPost) => {
+          return posts.map((post: CommunityPost) => {
             const viewerCity = (loggedArtist?.city ?? artistLocation?.city ?? loggedStudio?.city ?? studioLocation?.city ?? '').toLowerCase()
             const viewerCountry = (loggedArtist?.country ?? artistLocation?.country ?? loggedStudio?.country ?? studioLocation?.country ?? anonCountry ?? '').toLowerCase()
             // Los avisos globales de Flashttoo (admin/news sin país) también se
