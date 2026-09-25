@@ -7,6 +7,7 @@ type CommunityPost = {
   id: string
   type: 'artist' | 'studio' | 'sponsor' | 'client' | 'admin' | 'search' | 'news'
   content: string
+  mentions?: Record<string, { id: string; name: string }>
   city: string | null
   country: string | null
   photo_url: string | null
@@ -1704,6 +1705,22 @@ function SearchHelpers({ post, loggedArtist, onOpenArtist, compact, onArtistToke
   )
 }
 
+// Las menciones @usuario de un aviso de Flashttoo que coinciden con un tatuador de la app
+// se ven resaltadas y abren su perfil adentro de Flashttoo (sin salir a Instagram)
+function renderWithMentions(content: string, mentions: Record<string, { id: string; name: string }> | undefined, onOpenArtist: (id: string) => void) {
+  if (!mentions || Object.keys(mentions).length === 0) return content
+  return content.split(/(@[A-Za-z0-9._]{1,29}[A-Za-z0-9_])/g).map((part, i) => {
+    const m = part.startsWith('@') ? mentions[part.slice(1).toLowerCase()] : undefined
+    if (!m) return part
+    return (
+      <button key={i} type="button" onClick={e => { e.stopPropagation(); onOpenArtist(m.id) }}
+        style={{ background: 'none', border: 'none', padding: 0, margin: 0, font: 'inherit', color: '#efff42', fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
+        {part}
+      </button>
+    )
+  })
+}
+
 function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, reporterId, nearby, isOwn, highlighted, nowLabel, onDelete, loggedArtist, onArtistTokenRefreshed }: {
   post: CommunityPost
   onShare: (p: CommunityPost) => void
@@ -1824,7 +1841,7 @@ function PostCard({ post, onShare, onOpenArtist, onOpenStudio, onOpenSponsor, on
           )}
 
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-            {post.content}
+            {renderWithMentions(post.content, post.mentions, onOpenArtist)}
           </p>
 
           {/* Con botón "Ver publicación", la foto toma exactamente su ancho: el botón

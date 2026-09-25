@@ -91,6 +91,40 @@ export async function GET(req: NextRequest) {
     await Promise.all(photoUrls.map(url => deleteFile(url).catch(() => {})))
   }
 
+  // Menciones @usuario en avisos de Flashttoo: si el usuario de Instagram
+  // coincide con un tatuador visible de la app, el post lleva su id para que el
+  // feed pueda abrir su perfil adentro de Flashttoo. Si no coincide, queda texto.
+  const mentionRe = /@([A-Za-z0-9._]{1,29}[A-Za-z0-9_])/g
+  const isOfficial = (p: Record<string, unknown>) => p.type === 'admin' || p.type === 'news'
+  const wanted = new Set<string>()
+  for (const p of posts) {
+    if (!isOfficial(p)) continue
+    for (const m of String(p.content ?? '').matchAll(mentionRe)) wanted.add(m[1].toLowerCase())
+  }
+  const found: Record<string, { id: string; name: string }> = {}
+  if (wanted.size > 0) {
+    const handles = [...wanted]
+    // "_" es comodín en ilike, así que la búsqueda puede traer de más: se afina abajo con comparación exacta
+    const { data: artists } = await sb().from('artists').select('id, name, instagram, visible, status')
+      .or(handles.map(h => `instagram.ilike.${h},instagram.ilike.@${h}`).join(','))
+    for (const a of artists ?? []) {
+      if (a.visible === false || a.status === 'pending') continue
+      const key = String(a.instagram ?? '').trim().replace(/^@/, '').toLowerCase()
+      if (wanted.has(key)) found[key] = { id: a.id, name: a.name }
+    }
+  }
+  if (Object.keys(found).length > 0) {
+    posts = posts.map(p => {
+      if (!isOfficial(p)) return p
+      const mentions: Record<string, { id: string; name: string }> = {}
+      for (const m of String(p.content ?? '').matchAll(mentionRe)) {
+        const k = m[1].toLowerCase()
+        if (found[k]) mentions[k] = found[k]
+      }
+      return Object.keys(mentions).length > 0 ? { ...p, mentions } : p
+    })
+  }
+
   return NextResponse.json({ posts, hasMore: posts.length === PAGE })
 }
 
