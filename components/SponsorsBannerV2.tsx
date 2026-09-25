@@ -245,8 +245,12 @@ export default function SponsorsBannerV2({ sectionBgs, city, country, notifCount
   const dragRef       = useRef({ on: false, startX: 0, startPos: 0, moved: false })
   const histDepthRef  = useRef(0)  // cuántos estados pushState tiene el overlay
   const skipPopsRef   = useRef(0)  // popstate a ignorar tras history.go(-n)
-  const photoStackRef    = useRef<GalleryPhoto[]>([])  // historial de fotos visitadas
+  // Historial de fotos visitadas, con el scroll que tenía la grilla "más de este
+  // artista" en el momento de tocar la siguiente — así, al volver atrás, se
+  // restaura justo donde estaba en vez de arrancar siempre desde arriba.
+  const photoStackRef    = useRef<{ photo: GalleryPhoto; scrollTop: number }[]>([])
   const navigatingBackRef = useRef(false)  // evita push en useEffect al volver atrás
+  const pendingScrollRestoreRef = useRef<number | null>(null)
   // Refs espejo para que el handler de popstate siempre lea valores actuales (sin closure obsoleto)
   const selectedPhotoRef        = useRef<GalleryPhoto | null>(null)
   const showGalleryRef          = useRef(false)
@@ -424,8 +428,11 @@ export default function SponsorsBannerV2({ sectionBgs, city, country, notifCount
       if (selectedEventRef.current) { setSelectedEvent(null); return }
       if (selectedPhotoRef.current) {
         const prev = photoStackRef.current.pop()
-        if (prev) navigatingBackRef.current = true  // volver atrás no debe pushear nuevo estado
-        setSelectedPhoto(prev ?? null)
+        if (prev) {
+          navigatingBackRef.current = true  // volver atrás no debe pushear nuevo estado
+          pendingScrollRestoreRef.current = prev.scrollTop
+        }
+        setSelectedPhoto(prev?.photo ?? null)
         return
       }
       if (showGalleryRef.current)          { setShowGallery(false); return }
@@ -487,7 +494,9 @@ export default function SponsorsBannerV2({ sectionBgs, city, country, notifCount
       history.pushState({ sv2: 'gallery-detail' }, '')
       histDepthRef.current++
     }
-    requestAnimationFrame(() => { detailContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' }) })
+    const restoreTop = pendingScrollRestoreRef.current
+    pendingScrollRestoreRef.current = null
+    requestAnimationFrame(() => { detailContainerRef.current?.scrollTo({ top: restoreTop ?? 0, behavior: 'instant' }) })
     const container = detailContainerRef.current
     const sentinel = detailSentinelRef.current
     if (!container || !sentinel) return
@@ -526,7 +535,7 @@ export default function SponsorsBannerV2({ sectionBgs, city, country, notifCount
   const closeDetail = () => history.back()  // consume el estado → popstate → setSelectedId(null)
 
   const navigateToPhoto = (p: GalleryPhoto) => {
-    if (selectedPhoto) photoStackRef.current.push(selectedPhoto)
+    if (selectedPhoto) photoStackRef.current.push({ photo: selectedPhoto, scrollTop: detailContainerRef.current?.scrollTop ?? 0 })
     setSelectedPhoto(p)
   }
 
