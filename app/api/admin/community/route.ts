@@ -112,11 +112,13 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Notificación inmediata (opcional) — no espera al resumen diario, se manda
-  // al toque como parte de esta misma publicación
+  // al toque como parte de esta misma publicación. El link lleva el id del post
+  // para que al entrar desde la notificación el mensaje se resalte y se apague
+  // solo, igual que cuando se abre un mensaje compartido.
   if (notify) {
     sendToSegment(
       { country: countryTrim, city: cityTrim, lang },
-      { title: 'Flashttoo', body: content.trim().slice(0, 140), url: '/?comunidad=1' },
+      { title: 'Flashttoo', body: content.trim().slice(0, 140), url: `/?comunidad=1&post=${data.id}` },
     ).catch(err => console.error('[push] fallo sendToSegment desde admin', err))
   }
 
