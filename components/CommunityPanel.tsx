@@ -590,9 +590,92 @@ type Props = {
   highlightPostId?: string
   anonCountry?: string
   anonPushBlock?: React.ReactNode
+  simpleArtistComposer?: boolean
 }
 
-export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onStudioTokenRefreshed, onArtistTokenRefreshed, onClose, lang = 'es', highlightPostId, anonCountry, anonPushBlock }: Props) {
+// Modo simple del tatuador: un solo botón + para adjuntar flashbook, turnos libres o una foto
+function ArtistPlusMenu({ hasFlashbook, hasSlots, withFlashbook, onFlashbook, withAvailability, onAvailability, photo, onPhoto }: {
+  hasFlashbook: boolean
+  hasSlots: boolean
+  withFlashbook: boolean
+  onFlashbook: (v: boolean) => void
+  withAvailability: boolean
+  onAvailability: (v: boolean) => void
+  photo: File | null
+  onPhoto: (f: File | null) => void
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!photo) { setPhotoUrl(null); return }
+    const url = URL.createObjectURL(photo)
+    setPhotoUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photo])
+
+  const pick = async (file: File) => {
+    setProcessing(true)
+    try { onPhoto(await compressToWebp(file)) } catch { onPhoto(file) } finally { setProcessing(false) }
+  }
+
+  const itemStyle: React.CSSProperties = { display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.8)', fontSize: 13, cursor: 'pointer' }
+  const chipStyle: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, padding: '4px 6px 4px 10px', borderRadius: 20, border: '1px solid rgba(239,255,66,0.4)', background: 'rgba(239,255,66,0.1)', color: '#efff42' }
+  const xStyle: React.CSSProperties = { background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 12, padding: '0 4px', lineHeight: 1 }
+
+  return (
+    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', position: 'relative' }}>
+      <button type="button" onClick={() => setOpen(v => !v)} aria-label={t('comunidad', 'plus_attach', 'Adjuntar')}
+        style={{ width: 30, height: 30, borderRadius: '50%', border: `1px solid ${open ? 'rgba(239,255,66,0.5)' : 'rgba(255,255,255,0.15)'}`, background: open ? 'rgba(239,255,66,0.1)' : 'transparent', color: open ? '#efff42' : 'rgba(255,255,255,0.6)', fontSize: 20, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>
+        {processing ? '…' : '+'}
+      </button>
+
+      {withFlashbook && (
+        <span style={chipStyle}>{t('comunidad', 'plus_flashbook_chip', 'Flashbook')}<button type="button" style={xStyle} onClick={() => onFlashbook(false)}>✕</button></span>
+      )}
+      {withAvailability && (
+        <span style={chipStyle}>{t('comunidad', 'plus_turnos_chip', 'Turnos libres')}<button type="button" style={xStyle} onClick={() => onAvailability(false)}>✕</button></span>
+      )}
+      {photoUrl && (
+        <span style={{ position: 'relative', display: 'inline-block' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photoUrl} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', border: '1px solid rgba(239,255,66,0.4)', display: 'block' }} />
+          <button type="button" onClick={() => onPhoto(null)}
+            style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: '#000', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 10, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        </span>
+      )}
+
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) pick(f) }} />
+
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 19 }} />
+          <div style={{ position: 'absolute', top: 36, left: 0, zIndex: 20, minWidth: 200, background: '#141414', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, boxShadow: '0 16px 40px rgba(0,0,0,0.8)', overflow: 'hidden' }}>
+            {hasFlashbook && (
+              <button type="button" style={itemStyle} onClick={() => { onFlashbook(!withFlashbook); setOpen(false) }}>
+                {withFlashbook ? '✓ ' : ''}{t('comunidad', 'plus_flashbook', 'Adjuntar flashbook')}
+              </button>
+            )}
+            {hasSlots && (
+              <button type="button" style={itemStyle} onClick={() => { onAvailability(!withAvailability); setOpen(false) }}>
+                {withAvailability ? '✓ ' : ''}{t('comunidad', 'plus_turnos', 'Adjuntar turnos libres')}
+              </button>
+            )}
+            <button type="button" style={{ ...itemStyle, borderBottom: 'none' }} onClick={() => { setOpen(false); fileRef.current?.click() }}>
+              {photo ? t('comunidad', 'plus_photo_change', 'Cambiar foto') : t('comunidad', 'plus_photo', 'Adjuntar foto')}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSponsor, onOpenArtist, onOpenStudio, onOpenSponsor, onOpenAvailability, onSponsorTokenRefreshed, onStudioTokenRefreshed, onArtistTokenRefreshed, onClose, lang = 'es', highlightPostId, anonCountry, anonPushBlock, simpleArtistComposer = false }: Props) {
   const { t } = useTranslation()
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [loading, setLoading] = useState(true)
@@ -977,6 +1060,7 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
               <ClientRequestChips value={text} onChange={setText} lang={lang} />
             ) : loggedArtist ? (
               <>
+                {!simpleArtistComposer && (
                 <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 12 }}>
                   <button type="button" onClick={() => setArtistTemplateMode(true)}
                     style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20, border: `1px solid ${artistTemplateMode ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.1)'}`, background: artistTemplateMode ? 'rgba(239,255,66,0.1)' : 'transparent', color: artistTemplateMode ? '#efff42' : 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
@@ -987,7 +1071,8 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
                     {t('comunidad', 'mode_free', 'Texto libre')}
                   </button>
                 </div>
-                {artistTemplateMode ? (
+                )}
+                {artistTemplateMode && !simpleArtistComposer ? (
                   <ArtistTemplateChips value={text} onChange={setText} lang={lang} photo={templatePhoto} onPhotoChange={setTemplatePhoto} onCategoryChange={setTemplateCategory} />
                 ) : (
                   <textarea
@@ -1014,7 +1099,15 @@ export default function CommunityPanel({ loggedArtist, loggedStudio, loggedSpons
                 className="community-textarea"
               />
             )}
-            {loggedArtist && (
+            {loggedArtist && simpleArtistComposer && (
+              <ArtistPlusMenu
+                hasFlashbook={!!loggedArtist.flashbook_alias}
+                hasSlots={loggedHasFutureSlots}
+                withFlashbook={withFlashbook} onFlashbook={setWithFlashbook}
+                withAvailability={withAvailability} onAvailability={setWithAvailability}
+                photo={templatePhoto} onPhoto={setTemplatePhoto} />
+            )}
+            {loggedArtist && !simpleArtistComposer && (
               <div style={{ marginTop: 8, marginBottom: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {loggedArtist.flashbook_alias && !artistTemplateMode && (
                   <button type="button" onClick={() => setWithFlashbook(v => !v)}

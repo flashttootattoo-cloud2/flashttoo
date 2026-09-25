@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function GET() {
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-  const { data } = await sb.from('settings').select('key,value').in('key', ['artist_gallery_enabled', 'events_country_filter', 'registration_open', 'verification_instagram', 'verification_whatsapp', 'show_insumos', 'show_verified_banner', 'show_contact_info', 'maintenance_mode', 'show_click_counters', 'flash_limit'])
+  const { data } = await sb.from('settings').select('key,value').in('key', ['artist_gallery_enabled', 'events_country_filter', 'registration_open', 'verification_instagram', 'verification_whatsapp', 'show_insumos', 'show_verified_banner', 'show_contact_info', 'maintenance_mode', 'show_click_counters', 'flash_limit', 'artist_composer_simple'])
   const map = Object.fromEntries((data || []).map((r: { key: string; value: unknown }) => [r.key, r.value]))
   return NextResponse.json({
     artist_gallery: map.artist_gallery_enabled === true,
@@ -16,6 +16,7 @@ export async function GET() {
     show_contact_info: map.show_contact_info !== false,
     maintenance_mode: map.maintenance_mode === true,
     show_click_counters: map.show_click_counters !== false,
+    artist_composer_simple: map.artist_composer_simple === true,
     flash_limit: typeof map.flash_limit === 'number' ? map.flash_limit : 10,
   })
 }

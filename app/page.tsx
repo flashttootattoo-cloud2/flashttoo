@@ -531,6 +531,7 @@ export default function Home() {
   const [showCount, setShowCount]           = useState(false)
   const [galleryEnabled, setGalleryEnabled] = useState(false)
   const [eventsCountryFilter, setEventsCountryFilter] = useState(false)
+  const [artistComposerSimple, setArtistComposerSimple] = useState(false)
   const [showInsumos, setShowInsumos] = useState(true)
   const [insumoOpen, setInsumoOpen] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
@@ -864,7 +865,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/styles').then(r => r.json()).then(d => { if (d.styles) setAllStyles(d.styles) }).catch(() => {})
-    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_contact_info === false) setShowContactInfo(false); if (d.maintenance_mode === true) setMaintenanceMode(true); if (d.show_click_counters === true) setShowClickCounters(true) }).catch(() => {})
+    fetch('/api/features').then(r => r.json()).then(d => { if (d.artist_gallery === true) setGalleryEnabled(true); if (d.events_country_filter === true) setEventsCountryFilter(true); if (d.artist_composer_simple === true) setArtistComposerSimple(true); if (d.registration_open === false) setRegistrationOpen(false); if (d.show_insumos === false) setShowInsumos(false); if (d.show_contact_info === false) setShowContactInfo(false); if (d.maintenance_mode === true) setMaintenanceMode(true); if (d.show_click_counters === true) setShowClickCounters(true) }).catch(() => {})
     fetch('/api/secret-card').then(r => r.json()).then(d => {
       if (d.card) {
         setSecretCard(d.card)
@@ -4179,6 +4180,7 @@ export default function Home() {
                 lang={language}
                 highlightPostId={highlightPostId}
                 anonCountry={pushEnabled ? pushCountry : undefined}
+                simpleArtistComposer={artistComposerSimple}
                 anonPushBlock={pushNotificationsVisible && (pushSupported || iosNeedsInstall) ? (
                   <div style={{ borderRadius: 14, border: '1px solid rgba(239,255,66,0.18)', background: 'rgba(239,255,66,0.04)', overflow: 'hidden' }}>
                     <div style={{ padding: '14px 16px 6px' }}>

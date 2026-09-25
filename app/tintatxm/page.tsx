@@ -1280,6 +1280,8 @@ export default function AdminPage() {
   const [galleryEnabled, setGalleryEnabled]             = useState(false)
   const [savingGallery, setSavingGallery]               = useState(false)
   const [eventsCountryFilter, setEventsCountryFilter]   = useState(false)
+  const [artistComposerSimple, setArtistComposerSimple] = useState(false)
+  const [savingComposerSimple, setSavingComposerSimple] = useState(false)
   const [savingEventsCountry, setSavingEventsCountry]   = useState(false)
   const [showInsumos, setShowInsumos]                   = useState(true)
   const [savingShowInsumos, setSavingShowInsumos]       = useState(false)
@@ -1660,6 +1662,7 @@ export default function AdminPage() {
         setShowCount(cfg.value.settings?.show_count === true)
         setGalleryEnabled(cfg.value.settings?.artist_gallery_enabled === true)
         setEventsCountryFilter(cfg.value.settings?.events_country_filter === true)
+        setArtistComposerSimple(cfg.value.settings?.artist_composer_simple === true)
         setShowInsumos(cfg.value.settings?.show_insumos !== false)
         setMaintenanceMode(cfg.value.settings?.maintenance_mode === true)
 
@@ -3203,6 +3206,44 @@ export default function AdminPage() {
               </div>
               <p className="text-xs mt-3 font-bold" style={{ color: eventsCountryFilter ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
                 {eventsCountryFilter ? 'Activado — se ve el buscador en Eventos' : 'Desactivado'}
+              </p>
+            </div>
+
+            {/* Escritura simple en News para tatuadores */}
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Escritura simple en News (tatuadores)</p>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                    En lugar de las plantillas rápidas, el tatuador escribe texto libre y tiene un solo botón + para adjuntar su flashbook, sus turnos libres o una foto.
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setSavingComposerSimple(true)
+                    const next = !artistComposerSimple
+                    await fetch('/api/admin/settings', {
+                      method: 'PATCH',
+                      headers: { ...H(pass), 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ key: 'artist_composer_simple', value: next }),
+                    })
+                    setArtistComposerSimple(next)
+                    setSavingComposerSimple(false)
+                  }}
+                  disabled={savingComposerSimple}
+                  className="ml-4 shrink-0 rounded-full transition-all disabled:opacity-50"
+                  style={{ width: 48, height: 28, background: artistComposerSimple ? '#efff42' : 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', top: 4,
+                    left: artistComposerSimple ? 24 : 4,
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: artistComposerSimple ? '#000' : 'rgba(255,255,255,0.4)',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              <p className="text-xs mt-3 font-bold" style={{ color: artistComposerSimple ? '#efff42' : 'rgba(255,255,255,0.2)' }}>
+                {artistComposerSimple ? 'Activado — texto libre y botón +' : 'Desactivado — plantillas rápidas como hoy'}
               </p>
             </div>
 
