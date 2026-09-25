@@ -5913,6 +5913,8 @@ function AdField({ label, children }: { label: string; children: React.ReactNode
   )
 }
 
+const MENTION_RE = /@([A-Za-z0-9._]{1,29}[A-Za-z0-9_])/g
+
 const ADMIN_EMOJIS = [
   '🔥','✨','⚡','🎉','🎊','📣','📢','🚨','❗','‼️','⭐','🌟','💥','🆕','✅','☑️',
   '🖤','❤️','💛','💚','💙','💜','🤍','💯','👏','🙌','🙏','💪','👉','👇','👆','👀',
@@ -5944,6 +5946,25 @@ function AdminCommunity({ pass }: { pass: string }) {
   const [loadingPosts, setLoadingPosts] = useState(true)
   const textRef = useRef<HTMLTextAreaElement>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
+  const mirrorRef = useRef<HTMLDivElement>(null)
+  // Menciones @usuario: true si coincide con un tatuador de la app (se pinta en amarillo)
+  const [mentionOk, setMentionOk] = useState<Record<string, boolean>>({})
+  useEffect(() => {
+    const handles = Array.from(new Set(Array.from(text.matchAll(MENTION_RE)).map(m => m[1].toLowerCase()))).filter(h => !(h in mentionOk))
+    if (handles.length === 0) return
+    const timer = setTimeout(async () => {
+      const r = await fetch(`/api/admin/mention-check?handles=${encodeURIComponent(handles.join(','))}`, { headers: { 'x-admin-pass': pass } }).then(res => res.json()).catch(() => null)
+      if (!r) return
+      const found: string[] = Array.isArray(r.found) ? r.found : []
+      setMentionOk(prev => {
+        const next = { ...prev }
+        for (const h of handles) next[h] = found.includes(h)
+        return next
+      })
+    }, 400)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text])
   const insertEmoji = (emoji: string) => {
     const el = textRef.current
     const start = el?.selectionStart ?? text.length
@@ -6212,15 +6233,32 @@ function AdminCommunity({ pass }: { pass: string }) {
             </p>
           </div>
         </div>
-        <textarea
-          ref={textRef}
-          value={text}
-          onChange={e => setText(e.target.value)}
-          placeholder="Escribí el mensaje para la comunidad..."
-          maxLength={300}
-          rows={4}
-          style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.55 }}
-        />
+        {/* El texto real lo dibuja la capa de arriba (para poder pintar en amarillo las menciones
+            que coinciden con un tatuador); el textarea queda con texto transparente y solo aporta
+            el cursor, la selección y el tipeo. No se usa negrita para que ambos midan lo mismo. */}
+        <div style={{ position: 'relative' }}>
+          <style>{`.ft-mention-ta::placeholder{color:rgba(255,255,255,0.25)}`}</style>
+          <textarea
+            ref={textRef}
+            className="ft-mention-ta"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onScroll={e => { if (mirrorRef.current) mirrorRef.current.scrollTop = e.currentTarget.scrollTop }}
+            placeholder="Escribí el mensaje para la comunidad..."
+            maxLength={300}
+            rows={4}
+            style={{ display: 'block', boxSizing: 'border-box', width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px', color: 'transparent', caretColor: '#fff', fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.55 }}
+          />
+          <div ref={mirrorRef} aria-hidden
+            style={{ position: 'absolute', inset: 0, boxSizing: 'border-box', border: '1px solid transparent', padding: '10px 14px', fontSize: 14, fontFamily: 'inherit', lineHeight: 1.55, color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'hidden', pointerEvents: 'none' }}>
+            {text.split(/(@[A-Za-z0-9._]{1,29}[A-Za-z0-9_])/g).map((part, i) =>
+              part.startsWith('@') && mentionOk[part.slice(1).toLowerCase()]
+                ? <span key={i} style={{ color: '#efff42', background: 'rgba(239,255,66,0.14)', borderRadius: 3 }}>{part}</span>
+                : <span key={i}>{part}</span>
+            )}
+            {'\n'}
+          </div>
+        </div>
         <div>
           <button type="button" onClick={() => setEmojiOpen(v => !v)}
             style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${emojiOpen ? 'rgba(239,255,66,0.4)' : 'rgba(255,255,255,0.12)'}`, background: emojiOpen ? 'rgba(239,255,66,0.1)' : 'transparent', color: emojiOpen ? '#efff42' : 'rgba(255,255,255,0.5)' }}>
